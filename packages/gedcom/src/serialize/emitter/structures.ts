@@ -1197,7 +1197,9 @@ export function emitExtensionList(
   extensions: ExtensionStructure[] | undefined,
 ): void {
   for (const ext of extensions ?? []) {
-    emitExtension(w, version, level, ext);
+    // These are children of a typed extension tag, where standard tags are
+    // permitted; only top-level extensions are restricted to `_TAG` names.
+    emitExtension(w, version, level, ext, false);
   }
 }
 

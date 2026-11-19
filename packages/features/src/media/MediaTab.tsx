@@ -249,11 +249,15 @@ function MediaTabBody({
       }
       throw error;
     }
-    // A refresh may have advanced the baseline while the write was pending;
-    // never replace that newer record with the pre-save snapshot.
+    // The write settled: retire the submission gate and reconcile the latest
+    // observed record, even when a concurrent refresh did not echo the write.
+    submittedRef.current = undefined;
+    submittedDirtyRef.current = undefined;
     if (recordRef.current === recordBeforeSave) {
       baselineRef.current = next;
       savedRef.current = next;
+    } else {
+      savedRef.current = recordRef.current;
     }
   };
 

@@ -36,7 +36,7 @@ describe('extension children of typed structures', () => {
         '1 REPO @R1@',
         '2 _CALLNO Box 7',
         '1 _TCDT 2026-11-19',
-        '2 _DETAIL imported',
+        '2 NOTE imported',
         '0 TRLR',
         '',
       ].join('\n');
@@ -45,22 +45,48 @@ describe('extension children of typed structures', () => {
       expect(out).toContain('1 REPO @R1@');
       expect(out).toContain('2 _CALLNO Box 7');
       expect(out).toContain('1 _TCDT 2026-11-19');
-      expect(out).toContain('2 _DETAIL imported');
-      expect(serialize(parse(out, version), version)).toContain('2 _DETAIL imported');
+      expect(out).toContain('2 NOTE imported');
+      expect(serialize(parse(out, version), version)).toContain('2 NOTE imported');
     }
   });
 
   test('keeps _QUAY children under the source record', () => {
     for (const version of ['551', '70'] as const) {
       const head = version === '551' ? HEAD551 : HEAD70;
-      const text = [...head, '0 @S1@ SOUR', '1 TITL Book', '1 _QUAY 2', '2 _DETAIL eyewitness', '0 TRLR', ''].join(
-        '\n',
-      );
+      const text = [...head, '0 @S1@ SOUR', '1 TITL Book', '1 _QUAY 2', '2 TEXT eyewitness', '0 TRLR', ''].join('\n');
       const dataset = parse(text, version);
       const out = serialize(dataset, version);
       expect(out).toContain('1 _QUAY 2');
-      expect(out).toContain('2 _DETAIL eyewitness');
-      expect(serialize(parse(out, version), version)).toContain('2 _DETAIL eyewitness');
+      expect(out).toContain('2 TEXT eyewitness');
+      expect(serialize(parse(out, version), version)).toContain('2 TEXT eyewitness');
     }
+  });
+});
+
+describe('typed extension fallbacks', () => {
+  test('keeps an unknown certainty value as an extension', () => {
+    const text = [...HEAD551, '0 @S1@ SOUR', '1 TITL Book', '1 _QUAY high', '0 TRLR', ''].join('\n');
+    const dataset = parse(text, '551');
+    const out = serialize(dataset, '551');
+    expect(out).toContain('1 _QUAY high');
+    expect(serialize(parse(out, '551'), '551')).toContain('1 _QUAY high');
+  });
+
+  test('lets a valid REPO pointer follow repository text', () => {
+    const text = [
+      ...HEAD551,
+      '0 @R1@ REPO',
+      '1 NAME Archive',
+      '0 @T1@ _TODO Task',
+      '1 REPO City Archive',
+      '1 REPO @R1@',
+      '0 TRLR',
+      '',
+    ].join('\n');
+    const dataset = parse(text, '551');
+    const task = dataset.records.find((record) => record.tag === '_TODO');
+    expect(task).toMatchObject({ repository: '@R1@' });
+    const out = serialize(dataset, '551');
+    expect(out).toContain('1 REPO @R1@');
   });
 });

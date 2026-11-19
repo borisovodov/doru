@@ -104,6 +104,14 @@ export class PlaceRepo {
   }
 
   /** Every place, ordered by the joined name. */
+  /** Hierarchy rows whose parent is the given place. */
+  listHierarchyLinksByParent(parentId: string): Array<{ id: string; childId: string }> {
+    const rows = this.db
+      .prepare('SELECT id, child_id FROM place_hierarchy WHERE parent_id = ? ORDER BY child_id, id')
+      .all(parentId) as unknown as { id: string; child_id: string }[];
+    return rows.map((row) => ({ id: row.id, childId: row.child_id }));
+  }
+
   listPlaces(): PlaceRecord[] {
     const rows = this.db
       .prepare(`SELECT id, xref, latitude, longitude, verified, form, abbreviation, preposition,

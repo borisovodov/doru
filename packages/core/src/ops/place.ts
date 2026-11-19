@@ -17,7 +17,7 @@ export function addPlaceOp(place: PlaceRecord): Op {
     timestamp: new Date().toISOString(),
     change: { targetType: 'place', targetId: place.id, kind: 'created' },
     apply(ctx) {
-      restorePlace(ctx, place);
+      ctx.repo.insertPlace(place);
     },
     inverse(ctx) {
       ctx.repo.deletePlace(place.id);
@@ -65,7 +65,7 @@ export interface PlaceConsumers {
 
 export function deletePlaceOp(
   place: PlaceRecord,
-  facts: Array<{ before: FactRecord; after: FactRecord; position?: number }>,
+  facts: Array<{ before: FactRecord; after: FactRecord; positions?: number[] }>,
   attachments: AttachmentsSnapshot = emptyAttachments(),
   consumers: PlaceConsumers = {},
   nestedAttachments: NestedAttachments[] = [],
@@ -90,12 +90,11 @@ export function deletePlaceOp(
         return false;
       }
       const places = ctx.repo.listPlaces();
-      const liveHierarchy = new Set([
-        ...(current.hierarchy ?? []).map((link) => link.id),
-        ...places.flatMap((entry) =>
-          (entry.hierarchy ?? []).filter((link) => link.parentId === place.id).map((link) => link.id),
-        ),
-      ]);
+      const liveHierarchyLinks = [
+        ...(current.hierarchy ?? []),
+        ...places.flatMap((entry) => (entry.hierarchy ?? []).filter((link) => link.parentId === place.id)),
+      ];
+      const liveHierarchy = new Set(liveHierarchyLinks.map((link) => link.id));
       const liveNames = new Set(current.names.map((name) => name.id));
       for (const nested of nestedAttachments) {
         if (nested.targetType === 'place_name' && liveNames.has(nested.targetId)) {
@@ -120,6 +119,12 @@ export function deletePlaceOp(
           return false;
         }
       }
+      const livePositions = new Map<string, number[]>();
+      for (const row of ctx.repo.listFactPlaceRows(place.id)) {
+        const positions = livePositions.get(row.factId) ?? [];
+        positions.push(row.position);
+        livePositions.set(row.factId, positions);
+      }
       for (const [factId, captured] of capturedFacts) {
         const fact = ctx.repo.getFact(factId);
         if (fact === undefined) {
@@ -128,8 +133,11 @@ export function deletePlaceOp(
         if ((fact.placeId === place.id) !== (captured.placeId === place.id)) {
           return false;
         }
+        const capturedPositions = facts.find((entry) => entry.before.id === factId)?.positions ?? [];
+        const currentPositions = livePositions.get(factId) ?? [];
         if (
-          (fact.additionalPlaceIds ?? []).includes(place.id) !== (captured.additionalPlaceIds ?? []).includes(place.id)
+          capturedPositions.length !== currentPositions.length ||
+          capturedPositions.some((position, index) => position !== currentPositions[index])
         ) {
           return false;
         }
@@ -167,15 +175,15 @@ export function deletePlaceOp(
       if (capturedEvents.size !== currentEvents.size || [...capturedEvents].some((id) => !currentEvents.has(id))) {
         return false;
       }
-      const capturedHierarchy = new Set([
-        ...(place.hierarchy ?? []).map((link) => link.id),
+      const capturedHierarchyLinks = [
+        ...(place.hierarchy ?? []),
         ...(consumers.childPlaces ?? []).flatMap((child) =>
-          (child.hierarchy ?? []).filter((link) => link.parentId === place.id).map((link) => link.id),
+          (child.hierarchy ?? []).filter((link) => link.parentId === place.id),
         ),
-      ]);
+      ];
       if (
-        capturedHierarchy.size !== liveHierarchy.size ||
-        [...capturedHierarchy].some((id) => !liveHierarchy.has(id))
+        JSON.stringify(capturedHierarchyLinks.map((link) => JSON.stringify(link)).sort()) !==
+        JSON.stringify(liveHierarchyLinks.map((link) => JSON.stringify(link)).sort())
       ) {
         return false;
       }
@@ -191,7 +199,7 @@ export function deletePlaceOp(
       return capturedMedia.size === currentMedia.size && [...capturedMedia].every((id) => currentMedia.has(id));
     },
     inverse(ctx) {
-      ctx.repo.insertPlace(place);
+      restorePlace(ctx, place);
       // Only the hierarchy row whose parent was deleted cascades; restore it
       // by id and leave any later edits to the child place intact. A child
       // deleted by another writer cannot take the row (or its attachments).
@@ -235,11 +243,12 @@ export function deletePlaceOp(
         if (link.before.placeId === place.id && current.placeId === undefined) {
           ctx.repo.setFactPlaceId(link.before.id, place.id);
         }
+        let occurrence = 0;
         for (const [index, placeId] of (link.before.additionalPlaceIds ?? []).entries()) {
           if (placeId === place.id && !(current.additionalPlaceIds ?? []).includes(placeId)) {
-            // Restore at the row's stored position so later deletions that
-            // left gaps do not reshuffle the surviving additional places.
-            ctx.repo.insertFactPlace(link.before.id, placeId, link.position ?? index);
+            const position = link.positions?.[occurrence] ?? index;
+            occurrence += 1;
+            ctx.repo.insertFactPlace(link.before.id, placeId, position);
           }
         }
       }

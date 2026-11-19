@@ -83,6 +83,7 @@ export function addAliasOp(id: string, personId: string, aliasId: string): Op {
     },
     (ctx) => ctx.repo.deleteAlias(id),
     { targetType: 'person', targetId: personId, kind: 'changed' },
+    (ctx) => ctx.repo.getPerson(personId) !== undefined && ctx.repo.getPerson(aliasId) !== undefined,
   );
 }
 
@@ -179,9 +180,20 @@ export function deleteTitleOp(
       }
     },
     { targetType: 'title', targetId: title.id, kind: 'changed' },
-    (ctx) =>
-      ctx.repo.getTitle(title.id) !== undefined &&
-      sameRecord(ctx.repo.getTitle(title.id), title) &&
-      attachmentsMatch(ctx, 'title', title.id, attachments),
+    (ctx) => {
+      if (
+        ctx.repo.getTitle(title.id) === undefined ||
+        !sameRecord(ctx.repo.getTitle(title.id), title) ||
+        !attachmentsMatch(ctx, 'title', title.id, attachments)
+      ) {
+        return false;
+      }
+      const captured = (consumers.sources ?? []).map((source) => source.id).sort();
+      const live = ctx.repo
+        .listSourcesForTitle(title.id)
+        .map((source) => source.id)
+        .sort();
+      return JSON.stringify(captured) === JSON.stringify(live);
+    },
   );
 }

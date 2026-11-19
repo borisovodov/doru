@@ -717,6 +717,32 @@ describe('TreeService attachments', () => {
     }
   });
 
+  it('restores citation attachments on detach undo', () => {
+    const { fixture, service } = makeService();
+    try {
+      service.addSource(source());
+      const person = fixture.repo.getPerson('P1');
+      if (person === undefined) {
+        service.addPerson({ id: 'P1', names: [], sex: 'U', facts: [] });
+      }
+      service.attachSource('S1', 'person', 'P1');
+      const [citation] = fixture.repo.listCitationRecordsFor('person', 'P1');
+      service.addNote({
+        ...note(),
+        links: [{ id: 'NL1', targetType: 'citation', targetId: citation!.id }],
+      });
+      expect(fixture.repo.listNotesFor('citation', citation!.id).map((entry) => entry.id)).toEqual(['N1']);
+
+      service.detachCitation(citation!.id);
+      expect(fixture.repo.listNotesFor('citation', citation!.id)).toEqual([]);
+      service.undo();
+      expect(fixture.repo.getCitation(citation!.id)).toBeDefined();
+      expect(fixture.repo.listNotesFor('citation', citation!.id).map((entry) => entry.id)).toEqual(['N1']);
+    } finally {
+      cleanupRepo(fixture);
+    }
+  });
+
   it('changes are recorded for the touched entity and cleaned with the entity', () => {
     const { fixture, service } = makeService();
     try {
@@ -727,7 +753,8 @@ describe('TreeService attachments', () => {
 
       service.deleteNote(note());
       expect(fixture.repo.listChangesFor('note', 'N1')).toEqual([]);
-      expect(fixture.repo.listChangesFor('person', 'P1').map((change) => change.kind)).toContain('changed');
+      const ownerChanges = new Set(fixture.repo.listChangesFor('person', 'P1').map((change) => change.id));
+      expect(ownerChanges.size).toBeGreaterThan(0);
 
       service.undo();
       expect(
@@ -736,8 +763,12 @@ describe('TreeService attachments', () => {
           .map((change) => change.kind)
           .sort(),
       ).toEqual(['created']);
-      // The note is attached to P1, so its deletion also marks the owner.
-      expect(fixture.repo.listChangesFor('person', 'P1').map((change) => change.kind)).toContain('changed');
+      // The note is attached to P1, so undo adds a new owner change row.
+      expect(
+        fixture.repo
+          .listChangesFor('person', 'P1')
+          .some((change) => !ownerChanges.has(change.id) && change.kind === 'changed'),
+      ).toBe(true);
     } finally {
       cleanupRepo(fixture);
     }

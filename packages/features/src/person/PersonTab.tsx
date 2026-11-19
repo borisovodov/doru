@@ -114,12 +114,6 @@ function PersonTabBody({
     }
     const previous = personRef.current;
     personRef.current = person;
-    if (
-      committedRef.current !== undefined &&
-      JSON.stringify(personToDraft(person)) === JSON.stringify(personToDraft(committedRef.current))
-    ) {
-      committedRef.current = undefined;
-    }
     const submittedRecord = submittedRecordRef.current;
     const confirms =
       submittedRecord !== undefined &&
@@ -128,6 +122,11 @@ function PersonTabBody({
     if (confirms) {
       submittedRef.current = undefined;
       submittedRecordRef.current = undefined;
+      committedRef.current = undefined;
+    } else {
+      // A newer authoritative snapshot replaces the fallback: later saves
+      // must use the stored value, not the last write's memory.
+      committedRef.current = person;
     }
     setDraft((current) => {
       if (current.isNew || previous === undefined) {
@@ -159,6 +158,9 @@ function PersonTabBody({
       committedRef.current = next;
       submittedRecordRef.current = next;
     } catch (error) {
+      // Retry from the latest published snapshot rather than reusing a
+      // baseline whose facts another writer may have deleted.
+      committedRef.current = undefined;
       if (submittedRef.current === submission) {
         submittedRef.current = undefined;
         submittedRecordRef.current = undefined;

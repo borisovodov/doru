@@ -89,33 +89,55 @@ export function deleteFamilyOp(
           return false;
         }
       }
+      const liveAssociations = ctx.repo.listAssociationsForFamily(family.id);
+      const liveAssociationById = new Map(liveAssociations.map((association) => [association.id, association]));
       for (const nested of nestedAttachments) {
-        if (
-          attachmentTargetExists(ctx, nested.targetType, nested.targetId) &&
-          !attachmentsMatch(ctx, nested.targetType, nested.targetId, nested.attachments)
-        ) {
+        const exists =
+          nested.targetType === 'fact'
+            ? ctx.repo.getFact(nested.targetId) !== undefined
+            : nested.targetType === 'association'
+              ? liveAssociationById.has(nested.targetId)
+              : attachmentTargetExists(ctx, nested.targetType, nested.targetId);
+        if (exists && !attachmentsMatch(ctx, nested.targetType, nested.targetId, nested.attachments)) {
           return false;
         }
       }
-      const owned = new Set(facts.map((fact) => fact.id));
+      const capturedFactById = new Map(facts.map((fact) => [fact.id, fact]));
       for (const fact of ctx.repo.listFactsForFamily(family.id)) {
-        if (!owned.has(fact.id)) {
+        const captured = capturedFactById.get(fact.id);
+        if (captured === undefined || !sameRecord(captured, fact)) {
           return false;
         }
+        capturedFactById.delete(fact.id);
       }
-      const known = new Set([...owned, ...linkedFacts.map((fact) => fact.id)]);
+      if (capturedFactById.size > 0) {
+        return false;
+      }
+      const capturedLinked = new Map(linkedFacts.map((fact) => [fact.id, fact]));
       for (const fact of ctx.repo.listFactsLinkedToFamily(family.id)) {
-        if (!known.has(fact.id)) {
+        const captured = capturedLinked.get(fact.id);
+        if (captured === undefined) {
           return false;
         }
-      }
-      const capturedAssociations = new Set(associations.map((association) => association.id));
-      for (const association of ctx.repo.listAssociationsForFamily(family.id)) {
-        if (!capturedAssociations.has(association.id)) {
+        const wanted = (captured.familyLinks ?? []).filter((link) => link.familyId === family.id);
+        const live = (fact.familyLinks ?? []).filter((link) => link.familyId === family.id);
+        if (!sameRecord(wanted, live)) {
           return false;
         }
+        capturedLinked.delete(fact.id);
       }
-      return true;
+      if (capturedLinked.size > 0) {
+        return false;
+      }
+      const capturedAssociations = new Map(associations.map((association) => [association.id, association]));
+      for (const association of liveAssociations) {
+        const captured = capturedAssociations.get(association.id);
+        if (captured === undefined || !sameRecord(captured, association)) {
+          return false;
+        }
+        capturedAssociations.delete(association.id);
+      }
+      return capturedAssociations.size === 0;
     },
     inverse(ctx) {
       restoreFamily(ctx, family);
@@ -150,8 +172,16 @@ export function deleteFamilyOp(
         }
       }
       ctx.repo.restoreAttachments(attachments);
+      const restoredFamily = ctx.repo.getFamily(family.id);
+      const restoredLinkIds = new Set([
+        ...(restoredFamily?.partnerLinks ?? []).map((link) => link.id),
+        ...(restoredFamily?.childLinks ?? []).map((link) => link.id),
+        ...(restoredFamily?.marriageStatuses ?? []).map((status) => status.id),
+      ]);
       for (const link of linkAttachments) {
-        ctx.repo.restoreAttachments(link.attachments);
+        if (restoredLinkIds.has(link.targetId)) {
+          ctx.repo.restoreAttachments(link.attachments);
+        }
       }
       for (const nested of nestedAttachments) {
         if (nested.targetType === 'association' && !restoredAssociations.has(nested.targetId)) {

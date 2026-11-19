@@ -99,9 +99,11 @@ export function parseTodoRecord(node: RawNode, ctx: Ctx): TodoRecord {
           addExtension(out, child, ctx);
           return;
         }
-        out.repository = reqPtr(child, ctx);
-        if (child.children.length > 0) {
-          out.repositoryExtensions = child.children.map((grandchild) => parseExtension(grandchild, ctx));
+        if (out.repository === undefined) {
+          out.repository = reqPtr(child, ctx);
+          if (child.children.length > 0) {
+            out.repositoryExtensions = child.children.map((grandchild) => parseExtension(grandchild, ctx));
+          }
         }
       },
       CHAN: (child) => {
@@ -111,21 +113,7 @@ export function parseTodoRecord(node: RawNode, ctx: Ctx): TodoRecord {
       },
     },
     ctx,
-    [
-      '_TDSC',
-      '_TTIL',
-      '_TSTS',
-      '_TPTY',
-      '_TSDT',
-      '_TCDT',
-      '_TRDT',
-      '_CAT',
-      '_CDATE',
-      '_LOCL',
-      '_RDATE',
-      'REPO',
-      'CHAN',
-    ],
+    ['_TDSC', '_TTIL', '_TSTS', '_TPTY', '_TSDT', '_TCDT', '_TRDT', '_CAT', '_CDATE', '_LOCL', '_RDATE', 'CHAN'],
   );
   if (out.payload === '') {
     fail(
@@ -200,9 +188,11 @@ export function parseTodoStructure(node: RawNode, ctx: Ctx): TodoStructure {
       REPO: (child) => {
         // GEDCOM-L E1: a pointer to a repository record (see
         // TodoStructure.repository).
-        out.repository = reqPtr(child, ctx);
-        if (child.children.length > 0) {
-          out.repositoryExtensions = child.children.map((grandchild) => parseExtension(grandchild, ctx));
+        if (out.repository === undefined) {
+          out.repository = reqPtr(child, ctx);
+          if (child.children.length > 0) {
+            out.repositoryExtensions = child.children.map((grandchild) => parseExtension(grandchild, ctx));
+          }
         }
       },
       _UID: (child) => {
@@ -215,7 +205,7 @@ export function parseTodoStructure(node: RawNode, ctx: Ctx): TodoStructure {
       },
     },
     ctx,
-    ['DESC', '_CAT', '_LOCL', 'PRTY', '_PRTY', 'TYPE', 'STAT', 'DATE', 'DATA', '_CDATE', '_RDATE', '_TCDT', 'REPO'],
+    ['DESC', '_CAT', '_LOCL', 'PRTY', '_PRTY', 'TYPE', 'STAT', 'DATE', 'DATA', '_CDATE', '_RDATE', '_TCDT'],
   );
   return out;
 }

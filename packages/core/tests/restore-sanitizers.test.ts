@@ -119,6 +119,7 @@ describe('undo restore sanitizers', () => {
         children: [],
         marriageStatuses: [{ id: 'MS1', status: 'married', placeId: 'missing' }],
       });
+      expect(repo.getFamily('F1')?.marriageStatuses?.[0]?.id).toBe('MS1');
       expect(repo.getFamily('F1')?.marriageStatuses?.[0]?.placeId).toBeUndefined();
 
       restoreMedia(ctx, { id: 'M1', title: 'Photo', place: 'Moscow', placeId: 'missing' });
@@ -134,6 +135,7 @@ describe('undo restore sanitizers', () => {
       });
       const source = repo.getSource('S1')!;
       expect(source.titleId).toBeUndefined();
+      expect(source.dataEvents?.[0]?.id).toBe('SE1');
       expect(source.dataEvents?.[0]?.placeId).toBeUndefined();
       expect(source.repositories).toBeUndefined();
     } finally {
@@ -184,6 +186,7 @@ describe('undo restore sanitizers', () => {
       expect(repo.getTitle('TI1')?.repositoryId).toBe('R1');
       expect(repo.getTitle('TI2')?.repositoryId).toBeUndefined();
 
+      repo.insertPerson({ id: 'P1', names: [], sex: 'U', facts: [] });
       repo.insertTag({ id: 'TAG1', name: 'Family' });
       expect(restoreTagLink(ctx, { id: 'TL1', tagId: 'TAG1', targetType: 'person', targetId: 'P1' })).toBe(true);
       expect(restoreTagLink(ctx, { id: 'TL2', tagId: 'missing', targetType: 'person', targetId: 'P1' })).toBe(false);

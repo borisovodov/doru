@@ -273,8 +273,24 @@ export function attachmentsMatch(
   targetId: string,
   captured: AttachmentsSnapshot,
 ): boolean {
-  const signature = (snapshot: AttachmentsSnapshot): string =>
-    JSON.stringify({
+  const signature = (snapshot: AttachmentsSnapshot, seen: Set<string>): string => {
+    const nested = [
+      ...snapshot.noteAttachments,
+      ...snapshot.citationAttachments,
+      ...snapshot.mediaAttachments,
+      ...snapshot.mediaFileAttachments,
+      ...snapshot.mediaLinkAttachments,
+      ...snapshot.todoAttachments,
+    ].map((entry) => {
+      const key = `${entry.targetType}\u0000${entry.targetId}`;
+      if (seen.has(key)) {
+        return [entry.targetType, entry.targetId, 'cycle'];
+      }
+      const next = new Set(seen);
+      next.add(key);
+      return [entry.targetType, entry.targetId, signature(entry.attachments, next)];
+    });
+    return JSON.stringify({
       noteLinks: snapshot.noteLinks
         .map((entry) => [
           entry.link.id,
@@ -287,15 +303,8 @@ export function attachmentsMatch(
       citations: snapshot.citations.map((entry) => JSON.stringify(entry)).sort(),
       mediaLinks: snapshot.mediaLinks
         .map((entry) => [
-          entry.link.id,
-          entry.media.id,
-          entry.media.title ?? null,
-          entry.media.date ?? null,
-          entry.media.place ?? null,
-          entry.media.placeId ?? null,
-          entry.media.objectType ?? null,
-          entry.media.description ?? null,
-          entry.media.keywords ?? null,
+          JSON.stringify(entry.link),
+          JSON.stringify({ ...entry.media, links: undefined, files: undefined }),
         ])
         .sort(),
       identifiers: snapshot.identifiers.map((entry) => JSON.stringify(entry)).sort(),
@@ -304,8 +313,13 @@ export function attachmentsMatch(
       tagLinks: snapshot.tagLinks.map((entry) => JSON.stringify(entry.link)).sort(),
       todos: snapshot.todos.map((entry) => JSON.stringify(entry)).sort(),
       recordSubmitters: snapshot.recordSubmitters.map((entry) => JSON.stringify(entry)).sort(),
+      nested,
     });
-  return signature(ctx.repo.listAttachmentsFor(targetType, targetId)) === signature(captured);
+  };
+  const key = `${targetType}\u0000${targetId}`;
+  return (
+    signature(ctx.repo.listAttachmentsFor(targetType, targetId), new Set([key])) === signature(captured, new Set([key]))
+  );
 }
 
 /** True when the stored row still equals the record captured before its delete. */

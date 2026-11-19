@@ -605,7 +605,8 @@ function importPerson(record: GedcomIndividualRecord, ctx: ImportContext): void 
   const famsDates = new Map<string, DateStructure | undefined>();
   const famsNotes = new Map<string, NoteStructure[] | undefined>();
   for (const link of record.spouseFamilies ?? []) {
-    if (!famsDates.has(link.family)) {
+    const known = famsDates.get(link.family);
+    if (!famsDates.has(link.family) || (known === undefined && link.date !== undefined)) {
       famsDates.set(link.family, link.date);
     }
     if (link.notes !== undefined && link.notes.length > 0) {
@@ -1114,10 +1115,13 @@ function importFamily(record: GedcomFamilyRecord, ctx: ImportContext): void {
     partnerLinks.push(partnerLink);
     importNotes(notes, 'family_partner', partnerLink.id, ctx);
   }
-  if (record.xref !== undefined && record.husband === undefined && record.wife !== undefined) {
+  const husbandResolved = record.husband !== undefined && ctx.personIds.get(record.husband.partner) !== undefined;
+  const wifeResolved = record.wife !== undefined && ctx.personIds.get(record.wife.partner) !== undefined;
+  if (record.xref !== undefined && !husbandResolved && wifeResolved) {
     ctx.singleWifeFamilies.add(record.xref);
   }
   const childLinks: FamilyChildLink[] = [];
+  const childLinkByPerson = new Map<string, FamilyChildLink>();
   for (const link of record.children ?? []) {
     const personId = ctx.personIds.get(link.child);
     if (personId === undefined) {
@@ -1126,9 +1130,14 @@ function importFamily(record: GedcomFamilyRecord, ctx: ImportContext): void {
     if (record.xref !== undefined) {
       ctx.linkedChildPairs.add(`${link.child}\u0000${record.xref}`);
     }
+    if (childLinkByPerson.has(personId)) {
+      // The schema keeps one link per child; repeated CHIL rows add their
+      // notes to that link (handled below) rather than a second link.
+      continue;
+    }
     const pedigree = link.pedigrees?.[0]?.pedigree;
     const details = ctx.childLinkDetails.get(link.child)?.get(record.xref ?? '');
-    childLinks.push({
+    const childLink: FamilyChildLink = {
       id: crypto.randomUUID(),
       childId: personId,
       pedigree: pedigree?.payload.toLowerCase() ?? details?.pedigree,
@@ -1139,7 +1148,9 @@ function importFamily(record: GedcomFamilyRecord, ctx: ImportContext): void {
       motherRelation: link.motherRelation ?? details?.motherRelation,
       preferred: link.preferred,
       multiplicity: link.multiplicity,
-    });
+    };
+    childLinks.push(childLink);
+    childLinkByPerson.set(personId, childLink);
   }
   const marriageStatuses = (record.marriageStatuses ?? []).map((status) => ({
     mapped: {
@@ -1170,20 +1181,23 @@ function importFamily(record: GedcomFamilyRecord, ctx: ImportContext): void {
     importNotes(entry.source.notes, 'family_marriage_status', entry.mapped.id, ctx);
     importCitations(entry.source.citations, 'family_marriage_status', entry.mapped.id, ctx);
   }
-  const childRowsByPerson = new Map<string, { xref: string; notes: NoteStructure[] | undefined }>();
+  const childRowsByPerson = new Map<string, Array<{ xref: string; notes: NoteStructure[] | undefined }>>();
   for (const child of record.children ?? []) {
     const personId = ctx.personIds.get(child.child);
     if (personId !== undefined) {
-      childRowsByPerson.set(personId, { xref: child.child, notes: child.notes });
+      const rows = childRowsByPerson.get(personId) ?? [];
+      rows.push({ xref: child.child, notes: child.notes });
+      childRowsByPerson.set(personId, rows);
     }
   }
   for (const link of childLinks) {
-    const childRow = childRowsByPerson.get(link.childId);
-    const personNotes =
-      childRow !== undefined ? ctx.childLinkDetails.get(childRow.xref)?.get(record.xref ?? '')?.notes : undefined;
-    // Preserve every note structure from both sides: same text may carry
-    // different citations, languages or translations.
-    const mergedNotes = [...(personNotes ?? []), ...(childRow?.notes ?? [])];
+    const rows = childRowsByPerson.get(link.childId) ?? [];
+    // Preserve every note structure from both sides and from every repeated
+    // CHIL row: same text may carry different citations or translations.
+    const mergedNotes = rows.flatMap((row) => [
+      ...(ctx.childLinkDetails.get(row.xref)?.get(record.xref ?? '')?.notes ?? []),
+      ...(row.notes ?? []),
+    ]);
     importNotes(mergedNotes.length > 0 ? mergedNotes : undefined, 'family_child', link.id, ctx);
   }
 
@@ -1465,11 +1479,11 @@ function parseStructuredComponent(value: unknown): NonNullable<DateValue['compon
 }
 
 function validStructuredComponent(component: NonNullable<DateValue['component']> | undefined): boolean {
+  if (typeof component?.month === 'number' && (component.month < 1 || component.month > 12)) {
+    return false;
+  }
   if (component?.year === undefined || typeof component.month !== 'number' || component.day === undefined) {
     return true;
-  }
-  if (component.month < 1 || component.month > 12) {
-    return false;
   }
   if (component.calendar !== undefined && component.calendar !== '' && component.calendar !== 'julian') {
     return true;

@@ -8,7 +8,7 @@
  */
 
 import { EVENT_ATTRIBUTE_ENUM_VALUES, QUALITY_ENUM_VALUES } from '../enumerations';
-import type { EventAttributeEnum } from '../enumerations';
+import type { EventAttributeEnum, QualityEnum } from '../enumerations';
 import { fail } from '../errors';
 import type {
   EvidenceTemplate,
@@ -39,7 +39,6 @@ import {
   reqText,
 } from './context';
 import type { RawNode } from './lines';
-import { parseEnum } from './types';
 import { parseTagLink } from './evidence';
 import { parsePlaceStructure } from './names-places';
 import {
@@ -625,7 +624,13 @@ export function parseSourceRecord(node: RawNode, ctx: Ctx): SourceRecord {
     // Heredis: the quality assessment of the whole source. Input files use
     // the standard QUAY spelling; exports write the extension-safe _QUAY
     // (see SourceRecord.certainty).
-    rec.certainty = parseEnum(reqText(child), QUALITY_ENUM_VALUES, child.position);
+    const value = reqText(child);
+    if (!(value in QUALITY_ENUM_VALUES)) {
+      // An unrecognized certainty spelling stays a generic extension.
+      addExtension(rec, child, ctx);
+      return;
+    }
+    rec.certainty = value as QualityEnum;
     if (child.children.length > 0) {
       rec.certaintyExtensions = child.children.map((grandchild) => parseExtension(grandchild, ctx));
     }

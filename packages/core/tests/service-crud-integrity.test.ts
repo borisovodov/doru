@@ -1358,6 +1358,78 @@ describe('TreeService CRUD integrity', () => {
     }
   });
 
+  it('rejects person redo after another writer changed the aggregate', () => {
+    const { fixture, service } = makeService();
+    const { repo } = fixture;
+    try {
+      service.addPerson(person('P1', { sex: 'U' }));
+      const before = repo.getPerson('P1')!;
+      service.updatePerson(before, { ...before, sex: 'F' });
+      service.undo();
+
+      repo.updatePerson({
+        ...repo.getPerson('P1')!,
+        facts: [{ id: 'RES1', personId: 'P1', tag: 'RESI', value: 'Moscow' }],
+      });
+      const refused = service.redo();
+      expect(refused.redoBlocked).toBe(true);
+      expect(repo.getPerson('P1')?.sex).toBe('U');
+      expect(repo.getPerson('P1')?.facts.map((fact) => fact.id)).toEqual(['RES1']);
+    } finally {
+      cleanupRepo(fixture);
+    }
+  });
+
+  it('preserves child-link evidence when the flat child list changes', () => {
+    const { fixture, service } = makeService();
+    const { repo } = fixture;
+    try {
+      service.addPerson(person('P1'));
+      service.addPerson(person('P2'));
+      service.addPerson(person('P3'));
+      service.addFamily({
+        id: 'F1',
+        partners: ['P1'],
+        children: ['P2'],
+        childLinks: [{ id: 'FC1', childId: 'P2', status: 'challenged', statusPhrase: 'maybe' }],
+      });
+      const before = repo.getFamily('F1')!;
+      service.updateFamily(before, { ...before, children: ['P2', 'P3'] });
+
+      const links = repo.getFamily('F1')?.childLinks ?? [];
+      expect(links.find((link) => link.childId === 'P2')).toMatchObject({
+        id: 'FC1',
+        status: 'challenged',
+        statusPhrase: 'maybe',
+      });
+      expect(links.some((link) => link.childId === 'P3')).toBe(true);
+    } finally {
+      cleanupRepo(fixture);
+    }
+  });
+
+  it('keeps concurrent additional places when the draft extends the list', () => {
+    const { fixture, service } = makeService();
+    const { repo } = fixture;
+    try {
+      service.addPerson(person('P1'));
+      for (const id of ['A', 'B', 'C']) {
+        service.addPlace({ id, names: [{ id: `PN-${id}`, kind: 'official', position: 0, value: id }] });
+      }
+      service.addFact({ id: 'F1', personId: 'P1', tag: 'BIRT', additionalPlaceIds: ['A'] });
+      const before = repo.getPerson('P1')!;
+      repo.updateFact({ ...before.facts[0]!, additionalPlaceIds: ['A', 'C'] });
+
+      service.updatePerson(before, {
+        ...before,
+        facts: [{ ...before.facts[0]!, additionalPlaceIds: ['A', 'B'] }],
+      });
+      expect(repo.getPerson('P1')?.facts[0]?.additionalPlaceIds).toEqual(['A', 'B', 'C']);
+    } finally {
+      cleanupRepo(fixture);
+    }
+  });
+
   it('does not leave a change-log row when a stale update fails', () => {
     const { fixture, service } = makeService();
     const { repo } = fixture;

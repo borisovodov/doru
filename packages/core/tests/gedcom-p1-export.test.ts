@@ -235,6 +235,11 @@ describe('P1 GEDCOM export gaps', () => {
         text: 'Julian leap task',
         createdDate: { quality: 'exact', component: { calendar: 'julian', year: 1900, month: 2, day: 29 } },
       });
+      repo.insertTodo({
+        id: 'T9',
+        text: 'Text-only approximate task',
+        createdDate: { quality: 'about', text: 'circa spring' },
+      });
       const serialized = serializeGedcom70(buildGedcomDataset(repo));
       expect(serialized.ok).toBe(true);
       if (!serialized.ok) {
@@ -284,6 +289,9 @@ describe('P1 GEDCOM export gaps', () => {
           quality: 'exact',
           component: { calendar: 'julian', year: 1900, month: 2, day: 29 },
         });
+        expect(
+          target.repo.listTodos().find((todo) => todo.text === 'Text-only approximate task')?.createdDate,
+        ).toMatchObject({ quality: 'about', text: 'circa spring' });
       } finally {
         cleanupRepo(target);
       }

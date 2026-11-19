@@ -772,6 +772,7 @@ function formatTodoDate(date: DateValue | undefined): string | undefined {
   if (
     (component !== undefined && (complexComponent(component) || partial(component))) ||
     (date.end !== undefined && (complexComponent(date.end) || partial(date.end))) ||
+    (date.text !== undefined && date.quality !== 'unknown' && component === undefined && date.end === undefined) ||
     date.time !== undefined ||
     date.modifier !== undefined
   ) {

@@ -107,7 +107,9 @@ describe('TreeService families, persons and facts', () => {
       expect(fixture.repo.getFamily('F1')?.childLinks?.find((link) => link.childId === 'K1')).toMatchObject({
         id: 'FC1',
       });
-      expect(fixture.repo.getFamily('F1')?.childLinks?.find((link) => link.childId === 'K1')?.status).toBeUndefined();
+      const reactivated = fixture.repo.getFamily('F1')?.childLinks?.find((link) => link.childId === 'K1');
+      expect(reactivated?.status).toBeUndefined();
+      expect(reactivated?.statusPhrase).toBeUndefined();
     } finally {
       cleanupRepo(fixture);
     }

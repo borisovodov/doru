@@ -5,6 +5,8 @@ import type {
   CitationRecord,
   ContactRecord,
   FactRecord,
+  FamilyChildLink,
+  FamilyPartnerLink,
   FamilyRecord,
   IdentifierRecord,
   MediaLinkRecord,
@@ -495,22 +497,42 @@ export class TreeService {
     return this.applyAfterCommit(() => {
       const current = this.repo.getFamily(before.id) ?? before;
       // A caller that edits the flat partner/child lists while carrying the
-      // old link rows unchanged means the flat list wins; otherwise the
-      // repository would keep the stale explicit links.
+      // A caller that edits the flat partner/child lists while carrying the
+      // old link rows unchanged means the flat list wins; rebuild the explicit
+      // links so their metadata survives and disproven child links are kept.
       const candidate: FamilyRecord = { ...after };
       if (
         after.partnerLinks !== undefined &&
         JSON.stringify(after.partnerLinks) === JSON.stringify(current.partnerLinks) &&
         JSON.stringify(after.partners) !== JSON.stringify(current.partners)
       ) {
-        delete candidate.partnerLinks;
+        const links: FamilyPartnerLink[] =
+          current.partnerLinks ?? current.partners.map((personId) => ({ id: crypto.randomUUID(), personId }));
+        const kept = links.filter((link) => after.partners.includes(link.personId));
+        for (const personId of after.partners) {
+          if (!kept.some((link) => link.personId === personId)) {
+            kept.push({ id: crypto.randomUUID(), personId });
+          }
+        }
+        candidate.partnerLinks = kept;
+        candidate.partners = kept.map((link) => link.personId);
       }
       if (
         after.childLinks !== undefined &&
         JSON.stringify(after.childLinks) === JSON.stringify(current.childLinks) &&
         JSON.stringify(after.children) !== JSON.stringify(current.children)
       ) {
-        delete candidate.childLinks;
+        const links: FamilyChildLink[] =
+          current.childLinks ?? current.children.map((childId) => ({ id: crypto.randomUUID(), childId }));
+        const desired = new Set(after.children);
+        const kept = links.filter((link) => desired.has(link.childId) || link.status === 'disproven');
+        for (const childId of after.children) {
+          if (!kept.some((link) => link.childId === childId)) {
+            kept.push({ id: crypto.randomUUID(), childId });
+          }
+        }
+        candidate.childLinks = kept;
+        candidate.children = kept.map((link) => link.childId);
       }
       // Validate against the graph inside the write transaction: another
       // connection must not close a cycle between the check and the write.
@@ -613,7 +635,12 @@ export class TreeService {
       ]) {
         byId.set(fact.id, fact);
       }
-      const placePositions = new Map(this.repo.listFactPlaceRows(current.id).map((row) => [row.factId, row.position]));
+      const placePositions = new Map<string, number[]>();
+      for (const row of this.repo.listFactPlaceRows(current.id)) {
+        const positions = placePositions.get(row.factId) ?? [];
+        positions.push(row.position);
+        placePositions.set(row.factId, positions);
+      }
       const facts = [...byId.values()].map((fact) => {
         const after: FactRecord = { ...fact };
         if (fact.placeId === current.id) {
@@ -625,8 +652,8 @@ export class TreeService {
         } else {
           delete after.additionalPlaceIds;
         }
-        const position = placePositions.get(fact.id);
-        return position === undefined ? { before: fact, after } : { before: fact, after, position };
+        const positions = placePositions.get(fact.id);
+        return positions === undefined ? { before: fact, after } : { before: fact, after, positions };
       });
       const families = this.repo
         .listFamilies()
@@ -701,11 +728,14 @@ export class TreeService {
   }
 
   detachCitation(citationId: string): UndoRedoState {
-    const citation = this.repo.getCitation(citationId);
-    if (!citation) {
-      return this.historyState();
-    }
-    return this.apply(detachCitationOp(citation));
+    return this.applyAfterCommit(() => {
+      const citation = this.repo.getCitation(citationId);
+      if (!citation) {
+        return undefined;
+      }
+      const attachments = this.repo.listAttachmentsFor('citation', citation.id);
+      return detachCitationOp(citation, attachments);
+    });
   }
 
   // --- facts, notes, media ---------------------------------------------------
@@ -1315,6 +1345,19 @@ export class TreeService {
       const storedRecord = stored as Record<string, unknown>;
       const merged: Record<string, unknown> = { ...storedRecord };
       for (const key of new Set([...Object.keys(beforeRecord), ...Object.keys(afterRecord)])) {
+        if (key === 'additionalPlaceIds') {
+          const baseline = Array.isArray(beforeRecord[key]) ? (beforeRecord[key] as string[]) : [];
+          const draft = Array.isArray(afterRecord[key]) ? (afterRecord[key] as string[]) : [];
+          const storedPlaces = Array.isArray(storedRecord[key]) ? (storedRecord[key] as string[]) : [];
+          const mergedPlaces = [...draft];
+          for (const id of storedPlaces) {
+            if (!mergedPlaces.includes(id) && !baseline.includes(id)) {
+              mergedPlaces.push(id);
+            }
+          }
+          merged[key] = mergedPlaces.length > 0 ? mergedPlaces : undefined;
+          continue;
+        }
         if (key === 'familyLinks' && afterRecord[key] === undefined && Array.isArray(beforeRecord[key])) {
           // A draft that clears its last family link omits the field; remove
           // only the baseline IDs and keep concurrent additions.

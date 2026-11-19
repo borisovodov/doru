@@ -201,12 +201,16 @@ export function deleteSourceOp(
   citations: CitationRecord[],
   citationAttachments: NestedAttachments[] = [],
 ): Op {
+  // The inverse may sanitize a vanished place; redo compares against what
+  // was actually persisted, not against the original snapshot.
+  let baseline = source;
   return op(
     crypto.randomUUID(),
     'source.delete',
     (ctx) => ctx.repo.deleteSource(source.id),
     (ctx) => {
       restoreSource(ctx, source);
+      baseline = ctx.repo.getSource(source.id) ?? source;
       ctx.repo.restoreAttachments(attachments);
       // Citations of the source cascade with the source row (FK) and are
       // not part of the attachment snapshot (that one is keyed by target):
@@ -222,17 +226,24 @@ export function deleteSourceOp(
     },
     { targetType: 'source', targetId: source.id, kind: 'changed' },
     (ctx) => {
-      if (ctx.repo.getSource(source.id) === undefined || !sameRecord(ctx.repo.getSource(source.id), source)) {
+      if (ctx.repo.getSource(source.id) === undefined || !sameRecord(ctx.repo.getSource(source.id), baseline)) {
         return false;
       }
       if (!attachmentsMatch(ctx, 'source', source.id, attachments)) {
         return false;
       }
-      const captured = new Set(citations.map((citation) => citation.id));
-      return ctx.repo
+      const capturedCitations = citations.map((citation) => JSON.stringify(citation)).sort();
+      const liveCitations = ctx.repo
         .listAllCitations()
         .filter((citation) => citation.sourceId === source.id)
-        .every((citation) => captured.has(citation.id));
+        .map((citation) => JSON.stringify(citation))
+        .sort();
+      if (JSON.stringify(capturedCitations) !== JSON.stringify(liveCitations)) {
+        return false;
+      }
+      return citationAttachments.every((nested) =>
+        attachmentsMatch(ctx, nested.targetType, nested.targetId, nested.attachments),
+      );
     },
   );
 }
@@ -259,14 +270,20 @@ export function updateCitationOp(before: CitationRecord, after: CitationRecord):
   );
 }
 
-export function detachCitationOp(citation: CitationRecord): Op {
+export function detachCitationOp(citation: CitationRecord, attachments: AttachmentsSnapshot = emptyAttachments()): Op {
   return op(
     crypto.randomUUID(),
     'citation.detach',
     (ctx) => ctx.repo.deleteCitation(citation.id),
-    (ctx) => ctx.repo.insertCitation(citation),
+    (ctx) => {
+      restoreCitation(ctx, citation);
+      ctx.repo.restoreAttachments(attachments);
+    },
     { targetType: citation.targetType, targetId: citation.targetId, kind: 'changed' },
-    (ctx) => ctx.repo.getCitation(citation.id) !== undefined && sameRecord(ctx.repo.getCitation(citation.id), citation),
+    (ctx) =>
+      ctx.repo.getCitation(citation.id) !== undefined &&
+      sameRecord(ctx.repo.getCitation(citation.id), citation) &&
+      attachmentsMatch(ctx, 'citation', citation.id, attachments),
   );
 }
 
@@ -346,6 +363,13 @@ export function detachMediaOp(
       },
     ),
     change: { targetType: 'media', targetId: link.mediaId, kind: 'changed' },
+    redoSafe(ctx) {
+      const current = ctx.repo.getMedia(link.mediaId);
+      if (current?.links?.some((entry) => entry.id === link.id) !== true) {
+        return true;
+      }
+      return linkAttachments === undefined || attachmentsMatch(ctx, 'media_link', link.id, linkAttachments);
+    },
   };
 }
 
@@ -495,8 +519,12 @@ export function deleteTagOp(tag: TagRecord, links: TagLinkRecord[]): Op {
       if (current === undefined || !sameRecord(current, tag)) {
         return false;
       }
-      const capturedLinks = new Set(links.map((link) => link.id));
-      return ctx.repo.listTagLinksByTag(tag.id).every((link) => capturedLinks.has(link.id));
+      const capturedLinks = links.map((link) => JSON.stringify(link)).sort();
+      const liveLinks = ctx.repo
+        .listTagLinksByTag(tag.id)
+        .map((link) => JSON.stringify(link))
+        .sort();
+      return JSON.stringify(capturedLinks) === JSON.stringify(liveLinks);
     },
   );
 }
@@ -604,25 +632,30 @@ export function deleteRepositoryOp(
       if (!attachmentsMatch(ctx, 'repository', repository.id, attachments)) {
         return false;
       }
-      const capturedSources = new Set((consumers.sourceRepositories ?? []).map((link) => link.id));
-      for (const link of ctx.repo.listSourceRepositoriesFor(repository.id)) {
-        if (!capturedSources.has(link.id)) {
-          return false;
-        }
+      const capturedSources = (consumers.sourceRepositories ?? []).map((link) => JSON.stringify(link)).sort();
+      const liveSources = ctx.repo
+        .listSourceRepositoriesFor(repository.id)
+        .map((link) => JSON.stringify(link))
+        .sort();
+      if (JSON.stringify(capturedSources) !== JSON.stringify(liveSources)) {
+        return false;
       }
-      const todoIds = new Set((consumers.todos ?? []).map((todo) => todo.id));
-      for (const todo of ctx.repo.listTodos()) {
-        if (todo.repositoryId === repository.id && !todoIds.has(todo.id)) {
-          return false;
-        }
+      const capturedTodos = (consumers.todos ?? []).map((todo) => todo.id).sort();
+      const liveTodos = ctx.repo
+        .listTodos()
+        .filter((todo) => todo.repositoryId === repository.id)
+        .map((todo) => todo.id)
+        .sort();
+      if (JSON.stringify(capturedTodos) !== JSON.stringify(liveTodos)) {
+        return false;
       }
-      const titleIds = new Set((consumers.titles ?? []).map((title) => title.id));
-      for (const title of ctx.repo.listTitles()) {
-        if (title.repositoryId === repository.id && !titleIds.has(title.id)) {
-          return false;
-        }
-      }
-      return true;
+      const capturedTitles = (consumers.titles ?? []).map((title) => title.id).sort();
+      const liveTitles = ctx.repo
+        .listTitles()
+        .filter((title) => title.repositoryId === repository.id)
+        .map((title) => title.id)
+        .sort();
+      return JSON.stringify(capturedTitles) === JSON.stringify(liveTitles);
     },
     change: { targetType: 'repository', targetId: repository.id, kind: 'changed' },
   };
@@ -684,6 +717,21 @@ export function deleteSubmitterOp(
       },
     ),
     change: { targetType: 'submitter', targetId: submitter.id, kind: 'changed' },
+    redoSafe(ctx) {
+      const current = ctx.repo.getSubmitter(submitter.id);
+      if (current === undefined || !sameRecord(current, submitter)) {
+        return false;
+      }
+      if (!attachmentsMatch(ctx, 'submitter', submitter.id, attachments)) {
+        return false;
+      }
+      const captured = (consumers.recordSubmitters ?? []).map((link) => JSON.stringify(link)).sort();
+      const live = ctx.repo
+        .listRecordSubmittersForSubmitter(submitter.id)
+        .map((link) => JSON.stringify(link))
+        .sort();
+      return JSON.stringify(captured) === JSON.stringify(live);
+    },
   };
 }
 
@@ -750,6 +798,18 @@ export function updateAddressOp(
       },
     ),
     change: { targetType: 'address', targetId: before.id, kind: 'changed' },
+    redoSafe(ctx) {
+      const current = ctx.repo.getAddress(before.id);
+      if (current === undefined || !sameRecord(current, before)) {
+        return false;
+      }
+      const lineIds = new Set(current.lines.map((line) => line.id));
+      return removedAttachments.every(
+        (nested) =>
+          !lineIds.has(nested.targetId) ||
+          attachmentsMatch(ctx, nested.targetType, nested.targetId, nested.attachments),
+      );
+    },
   };
 }
 
@@ -790,5 +850,31 @@ export function deleteAddressOp(
       },
     ),
     change: { targetType: 'address', targetId: address.id, kind: 'changed' },
+    redoSafe(ctx) {
+      const current = ctx.repo.getAddress(address.id);
+      if (current === undefined || !sameRecord(current, address)) {
+        return false;
+      }
+      if (!attachmentsMatch(ctx, 'address', address.id, attachments)) {
+        return false;
+      }
+      for (const nested of nestedAttachments) {
+        const lineExists =
+          nested.targetType === 'address_line' && current.lines.some((line) => line.id === nested.targetId);
+        if (lineExists && !attachmentsMatch(ctx, nested.targetType, nested.targetId, nested.attachments)) {
+          return false;
+        }
+      }
+      const repositories = new Set(consumers.repositories?.map((entry) => entry.id) ?? []);
+      const submitters = new Set(consumers.submitters?.map((entry) => entry.id) ?? []);
+      const facts = new Set(consumers.factIds ?? []);
+      const persons = new Set(consumers.personIds ?? []);
+      return (
+        ctx.repo.listRepositories().every((entry) => entry.addressId !== address.id || repositories.has(entry.id)) &&
+        ctx.repo.listSubmitters().every((entry) => entry.addressId !== address.id || submitters.has(entry.id)) &&
+        ctx.repo.listFactIdsForAddress(address.id).every((id) => facts.has(id)) &&
+        ctx.repo.listPersonIdsForAddress(address.id).every((id) => persons.has(id))
+      );
+    },
   };
 }

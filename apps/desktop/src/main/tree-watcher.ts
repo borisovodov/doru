@@ -1,6 +1,6 @@
 import { existsSync, statSync, watch, type FSWatcher } from 'node:fs';
 import { basename, dirname } from 'node:path';
-import { OpQueue, type MutationContext, type Op } from '@doru/core';
+import { OpQueue, type Op } from '@doru/core';
 import { log } from './log';
 import { projectWindows } from './state';
 
@@ -54,20 +54,20 @@ export class StampedOpQueue extends OpQueue {
     this.onWrite();
   }
 
-  override undo(ctx: MutationContext): Op | undefined {
-    const op = super.undo(ctx);
+  override commitUndo(): Op | undefined {
+    const op = super.commitUndo();
     if (op) {
       this.onWrite();
     }
     return op;
   }
 
-  override redo(ctx: MutationContext): { op?: Op; blocked?: Op } | undefined {
-    const result = super.redo(ctx);
-    if (result?.op) {
+  override commitRedo(): Op | undefined {
+    const op = super.commitRedo();
+    if (op) {
       this.onWrite();
     }
-    return result;
+    return op;
   }
 }
 

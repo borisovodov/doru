@@ -36,6 +36,11 @@ export function updatePersonOp(
         ctx.repo.restoreAttachments(nested.attachments);
       }
     },
+    redoSafe(ctx) {
+      // Redo writes the saved aggregate; refuse if another writer changed the
+      // person since the undo, so their facts and links are not overwritten.
+      return sameRecord(ctx.repo.getPerson(before.id), before);
+    },
   };
 }
 
@@ -89,21 +94,37 @@ export function deletePersonOp(
       }
       // Anything attached to the person since the undo would be cascaded away
       // by the redo and could not be restored from the captured snapshot.
-      const capturedFamilies = new Set(
+      const capturedFamilyIds = new Set(
         familyLinks
-          .filter((link) => link.before.partners.includes(person.id) || link.before.children.includes(person.id))
+          .filter(
+            (link) =>
+              link.before.partners.includes(person.id) ||
+              link.before.children.includes(person.id) ||
+              (link.before.partnerLinks ?? []).some((entry) => entry.personId === person.id) ||
+              (link.before.childLinks ?? []).some((entry) => entry.childId === person.id),
+          )
           .map((link) => link.before.id),
       );
       for (const family of ctx.repo.listFamiliesForPerson(person.id)) {
-        if (!capturedFamilies.has(family.id)) {
+        if (!capturedFamilyIds.has(family.id)) {
           return false;
         }
       }
-      const capturedAssociations = new Set(associations.map((association) => association.id));
-      for (const association of ctx.repo.listAssociationsFor(person.id)) {
-        if (!capturedAssociations.has(association.id)) {
+      for (const link of familyLinks) {
+        if (!sameRecord(ctx.repo.getFamily(link.before.id), link.before)) {
           return false;
         }
+      }
+      const capturedAssociationById = new Map(associations.map((association) => [association.id, association]));
+      for (const association of ctx.repo.listAssociationsFor(person.id)) {
+        const captured = capturedAssociationById.get(association.id);
+        if (captured === undefined || !sameRecord(captured, association)) {
+          return false;
+        }
+        capturedAssociationById.delete(association.id);
+      }
+      if (capturedAssociationById.size > 0) {
+        return false;
       }
       const capturedAliases = new Set(aliases.map((alias) => alias.id));
       for (const alias of ctx.repo.listAliasRowsFor(person.id)) {
@@ -111,16 +132,23 @@ export function deletePersonOp(
           return false;
         }
       }
-      const capturedParticipants = new Set(participants.map((entry) => `${entry.factId}:${entry.participant.id}`));
+      const capturedParticipants = new Map(
+        participants.map((entry) => [`${entry.factId}\u0000${entry.participant.id}`, entry.participant]),
+      );
       for (const fact of current.facts) {
         for (const participant of fact.participants ?? []) {
-          capturedParticipants.add(`${fact.id}:${participant.id}`);
+          capturedParticipants.set(`${fact.id}\u0000${participant.id}`, participant);
         }
       }
       for (const entry of ctx.repo.listParticipantsForPerson(person.id)) {
-        if (!capturedParticipants.has(`${entry.factId}:${entry.participant.id}`)) {
+        const captured = capturedParticipants.get(`${entry.factId}\u0000${entry.participant.id}`);
+        if (captured === undefined || !sameRecord(captured, entry.participant)) {
           return false;
         }
+        capturedParticipants.delete(`${entry.factId}\u0000${entry.participant.id}`);
+      }
+      if (capturedParticipants.size > 0) {
+        return false;
       }
       return true;
     },

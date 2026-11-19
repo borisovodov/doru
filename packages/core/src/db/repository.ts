@@ -649,12 +649,8 @@ export class SqliteTreeRepository implements TreeRepository {
       for (const link of place?.hierarchy ?? []) {
         this.deleteAttachmentsFor('place_hierarchy', link.id);
       }
-      for (const child of this.places.listPlaces()) {
-        for (const link of child.hierarchy ?? []) {
-          if (link.parentId === id) {
-            this.deleteAttachmentsFor('place_hierarchy', link.id);
-          }
-        }
+      for (const link of this.places.listHierarchyLinksByParent(id)) {
+        this.deleteAttachmentsFor('place_hierarchy', link.id);
       }
       return this.places.deletePlace(id);
     });
@@ -807,8 +803,10 @@ export class SqliteTreeRepository implements TreeRepository {
     // a cleanup failure must not leave the new record saved.
     this.transactions.run(() => {
       const before = this.media.getMedia(media.id);
-      const remaining = new Set((media.files ?? []).map((file) => file.id));
       this.media.updateMedia(media);
+      // Read the files the writer actually kept: when `files` is omitted the
+      // repository derives the row from `path` and may retain the existing id.
+      const remaining = new Set((this.media.getMedia(media.id)?.files ?? []).map((file) => file.id));
       for (const file of before?.files ?? []) {
         if (!remaining.has(file.id)) {
           this.deleteAttachmentsFor('media_file', file.id);
@@ -1405,50 +1403,69 @@ export class SqliteTreeRepository implements TreeRepository {
     for (const nested of snapshot.mediaLinkAttachments) {
       this.restoreAttachments(nested.attachments);
     }
+    const identifierIds = new Set(
+      [...new Set(snapshot.identifiers.map((entry) => `${entry.targetType}:${entry.targetId}`))].flatMap((key) => {
+        const [targetType, targetId] = key.split(':');
+        return this.attachments.listIdentifiersFor(targetType as string, targetId as string).map((entry) => entry.id);
+      }),
+    );
     for (const identifier of snapshot.identifiers) {
-      if (
-        !this.attachments
-          .listIdentifiersFor(identifier.targetType, identifier.targetId)
-          .some((existing) => existing.id === identifier.id)
-      ) {
+      if (!identifierIds.has(identifier.id)) {
         this.attachments.insertIdentifier(identifier);
+        identifierIds.add(identifier.id);
       }
     }
+    const contactIds = new Set(
+      [...new Set(snapshot.contacts.map((entry) => `${entry.targetType}:${entry.targetId}`))].flatMap((key) => {
+        const [targetType, targetId] = key.split(':');
+        return this.attachments.listContactsFor(targetType as string, targetId as string).map((entry) => entry.id);
+      }),
+    );
     for (const contact of snapshot.contacts) {
-      if (
-        !this.attachments
-          .listContactsFor(contact.targetType, contact.targetId)
-          .some((existing) => existing.id === contact.id)
-      ) {
+      if (!contactIds.has(contact.id)) {
         this.attachments.insertContact(contact);
+        contactIds.add(contact.id);
       }
     }
+    const restrictionIds = new Set(
+      [...new Set(snapshot.restrictions.map((entry) => `${entry.targetType}:${entry.targetId}`))].flatMap((key) => {
+        const [targetType, targetId] = key.split(':');
+        return this.attachments.listRestrictionsFor(targetType as string, targetId as string).map((entry) => entry.id);
+      }),
+    );
     for (const restriction of snapshot.restrictions) {
-      if (
-        !this.attachments
-          .listRestrictionsFor(restriction.targetType, restriction.targetId)
-          .some((existing) => existing.id === restriction.id)
-      ) {
+      if (!restrictionIds.has(restriction.id)) {
         this.attachments.insertRestriction(restriction);
+        restrictionIds.add(restriction.id);
       }
     }
+    const changeIds = new Set(
+      [...new Set(snapshot.changes.map((entry) => `${entry.targetType}:${entry.targetId}`))].flatMap((key) => {
+        const [targetType, targetId] = key.split(':');
+        return this.attachments.listChangesFor(targetType as string, targetId as string).map((entry) => entry.id);
+      }),
+    );
     for (const change of snapshot.changes) {
-      if (
-        !this.attachments
-          .listChangesFor(change.targetType, change.targetId)
-          .some((existing) => existing.id === change.id)
-      ) {
+      if (!changeIds.has(change.id)) {
         this.attachments.insertChange(change);
+        changeIds.add(change.id);
       }
     }
+    const tags = new Set(this.listTags().map((tag) => tag.id));
+    const tagLinkIds = new Set(
+      [...new Set(snapshot.tagLinks.map((entry) => `${entry.link.targetType}:${entry.link.targetId}`))].flatMap(
+        (key) => {
+          const [targetType, targetId] = key.split(':');
+          return this.attachments
+            .listTagLinksFor(targetType as string, targetId as string)
+            .map((entry) => entry.link.id);
+        },
+      ),
+    );
     for (const entry of snapshot.tagLinks) {
-      if (
-        this.listTags().some((tag) => tag.id === entry.tagId) &&
-        !this.attachments
-          .listTagLinksFor(entry.link.targetType, entry.link.targetId)
-          .some((existing) => existing.link.id === entry.link.id)
-      ) {
+      if (tags.has(entry.tagId) && !tagLinkIds.has(entry.link.id)) {
         this.attachments.insertTagLink(entry.link);
+        tagLinkIds.add(entry.link.id);
       }
     }
     for (const todo of snapshot.todos) {

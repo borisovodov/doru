@@ -145,6 +145,7 @@ function SourceTabBody({
   const recordRef = useRef(record);
   const draftRef = useRef(draft);
   const baselineRef = useRef(record);
+  const submittedRef = useRef<SourceDraft | undefined>(undefined);
   const setDraft = (next: SourceDraft) => {
     draftRef.current = next;
     setDraftState(next);
@@ -178,6 +179,19 @@ function SourceTabBody({
     recordRef.current = record;
     baselineRef.current = record;
     setLastSaved(record);
+    const submitted = submittedRef.current;
+    if (submitted !== undefined && sourceDraftMatches(submitted, record)) {
+      // This is the acknowledgement of our own save. If the user edited the
+      // draft after Save started, merge against the submitted values so the
+      // newer edit survives even when it restores the old value.
+      submittedRef.current = undefined;
+      setDraft(
+        JSON.stringify(draftRef.current) === JSON.stringify(submitted)
+          ? sourceToDraft(record)
+          : mergeSourceDraft(draftRef.current, submitted, sourceToDraft(record)),
+      );
+      return;
+    }
     if (previous !== undefined) {
       if (sourceDraftMatches(draftRef.current, previous)) {
         setDraft(sourceToDraft(record));
@@ -203,14 +217,20 @@ function SourceTabBody({
   const save = async () => {
     const target = record ?? lastSaved;
     const next = sourceDraftToRecord(draftRef.current, record ?? lastSaved ?? baselineRef.current);
-    if (isNew && lastSaved === undefined) {
-      await api.addSource(next);
-      onCreated(next.id);
-    } else {
-      if (target === undefined) {
-        return;
+    submittedRef.current = sourceToDraft(next);
+    try {
+      if (isNew && lastSaved === undefined) {
+        await api.addSource(next);
+        onCreated(next.id);
+      } else {
+        if (target === undefined) {
+          return;
+        }
+        await api.updateSource(target, next);
       }
-      await api.updateSource(target, next);
+    } catch (error) {
+      submittedRef.current = undefined;
+      throw error;
     }
     baselineRef.current = next;
     setLastSaved(next);
