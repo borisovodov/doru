@@ -812,6 +812,26 @@ describe('TreeService CRUD integrity', () => {
     }
   });
 
+  it('merges a stale person edit without dropping externally added facts', () => {
+    const { fixture, service } = makeService();
+    const { repo } = fixture;
+    try {
+      service.addPerson(person('P1'));
+      const stale = repo.getPerson('P1')!;
+      repo.updatePerson({
+        ...stale,
+        facts: [{ id: 'RES1', personId: 'P1', tag: 'RESI', value: 'Moscow' }],
+      });
+
+      service.updatePerson(stale, { ...stale, sex: 'F' });
+
+      expect(repo.getPerson('P1')?.sex).toBe('F');
+      expect(repo.getPerson('P1')?.facts.map((fact) => fact.id)).toContain('RES1');
+    } finally {
+      cleanupRepo(fixture);
+    }
+  });
+
   it('restores externally added family statuses and their notes on undo', () => {
     const { fixture, service } = makeService();
     const { repo } = fixture;

@@ -265,11 +265,12 @@ export class TreeService {
 
   updatePerson(before: PersonRecord, after: PersonRecord): UndoRedoState {
     return this.applyAfterCommit(() => {
-      // Snapshot the stored pre-write aggregate: a stale draft must not
-      // delete attachments it never saw. Undo restores exactly this state.
+      // Snapshot the stored pre-write aggregate and merge only the edit onto
+      // it, so facts/names added by another writer survive a stale draft.
       const current = this.repo.getPerson(before.id) ?? before;
+      const merged = this.mergePersonEdit(before, after, current);
       const removed: NestedAttachments[] = [];
-      const nextNames = new Set(collectNameIds(after.names));
+      const nextNames = new Set(collectNameIds(merged.names));
       for (const nameId of collectNameIds(current.names)) {
         if (!nextNames.has(nameId)) {
           removed.push({
@@ -279,7 +280,7 @@ export class TreeService {
           });
         }
       }
-      const nextParts = new Set(collectNamePartIds(after.names));
+      const nextParts = new Set(collectNamePartIds(merged.names));
       for (const partId of collectNamePartIds(current.names)) {
         if (!nextParts.has(partId)) {
           removed.push({
@@ -289,7 +290,7 @@ export class TreeService {
           });
         }
       }
-      const nextFacts = new Set(after.facts.map((fact) => fact.id));
+      const nextFacts = new Set(merged.facts.map((fact) => fact.id));
       for (const fact of current.facts) {
         if (!nextFacts.has(fact.id)) {
           removed.push({
@@ -299,7 +300,7 @@ export class TreeService {
           });
         }
       }
-      return updatePersonOp(current, after, removed);
+      return updatePersonOp(current, merged, removed);
     });
   }
 
@@ -541,61 +542,63 @@ export class TreeService {
    * link, attachment and date row on undo.
    */
   deletePlace(place: PlaceRecord): UndoRedoState {
-    const current = this.repo.getPlace(place.id);
-    if (current === undefined) {
+    if (this.repo.getPlace(place.id) === undefined) {
       return this.historyState();
     }
-    const byId = new Map<string, FactRecord>();
-    for (const fact of [
-      ...this.repo.listFactsForPlace(current.id),
-      ...this.repo.listFactsWithAdditionalPlace(current.id),
-    ]) {
-      byId.set(fact.id, fact);
-    }
-    const facts = [...byId.values()].map((fact) => {
-      const after: FactRecord = { ...fact };
-      if (fact.placeId === current.id) {
-        delete after.placeId;
+    return this.applyAfterCommit(() => {
+      const current = this.repo.getPlace(place.id) ?? place;
+      const byId = new Map<string, FactRecord>();
+      for (const fact of [
+        ...this.repo.listFactsForPlace(current.id),
+        ...this.repo.listFactsWithAdditionalPlace(current.id),
+      ]) {
+        byId.set(fact.id, fact);
       }
-      const additional = fact.additionalPlaceIds?.filter((id) => id !== current.id) ?? [];
-      if (additional.length > 0) {
-        after.additionalPlaceIds = additional;
-      } else {
-        delete after.additionalPlaceIds;
+      const facts = [...byId.values()].map((fact) => {
+        const after: FactRecord = { ...fact };
+        if (fact.placeId === current.id) {
+          delete after.placeId;
+        }
+        const additional = fact.additionalPlaceIds?.filter((id) => id !== current.id) ?? [];
+        if (additional.length > 0) {
+          after.additionalPlaceIds = additional;
+        } else {
+          delete after.additionalPlaceIds;
+        }
+        return { before: fact, after };
+      });
+      const families = this.repo
+        .listFamilies()
+        .filter((family) => (family.marriageStatuses ?? []).some((status) => status.placeId === current.id));
+      const sources = this.repo
+        .listSources()
+        .filter((source) => (source.dataEvents ?? []).some((event) => event.placeId === current.id));
+      const media = this.repo.listAllMedia().filter((entry) => entry.placeId === current.id);
+      const childPlaces = this.repo
+        .listPlaces()
+        .filter((child) => (child.hierarchy ?? []).some((link) => link.parentId === current.id));
+      const nested: NestedAttachments[] = [];
+      for (const name of current.names) {
+        nested.push({
+          targetType: 'place_name',
+          targetId: name.id,
+          attachments: this.repo.listAttachmentsFor('place_name', name.id),
+        });
       }
-      return { before: fact, after };
+      const hierarchyLinks = [
+        ...(current.hierarchy ?? []),
+        ...childPlaces.flatMap((child) => (child.hierarchy ?? []).filter((link) => link.parentId === current.id)),
+      ];
+      for (const link of hierarchyLinks) {
+        nested.push({
+          targetType: 'place_hierarchy',
+          targetId: link.id,
+          attachments: this.repo.listAttachmentsFor('place_hierarchy', link.id),
+        });
+      }
+      const attachments = this.repo.listAttachmentsFor('place', current.id);
+      return deletePlaceOp(current, facts, attachments, { families, sources, childPlaces, media }, nested);
     });
-    const families = this.repo
-      .listFamilies()
-      .filter((family) => (family.marriageStatuses ?? []).some((status) => status.placeId === current.id));
-    const sources = this.repo
-      .listSources()
-      .filter((source) => (source.dataEvents ?? []).some((event) => event.placeId === current.id));
-    const media = this.repo.listAllMedia().filter((entry) => entry.placeId === current.id);
-    const childPlaces = this.repo
-      .listPlaces()
-      .filter((child) => (child.hierarchy ?? []).some((link) => link.parentId === current.id));
-    const nested: NestedAttachments[] = [];
-    for (const name of current.names) {
-      nested.push({
-        targetType: 'place_name',
-        targetId: name.id,
-        attachments: this.repo.listAttachmentsFor('place_name', name.id),
-      });
-    }
-    const hierarchyLinks = [
-      ...(current.hierarchy ?? []),
-      ...childPlaces.flatMap((child) => (child.hierarchy ?? []).filter((link) => link.parentId === current.id)),
-    ];
-    for (const link of hierarchyLinks) {
-      nested.push({
-        targetType: 'place_hierarchy',
-        targetId: link.id,
-        attachments: this.repo.listAttachmentsFor('place_hierarchy', link.id),
-      });
-    }
-    const attachments = this.repo.listAttachmentsFor('place', current.id);
-    return this.apply(deletePlaceOp(current, facts, attachments, { families, sources, childPlaces, media }, nested));
   }
 
   // --- sources and citations ------------------------------------------------
@@ -1119,6 +1122,52 @@ export class TreeService {
       }
     }
     return false;
+  }
+
+  private mergePersonEdit(before: PersonRecord, after: PersonRecord, current: PersonRecord): PersonRecord {
+    const previousNames = new Map(before.names.map((name) => [name.id, name]));
+    const currentNames = new Map(current.names.map((name) => [name.id, name]));
+    const afterNameIds = new Set(after.names.map((name) => name.id));
+    const names = after.names.map((name) => {
+      const previous = previousNames.get(name.id);
+      const stored = currentNames.get(name.id);
+      if (previous !== undefined && stored !== undefined && JSON.stringify(previous) === JSON.stringify(name)) {
+        return stored;
+      }
+      return name;
+    });
+    for (const name of current.names) {
+      if (!previousNames.has(name.id) && !afterNameIds.has(name.id)) {
+        names.push(name);
+      }
+    }
+
+    const previousFacts = new Map(before.facts.map((fact) => [fact.id, fact]));
+    const currentFacts = new Map(current.facts.map((fact) => [fact.id, fact]));
+    const afterFactIds = new Set(after.facts.map((fact) => fact.id));
+    const facts = after.facts.map((fact) => {
+      const previous = previousFacts.get(fact.id);
+      const stored = currentFacts.get(fact.id);
+      if (previous !== undefined && stored !== undefined && JSON.stringify(previous) === JSON.stringify(fact)) {
+        return stored;
+      }
+      return fact;
+    });
+    for (const fact of current.facts) {
+      if (!previousFacts.has(fact.id) && !afterFactIds.has(fact.id)) {
+        facts.push(fact);
+      }
+    }
+
+    return {
+      id: current.id,
+      xref: after.xref === before.xref ? current.xref : after.xref,
+      sex: after.sex === before.sex ? current.sex : after.sex,
+      deathStatus: after.deathStatus === before.deathStatus ? current.deathStatus : after.deathStatus,
+      addressId: after.addressId === before.addressId ? current.addressId : after.addressId,
+      names,
+      facts,
+    };
   }
 
   private hasDisprovenChildLink(family: FamilyRecord, childId: string): boolean {

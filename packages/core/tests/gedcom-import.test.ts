@@ -425,6 +425,8 @@ describe('importGedcomDataset', () => {
       '1 _TCDT 2026-02-31',
       '0 _TODO Leap date',
       '1 _TCDT 2024-02-29',
+      '0 _TODO Bad structured date',
+      '1 _TCDT json:{"quality":"exact","text":{"bad":true}}',
       '0 TRLR',
     ].join('\n');
     const result = parse(new TextEncoder().encode(gedcom));
@@ -440,6 +442,11 @@ describe('importGedcomDataset', () => {
       expect(leap.createdDate).toMatchObject({
         quality: 'exact',
         component: { year: 2024, month: 2, day: 29 },
+      });
+      const bad = fixture.repo.listTodos().find((todo) => todo.text === 'Bad structured date')!;
+      expect(bad.createdDate).toMatchObject({
+        quality: 'unknown',
+        text: 'json:{"quality":"exact","text":{"bad":true}}',
       });
     } finally {
       cleanupRepo(fixture);
@@ -478,9 +485,12 @@ describe('importGedcomDataset', () => {
       const p1 = fixture.repo.listAllPersons().find((person) => person.names[0]?.given === 'P1')!;
       const family = fixture.repo.listFamilies().find((entry) => entry.partners.includes(p1.id))!;
       expect(family.partners).toContain(p1.id);
-      const second = fixture.repo.listFamilies().find((entry) => entry.children.includes(p1.id))!;
+      const second = fixture.repo
+        .listFamilies()
+        .find((entry) => entry.childLinks?.some((link) => link.childId === p1.id))!;
       const link = second.childLinks?.find((entry) => entry.childId === p1.id);
       expect(link?.status).toBe('disproven');
+      expect(second.children).not.toContain(p1.id);
       expect(fixture.repo.listNotesFor('family_child', link!.id).map((note) => note.text)).toEqual(['Disproven link']);
 
       const service = new TreeService(fixture.repo, new OpQueue());

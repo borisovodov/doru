@@ -215,7 +215,7 @@ export async function removeFileFromMedia(
   const files = (before.files ?? []).filter((entry) => entry.id !== stored.id);
   runtime.service.updateMedia(before, { ...before, files });
   const references = (): Promise<Set<string>> =>
-    resolveMediaReferencePaths(projectPath, runtime.service.listAllMedia());
+    resolveMediaReferencePaths(projectPath, () => runtime.service.listAllMedia());
   await removeMediaFileCopies(projectPath, stored, references);
   return withPaths(projectPath, runtime.service.getMedia(media.id) ?? { ...before, files });
 }
@@ -231,7 +231,7 @@ export async function removeFileFromMedia(
 export async function removeMediaFiles(projectPath: string, media: MediaRecord): Promise<void> {
   const { runtime } = await ensureRuntime(projectPath);
   const references = (): Promise<Set<string>> =>
-    resolveMediaReferencePaths(projectPath, runtime.service.listAllMedia());
+    resolveMediaReferencePaths(projectPath, () => runtime.service.listAllMedia());
   const initial = await references();
   for (const file of media.files ?? []) {
     await removeMediaFileCopies(projectPath, file, references, initial);
@@ -241,8 +241,39 @@ export async function removeMediaFiles(projectPath: string, media: MediaRecord):
   }
 }
 
+function mediaReferenceSignature(media: MediaRecord[]): string {
+  return media
+    .flatMap((record) =>
+      (record.files ?? []).flatMap((file) => [
+        file.path,
+        ...(file.translations ?? []).map((translation) => translation.path),
+      ]),
+    )
+    .join('\u0000');
+}
+
 /** Canonical identities of every stored file and translation. */
-async function resolveMediaReferencePaths(projectPath: string, media: MediaRecord[]): Promise<Set<string>> {
+async function resolveMediaReferencePaths(projectPath: string, getMedia: () => MediaRecord[]): Promise<Set<string>> {
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    const media = getMedia();
+    const signature = mediaReferenceSignature(media);
+    const resolved = new Set<string>();
+    for (const record of media) {
+      for (const file of record.files ?? []) {
+        const paths = [file.path, ...(file.translations ?? []).map((translation) => translation.path)];
+        for (const path of paths) {
+          const absolute = await mediaAbsolutePath(projectPath, path);
+          if (absolute !== null) {
+            resolved.add(absolute);
+          }
+        }
+      }
+    }
+    if (mediaReferenceSignature(getMedia()) === signature) {
+      return resolved;
+    }
+  }
+  const media = getMedia();
   const resolved = new Set<string>();
   for (const record of media) {
     for (const file of record.files ?? []) {

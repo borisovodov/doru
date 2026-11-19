@@ -246,7 +246,7 @@ export class FamilyRepo {
       marriageBeginStatus: row.marriage_begin_status ?? undefined,
       marriageEndStatus: row.marriage_end_status ?? undefined,
       partners: partners.map((link) => link.person_id),
-      children: children.map((link) => link.child_id),
+      children: children.filter((link) => link.status !== 'disproven').map((link) => link.child_id),
       partnerLinks: partners.map((link) => ({
         id: link.id,
         personId: link.person_id,

@@ -503,13 +503,15 @@ function buildFamily(family: FamilyRecord, repo: TreeRepository, xrefs: Xrefs): 
         }
       : undefined;
   const childLinks = family.childLinks ?? [];
-  const children = childLinks.map((link) => ({
-    child: xrefs.of(link.childId),
-    ...(link.fatherRelation !== undefined ? { fatherRelation: link.fatherRelation } : {}),
-    ...(link.motherRelation !== undefined ? { motherRelation: link.motherRelation } : {}),
-    ...(link.preferred === true ? { preferred: true } : {}),
-    ...(link.multiplicity !== undefined ? { multiplicity: link.multiplicity } : {}),
-  }));
+  const children = childLinks
+    .filter((link) => link.status !== 'disproven')
+    .map((link) => ({
+      child: xrefs.of(link.childId),
+      ...(link.fatherRelation !== undefined ? { fatherRelation: link.fatherRelation } : {}),
+      ...(link.motherRelation !== undefined ? { motherRelation: link.motherRelation } : {}),
+      ...(link.preferred === true ? { preferred: true } : {}),
+      ...(link.multiplicity !== undefined ? { multiplicity: link.multiplicity } : {}),
+    }));
   const events: FamilyEventStructure[] = [];
   const attributes: FamilyAttributeStructure[] = [];
   const nonEvents: NonEventStructure[] = [];

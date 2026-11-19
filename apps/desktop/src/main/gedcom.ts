@@ -125,13 +125,14 @@ export async function exportGedcom(
       const mediaFiles: GedzipMediaEntry[] = [];
       const seen = new Set<string>();
       const appendFile = async (path: string): Promise<void> => {
-        if (seen.has(path) || !path.startsWith(`${MEDIA_DIR_NAME}/`) || path.includes('../')) {
+        const normalized = path.replaceAll('\\', '/');
+        if (seen.has(normalized) || !normalized.startsWith(`${MEDIA_DIR_NAME}/`) || normalized.includes('../')) {
           return;
         }
-        const absolute = join(dirname(runtimeFilePath(projectPath)), path);
+        const absolute = join(dirname(runtimeFilePath(projectPath)), normalized);
         if (await fs.exists(absolute)) {
-          mediaFiles.push({ name: path, contents: await fs.readBinary(absolute) });
-          seen.add(path);
+          mediaFiles.push({ name: normalized, contents: await fs.readBinary(absolute) });
+          seen.add(normalized);
         }
       };
       for (const media of repo.listAllMedia()) {

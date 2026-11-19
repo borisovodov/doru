@@ -5,6 +5,29 @@ import type { MediaTargetApi, PersonEditorApi } from './types';
 import { nls } from '../nls';
 import { draftToRecord, newPersonDraft, personDraftMatches, personToDraft, type PersonDraft } from '@doru/ui/domain';
 
+const sameDraftValue = (left: unknown, right: unknown): boolean => JSON.stringify(left) === JSON.stringify(right);
+
+function mergePersonDraft(current: PersonDraft, base: PersonDraft, refreshed: PersonDraft): PersonDraft {
+  const names = sameDraftValue(current.names, base.names) ? refreshed.names : current.names;
+  const birth = sameDraftValue(current.birth, base.birth) ? refreshed.birth : current.birth;
+  const death = sameDraftValue(current.death, base.death) ? refreshed.death : current.death;
+  return {
+    ...current,
+    names,
+    namesTouched: names === refreshed.names ? false : current.namesTouched,
+    sex: current.sex === base.sex ? refreshed.sex : current.sex,
+    sexTouched: current.sex === base.sex ? false : current.sexTouched,
+    deathStatus: current.deathStatus === base.deathStatus ? refreshed.deathStatus : current.deathStatus,
+    deathStatusTouched: current.deathStatus === base.deathStatus ? false : current.deathStatusTouched,
+    addressId: current.addressId === base.addressId ? refreshed.addressId : current.addressId,
+    addressTouched: current.addressId === base.addressId ? false : current.addressTouched,
+    birth,
+    birthTouched: birth === refreshed.birth ? false : current.birthTouched,
+    death,
+    deathTouched: death === refreshed.death ? false : current.deathTouched,
+  };
+}
+
 export function PersonTab({
   entityId,
   persons,
@@ -71,6 +94,7 @@ function PersonTabBody({
     isNew ? newPersonDraft() : record ? personToDraft(record) : newPersonDraft(),
   );
   const personRef = useRef(record);
+  const submittedRef = useRef<PersonDraft | undefined>(undefined);
 
   // Reset the draft only when it still equals the previously stored person
   // (no unsaved edits); unrelated tree reloads (a fact added elsewhere)
@@ -88,20 +112,17 @@ function PersonTabBody({
     }
     const previous = personRef.current;
     personRef.current = person;
+    const submitted = submittedRef.current;
+    submittedRef.current = undefined;
     setDraft((current) => {
-      if (current.isNew || previous === undefined || personDraftMatches(current, previous)) {
+      if (current.isNew || previous === undefined) {
         return personToDraft(person);
       }
       const refreshed = personToDraft(person);
-      return {
-        ...current,
-        names: current.namesTouched === true ? current.names : refreshed.names,
-        sex: current.sexTouched === true ? current.sex : refreshed.sex,
-        deathStatus: current.deathStatusTouched === true ? current.deathStatus : refreshed.deathStatus,
-        addressId: current.addressTouched === true ? current.addressId : refreshed.addressId,
-        birth: current.birthTouched === true ? current.birth : refreshed.birth,
-        death: current.deathTouched === true ? current.death : refreshed.death,
-      };
+      if (submitted === undefined && personDraftMatches(current, previous)) {
+        return refreshed;
+      }
+      return mergePersonDraft(current, submitted ?? personToDraft(previous), refreshed);
     });
   }, [personId, persons, isNew]);
 
@@ -116,26 +137,33 @@ function PersonTabBody({
       onCreated(next.id);
       return;
     }
+    submittedRef.current = draft;
     await api.updatePerson(before, next);
     const persisted = personToDraft(next);
     setDraft((current) => {
       const patch: Partial<PersonDraft> = {};
-      if (current.sex === next.sex) {
+      if (current.sex === draft.sex) {
+        patch.sex = persisted.sex;
         patch.sexTouched = false;
       }
-      if (current.deathStatus === next.deathStatus) {
+      if (current.deathStatus === draft.deathStatus) {
+        patch.deathStatus = persisted.deathStatus;
         patch.deathStatusTouched = false;
       }
-      if (current.addressId === next.addressId) {
+      if (current.addressId === draft.addressId) {
+        patch.addressId = persisted.addressId;
         patch.addressTouched = false;
       }
-      if (JSON.stringify(current.names) === JSON.stringify(draft.names)) {
+      if (sameDraftValue(current.names, draft.names)) {
+        patch.names = persisted.names;
         patch.namesTouched = false;
       }
-      if (JSON.stringify(current.birth) === JSON.stringify(persisted.birth)) {
+      if (sameDraftValue(current.birth, draft.birth)) {
+        patch.birth = persisted.birth;
         patch.birthTouched = false;
       }
-      if (JSON.stringify(current.death) === JSON.stringify(persisted.death)) {
+      if (sameDraftValue(current.death, draft.death)) {
+        patch.death = persisted.death;
         patch.deathTouched = false;
       }
       return Object.keys(patch).length > 0 ? { ...current, ...patch } : current;

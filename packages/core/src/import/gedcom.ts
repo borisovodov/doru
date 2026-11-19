@@ -1439,6 +1439,58 @@ function importTodoRecord(record: GedcomTodoRecord, ctx: ImportContext): void {
   }
 }
 
+function parseStructuredComponent(value: unknown): NonNullable<DateValue['component']> | null | undefined {
+  if (value === undefined) {
+    return undefined;
+  }
+  if (typeof value !== 'object' || value === null) {
+    return null;
+  }
+  const record = value as Record<string, unknown>;
+  if (
+    (record['calendar'] !== undefined && typeof record['calendar'] !== 'string') ||
+    (record['year'] !== undefined && typeof record['year'] !== 'number') ||
+    (record['month'] !== undefined && typeof record['month'] !== 'number' && typeof record['month'] !== 'string') ||
+    (record['day'] !== undefined && typeof record['day'] !== 'number') ||
+    (record['epoch'] !== undefined && record['epoch'] !== 'BCE')
+  ) {
+    return null;
+  }
+  return {
+    ...(record['calendar'] !== undefined ? { calendar: record['calendar'] } : {}),
+    ...(record['year'] !== undefined ? { year: record['year'] } : {}),
+    ...(record['month'] !== undefined ? { month: record['month'] } : {}),
+    ...(record['day'] !== undefined ? { day: record['day'] } : {}),
+    ...(record['epoch'] !== undefined ? { epoch: 'BCE' as const } : {}),
+  };
+}
+
+function parseStructuredTime(value: unknown): NonNullable<DateValue['time']> | null | undefined {
+  if (value === undefined) {
+    return undefined;
+  }
+  if (typeof value !== 'object' || value === null) {
+    return null;
+  }
+  const record = value as Record<string, unknown>;
+  if (
+    typeof record['hour'] !== 'number' ||
+    typeof record['minute'] !== 'number' ||
+    (record['second'] !== undefined && typeof record['second'] !== 'number') ||
+    (record['fraction'] !== undefined && typeof record['fraction'] !== 'string') ||
+    (record['utc'] !== undefined && typeof record['utc'] !== 'boolean')
+  ) {
+    return null;
+  }
+  return {
+    hour: record['hour'],
+    minute: record['minute'],
+    ...(record['second'] !== undefined ? { second: record['second'] } : {}),
+    ...(record['fraction'] !== undefined ? { fraction: record['fraction'] } : {}),
+    ...(record['utc'] !== undefined ? { utc: record['utc'] } : {}),
+  };
+}
+
 /** The `_TCDT` slot is free text; parse the structured form the export writes. */
 function parseTodoDate(text: string | undefined): DateValue | undefined {
   if (text === undefined || text.trim() === '') {
@@ -1447,12 +1499,32 @@ function parseTodoDate(text: string | undefined): DateValue | undefined {
   if (text.startsWith('json:')) {
     try {
       const parsed = JSON.parse(text.slice('json:'.length)) as unknown;
+      const record = typeof parsed === 'object' && parsed !== null ? (parsed as Record<string, unknown>) : undefined;
+      const quality = record?.['quality'];
+      const qualities = ['exact', 'about', 'before', 'after', 'range', 'unknown'];
+      const component = parseStructuredComponent(record?.['component']);
+      const end = parseStructuredComponent(record?.['end']);
+      const time = parseStructuredTime(record?.['time']);
+      const modifier = record?.['modifier'];
+      const parsedText = record?.['text'];
       if (
-        typeof parsed === 'object' &&
-        parsed !== null &&
-        typeof (parsed as { quality?: unknown }).quality === 'string'
+        record !== undefined &&
+        typeof quality === 'string' &&
+        qualities.includes(quality) &&
+        component !== null &&
+        end !== null &&
+        time !== null &&
+        (modifier === undefined || modifier === 'ABT' || modifier === 'CAL' || modifier === 'EST') &&
+        (parsedText === undefined || typeof parsedText === 'string')
       ) {
-        return parsed as DateValue;
+        return {
+          quality: quality as DateValue['quality'],
+          ...(modifier !== undefined ? { modifier: modifier } : {}),
+          ...(component !== undefined ? { component } : {}),
+          ...(end !== undefined ? { end } : {}),
+          ...(time !== undefined ? { time } : {}),
+          ...(parsedText !== undefined ? { text: parsedText } : {}),
+        };
       }
     } catch {
       // Fall through to the unknown-text fallback.

@@ -23,7 +23,9 @@ export function usePersonEditorApi(
           return;
         }
         await window.doru.updatePerson(projectPath, before, after);
-        await refreshTree();
+        // The write already committed; a failed snapshot reload must not keep
+        // the submitted edits marked as pending.
+        await refreshTree().catch(() => undefined);
       },
       getNotes: (targetType, targetId) =>
         projectPath ? window.doru.listNotes(projectPath, targetType, targetId) : Promise.resolve([]),
