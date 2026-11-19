@@ -515,6 +515,7 @@
   "features.tree.place.postalCodes.remove": "우편번호 제거",
   "features.tree.place.preposition": "Preposition",
   "features.tree.place.verified": "확인됨",
+  "features.tree.redoBlocked": "다시 실행할 수 없습니다. 최신 변경 사항이 손실됩니다.",
   "features.tree.reorder.down": "Move down",
   "features.tree.reorder.up": "Move up",
   "features.tree.repository.add": "저장소 추가",

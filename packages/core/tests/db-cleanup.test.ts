@@ -133,14 +133,14 @@ describe('db cleanup paths', () => {
     try {
       const { repo } = fixture;
       repo.insertNote({ id: 'N1', text: 'shared note', targetType: 'person', targetId: 'P1' });
-      const [link] = repo.listNotesFor('person', 'P1')[0]!.links ?? [];
       repo.addNoteLink('N1', { id: 'L2', targetType: 'person', targetId: 'P2' });
       repo.insertIdentifier({ id: 'NI1', targetType: 'note', targetId: 'N1', namespace: 'uid', value: 'note-1' });
 
       repo.deleteAttachmentsFor('person', 'P1');
       expect(repo.getNote('N1')).toBeDefined();
       expect(repo.listIdentifiersFor('note', 'N1').map((entry) => entry.id)).toEqual(['NI1']);
-      expect(link).toBeDefined();
+      expect(repo.listNotesFor('person', 'P1')).toEqual([]);
+      expect(repo.listNotesFor('person', 'P2').map((entry) => entry.id)).toEqual(['N1']);
     } finally {
       cleanupRepo(fixture);
     }

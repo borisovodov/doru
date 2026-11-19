@@ -179,6 +179,40 @@ describe('redo guards for nested attachment targets', () => {
     }
   });
 
+  it('rejects reparent redo when the graph gained a cycle', () => {
+    const { fixture, service } = makeService();
+    const { repo } = fixture;
+    try {
+      service.addPerson(person('P1'));
+      service.addPerson(person('P2'));
+      service.addPerson(person('C'));
+      service.addFamily(family('F1', { partners: ['P1'], children: ['C'] }));
+      service.addFamily(family('F2', { partners: ['P2'], children: [] }));
+      service.reparent('C', 'P2');
+      service.undo();
+      repo.insertFamily({ id: 'F3', partners: ['C'], children: ['P2'] });
+      expect(service.redo().redoBlocked).toBe(true);
+    } finally {
+      cleanupRepo(fixture);
+    }
+  });
+
+  it('blocks media detach redo when the last link gained media evidence', () => {
+    const { fixture, service } = makeService();
+    const { repo } = fixture;
+    try {
+      service.addPerson(person('P1'));
+      service.addMedia({ id: 'M1', title: 'Photo', targetType: 'person', targetId: 'P1' });
+      const link = repo.listAttachmentsFor('person', 'P1').mediaLinks[0]!.link;
+      service.detachMedia(link);
+      service.undo();
+      repo.insertNote({ id: 'N1', text: 'new', targetType: 'media', targetId: 'M1' });
+      expect(service.redo().redoBlocked).toBe(true);
+    } finally {
+      cleanupRepo(fixture);
+    }
+  });
+
   it('blocks alias redo when an endpoint disappeared', () => {
     const { fixture, service } = makeService();
     const { repo } = fixture;

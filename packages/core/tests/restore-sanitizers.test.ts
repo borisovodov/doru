@@ -150,10 +150,10 @@ describe('undo restore sanitizers', () => {
       const ctx = context(fixture);
       expect(restoreCitation(ctx, { id: 'C0', sourceId: 'missing', targetType: 'person', targetId: 'P1' })).toBe(false);
       repo.insertSource({ id: 'S1', title: 'Book' });
+      repo.insertPerson({ id: 'P1', names: [], sex: 'U', facts: [] });
       expect(restoreCitation(ctx, { id: 'C1', sourceId: 'S1', targetType: 'person', targetId: 'P1' })).toBe(true);
       expect(repo.getCitation('C1')).toBeDefined();
 
-      repo.insertPerson({ id: 'P1', names: [], sex: 'U', facts: [] });
       repo.insertPerson({ id: 'P2', names: [], sex: 'U', facts: [] });
       repo.insertFamily({ id: 'F1', partners: ['P1'], children: [] });
       expect(restoreAssociation(ctx, { id: 'A1', personId: 'P1', otherPersonId: 'P2', role: 'witness' })).toBe(true);

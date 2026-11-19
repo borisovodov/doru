@@ -515,6 +515,7 @@
   "features.tree.place.postalCodes.remove": "删除邮政编码",
   "features.tree.place.preposition": "Preposition",
   "features.tree.place.verified": "已验证",
+  "features.tree.redoBlocked": "无法重做：较新的更改将丢失。",
   "features.tree.reorder.down": "Move down",
   "features.tree.reorder.up": "Move up",
   "features.tree.repository.add": "添加存储库",

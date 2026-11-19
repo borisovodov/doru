@@ -137,7 +137,9 @@ export function deletePersonOp(
       );
       for (const fact of current.facts) {
         for (const participant of fact.participants ?? []) {
-          capturedParticipants.set(`${fact.id}\u0000${participant.id}`, participant);
+          if (participant.personId === person.id) {
+            capturedParticipants.set(`${fact.id}\u0000${participant.id}`, participant);
+          }
         }
       }
       for (const entry of ctx.repo.listParticipantsForPerson(person.id)) {
@@ -203,8 +205,10 @@ export function reparentOp(
   created: FamilyRecord | undefined,
   personId: string,
   linkAttachments: FamilyLinkAttachments[] = [],
+  redoSafe?: NonNullable<Op['redoSafe']>,
 ): Op {
   return {
+    ...(redoSafe ? { redoSafe } : {}),
     id: crypto.randomUUID(),
     kind: 'person.reparent',
     timestamp: new Date().toISOString(),

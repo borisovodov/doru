@@ -97,6 +97,7 @@ function PersonTabBody({
   const committedRef = useRef<PersonRecord | undefined>(undefined);
   const submittedRef = useRef<PersonDraft | undefined>(undefined);
   const submittedRecordRef = useRef<PersonRecord | undefined>(undefined);
+  const submissionTokenRef = useRef<object | undefined>(undefined);
 
   // Reset the draft only when it still equals the previously stored person
   // (no unsaved edits); unrelated tree reloads (a fact added elsewhere)
@@ -152,18 +153,24 @@ function PersonTabBody({
       return;
     }
     const submission = draft;
+    const token = {};
+    submissionTokenRef.current = token;
     submittedRef.current = submission;
     try {
       await api.updatePerson(before, next);
-      committedRef.current = next;
-      submittedRecordRef.current = next;
+      if (submissionTokenRef.current === token) {
+        committedRef.current = next;
+        submittedRecordRef.current = next;
+      }
     } catch (error) {
-      // Retry from the latest published snapshot rather than reusing a
-      // baseline whose facts another writer may have deleted.
-      committedRef.current = undefined;
-      if (submittedRef.current === submission) {
-        submittedRef.current = undefined;
-        submittedRecordRef.current = undefined;
+      if (submissionTokenRef.current === token) {
+        // Retry from the latest published snapshot rather than reusing a
+        // baseline whose facts another writer may have deleted.
+        committedRef.current = undefined;
+        if (submittedRef.current === submission) {
+          submittedRef.current = undefined;
+          submittedRecordRef.current = undefined;
+        }
       }
       throw error;
     }

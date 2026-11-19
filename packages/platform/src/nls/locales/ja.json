@@ -515,6 +515,7 @@
   "features.tree.place.postalCodes.remove": "郵便番号を削除",
   "features.tree.place.preposition": "Preposition",
   "features.tree.place.verified": "検証済み",
+  "features.tree.redoBlocked": "やり直せません。新しい変更が失われます。",
   "features.tree.reorder.down": "Move down",
   "features.tree.reorder.up": "Move up",
   "features.tree.repository.add": "所蔵機関を追加",

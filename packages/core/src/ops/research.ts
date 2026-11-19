@@ -122,18 +122,20 @@ export function updateTodoOp(before: TodoRecord, after: TodoRecord): Op {
 }
 
 export function deleteTodoOp(todo: TodoRecord, attachments: AttachmentsSnapshot = emptyAttachments()): Op {
+  let baseline = todo;
   return op(
     crypto.randomUUID(),
     'todo.delete',
     (ctx) => ctx.repo.deleteTodo(todo.id),
     (ctx) => {
       restoreTodo(ctx, todo);
+      baseline = ctx.repo.getTodo(todo.id) ?? todo;
       ctx.repo.restoreAttachments(attachments);
     },
     { targetType: 'todo', targetId: todo.id, kind: 'changed' },
     (ctx) =>
       ctx.repo.getTodo(todo.id) !== undefined &&
-      sameRecord(ctx.repo.getTodo(todo.id), todo) &&
+      sameRecord(ctx.repo.getTodo(todo.id), baseline) &&
       attachmentsMatch(ctx, 'todo', todo.id, attachments),
   );
 }
@@ -168,12 +170,14 @@ export function deleteTitleOp(
   attachments: AttachmentsSnapshot = emptyAttachments(),
   consumers: TitleConsumers = {},
 ): Op {
+  let baseline = title;
   return op(
     crypto.randomUUID(),
     'title.delete',
     (ctx) => ctx.repo.deleteTitle(title.id),
     (ctx) => {
       restoreTitle(ctx, title);
+      baseline = ctx.repo.getTitle(title.id) ?? title;
       ctx.repo.restoreAttachments(attachments);
       for (const source of consumers.sources ?? []) {
         ctx.repo.setSourceTitle(source.id, source.titleId);
@@ -183,7 +187,7 @@ export function deleteTitleOp(
     (ctx) => {
       if (
         ctx.repo.getTitle(title.id) === undefined ||
-        !sameRecord(ctx.repo.getTitle(title.id), title) ||
+        !sameRecord(ctx.repo.getTitle(title.id), baseline) ||
         !attachmentsMatch(ctx, 'title', title.id, attachments)
       ) {
         return false;

@@ -159,6 +159,7 @@ export interface TreeRepository {
   listMediaLinksFor(targetType: string, targetId: string): Array<{ media: MediaRecord; link: MediaLinkRecord }>;
   /** True when this link id already exists, without hydrating its target. */
   hasMediaLink(id: string): boolean;
+  hasMediaFile(id: string): boolean;
   updateMediaLink(link: MediaLinkRecord): void;
   removeMediaLink(id: string): boolean;
   listMediaFor(targetType: string, targetId: string): MediaRecord[];
@@ -845,6 +846,10 @@ export class SqliteTreeRepository implements TreeRepository {
     return this.media.hasLink(id);
   }
 
+  hasMediaFile(id: string): boolean {
+    return this.media.hasFile(id);
+  }
+
   updateMediaLink(link: MediaLinkRecord): void {
     this.media.updateMediaLink(link);
   }
@@ -1346,11 +1351,7 @@ export class SqliteTreeRepository implements TreeRepository {
         this.notes.insertNote({ ...entry.note, links: [] });
         restoredNotes.add(entry.note.id);
       }
-      if (
-        !this.notes
-          .listLinksFor(entry.link.targetType, entry.link.targetId)
-          .some((existing) => existing.link.id === entry.link.id)
-      ) {
+      if (!this.notes.hasLink(entry.link.id)) {
         this.notes.addNoteLink(entry.note.id, entry.link);
       }
     }

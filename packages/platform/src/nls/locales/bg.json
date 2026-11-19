@@ -515,6 +515,7 @@
   "features.tree.place.postalCodes.remove": "Премахване на пощенски код",
   "features.tree.place.preposition": "Preposition",
   "features.tree.place.verified": "Проверено",
+  "features.tree.redoBlocked": "Повторението е невъзможно: по-нови промени ще бъдат загубени.",
   "features.tree.reorder.down": "Move down",
   "features.tree.reorder.up": "Move up",
   "features.tree.repository.add": "Добавяне на хранилище",

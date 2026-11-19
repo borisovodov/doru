@@ -114,6 +114,11 @@ export class OpQueue {
     return this.redoStack.pop();
   }
 
+  /** Drops the top undo entry when its inverse can no longer apply. */
+  discardUndo(): Op | undefined {
+    return this.undoStack.pop();
+  }
+
   /** The op that `undo` would invert, without touching the stacks. */
   peekUndo(): Op | undefined {
     return this.undoStack[this.undoStack.length - 1];

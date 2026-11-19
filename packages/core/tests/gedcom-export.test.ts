@@ -24,6 +24,21 @@ describe('buildGedcomDataset', () => {
     }
   });
 
+  it('skips media links whose media has no files', () => {
+    const fixture = makeRepo();
+    try {
+      const { repo } = fixture;
+      repo.insertPerson({ id: 'P1', names: [], sex: 'U', facts: [] });
+      repo.insertMedia({ id: 'M1', title: 'Fileless', targetType: 'person', targetId: 'P1' });
+
+      const dataset = buildGedcomDataset(repo);
+      expect(dataset.records.some((record) => record.tag === 'OBJE')).toBe(false);
+      expect(serializeGedcom70(dataset).ok).toBe(true);
+    } finally {
+      cleanupRepo(fixture);
+    }
+  });
+
   it('exports an app-created shared note as an SNOTE record', () => {
     const fixture = makeRepo();
     try {

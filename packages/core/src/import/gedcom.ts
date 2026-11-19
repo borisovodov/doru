@@ -1192,12 +1192,13 @@ function importFamily(record: GedcomFamilyRecord, ctx: ImportContext): void {
   }
   for (const link of childLinks) {
     const rows = childRowsByPerson.get(link.childId) ?? [];
-    // Preserve every note structure from both sides and from every repeated
-    // CHIL row: same text may carry different citations or translations.
-    const mergedNotes = rows.flatMap((row) => [
-      ...(ctx.childLinkDetails.get(row.xref)?.get(record.xref ?? '')?.notes ?? []),
-      ...(row.notes ?? []),
-    ]);
+    // Person-side FAMC notes belong to the child, not to each repeated CHIL
+    // row: collect them once, then append each row's own notes.
+    const firstRow = rows[0];
+    const personNotes =
+      firstRow !== undefined ? (ctx.childLinkDetails.get(firstRow.xref)?.get(record.xref ?? '')?.notes ?? []) : [];
+    const rowNotes = rows.flatMap((row) => row.notes ?? []);
+    const mergedNotes = [...personNotes, ...rowNotes];
     importNotes(mergedNotes.length > 0 ? mergedNotes : undefined, 'family_child', link.id, ctx);
   }
 

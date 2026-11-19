@@ -42,6 +42,7 @@ export function deleteMediaOp(
   fileAttachments: NestedAttachments[] = [],
   linkAttachments: NestedAttachments[] = [],
 ): Op {
+  let baseline = media;
   return {
     id: crypto.randomUUID(),
     kind: 'media.delete',
@@ -52,7 +53,7 @@ export function deleteMediaOp(
     },
     redoSafe(ctx) {
       const current = ctx.repo.getMedia(media.id);
-      if (current === undefined || !sameRecord(current, media)) {
+      if (current === undefined || !sameRecord(current, baseline)) {
         return false;
       }
       const fileIds = new Set((media.files ?? []).map((file) => file.id));
@@ -84,6 +85,7 @@ export function deleteMediaOp(
     },
     inverse(ctx) {
       restoreMedia(ctx, media);
+      baseline = ctx.repo.getMedia(media.id) ?? media;
       ctx.repo.restoreAttachments(attachments);
       for (const nested of fileAttachments) {
         ctx.repo.restoreAttachments(nested.attachments);

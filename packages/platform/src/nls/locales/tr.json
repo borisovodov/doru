@@ -515,6 +515,7 @@
   "features.tree.place.postalCodes.remove": "Posta kodunu kaldır",
   "features.tree.place.preposition": "Preposition",
   "features.tree.place.verified": "Doğrulandı",
+  "features.tree.redoBlocked": "Yineleme kullanılamıyor: daha yeni değişiklikler kaybolur.",
   "features.tree.reorder.down": "Move down",
   "features.tree.reorder.up": "Move up",
   "features.tree.repository.add": "Depo ekle",

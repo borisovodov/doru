@@ -515,6 +515,7 @@
   "features.tree.place.postalCodes.remove": "Удалить индекс",
   "features.tree.place.preposition": "Предлог",
   "features.tree.place.verified": "Проверено",
+  "features.tree.redoBlocked": "Повтор невозможен: новые изменения будут потеряны.",
   "features.tree.reorder.down": "Move down",
   "features.tree.reorder.up": "Move up",
   "features.tree.repository.add": "Добавить репозиторий",

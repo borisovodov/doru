@@ -216,6 +216,7 @@ describe('TreeService attachments', () => {
   it('adds sources with and without a citation, updates and deletes them', () => {
     const { fixture, service } = makeService();
     try {
+      service.addPerson({ id: 'P1', names: [], sex: 'U', facts: [] });
       service.addSource(source(), 'person', 'P1');
       expect(fixture.repo.listSources().map((entry) => entry.id)).toEqual(['S1']);
       expect(fixture.repo.listCitationsFor('person', 'P1').map((entry) => entry.source.id)).toEqual(['S1']);
@@ -246,6 +247,8 @@ describe('TreeService attachments', () => {
   it('attaches, updates and detaches citations with undo', () => {
     const { fixture, service } = makeService();
     try {
+      service.addPerson({ id: 'P1', names: [], sex: 'U', facts: [] });
+      service.addPerson({ id: 'P2', names: [], sex: 'U', facts: [] });
       fixture.repo.insertSource(source());
       service.attachSource('S1', 'person', 'P1');
       expect(fixture.repo.listCitationsFor('person', 'P1').map((entry) => entry.source.id)).toEqual(['S1']);

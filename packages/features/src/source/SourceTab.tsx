@@ -217,7 +217,8 @@ function SourceTabBody({
   const save = async () => {
     const target = record ?? lastSaved;
     const next = sourceDraftToRecord(draftRef.current, record ?? lastSaved ?? baselineRef.current);
-    submittedRef.current = sourceToDraft(next);
+    const submission = sourceToDraft(next);
+    submittedRef.current = submission;
     try {
       if (isNew && lastSaved === undefined) {
         await api.addSource(next);
@@ -229,7 +230,9 @@ function SourceTabBody({
         await api.updateSource(target, next);
       }
     } catch (error) {
-      submittedRef.current = undefined;
+      if (submittedRef.current === submission) {
+        submittedRef.current = undefined;
+      }
       throw error;
     }
     baselineRef.current = next;

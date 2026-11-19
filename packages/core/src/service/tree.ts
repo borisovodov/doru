@@ -13,6 +13,7 @@ import type {
   MediaRecord,
   NoteLinkRecord,
   NoteRecord,
+  PersonName,
   PersonRecord,
   PlaceRecord,
   RecordSubmitterLink,
@@ -26,6 +27,7 @@ import type {
   TodoRecord,
 } from '../model/types';
 import type { PersonQuery, TreeRepository } from '../db/repository';
+import { partsFromFlat } from '../db/nameRepo';
 import { collectNameIds, collectNamePartIds, isProjectMediaPath } from '../model/types';
 import {
   addAddressOp,
@@ -113,6 +115,8 @@ export interface UndoRedoState {
   canRedo: boolean;
   /** The last redo was refused because newer data would have been lost. */
   redoBlocked?: boolean;
+  /** The last undo was dropped because its target no longer exists. */
+  undoBlocked?: boolean;
 }
 
 export interface PersonCounts {
@@ -244,12 +248,23 @@ export class TreeService {
   undo(): UndoRedoState {
     const pending = this.queue.peekUndo();
     if (pending) {
-      this.repo.transaction(() => {
-        // Record before the inverse mutates the tree: recording afterwards
-        // would leave a change row for a target the inverse just deleted.
-        this.recordChange(pending, 'changed');
-        pending.inverse({ repo: this.repo });
-      });
+      try {
+        this.repo.transaction(() => {
+          // Record before the inverse mutates the tree: recording afterwards
+          // would leave a change row for a target the inverse just deleted.
+          this.recordChange(pending, 'changed');
+          pending.inverse({ repo: this.repo });
+        });
+      } catch (error) {
+        const message = error instanceof Error ? error.message : '';
+        if (/no longer exists|cannot merge deleted/.test(message)) {
+          // The target vanished under the history entry; dropping it lets
+          // older entries remain reachable instead of blocking undo forever.
+          this.queue.discardUndo();
+          return { ...this.historyState(), undoBlocked: true };
+        }
+        throw error;
+      }
       // The inverse committed; only now move the entry between stacks so a
       // failed replay or commit can still be retried.
       this.queue.commitUndo();
@@ -303,7 +318,28 @@ export class TreeService {
           });
         }
       }
-      const nextParts = new Set(collectNamePartIds(merged.names));
+      const currentNameById = new Map(current.names.map((name) => [name.id, name]));
+      const nextParts = new Set<string>();
+      const addResolvedParts = (name: PersonName, existing: PersonName | undefined): void => {
+        if (name.parts === undefined) {
+          for (const part of partsFromFlat(name, existing?.parts)) {
+            nextParts.add(part.id);
+          }
+        } else {
+          for (const part of name.parts) {
+            nextParts.add(part.id);
+          }
+        }
+        for (const variant of name.variants ?? []) {
+          addResolvedParts(
+            variant,
+            existing?.variants?.find((entry) => entry.id === variant.id),
+          );
+        }
+      };
+      for (const name of merged.names) {
+        addResolvedParts(name, currentNameById.get(name.id));
+      }
       for (const partId of collectNamePartIds(current.names)) {
         if (!nextParts.has(partId)) {
           removed.push({
@@ -442,7 +478,24 @@ export class TreeService {
       }
       const created = target ? undefined : { id: crypto.randomUUID(), partners: [newParentId], children: [childId] };
       const linkAttachments = links.flatMap(({ before, after }) => this.removedLinkAttachments(before, after));
-      return reparentOp(links, created, childId, linkAttachments);
+      return reparentOp(links, created, childId, linkAttachments, (ctx) => {
+        const changed = new Set(links.map((link) => link.after.id));
+        const graph = [
+          ...ctx.repo.listFamilies().filter((entry) => !changed.has(entry.id)),
+          ...links.map((link) => link.after),
+          ...(created ? [created] : []),
+        ];
+        for (const link of links) {
+          for (const child of this.activeChildIds(link.after)) {
+            for (const parent of this.partnerIds(link.after)) {
+              if (this.isAncestor(child, parent, graph)) {
+                return false;
+              }
+            }
+          }
+        }
+        return true;
+      });
     });
   }
 
@@ -503,15 +556,17 @@ export class TreeService {
       const candidate: FamilyRecord = { ...after };
       if (
         after.partnerLinks !== undefined &&
-        JSON.stringify(after.partnerLinks) === JSON.stringify(current.partnerLinks) &&
-        JSON.stringify(after.partners) !== JSON.stringify(current.partners)
+        JSON.stringify(after.partnerLinks) === JSON.stringify(before.partnerLinks) &&
+        JSON.stringify(after.partners) !== JSON.stringify(before.partners)
       ) {
         const links: FamilyPartnerLink[] =
           current.partnerLinks ?? current.partners.map((personId) => ({ id: crypto.randomUUID(), personId }));
-        const kept = links.filter((link) => after.partners.includes(link.personId));
-        for (const personId of after.partners) {
-          if (!kept.some((link) => link.personId === personId)) {
-            kept.push({ id: crypto.randomUUID(), personId });
+        const kept = after.partners.map(
+          (personId) => links.find((link) => link.personId === personId) ?? { id: crypto.randomUUID(), personId },
+        );
+        for (const link of links) {
+          if (!before.partners.includes(link.personId) && !after.partners.includes(link.personId)) {
+            kept.push(link);
           }
         }
         candidate.partnerLinks = kept;
@@ -519,16 +574,20 @@ export class TreeService {
       }
       if (
         after.childLinks !== undefined &&
-        JSON.stringify(after.childLinks) === JSON.stringify(current.childLinks) &&
-        JSON.stringify(after.children) !== JSON.stringify(current.children)
+        JSON.stringify(after.childLinks) === JSON.stringify(before.childLinks) &&
+        JSON.stringify(after.children) !== JSON.stringify(before.children)
       ) {
         const links: FamilyChildLink[] =
           current.childLinks ?? current.children.map((childId) => ({ id: crypto.randomUUID(), childId }));
-        const desired = new Set(after.children);
-        const kept = links.filter((link) => desired.has(link.childId) || link.status === 'disproven');
+        const kept: FamilyChildLink[] = [];
         for (const childId of after.children) {
-          if (!kept.some((link) => link.childId === childId)) {
-            kept.push({ id: crypto.randomUUID(), childId });
+          const existing = links.find((link) => link.childId === childId);
+          kept.push(existing ?? { id: crypto.randomUUID(), childId });
+        }
+        for (const link of links) {
+          const concurrent = !before.children.includes(link.childId) && !after.children.includes(link.childId);
+          if ((link.status === 'disproven' || concurrent) && !kept.some((entry) => entry.childId === link.childId)) {
+            kept.push(link);
           }
         }
         candidate.childLinks = kept;
@@ -818,7 +877,10 @@ export class TreeService {
   updateMedia(before: MediaRecord, after: MediaRecord): UndoRedoState {
     return this.applyAfterCommit(() => {
       const current = this.repo.getMedia(before.id) ?? before;
-      const remaining = new Set((after.files ?? []).map((file) => file.id));
+      const writtenFiles =
+        after.files ??
+        (after.path !== undefined ? (current.files ?? []).filter((file) => file.path === after.path) : []);
+      const remaining = new Set(writtenFiles.map((file) => file.id));
       const removedFiles = (current.files ?? []).filter((file) => !remaining.has(file.id));
       const fileAttachments = removedFiles.map((file) => ({
         targetType: 'media_file',
@@ -870,14 +932,15 @@ export class TreeService {
   detachMedia(link: MediaLinkRecord): UndoRedoState {
     return this.applyAfterCommit(() => {
       const media = this.repo.getMedia(link.mediaId);
+      const stored = media?.links?.find((entry) => entry.id === link.id) ?? link;
       const attachments = this.repo.listAttachmentsFor('media', link.mediaId);
       const fileAttachments = (media?.files ?? []).map((file) => ({
         targetType: 'media_file',
         targetId: file.id,
         attachments: this.repo.listAttachmentsFor('media_file', file.id),
       }));
-      const linkAttachments = this.repo.listAttachmentsFor('media_link', link.id);
-      return detachMediaOp(link, media, attachments, fileAttachments, linkAttachments);
+      const linkAttachments = this.repo.listAttachmentsFor('media_link', stored.id);
+      return detachMediaOp(stored, media, attachments, fileAttachments, linkAttachments);
     });
   }
 
@@ -1349,6 +1412,10 @@ export class TreeService {
           const baseline = Array.isArray(beforeRecord[key]) ? (beforeRecord[key] as string[]) : [];
           const draft = Array.isArray(afterRecord[key]) ? (afterRecord[key] as string[]) : [];
           const storedPlaces = Array.isArray(storedRecord[key]) ? (storedRecord[key] as string[]) : [];
+          if (JSON.stringify(draft) === JSON.stringify(baseline)) {
+            merged[key] = storedPlaces.length > 0 ? storedPlaces : undefined;
+            continue;
+          }
           const mergedPlaces = [...draft];
           for (const id of storedPlaces) {
             if (!mergedPlaces.includes(id) && !baseline.includes(id)) {

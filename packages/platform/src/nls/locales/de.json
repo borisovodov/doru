@@ -515,6 +515,7 @@
   "features.tree.place.postalCodes.remove": "Postleitzahl entfernen",
   "features.tree.place.preposition": "Preposition",
   "features.tree.place.verified": "Verifiziert",
+  "features.tree.redoBlocked": "Wiederholen nicht möglich: Neuere Änderungen würden verloren gehen.",
   "features.tree.reorder.down": "Move down",
   "features.tree.reorder.up": "Move up",
   "features.tree.repository.add": "Archiv hinzufügen",

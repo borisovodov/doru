@@ -81,8 +81,18 @@ export class NameRepo {
 
     const newDateIds = new Set<string>();
     const partIds = new Set<string>();
+    const reservedPartIds = new Set<string>();
+    const reserve = (name: PersonName): void => {
+      for (const part of name.parts ?? []) {
+        reservedPartIds.add(part.id);
+      }
+      for (const variant of name.variants ?? []) {
+        reserve(variant);
+      }
+    };
+    names.forEach(reserve);
     names.forEach((name, position) => {
-      this.writeName(personId, name, null, position, newDateIds, existingNames, partIds);
+      this.writeName(personId, name, null, position, newDateIds, existingNames, partIds, reservedPartIds);
     });
     for (const stale of oldDateIds) {
       if (!newDateIds.has(stale)) {
@@ -162,6 +172,7 @@ export class NameRepo {
     dateIds: Set<string>,
     existingNames: Map<string, PersonName>,
     partIds: Set<string>,
+    reservedPartIds: Set<string>,
   ): void {
     const dateId = name.date ? this.dates.upsert(name.date) : null;
     if (dateId !== null) {
@@ -190,15 +201,16 @@ export class NameRepo {
       name.givenNameUsed ?? null,
     );
     const existingParts = existingNames.get(name.id)?.parts;
-    const parts = [...(name.parts ?? partsFromFlat(name, existingParts))];
+    const parts = [...(name.parts ?? partsFromFlat(name, existingParts, reservedPartIds))];
     if (name.full !== undefined && name.full.trim() !== '' && !parts.some((part) => part.kind === 'full')) {
       // The verbatim display form is authoritative: keep it alongside the
       // pieces even when the caller supplied explicit parts.
       const existingFull = existingParts?.find(
-        (part) => part.kind === 'full' && !parts.some((entry) => entry.id === part.id),
+        (part) => part.kind === 'full' && !parts.some((entry) => entry.id === part.id) && !reservedPartIds.has(part.id),
       );
+      const fullId = existingFull?.id ?? freshPartId(reservedPartIds);
       parts.push({
-        id: existingFull?.id ?? crypto.randomUUID(),
+        id: fullId,
         kind: 'full',
         value: name.full.trim(),
         position: parts.length,
@@ -217,7 +229,7 @@ export class NameRepo {
       this.insertFts.run(personId, searchable);
     }
     (name.variants ?? []).forEach((variant, variantPosition) => {
-      this.writeName(personId, variant, name.id, variantPosition, dateIds, existingNames, partIds);
+      this.writeName(personId, variant, name.id, variantPosition, dateIds, existingNames, partIds, reservedPartIds);
     });
   }
 
@@ -304,13 +316,21 @@ export function flatFromParts(
   };
 }
 
+function freshPartId(reservedIds?: Set<string>): string {
+  let id = crypto.randomUUID();
+  while (reservedIds?.has(id) === true) {
+    id = crypto.randomUUID();
+  }
+  return id;
+}
+
 /**
  * Turns the flat name pieces into part rows: one part per piece, in display
  * order, plus a 'full' part carrying the verbatim display form whenever it
  * is set. The 'full' part is kept even when it equals the pieces joined —
  * the stored form is authoritative for round-trips.
  */
-export function partsFromFlat(name: PersonName, existingParts?: NamePart[]): NamePart[] {
+export function partsFromFlat(name: PersonName, existingParts?: NamePart[], reservedIds?: Set<string>): NamePart[] {
   const pieces: Array<[NamePart['kind'], string | undefined]> = [
     ['prefix', name.prefix],
     ['given', name.given],
@@ -325,9 +345,11 @@ export function partsFromFlat(name: PersonName, existingParts?: NamePart[]): Nam
     // The flat field was always supplied by the first unused part of that
     // kind, so an edit keeps that part's id even when the value now matches a
     // later part. Explicit `parts` callers pick a different part themselves.
-    const candidates = (existingParts ?? []).filter((part) => part.kind === kind && !usedIds.has(part.id));
+    const candidates = (existingParts ?? []).filter(
+      (part) => part.kind === kind && !usedIds.has(part.id) && !reservedIds?.has(part.id),
+    );
     const existing = candidates[0];
-    const id = existing?.id ?? crypto.randomUUID();
+    const id = existing?.id ?? freshPartId(reservedIds);
     usedIds.add(id);
     return id;
   };

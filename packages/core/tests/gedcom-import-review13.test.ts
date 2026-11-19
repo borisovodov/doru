@@ -11,7 +11,12 @@ function importText(lines: string[]) {
     throw new Error('fixture failed to parse');
   }
   const fixture = makeRepo();
-  importGedcomDataset(result.value.dataset, fixture.repo);
+  try {
+    importGedcomDataset(result.value.dataset, fixture.repo);
+  } catch (error) {
+    cleanupRepo(fixture);
+    throw error;
+  }
   return fixture;
 }
 

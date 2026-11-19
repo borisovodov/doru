@@ -1430,6 +1430,69 @@ describe('TreeService CRUD integrity', () => {
     }
   });
 
+  it('preserves concurrent family members when the draft changes the flat list', () => {
+    const { fixture, service } = makeService();
+    const { repo } = fixture;
+    try {
+      service.addPerson(person('P1'));
+      service.addPerson(person('P2'));
+      service.addPerson(person('P3'));
+      service.addFamily({ id: 'F1', partners: ['P1'], children: [] });
+      const before = repo.getFamily('F1')!;
+      const current = repo.getFamily('F1')!;
+      repo.updateFamily({
+        ...current,
+        partners: ['P1', 'P2'],
+        partnerLinks: [...(current.partnerLinks ?? []), { id: 'FL2', personId: 'P2' }],
+      });
+      service.updateFamily(before, { ...before, partners: ['P1', 'P3'] });
+
+      const partners = repo.getFamily('F1')!.partnerLinks?.map((link) => link.personId) ?? [];
+      expect(partners).toEqual(expect.arrayContaining(['P1', 'P2', 'P3']));
+    } finally {
+      cleanupRepo(fixture);
+    }
+  });
+
+  it('keeps concurrent additional-place removals when the draft did not edit the list', () => {
+    const { fixture, service } = makeService();
+    const { repo } = fixture;
+    try {
+      service.addPerson(person('P1'));
+      service.addPlace({ id: 'A', names: [{ id: 'PNA', kind: 'official', position: 0, value: 'A' }] });
+      service.addPlace({ id: 'C', names: [{ id: 'PNC', kind: 'official', position: 0, value: 'C' }] });
+      service.addFact({ id: 'F1', personId: 'P1', tag: 'BIRT', value: 'draft', additionalPlaceIds: ['A'] });
+      const before = repo.getPerson('P1')!;
+      repo.updateFact({ ...before.facts[0]!, additionalPlaceIds: ['C'] });
+
+      service.updatePerson(before, {
+        ...before,
+        facts: [{ ...before.facts[0]!, value: 'edited' }],
+      });
+      expect(repo.getPerson('P1')?.facts[0]?.additionalPlaceIds).toEqual(['C']);
+    } finally {
+      cleanupRepo(fixture);
+    }
+  });
+
+  it('drops a stale undo entry but keeps older history reachable', () => {
+    const { fixture, service } = makeService();
+    const { repo } = fixture;
+    try {
+      service.addNote(note('N1', 'person', 'P1'));
+      service.addPerson(person('P2'));
+      service.updateNote(repo.getNote('N1')!, { ...repo.getNote('N1')!, text: 'edited' });
+      repo.deleteNote('N1');
+
+      const blocked = service.undo();
+      expect(blocked.undoBlocked).toBe(true);
+      expect(service.undo().canUndo).toBe(true);
+      expect(repo.getPerson('P2')).toBeUndefined();
+    } finally {
+      cleanupRepo(fixture);
+    }
+  });
+
   it('does not leave a change-log row when a stale update fails', () => {
     const { fixture, service } = makeService();
     const { repo } = fixture;

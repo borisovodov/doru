@@ -221,7 +221,9 @@ export function deleteSourceOp(
         }
       }
       for (const nested of citationAttachments) {
-        ctx.repo.restoreAttachments(nested.attachments);
+        if (ctx.repo.getCitation(nested.targetId) !== undefined) {
+          ctx.repo.restoreAttachments(nested.attachments);
+        }
       }
     },
     { targetType: 'source', targetId: source.id, kind: 'changed' },
@@ -368,7 +370,21 @@ export function detachMediaOp(
       if (current?.links?.some((entry) => entry.id === link.id) !== true) {
         return true;
       }
-      return linkAttachments === undefined || attachmentsMatch(ctx, 'media_link', link.id, linkAttachments);
+      if (linkAttachments !== undefined && !attachmentsMatch(ctx, 'media_link', link.id, linkAttachments)) {
+        return false;
+      }
+      const lastLink = (current.links ?? []).length <= 1;
+      if (!lastLink) {
+        return true;
+      }
+      if (attachments !== undefined && !attachmentsMatch(ctx, 'media', link.mediaId, attachments)) {
+        return false;
+      }
+      return fileAttachments.every(
+        (nested) =>
+          !ctx.repo.hasMediaFile(nested.targetId) ||
+          attachmentsMatch(ctx, nested.targetType, nested.targetId, nested.attachments),
+      );
     },
   };
 }

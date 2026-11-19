@@ -515,6 +515,7 @@
   "features.tree.place.postalCodes.remove": "Supprimer le code postal",
   "features.tree.place.preposition": "Preposition",
   "features.tree.place.verified": "Vérifié",
+  "features.tree.redoBlocked": "Rétablissement impossible : des modifications plus récentes seraient perdues.",
   "features.tree.reorder.down": "Move down",
   "features.tree.reorder.up": "Move up",
   "features.tree.repository.add": "Ajouter un dépôt",

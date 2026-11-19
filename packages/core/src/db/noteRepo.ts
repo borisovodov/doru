@@ -138,6 +138,11 @@ export class NoteRepo {
     }
   }
 
+  /** Whether one note link id exists, without hydrating its target. */
+  hasLink(id: string): boolean {
+    return this.db.prepare('SELECT 1 FROM note_link WHERE id = ?').get(id) !== undefined;
+  }
+
   /** How many targets currently link this note. */
   countLinksForNote(noteId: string): number {
     const row = this.db.prepare('SELECT COUNT(*) AS n FROM note_link WHERE note_id = ?').get(noteId) as { n: number };

@@ -624,16 +624,14 @@ export function parseSourceRecord(node: RawNode, ctx: Ctx): SourceRecord {
     // Heredis: the quality assessment of the whole source. Input files use
     // the standard QUAY spelling; exports write the extension-safe _QUAY
     // (see SourceRecord.certainty).
-    const value = reqText(child);
+    const value = reqText(child).trim();
     if (!(value in QUALITY_ENUM_VALUES)) {
       // An unrecognized certainty spelling stays a generic extension.
       addExtension(rec, child, ctx);
       return;
     }
     rec.certainty = value as QualityEnum;
-    if (child.children.length > 0) {
-      rec.certaintyExtensions = child.children.map((grandchild) => parseExtension(grandchild, ctx));
-    }
+    rec.certaintyExtensions = child.children.map((grandchild) => parseExtension(grandchild, ctx));
   };
   handlers['QUAY'] = certainty;
   handlers['_QUAY'] = certainty;

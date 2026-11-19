@@ -1041,13 +1041,16 @@ function withMediaLinks(
   targetId: string,
   xrefs: Xrefs,
 ): { media?: MultimediaLink[] } {
-  const links = repo.listMediaLinksFor(targetType, targetId).map((entry) => {
-    const { citations } = withCitationList(repo, 'media_link', entry.link.id, xrefs);
-    return {
-      ...buildMediaLink(entry.link, xrefs),
-      ...(citations.length > 0 ? { citations } : {}),
-    };
-  });
+  const links = repo
+    .listMediaLinksFor(targetType, targetId)
+    .filter((entry) => (entry.media.files ?? []).length > 0)
+    .map((entry) => {
+      const { citations } = withCitationList(repo, 'media_link', entry.link.id, xrefs);
+      return {
+        ...buildMediaLink(entry.link, xrefs),
+        ...(citations.length > 0 ? { citations } : {}),
+      };
+    });
   return links.length > 0 ? { media: links } : {};
 }
 

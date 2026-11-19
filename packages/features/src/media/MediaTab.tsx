@@ -101,6 +101,7 @@ function MediaTabBody({
   const baselineRef = useRef<MediaRecord>(record);
   const savedRef = useRef<MediaRecord>(record);
   const submittedRef = useRef<typeof metadataRef.current | undefined>(undefined);
+  const submissionTokenRef = useRef<object | undefined>(undefined);
   const submittedDirtyRef = useRef<
     | { title: boolean; date: boolean; place: boolean; objectType: boolean; description: boolean; keywords: boolean }
     | undefined
@@ -193,6 +194,8 @@ function MediaTabBody({
 
   const save = async () => {
     const submission = metadataRef.current;
+    const token = {};
+    submissionTokenRef.current = token;
     submittedRef.current = submission;
     const base = baselineRef.current;
     const baseDraft = {
@@ -238,26 +241,30 @@ function MediaTabBody({
     try {
       await api.updateMedia(current, next);
     } catch (error) {
-      if (recordRef.current !== recordBeforeSave) {
-        // A refresh arrived while the write was pending; retry from the
-        // latest stored record so files added meanwhile are not dropped.
-        savedRef.current = recordRef.current;
-      }
-      if (submittedRef.current === submission) {
-        submittedRef.current = undefined;
-        submittedDirtyRef.current = undefined;
+      if (submissionTokenRef.current === token) {
+        if (recordRef.current !== recordBeforeSave) {
+          // A refresh arrived while the write was pending; retry from the
+          // latest stored record so files added meanwhile are not dropped.
+          savedRef.current = recordRef.current;
+        }
+        if (submittedRef.current === submission) {
+          submittedRef.current = undefined;
+          submittedDirtyRef.current = undefined;
+        }
       }
       throw error;
     }
-    // The write settled: retire the submission gate and reconcile the latest
-    // observed record, even when a concurrent refresh did not echo the write.
-    submittedRef.current = undefined;
-    submittedDirtyRef.current = undefined;
-    if (recordRef.current === recordBeforeSave) {
-      baselineRef.current = next;
-      savedRef.current = next;
-    } else {
-      savedRef.current = recordRef.current;
+    // The write settled: retire only this save's submission gate, so an
+    // older completion cannot clear a newer overlapping save.
+    if (submissionTokenRef.current === token) {
+      submittedRef.current = undefined;
+      submittedDirtyRef.current = undefined;
+      if (recordRef.current === recordBeforeSave) {
+        baselineRef.current = next;
+        savedRef.current = next;
+      } else {
+        savedRef.current = recordRef.current;
+      }
     }
   };
 

@@ -515,6 +515,7 @@
   "features.tree.place.postalCodes.remove": "Remove postal code",
   "features.tree.place.preposition": "Preposition",
   "features.tree.place.verified": "Verified",
+  "features.tree.redoBlocked": "Redo is unavailable because newer changes would be lost.",
   "features.tree.reorder.down": "Move down",
   "features.tree.reorder.up": "Move up",
   "features.tree.repository.add": "Add repository",

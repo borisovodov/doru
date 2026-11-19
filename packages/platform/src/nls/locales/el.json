@@ -515,6 +515,7 @@
   "features.tree.place.postalCodes.remove": "Αφαίρεση ταχυδρομικού κώδικα",
   "features.tree.place.preposition": "Preposition",
   "features.tree.place.verified": "Επαληθευμένο",
+  "features.tree.redoBlocked": "Δεν είναι δυνατή η επανάληψη: οι νεότερες αλλαγές θα χαθούν.",
   "features.tree.reorder.down": "Move down",
   "features.tree.reorder.up": "Move up",
   "features.tree.repository.add": "Προσθήκη αποθετηρίου",

@@ -180,6 +180,9 @@ export function restoreCitation(ctx: MutationContext, citation: CitationRecord):
   if (ctx.repo.getSource(citation.sourceId) === undefined) {
     return false;
   }
+  if (!attachmentTargetExists(ctx, citation.targetType, citation.targetId)) {
+    return false;
+  }
   ctx.repo.insertCitation(citation);
   return true;
 }
@@ -273,7 +276,7 @@ export function attachmentsMatch(
   targetId: string,
   captured: AttachmentsSnapshot,
 ): boolean {
-  const signature = (snapshot: AttachmentsSnapshot, seen: Set<string>): string => {
+  const signature = (snapshot: AttachmentsSnapshot, seen: Set<string>): unknown => {
     const nested = [
       ...snapshot.noteAttachments,
       ...snapshot.citationAttachments,
@@ -290,22 +293,13 @@ export function attachmentsMatch(
       next.add(key);
       return [entry.targetType, entry.targetId, signature(entry.attachments, next)];
     });
-    return JSON.stringify({
+    return {
       noteLinks: snapshot.noteLinks
-        .map((entry) => [
-          entry.link.id,
-          entry.note.id,
-          entry.note.text,
-          entry.note.mime ?? null,
-          entry.note.language ?? null,
-        ])
+        .map((entry) => [entry.link.id, JSON.stringify({ ...entry.note, links: undefined })])
         .sort(),
       citations: snapshot.citations.map((entry) => JSON.stringify(entry)).sort(),
       mediaLinks: snapshot.mediaLinks
-        .map((entry) => [
-          JSON.stringify(entry.link),
-          JSON.stringify({ ...entry.media, links: undefined, files: undefined }),
-        ])
+        .map((entry) => [JSON.stringify(entry.link), JSON.stringify({ ...entry.media, links: undefined })])
         .sort(),
       identifiers: snapshot.identifiers.map((entry) => JSON.stringify(entry)).sort(),
       contacts: snapshot.contacts.map((entry) => JSON.stringify(entry)).sort(),
@@ -314,11 +308,12 @@ export function attachmentsMatch(
       todos: snapshot.todos.map((entry) => JSON.stringify(entry)).sort(),
       recordSubmitters: snapshot.recordSubmitters.map((entry) => JSON.stringify(entry)).sort(),
       nested,
-    });
+    };
   };
   const key = `${targetType}\u0000${targetId}`;
   return (
-    signature(ctx.repo.listAttachmentsFor(targetType, targetId), new Set([key])) === signature(captured, new Set([key]))
+    JSON.stringify(signature(ctx.repo.listAttachmentsFor(targetType, targetId), new Set([key]))) ===
+    JSON.stringify(signature(captured, new Set([key])))
   );
 }
 
@@ -332,6 +327,14 @@ export function attachmentTargetExists(ctx: MutationContext, targetType: string,
   switch (targetType) {
     case 'fact':
       return ctx.repo.getFact(targetId) !== undefined;
+    case 'person_sex':
+      return ctx.repo.getPerson(targetId) !== undefined;
+    case 'citation':
+      return ctx.repo.getCitation(targetId) !== undefined;
+    case 'media_file':
+      return ctx.repo.hasMediaFile(targetId);
+    case 'media_link':
+      return ctx.repo.hasMediaLink(targetId);
     case 'association':
       return ctx.repo.listAssociations().some((entry) => entry.id === targetId);
     case 'person':
