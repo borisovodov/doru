@@ -155,7 +155,7 @@ export class PlaceRepo {
       .all(id, id, id, id) as unknown as { date_id: string }[];
     const removed = this.db.prepare('DELETE FROM place WHERE id = ?').run(id).changes > 0;
     for (const entry of dateRows) {
-      this.dates.delete(entry.date_id);
+      this.dates.deleteIfUnused(entry.date_id);
     }
     return removed;
   }

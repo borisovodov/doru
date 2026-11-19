@@ -130,9 +130,13 @@ describe('TreeService CRUD integrity', () => {
       expect(repo.getPlace('PL1')).toBeUndefined();
       expect(repo.listFactsForPerson('P1').find((fact) => fact.id === 'FACT1')?.placeId).toBeUndefined();
       expect(repo.listFactsForPerson('P1').find((fact) => fact.id === 'FACT2')?.additionalPlaceIds).toEqual(['PL3']);
+      expect(repo.getFamily('F1')).toBeDefined();
       expect(repo.getFamily('F1')?.marriageStatuses?.[0]?.placeId).toBeUndefined();
+      expect(repo.getSource('S1')).toBeDefined();
       expect(repo.getSource('S1')?.dataEvents?.[0]?.placeId).toBeUndefined();
+      expect(repo.getMedia('M1')).toBeDefined();
       expect(repo.getMedia('M1')?.placeId).toBeUndefined();
+      expect(repo.getPlace('PL2')).toBeDefined();
       expect(repo.getPlace('PL2')?.hierarchy).toBeUndefined();
       expect(repo.listNotesFor('place', 'PL1')).toEqual([]);
       expect(repo.listNotesFor('place_name', 'PN1')).toEqual([]);
@@ -189,6 +193,9 @@ describe('TreeService CRUD integrity', () => {
 
       service.undo();
       expect(repo.getMedia('M1')?.id).toBe('M1');
+      expect(repo.listAttachmentsFor('place_name', 'PN1').mediaLinks.some((entry) => entry.media.id === 'M1')).toBe(
+        true,
+      );
       expect(repo.listNotesFor('media', 'M1').map((entry) => entry.id)).toEqual(['NM1']);
       expect(repo.listNotesFor('media_file', 'MF1').map((entry) => entry.id)).toEqual(['NM2']);
     } finally {
@@ -248,6 +255,7 @@ describe('TreeService CRUD integrity', () => {
       service.deleteAddress(repo.getAddress('AD1')!);
 
       expect(repo.getAddress('AD1')).toBeUndefined();
+      expect(repo.getPerson('P1')).toBeDefined();
       expect(repo.getPerson('P1')?.addressId).toBeUndefined();
       expect(repo.listNotesFor('address', 'AD1')).toEqual([]);
       expect(repo.listNotesFor('address_line', 'AL2')).toEqual([]);
@@ -276,7 +284,9 @@ describe('TreeService CRUD integrity', () => {
 
       service.deleteRepository(repository);
 
+      expect(repo.getTodo('T1')).toBeDefined();
       expect(repo.listTodos().find((entry) => entry.id === 'T1')?.repositoryId).toBeUndefined();
+      expect(repo.getTitle('TL1')).toBeDefined();
       expect(repo.listTitles().find((entry) => entry.id === 'TL1')?.repositoryId).toBeUndefined();
 
       service.undo();
@@ -591,11 +601,12 @@ describe('TreeService CRUD integrity', () => {
       const before = repo.getPerson('P1')!;
       service.updatePerson(before, {
         ...before,
-        names: [{ id: 'N1', prefix: 'Dr', given: 'Ada' }],
+        names: [{ id: 'N1', prefix: 'Dr', given: 'Maria' }],
       });
 
       const given = repo.getPerson('P1')?.names[0]?.parts?.find((part) => part.kind === 'given');
       expect(given?.id).toBe('NP1');
+      expect(given?.value).toBe('Maria');
       expect(repo.listNotesFor('name_part', 'NP1').map((entry) => entry.id)).toEqual(['NT1']);
       expect(repo.listNotesFor('name_part', 'NP2')).toEqual([]);
     } finally {
@@ -1425,6 +1436,30 @@ describe('TreeService CRUD integrity', () => {
         facts: [{ ...before.facts[0]!, additionalPlaceIds: ['A', 'B'] }],
       });
       expect(repo.getPerson('P1')?.facts[0]?.additionalPlaceIds).toEqual(['A', 'B', 'C']);
+    } finally {
+      cleanupRepo(fixture);
+    }
+  });
+
+  it('remaps an adoption slot when family partners are reordered', () => {
+    const { fixture, service } = makeService();
+    const { repo } = fixture;
+    try {
+      service.addPerson(person('P1'));
+      service.addPerson(person('P2'));
+      service.addPerson(person('C'));
+      service.addFamily({ id: 'F1', partners: ['P1', 'P2'], children: ['C'] });
+      service.addFact({
+        id: 'ADOP1',
+        personId: 'C',
+        tag: 'ADOP',
+        familyLinks: [{ id: 'FF1', familyId: 'F1', adoptedBy: 'HUSB', position: 0 }],
+      });
+      const before = repo.getFamily('F1')!;
+      service.updateFamily(before, { ...before, partners: ['P2', 'P1'] });
+      expect(repo.getPerson('C')?.facts[0]?.familyLinks?.[0]?.adoptedBy).toBe('WIFE');
+      service.undo();
+      expect(repo.getPerson('C')?.facts[0]?.familyLinks?.[0]?.adoptedBy).toBe('HUSB');
     } finally {
       cleanupRepo(fixture);
     }

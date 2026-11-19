@@ -130,6 +130,7 @@ describe('media repo edge cases', () => {
       expect(read.date).toMatchObject({ quality: 'exact', component: { year: 1900 } });
       expect(read.files?.[0]).toMatchObject({
         id: 'F1',
+        path: 'media/a.jpg',
         title: 'File title',
         medium: 'photograph',
         contentType: 'person',

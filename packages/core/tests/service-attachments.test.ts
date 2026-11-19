@@ -582,6 +582,10 @@ describe('TreeService attachments', () => {
       const link = fixture.repo.listRecordSubmittersFor('media_link', 'ML1')[0]!;
 
       service.deleteSubmitter(submitter());
+      expect(fixture.repo.getSubmitter('SU1')).toBeUndefined();
+      expect(fixture.repo.getMedia('M1')).toBeUndefined();
+      expect(fixture.repo.listRecordSubmittersFor('media_link', 'ML1')).toEqual([]);
+
       service.undo();
 
       expect(fixture.repo.getSubmitter('SU1')).toBeDefined();
@@ -680,6 +684,7 @@ describe('TreeService attachments', () => {
   it('stores submitter link kinds and restores them on undo', () => {
     const { fixture, service } = makeService();
     try {
+      service.addPerson({ id: 'P1', names: [], sex: 'U', facts: [] });
       service.addSubmitter(submitter());
       service.addRecordSubmitter('SU1', 'person', 'P1', 'contributor');
       service.addRecordSubmitter('SU1', 'person', 'P1', 'ancestor_interest');
@@ -783,6 +788,7 @@ describe('TreeService attachments', () => {
   it('lists every tag link and submitter link for the global registries', () => {
     const { fixture, service } = makeService();
     try {
+      service.addPerson({ id: 'P1', names: [], sex: 'U', facts: [] });
       service.addTag({ id: 'TAG1', name: 'Priority' });
       service.addTag({ id: 'TAG2', name: 'Orphan' });
       service.attachTag({ id: 'TL1', tagId: 'TAG1', targetType: 'person', targetId: 'P1' });

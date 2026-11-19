@@ -39,7 +39,22 @@ export function updateAssociationOp(before: AssociationRecord, after: Associatio
     (ctx) => ctx.repo.updateAssociation(after),
     (ctx) => ctx.repo.updateAssociation(before),
     { targetType: 'association', targetId: before.id, kind: 'changed' },
-    (ctx) => ctx.repo.listAssociations().some((entry) => entry.id === before.id),
+    (ctx) => {
+      const current = ctx.repo.listAssociations().find((entry) => entry.id === before.id);
+      if (current === undefined || !sameRecord(current, before)) {
+        return false;
+      }
+      if (ctx.repo.getPerson(after.otherPersonId) === undefined) {
+        return false;
+      }
+      if (
+        (after.personId !== undefined && ctx.repo.getPerson(after.personId) === undefined) ||
+        (after.familyId !== undefined && ctx.repo.getFamily(after.familyId) === undefined)
+      ) {
+        return false;
+      }
+      return true;
+    },
   );
 }
 
@@ -158,6 +173,7 @@ export function updateTitleOp(before: TitleRecord, after: TitleRecord): Op {
     (ctx) => ctx.repo.updateTitle(after),
     (ctx) => ctx.repo.updateTitle(before),
     { targetType: 'title', targetId: before.id, kind: 'changed' },
+    (ctx) => ctx.repo.getTitle(before.id) !== undefined,
   );
 }
 

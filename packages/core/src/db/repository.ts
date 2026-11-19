@@ -255,6 +255,8 @@ export interface TreeRepository {
   deleteAttachmentsFor(targetType: string, targetId: string): void;
   /** Re-inserts a previously captured snapshot (the inverse of a cascade). */
   restoreAttachments(snapshot: AttachmentsSnapshot): void;
+  /** Binds a snapshot tree to the current application's removal set. */
+  bindSnapshots(snapshot: AttachmentsSnapshot): void;
   toTreeDocument(): TreeDocument;
   transaction<T>(fn: () => T): T;
 }
@@ -268,7 +270,7 @@ export interface TreeRepository {
 export class SqliteTreeRepository implements TreeRepository {
   private readonly transactions: TransactionScope;
   private readonly snapshotMarkers = new WeakMap<object, Set<string>>();
-  private readonly transactionFrames: Set<object>[] = [];
+  private readonly transactionFrames: Set<string>[] = [];
   private readonly persons: PersonRepo;
   private readonly names: NameRepo;
   private readonly families: FamilyRepo;
@@ -1526,7 +1528,7 @@ export class SqliteTreeRepository implements TreeRepository {
   }
 
   transaction<T>(fn: () => T): T {
-    const frame = new Set<object>();
+    const frame = new Set<string>();
     this.transactionFrames.push(frame);
     try {
       return this.transactions.run(fn);
@@ -1537,32 +1539,40 @@ export class SqliteTreeRepository implements TreeRepository {
 
   /** Registers a snapshot tree so this operation's deletes can annotate it. */
   private registerSnapshot(snapshot: AttachmentsSnapshot): void {
-    let marker = this.snapshotMarkers.get(snapshot);
-    if (marker === undefined) {
-      marker = new Set();
-      this.snapshotMarkers.set(snapshot, marker);
+    const frame = this.transactionFrames[0];
+    if (frame === undefined) {
+      return;
     }
-    for (const frame of this.transactionFrames) {
-      frame.add(snapshot);
-    }
-    for (const nested of [
-      ...snapshot.noteAttachments,
-      ...snapshot.citationAttachments,
-      ...snapshot.mediaAttachments,
-      ...snapshot.mediaFileAttachments,
-      ...snapshot.mediaLinkAttachments,
-      ...snapshot.todoAttachments,
-    ]) {
-      this.registerSnapshot(nested.attachments);
-    }
+    const visited = new WeakSet<object>();
+    const visit = (node: AttachmentsSnapshot): void => {
+      if (visited.has(node)) {
+        return;
+      }
+      visited.add(node);
+      this.snapshotMarkers.set(node, frame);
+      for (const nested of [
+        ...node.noteAttachments,
+        ...node.citationAttachments,
+        ...node.mediaAttachments,
+        ...node.mediaFileAttachments,
+        ...node.mediaLinkAttachments,
+        ...node.todoAttachments,
+      ]) {
+        visit(nested.attachments);
+      }
+    };
+    visit(snapshot);
+  }
+
+  /** Binds an op's snapshots to the current application's removal set. */
+  bindSnapshots(snapshot: AttachmentsSnapshot): void {
+    this.registerSnapshot(snapshot);
   }
 
   private markRemoved(targetType: string, targetId: string): void {
     const key = `${targetType}\u0000${targetId}`;
     for (const frame of this.transactionFrames) {
-      for (const snapshot of frame) {
-        this.snapshotMarkers.get(snapshot)?.add(key);
-      }
+      frame.add(key);
     }
   }
 

@@ -63,7 +63,11 @@ async function prepareGedcomMedia(
       const candidate = resolve(dirname(sourcePath), original);
       const safe = await resolveImportFile(dirname(sourcePath), candidate);
       if (safe !== null && (await fs.exists(safe)) && (await stat(safe)).isFile()) {
-        await store(await fs.readBinary(safe), original);
+        const contents = await fs.readBinary(safe);
+        if ((await resolveImportFile(dirname(sourcePath), candidate)) !== safe) {
+          return;
+        }
+        await store(contents, original);
       } else if (safe === null) {
         log.warn('gedcom import: skipped media outside the source folder', original);
       }
@@ -148,7 +152,13 @@ export async function exportGedcom(
           if (!info.isFile()) {
             return;
           }
-          mediaFiles.push({ name: normalized, contents: await fs.readBinary(absolute) });
+          const contents = await fs.readBinary(absolute);
+          // Re-check containment after reading: a replaced ancestor must not
+          // let bytes from outside the project reach the archive.
+          if ((await resolveMediaPath(dirname(runtimeFilePath(projectPath)), normalized)) !== absolute) {
+            return;
+          }
+          mediaFiles.push({ name: normalized, contents });
           seen.add(normalized);
         }
       };

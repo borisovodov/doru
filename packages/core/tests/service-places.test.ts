@@ -181,6 +181,25 @@ describe('place ops', () => {
     }
   });
 
+  it('keeps a date that another place name still references', () => {
+    const { fixture, service } = makeService();
+    try {
+      const date = { id: 'SHARED-DATE', quality: 'exact' as const, component: { year: 1900 } };
+      service.addPlace({
+        id: 'PL1',
+        names: [{ id: 'PN1', kind: 'official', position: 0, value: 'One', date }],
+      });
+      service.addPlace({
+        id: 'PL2',
+        names: [{ id: 'PN2', kind: 'official', position: 0, value: 'Two', date }],
+      });
+      service.deletePlace(fixture.repo.getPlace('PL1')!);
+      expect(fixture.repo.getPlace('PL2')?.names[0]?.date?.id).toBe('SHARED-DATE');
+    } finally {
+      cleanupRepo(fixture);
+    }
+  });
+
   it('updates a place through the service with undo', () => {
     const { fixture, service } = makeService();
     try {

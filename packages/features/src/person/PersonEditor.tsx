@@ -672,8 +672,11 @@ export function PersonEditor({
               await refreshAttachments();
             }}
             onAttachTag={async (link) => {
-              await api.attachTag(link);
-              await refreshAttachments();
+              try {
+                await api.attachTag(link);
+              } finally {
+                await refreshAttachments();
+              }
             }}
             onDetachTag={async (link) => {
               await api.detachTag(link);

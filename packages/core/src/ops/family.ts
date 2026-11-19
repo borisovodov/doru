@@ -29,6 +29,7 @@ export function updateFamilyOp(
   before: FamilyRecord,
   after: FamilyRecord,
   removedLinkAttachments: FamilyLinkAttachments[] = [],
+  adoptionUpdates: Array<{ before: FactRecord; after: FactRecord }> = [],
 ): Op {
   return {
     id: crypto.randomUUID(),
@@ -37,9 +38,15 @@ export function updateFamilyOp(
     change: { targetType: 'family', targetId: before.id, kind: 'changed' },
     apply(ctx) {
       ctx.repo.updateFamily(after);
+      for (const update of adoptionUpdates) {
+        ctx.repo.updateFact(update.after);
+      }
     },
     inverse(ctx) {
       ctx.repo.updateFamily(before);
+      for (const update of adoptionUpdates) {
+        ctx.repo.updateFact(update.before);
+      }
       for (const link of removedLinkAttachments) {
         ctx.repo.restoreAttachments(link.attachments);
       }
@@ -70,11 +77,17 @@ export function deleteFamilyOp(
   let baselineFacts = facts;
   let baselineLinkedFacts = linkedFacts;
   let baselineAssociations = associations;
+  let baselineLinkAttachments = linkAttachments;
   return {
     id: crypto.randomUUID(),
     kind: 'family.delete',
     timestamp: new Date().toISOString(),
     change: { targetType: 'family', targetId: family.id, kind: 'changed' },
+    snapshots: [
+      attachments,
+      ...linkAttachments.map((link) => link.attachments),
+      ...nestedAttachments.map((nested) => nested.attachments),
+    ],
     apply(ctx) {
       ctx.repo.deleteFamily(family.id);
     },
@@ -88,7 +101,7 @@ export function deleteFamilyOp(
       if (!attachmentsMatch(ctx, 'family', family.id, attachments)) {
         return false;
       }
-      for (const link of linkAttachments) {
+      for (const link of baselineLinkAttachments) {
         if (!attachmentsMatch(ctx, link.targetType, link.targetId, link.attachments)) {
           return false;
         }
@@ -197,6 +210,17 @@ export function deleteFamilyOp(
       baselineFacts = ctx.repo.listFactsForFamily(family.id);
       baselineLinkedFacts = ctx.repo.listFactsLinkedToFamily(family.id);
       baselineAssociations = ctx.repo.listAssociationsForFamily(family.id);
+      const restoredLinks = new Set([
+        ...(baselineFamily.partnerLinks ?? []).map((link) => link.id),
+        ...(baselineFamily.childLinks ?? []).map((link) => link.id),
+        ...(baselineFamily.marriageStatuses ?? []).map((status) => status.id),
+      ]);
+      baselineLinkAttachments = linkAttachments
+        .filter((link) => restoredLinks.has(link.targetId))
+        .map((link) => ({
+          ...link,
+          attachments: ctx.repo.listAttachmentsFor(link.targetType, link.targetId),
+        }));
     },
   };
 }

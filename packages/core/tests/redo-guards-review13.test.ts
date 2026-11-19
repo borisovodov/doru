@@ -179,6 +179,52 @@ describe('redo guards for nested attachment targets', () => {
     }
   });
 
+  it('blocks update redo when the edited row or an endpoint is gone', () => {
+    const { fixture, service } = makeService();
+    const { repo } = fixture;
+    try {
+      service.addNote({ id: 'N1', text: 'A', targetType: 'person', targetId: 'P1' });
+      service.updateNote(repo.getNote('N1')!, { ...repo.getNote('N1')!, text: 'B' });
+      service.undo();
+      repo.updateNote({ ...repo.getNote('N1')!, text: 'C' });
+      expect(service.redo().redoBlocked).toBe(true);
+
+      service.addSource({ id: 'S1', title: 'A' });
+      service.updateSource(repo.getSource('S1')!, { ...repo.getSource('S1')!, title: 'B' });
+      service.undo();
+      repo.deleteSource('S1');
+      expect(service.redo().redoBlocked).toBe(true);
+
+      service.addTitle({ id: 'TI1', name: 'A' });
+      service.updateTitle(repo.getTitle('TI1')!, { ...repo.getTitle('TI1')!, name: 'B' });
+      service.undo();
+      repo.deleteTitle('TI1');
+      expect(service.redo().redoBlocked).toBe(true);
+
+      service.addPerson(person('P1'));
+      service.addPerson(person('P2'));
+      service.addTag({ id: 'TAG1', name: 'Family' });
+      service.attachTag({ id: 'TL1', tagId: 'TAG1', targetType: 'person', targetId: 'P1' });
+      const link = repo.listTagLinksByTag('TAG1')[0]!;
+      service.updateTagLink(link, { ...link, date: { quality: 'exact', component: { year: 1900 } } });
+      service.undo();
+      repo.deleteTagLink('TL1');
+      expect(service.redo().redoBlocked).toBe(true);
+
+      service.addPerson(person('P3'));
+      service.addAssociation({ id: 'A1', personId: 'P1', otherPersonId: 'P2', role: 'witness' });
+      service.updateAssociation(repo.listAssociationsFor('P1')[0]!, {
+        ...repo.listAssociationsFor('P1')[0]!,
+        otherPersonId: 'P3',
+      });
+      service.undo();
+      repo.deletePerson('P3');
+      expect(service.redo().redoBlocked).toBe(true);
+    } finally {
+      cleanupRepo(fixture);
+    }
+  });
+
   it('allows reparent redo when the graph is unchanged', () => {
     const { fixture, service } = makeService();
     const { repo } = fixture;
@@ -190,8 +236,11 @@ describe('redo guards for nested attachment targets', () => {
       service.addFamily(family('F2', { partners: ['P2'], children: [] }));
       service.reparent('C', 'P2');
       service.undo();
+      expect(repo.getFamily('F1')?.children).toContain('C');
+      expect(repo.getFamily('F2')?.children).not.toContain('C');
       expect(service.redo().redoBlocked).toBeUndefined();
       expect(repo.getFamily('F2')?.children).toContain('C');
+      expect(repo.getFamily('F1')?.children).not.toContain('C');
     } finally {
       cleanupRepo(fixture);
     }

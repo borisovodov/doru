@@ -565,13 +565,12 @@ export function registerTreeIpc(): void {
         kind?: NonNullable<RecordSubmitterLink['kind']>;
       },
     ) => {
+      const kind = options.kind ?? 'contributor';
+      if (!['contributor', 'ancestor_interest', 'descendant_interest'].includes(kind)) {
+        throw new Error(`unsupported submitter kind: ${kind}`);
+      }
       const { runtime } = await ensureRuntime(options.projectPath);
-      return runtime.service.addRecordSubmitter(
-        options.submitterId,
-        options.targetType,
-        options.targetId,
-        options.kind ?? 'contributor',
-      );
+      return runtime.service.addRecordSubmitter(options.submitterId, options.targetType, options.targetId, kind);
     },
   );
 

@@ -338,7 +338,14 @@ function eventFamilyFields(
 }
 
 function buildPersonFact(fact: FactRecord, repo: TreeRepository, xrefs: Xrefs): MappedPersonFact {
-  const detail = buildDetail(fact, repo, xrefs);
+  let detail = buildDetail(fact, repo, xrefs);
+  const adoptionLink = fact.tag === 'ADOP' ? fact.familyLinks?.[0] : undefined;
+  if (adoptionLink?.adoptedBy === undefined && adoptionLink?.phrase !== undefined) {
+    detail = {
+      ...(detail ?? {}),
+      notes: [...(detail?.notes ?? []), { tag: 'NOTE', payload: adoptionLink.phrase }],
+    } as typeof detail;
+  }
   const familyFields = eventFamilyFields(fact, xrefs);
   if (fact.tag === 'EVEN' || (!INDIVIDUAL_EVENT_TAGS.has(fact.tag) && !INDIVIDUAL_ATTRIBUTE_TAGS.has(fact.tag))) {
     return {
@@ -773,6 +780,8 @@ function formatTodoDate(date: DateValue | undefined): string | undefined {
     (component !== undefined && (complexComponent(component) || partial(component))) ||
     (date.end !== undefined && (complexComponent(date.end) || partial(date.end))) ||
     (date.text !== undefined && date.quality !== 'unknown' && component === undefined && date.end === undefined) ||
+    (component?.year !== undefined && (component.year < 0 || component.year > 9999)) ||
+    (date.end?.year !== undefined && (date.end.year < 0 || date.end.year > 9999)) ||
     date.time !== undefined ||
     date.modifier !== undefined
   ) {

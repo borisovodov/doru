@@ -627,7 +627,7 @@ export function parseSourceRecord(node: RawNode, ctx: Ctx): SourceRecord {
     const value = reqText(child).trim();
     if (!(value in QUALITY_ENUM_VALUES)) {
       // An unrecognized certainty spelling stays a generic extension.
-      addExtension(rec, child, ctx);
+      addExtension(rec, { ...child, tag: '_QUAY' }, ctx);
       return;
     }
     rec.certainty = value as QualityEnum;

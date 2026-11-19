@@ -60,11 +60,18 @@ export function deletePersonOp(
   aliases: Array<{ id: string; personId: string; aliasId: string }> = [],
   participants: Array<{ factId: string; participant: FactParticipant }> = [],
 ): Op {
+  let baselinePerson = person;
+  let attachmentBaseline = attachments;
   return {
     id: crypto.randomUUID(),
     kind: 'person.delete',
     timestamp: new Date().toISOString(),
     change: { targetType: 'person', targetId: person.id, kind: 'changed' },
+    snapshots: [
+      attachments,
+      ...nestedAttachments.map((nested) => nested.attachments),
+      ...linkAttachments.map((link) => link.attachments),
+    ],
     apply(ctx) {
       for (const link of familyLinks) {
         ctx.repo.updateFamily(link.after);
@@ -73,10 +80,10 @@ export function deletePersonOp(
     },
     redoSafe(ctx) {
       const current = ctx.repo.getPerson(person.id);
-      if (current === undefined || !sameRecord(current, person)) {
+      if (current === undefined || !sameRecord(current, baselinePerson)) {
         return false;
       }
-      if (!attachmentsMatch(ctx, 'person', person.id, attachments)) {
+      if (!attachmentsMatch(ctx, 'person', person.id, attachmentBaseline)) {
         return false;
       }
       for (const nested of nestedAttachments) {
@@ -191,6 +198,8 @@ export function deletePersonOp(
       for (const link of linkAttachments) {
         ctx.repo.restoreAttachments(link.attachments);
       }
+      baselinePerson = ctx.repo.getPerson(person.id) ?? person;
+      attachmentBaseline = ctx.repo.listAttachmentsFor('person', person.id);
     },
   };
 }

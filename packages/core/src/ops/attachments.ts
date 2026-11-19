@@ -72,7 +72,10 @@ export function updateNoteOp(before: NoteRecord, after: NoteRecord): Op {
       (ctx) => ctx.repo.updateNote(after),
       (ctx) => ctx.repo.updateNote(before),
       { targetType: 'note', targetId: before.id, kind: 'changed' },
-      (ctx) => ctx.repo.getNote(before.id) !== undefined,
+      (ctx) => {
+        const current = ctx.repo.getNote(before.id);
+        return current !== undefined && sameRecord(current, before);
+      },
     ),
   };
 }
@@ -193,6 +196,7 @@ export function updateSourceOp(before: SourceRecord, after: SourceRecord): Op {
       (ctx) => ctx.repo.updateSource(before),
     ),
     change: { targetType: 'source', targetId: before.id, kind: 'changed' },
+    redoSafe: (ctx) => ctx.repo.getSource(before.id) !== undefined,
   };
 }
 
@@ -205,6 +209,8 @@ export function deleteSourceOp(
   // The inverse may sanitize a vanished place; redo compares against what
   // was actually persisted, not against the original snapshot.
   let baseline = source;
+  let baselineCitations = citations;
+  let baselineCitationAttachments = citationAttachments;
   return op(
     crypto.randomUUID(),
     'source.delete',
@@ -226,6 +232,12 @@ export function deleteSourceOp(
           ctx.repo.restoreAttachments(nested.attachments);
         }
       }
+      baselineCitations = ctx.repo.listAllCitations().filter((citation) => citation.sourceId === source.id);
+      baselineCitationAttachments = baselineCitations.map((citation) => ({
+        targetType: 'citation',
+        targetId: citation.id,
+        attachments: ctx.repo.listAttachmentsFor('citation', citation.id),
+      }));
     },
     { targetType: 'source', targetId: source.id, kind: 'changed' },
     (ctx) => {
@@ -235,7 +247,7 @@ export function deleteSourceOp(
       if (!attachmentsMatch(ctx, 'source', source.id, attachments)) {
         return false;
       }
-      const capturedCitations = citations.map((citation) => JSON.stringify(citation)).sort();
+      const capturedCitations = baselineCitations.map((citation) => JSON.stringify(citation)).sort();
       const liveCitations = ctx.repo
         .listAllCitations()
         .filter((citation) => citation.sourceId === source.id)
@@ -244,7 +256,7 @@ export function deleteSourceOp(
       if (JSON.stringify(capturedCitations) !== JSON.stringify(liveCitations)) {
         return false;
       }
-      return citationAttachments.every((nested) =>
+      return baselineCitationAttachments.every((nested) =>
         attachmentsMatch(ctx, nested.targetType, nested.targetId, nested.attachments),
       );
     },
@@ -334,6 +346,7 @@ export function updateMediaLinkOp(before: MediaLinkRecord, after: MediaLinkRecor
       (ctx) => ctx.repo.updateMediaLink(before),
     ),
     change: { targetType: 'media', targetId: before.mediaId, kind: 'changed' },
+    redoSafe: (ctx) => ctx.repo.hasMediaLink(before.id),
   };
 }
 
@@ -345,6 +358,7 @@ export function detachMediaOp(
   linkAttachments?: AttachmentsSnapshot,
 ): Op {
   let mediaBaseline = media;
+  let linkBaseline = link;
   return {
     ...op(
       crypto.randomUUID(),
@@ -369,12 +383,21 @@ export function detachMediaOp(
           }
         }
         mediaBaseline = ctx.repo.getMedia(link.mediaId) ?? mediaBaseline;
+        linkBaseline = mediaBaseline?.links?.find((entry) => entry.id === link.id) ?? link;
       },
     ),
     change: { targetType: 'media', targetId: link.mediaId, kind: 'changed' },
     redoSafe(ctx) {
       const current = ctx.repo.getMedia(link.mediaId);
-      if (current?.links?.some((entry) => entry.id === link.id) !== true) {
+      const liveLink = current?.links?.find((entry) => entry.id === link.id);
+      if (liveLink === undefined) {
+        const originalLast = (mediaBaseline?.links?.length ?? 0) <= 1;
+        return !(originalLast && current !== undefined);
+      }
+      if (!sameRecord(liveLink, linkBaseline)) {
+        return false;
+      }
+      if (current === undefined) {
         return true;
       }
       if (linkAttachments !== undefined && !attachmentsMatch(ctx, 'media_link', link.id, linkAttachments)) {
@@ -593,6 +616,7 @@ export function updateTagLinkOp(before: TagLinkRecord, after: TagLinkRecord): Op
       (ctx) => ctx.repo.updateTagLink(before),
     ),
     change: { targetType: after.targetType, targetId: after.targetId, kind: 'changed' },
+    redoSafe: (ctx) => ctx.repo.listAllTagLinks().some((link) => link.id === before.id),
   };
 }
 
@@ -903,11 +927,21 @@ export function deleteAddressOp(
       const submitters = new Set(consumers.submitters?.map((entry) => entry.id) ?? []);
       const facts = new Set(consumers.factIds ?? []);
       const persons = new Set(consumers.personIds ?? []);
+      const liveRepositories = ctx.repo
+        .listRepositories()
+        .filter((entry) => entry.addressId === address.id)
+        .map((entry) => entry.id)
+        .sort();
+      const liveSubmitters = ctx.repo
+        .listSubmitters()
+        .filter((entry) => entry.addressId === address.id)
+        .map((entry) => entry.id)
+        .sort();
       return (
-        ctx.repo.listRepositories().every((entry) => entry.addressId !== address.id || repositories.has(entry.id)) &&
-        ctx.repo.listSubmitters().every((entry) => entry.addressId !== address.id || submitters.has(entry.id)) &&
-        ctx.repo.listFactIdsForAddress(address.id).every((id) => facts.has(id)) &&
-        ctx.repo.listPersonIdsForAddress(address.id).every((id) => persons.has(id))
+        JSON.stringify(liveRepositories) === JSON.stringify([...repositories].sort()) &&
+        JSON.stringify(liveSubmitters) === JSON.stringify([...submitters].sort()) &&
+        JSON.stringify(ctx.repo.listFactIdsForAddress(address.id).sort()) === JSON.stringify([...facts].sort()) &&
+        JSON.stringify(ctx.repo.listPersonIdsForAddress(address.id).sort()) === JSON.stringify([...persons].sort())
       );
     },
   };

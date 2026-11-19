@@ -153,6 +153,8 @@ describe('undo restore sanitizers', () => {
       repo.insertPerson({ id: 'P1', names: [], sex: 'U', facts: [] });
       expect(restoreCitation(ctx, { id: 'C1', sourceId: 'S1', targetType: 'person', targetId: 'P1' })).toBe(true);
       expect(repo.getCitation('C1')).toBeDefined();
+      expect(restoreCitation(ctx, { id: 'C2', sourceId: 'S1', targetType: 'person', targetId: 'missing' })).toBe(false);
+      expect(repo.getCitation('C2')).toBeUndefined();
 
       repo.insertPerson({ id: 'P2', names: [], sex: 'U', facts: [] });
       repo.insertFamily({ id: 'F1', partners: ['P1'], children: [] });
@@ -179,11 +181,13 @@ describe('undo restore sanitizers', () => {
       restoreTodo(ctx, { id: 'T1', text: 'Task', repositoryId: 'R1' });
       restoreTodo(ctx, { id: 'T2', text: 'Orphan task', repositoryId: 'missing' });
       expect(repo.getTodo('T1')?.repositoryId).toBe('R1');
+      expect(repo.getTodo('T2')?.id).toBe('T2');
       expect(repo.getTodo('T2')?.repositoryId).toBeUndefined();
 
       restoreTitle(ctx, { id: 'TI1', name: 'Work', repositoryId: 'R1' });
       restoreTitle(ctx, { id: 'TI2', name: 'Orphan work', repositoryId: 'missing' });
       expect(repo.getTitle('TI1')?.repositoryId).toBe('R1');
+      expect(repo.getTitle('TI2')?.id).toBe('TI2');
       expect(repo.getTitle('TI2')?.repositoryId).toBeUndefined();
 
       repo.insertPerson({ id: 'P1', names: [], sex: 'U', facts: [] });
@@ -244,6 +248,7 @@ describe('undo restore sanitizers', () => {
       expect(repo.getMedia('M1')?.links?.map((link) => link.id)).toEqual(['L1']);
 
       restoreTodo(ctx, { id: 'T1', text: 'Task', targetType: 'person', targetId: 'missing' });
+      expect(repo.getTodo('T1')?.id).toBe('T1');
       expect(repo.getTodo('T1')?.targetType).toBeUndefined();
       expect(repo.getTodo('T1')?.targetId).toBeUndefined();
     } finally {

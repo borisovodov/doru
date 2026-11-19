@@ -149,11 +149,7 @@ export function restoreMedia(ctx: MutationContext, media: MediaRecord): Set<stri
     delete clean.placeId;
   }
   const links = (media.links ?? []).filter((link) => attachmentTargetExists(ctx, link.targetType, link.targetId));
-  if (links.length > 0) {
-    clean.links = links;
-  } else {
-    delete clean.links;
-  }
+  clean.links = links;
   ctx.repo.insertMedia(clean);
   return new Set(links.map((link) => link.id));
 }

@@ -146,6 +146,7 @@ function SourceTabBody({
   const draftRef = useRef(draft);
   const baselineRef = useRef(record);
   const submittedRef = useRef<SourceDraft | undefined>(undefined);
+  const savingRef = useRef(false);
   const setDraft = (next: SourceDraft) => {
     draftRef.current = next;
     setDraftState(next);
@@ -215,28 +216,36 @@ function SourceTabBody({
   }, [api, record]);
 
   const save = async () => {
-    const target = record ?? lastSaved;
-    const next = sourceDraftToRecord(draftRef.current, record ?? lastSaved ?? baselineRef.current);
-    const submission = sourceToDraft(next);
-    submittedRef.current = submission;
-    try {
-      if (isNew && lastSaved === undefined) {
-        await api.addSource(next);
-        onCreated(next.id);
-      } else {
-        if (target === undefined) {
-          return;
-        }
-        await api.updateSource(target, next);
-      }
-    } catch (error) {
-      if (submittedRef.current === submission) {
-        submittedRef.current = undefined;
-      }
-      throw error;
+    if (savingRef.current) {
+      return;
     }
-    baselineRef.current = next;
-    setLastSaved(next);
+    savingRef.current = true;
+    try {
+      const target = record ?? lastSaved;
+      const next = sourceDraftToRecord(draftRef.current, record ?? lastSaved ?? baselineRef.current);
+      const submission = sourceToDraft(next);
+      submittedRef.current = submission;
+      try {
+        if (isNew && lastSaved === undefined) {
+          await api.addSource(next);
+          onCreated(next.id);
+        } else {
+          if (target === undefined) {
+            return;
+          }
+          await api.updateSource(target, next);
+        }
+      } catch (error) {
+        if (submittedRef.current === submission) {
+          submittedRef.current = undefined;
+        }
+        throw error;
+      }
+      baselineRef.current = next;
+      setLastSaved(next);
+    } finally {
+      savingRef.current = false;
+    }
   };
 
   const remove = async () => {

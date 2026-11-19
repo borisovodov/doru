@@ -1,7 +1,7 @@
 import { BrowserWindow, dialog, type OpenDialogOptions } from 'electron';
 import { randomUUID } from 'node:crypto';
-import { rename, stat, unlink } from 'node:fs/promises';
-import { dirname, extname, join } from 'node:path';
+import { lstat, readlink, rename, stat, unlink } from 'node:fs/promises';
+import { dirname, extname, join, resolve } from 'node:path';
 import { IMAGE_EXTENSIONS, MEDIA_DIR_NAME, type MediaFile, type MediaRecord } from '@doru/core';
 import { NodeFileSystem } from './filesystem';
 import { log } from './log';
@@ -262,6 +262,7 @@ async function resolveReferenceSet(projectPath: string, media: MediaRecord[]): P
         const absolute = await mediaAbsolutePath(projectPath, path);
         if (absolute !== null) {
           resolved.add(absolute);
+          resolved.add(resolve(dirname(runtimeFilePath(projectPath)), path));
         }
       }
     }
@@ -318,7 +319,25 @@ async function removeMediaFile(
     // final check, the original file can be put back without data loss.
     trash = `${absolute}.doru-deleting-${randomUUID()}`;
     await rename(absolute, trash);
-    if ((await references()).has(absolute)) {
+    const current = await references();
+    let stillReferenced = current.has(absolute);
+    if (!stillReferenced) {
+      for (const reference of current) {
+        try {
+          if ((await lstat(reference)).isSymbolicLink()) {
+            const target = resolve(dirname(reference), await readlink(reference));
+            if (target === absolute) {
+              stillReferenced = true;
+              break;
+            }
+          }
+        } catch {
+          // A stale reference path that no longer exists cannot point at the
+          // staged file.
+        }
+      }
+    }
+    if (stillReferenced) {
       await rename(trash, absolute);
       trash = undefined;
       return;

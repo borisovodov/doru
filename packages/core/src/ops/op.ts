@@ -37,6 +37,8 @@ export interface Op {
    * restore. Ops leave this unset when redo always replays exactly.
    */
   redoSafe?(ctx: MutationContext): boolean;
+  /** Snapshot trees that a successful apply should bind to its removal set. */
+  snapshots?: AttachmentsSnapshot[];
 }
 
 /** Attaches a redo-safety check to an op without repeating its shape. */

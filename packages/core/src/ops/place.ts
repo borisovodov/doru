@@ -87,11 +87,19 @@ export function deletePlaceOp(
   consumers: PlaceConsumers = {},
   nestedAttachments: NestedAttachments[] = [],
 ): Op {
+  let baselinePlace = place;
+  let baselineHierarchyLinks = [
+    ...(place.hierarchy ?? []),
+    ...(consumers.childPlaces ?? []).flatMap((child) =>
+      (child.hierarchy ?? []).filter((link) => link.parentId === place.id),
+    ),
+  ];
   return {
     id: crypto.randomUUID(),
     kind: 'place.delete',
     timestamp: new Date().toISOString(),
     change: { targetType: 'place', targetId: place.id, kind: 'changed' },
+    snapshots: [attachments, ...nestedAttachments.map((nested) => nested.attachments)],
     apply(ctx) {
       for (const link of facts) {
         ctx.repo.detachFactPlace(link.before.id, place.id);
@@ -100,7 +108,7 @@ export function deletePlaceOp(
     },
     redoSafe(ctx) {
       const current = ctx.repo.getPlace(place.id);
-      if (current === undefined || !sameRecord(current, place)) {
+      if (current === undefined || !sameRecord(current, baselinePlace)) {
         return false;
       }
       if (!attachmentsMatch(ctx, 'place', place.id, attachments)) {
@@ -192,14 +200,8 @@ export function deletePlaceOp(
       if (capturedEvents.size !== currentEvents.size || [...capturedEvents].some((id) => !currentEvents.has(id))) {
         return false;
       }
-      const capturedHierarchyLinks = [
-        ...(place.hierarchy ?? []),
-        ...(consumers.childPlaces ?? []).flatMap((child) =>
-          (child.hierarchy ?? []).filter((link) => link.parentId === place.id),
-        ),
-      ];
       if (
-        JSON.stringify(capturedHierarchyLinks.map((link) => JSON.stringify(link)).sort()) !==
+        JSON.stringify(baselineHierarchyLinks.map((link) => JSON.stringify(link)).sort()) !==
         JSON.stringify(liveHierarchyLinks.map((link) => JSON.stringify(link)).sort())
       ) {
         return false;
@@ -293,6 +295,13 @@ export function deletePlaceOp(
       for (const media of consumers.media ?? []) {
         ctx.repo.setMediaPlaceId(media.id, place.id);
       }
+      baselinePlace = ctx.repo.getPlace(place.id) ?? place;
+      baselineHierarchyLinks = [
+        ...(baselinePlace.hierarchy ?? []),
+        ...ctx.repo
+          .listPlaces()
+          .flatMap((entry) => (entry.hierarchy ?? []).filter((link) => link.parentId === place.id)),
+      ];
     },
   };
 }

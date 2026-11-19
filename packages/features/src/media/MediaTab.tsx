@@ -167,7 +167,7 @@ function MediaTabBody({
       refreshed.title = record.title;
       setTitle(record.title ?? '');
     }
-    if (dateDraftsEqual(draft.date, base.date)) {
+    if (mediaDateDraftPairEqual(draft.date, base.date, baselineRef.current.date)) {
       refreshed.date = record.date;
       setDate(toDateDraft(record.date));
     }
@@ -209,7 +209,7 @@ function MediaTabBody({
     };
     submittedDirtyRef.current = {
       title: submission.title.trim() !== baseDraft.title,
-      date: !dateDraftsEqual(submission.date, baseDraft.date),
+      date: !mediaDateDraftEqual(submission.date, base.date),
       place: submission.place.trim() !== baseDraft.place || submission.placeId !== baseDraft.placeId,
       objectType: submission.objectType.trim() !== baseDraft.objectType,
       description: submission.description.trim() !== baseDraft.description,
@@ -221,7 +221,7 @@ function MediaTabBody({
     if (title.trim() !== (base.title ?? '')) {
       next.title = title.trim() || undefined;
     }
-    if (!dateDraftsEqual(date, toDateDraft(base.date))) {
+    if (!mediaDateDraftEqual(date, base.date)) {
       next.date = fromDateDraft(date, current.date);
     }
     if (place.trim() !== (base.place ?? '') || placeId !== (base.placeId ?? '')) {
@@ -632,6 +632,22 @@ function mediaRecordHasSubmission(
   );
 }
 
+/** Compares drafts by the date they save, not by their raw typed text. */
+function mediaDateDraftEqual(
+  draft: ReturnType<typeof toDateDraft>,
+  base?: Parameters<typeof fromDateDraft>[1],
+): boolean {
+  return dateDraftsEqual(toDateDraft(fromDateDraft(draft, base)), toDateDraft(base));
+}
+
+function mediaDateDraftPairEqual(
+  draft: ReturnType<typeof toDateDraft>,
+  baseDraft: ReturnType<typeof toDateDraft>,
+  base?: Parameters<typeof fromDateDraft>[1],
+): boolean {
+  return dateDraftsEqual(toDateDraft(fromDateDraft(draft, base)), toDateDraft(fromDateDraft(baseDraft, base)));
+}
+
 /** True when the metadata draft still equals the stored media record. */
 function mediaMetadataMatches(
   values: {
@@ -647,7 +663,7 @@ function mediaMetadataMatches(
 ): boolean {
   return (
     values.title.trim() === (record.title ?? '') &&
-    dateDraftsEqual(values.date, toDateDraft(record.date)) &&
+    mediaDateDraftEqual(values.date, record.date) &&
     values.place.trim() === (record.place ?? '') &&
     values.placeId === (record.placeId ?? '') &&
     values.objectType.trim() === (record.objectType ?? '') &&

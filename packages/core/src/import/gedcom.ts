@@ -631,11 +631,13 @@ function importPerson(record: GedcomIndividualRecord, ctx: ImportContext): void 
   >();
   for (const link of record.childFamilies ?? []) {
     const previous = famcDetails.get(link.family);
+    const pedigree = link.pedigree?.payload.toLowerCase();
+    const status = link.status?.payload.toLowerCase();
     famcDetails.set(link.family, {
-      pedigree: link.pedigree?.payload.toLowerCase() ?? previous?.pedigree,
-      pedigreePhrase: link.pedigree?.phrase ?? previous?.pedigreePhrase,
-      status: link.status?.payload.toLowerCase() ?? previous?.status,
-      statusPhrase: link.status?.phrase ?? previous?.statusPhrase,
+      pedigree: pedigree ?? previous?.pedigree,
+      pedigreePhrase: pedigree !== undefined ? link.pedigree?.phrase : previous?.pedigreePhrase,
+      status: status ?? previous?.status,
+      statusPhrase: status !== undefined ? link.status?.phrase : previous?.statusPhrase,
       fatherRelation: link.fatherRelation ?? previous?.fatherRelation,
       motherRelation: link.motherRelation ?? previous?.motherRelation,
       notes: [...(previous?.notes ?? []), ...(link.notes ?? [])],
@@ -1225,12 +1227,13 @@ function importFamily(record: GedcomFamilyRecord, ctx: ImportContext): void {
       const ages: NonNullable<FactRecord['ages']> = [];
       // The exporter normalizes a wife-only family to the HUSB slot, so the
       // wife's age must follow that slot too.
-      const wifeSlot = !husbandResolved && wifeResolved ? 'HUSB' : 'WIFE';
+      const wifeOnly = !husbandResolved && wifeResolved;
       if (husbandAge !== undefined) {
-        ages.push(mapAge(husbandAge, 'HUSB'));
+        // An unmatched husband slot has no person to attach to.
+        ages.push(mapAge(husbandAge, wifeOnly ? undefined : 'HUSB'));
       }
       if (wifeAge !== undefined) {
-        ages.push(mapAge(wifeAge, wifeSlot));
+        ages.push(mapAge(wifeAge, wifeOnly ? 'HUSB' : 'WIFE'));
       }
       fact.ages = ages;
     }
@@ -1484,6 +1487,9 @@ function parseStructuredComponent(value: unknown): NonNullable<DateValue['compon
 
 function validStructuredComponent(component: NonNullable<DateValue['component']> | undefined): boolean {
   if (typeof component?.month === 'number' && (component.month < 1 || component.month > 12)) {
+    return false;
+  }
+  if (component?.day !== undefined && (component.day < 1 || component.day > 31)) {
     return false;
   }
   if (component?.year === undefined || typeof component.month !== 'number' || component.day === undefined) {

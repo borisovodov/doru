@@ -279,6 +279,9 @@ export class TreeService {
         if (pending.redoSafe !== undefined && !pending.redoSafe({ repo: this.repo })) {
           return false;
         }
+        for (const snapshot of pending.snapshots ?? []) {
+          this.repo.bindSnapshots(snapshot);
+        }
         this.recordChange(pending, 'changed');
         pending.apply({ repo: this.repo });
         return true;
@@ -479,6 +482,17 @@ export class TreeService {
       const created = target ? undefined : { id: crypto.randomUUID(), partners: [newParentId], children: [childId] };
       const linkAttachments = links.flatMap(({ before, after }) => this.removedLinkAttachments(before, after));
       return reparentOp(links, created, childId, linkAttachments, (ctx) => {
+        if (ctx.repo.getPerson(childId) === undefined || ctx.repo.getPerson(newParentId) === undefined) {
+          return false;
+        }
+        for (const link of linkAttachments) {
+          if (
+            JSON.stringify(ctx.repo.listAttachmentsFor(link.targetType, link.targetId)) !==
+            JSON.stringify(link.attachments)
+          ) {
+            return false;
+          }
+        }
         for (const link of links) {
           if (JSON.stringify(ctx.repo.getFamily(link.before.id)) !== JSON.stringify(link.before)) {
             return false;
@@ -612,7 +626,35 @@ export class TreeService {
       // connection must not close a cycle between the check and the write.
       this.assertFamilyAcyclic(candidate);
       const removed = this.removedLinkAttachments(current, candidate);
-      return updateFamilyOp(current, candidate, removed);
+      const oldPartners = this.partnerIds(current);
+      const nextPartners = this.partnerIds(candidate);
+      const adoptionUpdates: Array<{ before: FactRecord; after: FactRecord }> = [];
+      if (JSON.stringify(oldPartners) !== JSON.stringify(nextPartners)) {
+        for (const fact of this.repo.listFactsLinkedToFamily(current.id)) {
+          const state = { changed: false };
+          const familyLinks = (fact.familyLinks ?? []).map((link) => {
+            if (link.familyId !== current.id || link.adoptedBy === undefined || link.adoptedBy === 'BOTH') {
+              return link;
+            }
+            const personId = oldPartners[link.adoptedBy === 'HUSB' ? 0 : 1];
+            if (personId === undefined) {
+              return link;
+            }
+            const nextIndex = nextPartners.indexOf(personId);
+            const adoptedBy: 'HUSB' | 'WIFE' | undefined =
+              nextIndex < 0 ? undefined : nextIndex === 0 ? 'HUSB' : 'WIFE';
+            if (adoptedBy === link.adoptedBy) {
+              return link;
+            }
+            state.changed = true;
+            return { ...link, adoptedBy };
+          });
+          if (state.changed) {
+            adoptionUpdates.push({ before: fact, after: { ...fact, familyLinks } });
+          }
+        }
+      }
+      return updateFamilyOp(current, candidate, removed, adoptionUpdates);
     });
   }
 
@@ -868,8 +910,10 @@ export class TreeService {
    * op keeps the note and its attachments for undo.
    */
   detachNote(note: NoteRecord, link: NoteLinkRecord): UndoRedoState {
-    const attachments = this.repo.listAttachmentsFor('note', note.id);
-    return this.apply(detachNoteOp(note, link, attachments));
+    return this.applyAfterCommit(() => {
+      const attachments = this.repo.listAttachmentsFor('note', note.id);
+      return detachNoteOp(note, link, attachments);
+    });
   }
 
   deleteNote(note: NoteRecord): UndoRedoState {
@@ -914,9 +958,16 @@ export class TreeService {
           (merged as unknown as Record<string, unknown>)[key] = after[key];
         }
       }
+      const pathChanged = before.path !== after.path;
       const pathMatch =
         merged.path !== undefined ? (current.files ?? []).find((file) => file.path === merged.path) : undefined;
-      const writtenFiles = merged.files ?? (pathMatch !== undefined ? [pathMatch] : []);
+      const writtenFiles =
+        merged.files ??
+        (pathChanged && merged.path !== undefined
+          ? [{ id: pathMatch?.id ?? crypto.randomUUID(), path: merged.path }]
+          : pathMatch !== undefined
+            ? [pathMatch]
+            : []);
       const remaining = new Set(writtenFiles.map((file) => file.id));
       const removedFiles = (current.files ?? []).filter((file) => !remaining.has(file.id));
       const fileAttachments = removedFiles.map((file) => ({
@@ -1470,6 +1521,29 @@ export class TreeService {
             }
           }
           merged[key] = mergedPlaces.length > 0 ? mergedPlaces : undefined;
+          continue;
+        }
+        if (
+          (key === 'participants' || key === 'ages') &&
+          afterRecord[key] === undefined &&
+          Array.isArray(beforeRecord[key])
+        ) {
+          const baseline = new Set(
+            (beforeRecord[key] as unknown[]).flatMap((entry) =>
+              typeof entry === 'object' && entry !== null && 'id' in entry ? [(entry as { id: string }).id] : [],
+            ),
+          );
+          const storedRows = Array.isArray(storedRecord[key]) ? (storedRecord[key] as unknown[]) : [];
+          const remaining = storedRows.filter(
+            (entry) =>
+              !(
+                typeof entry === 'object' &&
+                entry !== null &&
+                'id' in entry &&
+                baseline.has((entry as { id: string }).id)
+              ),
+          );
+          merged[key] = remaining.length > 0 ? remaining : undefined;
           continue;
         }
         if (key === 'familyLinks' && afterRecord[key] === undefined && Array.isArray(beforeRecord[key])) {

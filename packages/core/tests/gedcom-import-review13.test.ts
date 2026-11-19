@@ -29,6 +29,8 @@ describe('GEDCOM import edge slots', () => {
       '1 FAMS @F1@',
       '1 FAMS @F1@',
       '2 DATE 1 JAN 1900',
+      '1 FAMS @F1@',
+      '2 DATE 1 JAN 1901',
       '0 @F1@ FAM',
       '1 HUSB @I1@',
     ]);
@@ -81,6 +83,19 @@ describe('GEDCOM import edge slots', () => {
     try {
       const fact = fixture.repo.listFactsForFamily(fixture.repo.listFamilies()[0]!.id)[0]!;
       expect(fact.ages?.[0]).toMatchObject({ role: 'HUSB', years: 20 });
+    } finally {
+      cleanupRepo(fixture);
+    }
+  });
+
+  it('rejects a zero day in a partial structured task date', () => {
+    const fixture = importText([
+      ...HEAD,
+      '0 @T1@ _TODO Task',
+      '1 _TCDT json:{"quality":"exact","component":{"month":5,"day":0}}',
+    ]);
+    try {
+      expect(fixture.repo.listTodos()[0]?.createdDate?.quality).toBe('unknown');
     } finally {
       cleanupRepo(fixture);
     }
