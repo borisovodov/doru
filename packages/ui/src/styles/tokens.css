@@ -38,11 +38,22 @@
   --doru-line-paternal: var(--doru-info);
   --doru-line-maternal: #c98ba0;
 
+  /* Spacing scale: 2px steps. Odd legacy values are normalised to the
+     nearest step, so every gap, padding and margin in @doru/ui component
+     modules uses a shared token instead of a literal. */
+  --doru-space-1: 2px;
+  --doru-space-2: 4px;
+  --doru-space-3: 6px;
+  --doru-space-4: 8px;
+  --doru-space-5: 10px;
+  --doru-space-6: 12px;
+  --doru-space-7: 14px;
+  --doru-space-8: 16px;
+  --doru-space-10: 20px;
+  --doru-space-12: 24px;
+  --doru-space-20: 40px;
+
   /* Geometry */
-  --doru-space-1: 4px;
-  --doru-space-2: 6px;
-  --doru-space-3: 8px;
-  --doru-space-4: 12px;
   --doru-radius-sm: 4px;
   --doru-radius-md: 6px;
   --doru-radius-lg: 8px;

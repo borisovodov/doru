@@ -11,8 +11,8 @@
 .notes-row {
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 2px 0;
+  gap: var(--doru-space-3);
+  padding: var(--doru-space-1) 0;
 }
 
 .notes-text {
@@ -25,15 +25,15 @@
 .notes-edit {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: var(--doru-space-3);
 }
 
 .notes-attachments {
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  margin: 6px 0 10px;
-  padding-left: 12px;
+  gap: var(--doru-space-4);
+  margin: var(--doru-space-3) 0 var(--doru-space-5);
+  padding-left: var(--doru-space-6);
   border-left: 2px solid var(--doru-border);
 }
 
@@ -44,7 +44,7 @@
 .notes-edit-fields {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 0 12px;
+  gap: 0 var(--doru-space-6);
 }
 
 .notes-edit-fields input,
@@ -55,7 +55,7 @@
 .notes-translations {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: var(--doru-space-3);
 }
 
 .notes-translations-title {
@@ -68,7 +68,7 @@
 
 .translation-row {
   display: flex;
-  gap: 6px;
+  gap: var(--doru-space-3);
   align-items: center;
 }
 
@@ -90,13 +90,13 @@
 
 .notes-edit-actions {
   display: flex;
-  gap: 6px;
+  gap: var(--doru-space-3);
   align-items: center;
 }
 
 .notes-add {
   display: flex;
-  gap: 8px;
+  gap: var(--doru-space-4);
 }
 
 .notes-add input {

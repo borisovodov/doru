@@ -28,7 +28,7 @@
   position: absolute;
   bottom: 4px;
   left: 4px;
-  padding: 2px 6px;
+  padding: var(--doru-space-1) var(--doru-space-3);
   border-radius: var(--doru-radius-sm);
   background: rgb(0 0 0 / 55%);
   color: #fff;

@@ -10,7 +10,7 @@
   transform: translateX(-50%);
   z-index: 100;
   pointer-events: none;
-  padding: 4px 10px;
+  padding: var(--doru-space-2) var(--doru-space-5);
   background: var(--doru-bg-popover);
   border: 1px solid var(--doru-border);
   border-radius: var(--doru-radius-sm);

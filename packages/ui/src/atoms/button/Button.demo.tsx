@@ -28,7 +28,7 @@ const row = {
   display: 'flex',
   flexWrap: 'wrap',
   alignItems: 'center',
-  gap: 8,
+  gap: 'var(--doru-space-4)',
 } as const;
 
 export const Variants: DemoCase = {

@@ -40,7 +40,7 @@ const meta = {
   },
   decorators: [
     (Story) => (
-      <div style={{ width: 360, padding: 12 }}>
+      <div style={{ width: 360, padding: 'var(--doru-space-6)' }}>
         <Story />
       </div>
     ),

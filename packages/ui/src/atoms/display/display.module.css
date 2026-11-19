@@ -65,8 +65,8 @@
 .chip {
   display: inline-flex;
   align-items: center;
-  gap: 3px;
-  padding: 0 7px;
+  gap: var(--doru-space-2);
+  padding: 0 var(--doru-space-3);
   border-radius: 999px;
   font-size: var(--doru-font-size-xs);
   line-height: 18px;
@@ -86,7 +86,7 @@
 .badge {
   display: inline-flex;
   align-items: center;
-  gap: 3px;
+  gap: var(--doru-space-2);
   color: var(--doru-fg-muted);
   font-size: var(--doru-font-size-xs);
 }
@@ -97,7 +97,7 @@
   justify-content: center;
   min-width: 18px;
   height: 18px;
-  padding: 0 4px;
+  padding: 0 var(--doru-space-2);
   box-sizing: border-box;
   background: var(--doru-bg-input);
   border: 1px solid var(--doru-border);

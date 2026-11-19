@@ -34,7 +34,7 @@ export const Default: DemoCase = {
             key={row}
             style={{
               margin: 0,
-              padding: 'var(--doru-space-1) var(--doru-space-2)',
+              padding: 'var(--doru-space-2) var(--doru-space-3)',
               color: 'var(--doru-fg-muted)',
             }}
           >

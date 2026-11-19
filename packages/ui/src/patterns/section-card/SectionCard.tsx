@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import { hasContent } from '../../lib/content';
 import { cx } from '../../lib/cx';
 import styles from './SectionCard.module.css';
 
@@ -15,7 +16,7 @@ export function SectionCard({ title, actions, className, children }: SectionCard
     <section className={cx(styles['section'], className)} aria-label={title}>
       <header className={styles['header']}>
         <h3 className={styles['title']}>{title}</h3>
-        {actions ? <div className={styles['actions']}>{actions}</div> : null}
+        {hasContent(actions) ? <div className={styles['actions']}>{actions}</div> : null}
       </header>
       <div className={styles['content']}>{children}</div>
     </section>

@@ -23,7 +23,7 @@ const heading = {
 export const AllStates: DemoCase = {
   args: { label: 'Field', children: null },
   render: () => (
-    <div style={{ display: 'grid', gap: 24, width: 360 }}>
+    <div style={{ display: 'grid', gap: 'var(--doru-space-12)', width: 360 }}>
       <section>
         <h3 style={heading}>Default</h3>
         <Field label="Given name" hint="The name as it appears in the record.">

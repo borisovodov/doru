@@ -247,6 +247,10 @@ decisions about what we deliberately do **not** build, see
   `--doru-overlay-*` (hover/pressed), `--doru-state` colors, `--doru-ring`
   (0.5px elevation ring), geometry (`--doru-radius-sm/md/lg` = 4/6/8px,
   `--doru-control-height` = 28px).
+- **Spacing uses the shared scale**: `--doru-space-*` (2px steps, with
+  larger steps for 20/24/40px). Gaps, paddings and margins in `@doru/ui`
+  component modules reference these tokens; odd legacy pixel values were
+  normalised to the nearest step during the migration.
 - **Floating panels**: the workbench root is the
   shell — a plain surface in the chrome color. The activity bar and the
   primary side bar share one rounded card (1px border, 8px radius) with a
