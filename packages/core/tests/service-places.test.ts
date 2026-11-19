@@ -163,6 +163,24 @@ describe('place ops', () => {
     }
   });
 
+  it('rejects place redo when a fact reference kind changed', () => {
+    const { fixture, service } = makeService();
+    const { repo } = fixture;
+    try {
+      service.addPerson({ id: 'P1', names: [], sex: 'U', facts: [] });
+      service.addPlace(moscow);
+      service.addFact({ id: 'F1', personId: 'P1', tag: 'BIRT', additionalPlaceIds: ['PL1'] });
+      service.deletePlace(moscow);
+      service.undo();
+
+      repo.updateFact({ ...repo.getFact('F1')!, placeId: 'PL1' });
+      expect(service.redo().redoBlocked).toBe(true);
+      expect(repo.getPlace('PL1')).toBeDefined();
+    } finally {
+      cleanupRepo(fixture);
+    }
+  });
+
   it('updates a place through the service with undo', () => {
     const { fixture, service } = makeService();
     try {

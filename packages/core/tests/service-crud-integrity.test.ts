@@ -1328,6 +1328,36 @@ describe('TreeService CRUD integrity', () => {
     }
   });
 
+  it('checks family link, fact and association attachments before redo', () => {
+    const { fixture, service } = makeService();
+    const { repo } = fixture;
+    try {
+      service.addPerson(person('P1'));
+      service.addFamily({ id: 'F1', partners: ['P1'], children: [] });
+      service.deleteFamily(repo.getFamily('F1')!);
+      service.undo();
+      const partnerId = repo.getFamily('F1')!.partnerLinks![0]!.id;
+      repo.insertNote({ id: 'NL', text: 'link note', targetType: 'family_partner', targetId: partnerId });
+      expect(service.redo().redoBlocked).toBe(true);
+
+      service.addFamily({ id: 'F2', partners: ['P1'], children: [] });
+      service.addFact({ id: 'FM1', familyId: 'F2', tag: 'MARR' });
+      service.deleteFamily(repo.getFamily('F2')!);
+      service.undo();
+      repo.insertNote({ id: 'NF', text: 'fact note', targetType: 'fact', targetId: 'FM1' });
+      expect(service.redo().redoBlocked).toBe(true);
+
+      service.addFamily({ id: 'F3', partners: ['P1'], children: [] });
+      service.addAssociation({ id: 'A1', familyId: 'F3', otherPersonId: 'P1', role: 'witness' });
+      service.deleteFamily(repo.getFamily('F3')!);
+      service.undo();
+      repo.insertNote({ id: 'NA', text: 'association note', targetType: 'association', targetId: 'A1' });
+      expect(service.redo().redoBlocked).toBe(true);
+    } finally {
+      cleanupRepo(fixture);
+    }
+  });
+
   it('does not leave a change-log row when a stale update fails', () => {
     const { fixture, service } = makeService();
     const { repo } = fixture;

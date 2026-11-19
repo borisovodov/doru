@@ -282,6 +282,20 @@ describe('undo restore sanitizers', () => {
       expect(attachmentsMatch(ctx, 'person', 'P1', withTask)).toBe(true);
       repo.updateTodo({ id: 'T1', text: 'Reviewed', targetType: 'person', targetId: 'P1' });
       expect(attachmentsMatch(ctx, 'person', 'P1', withTask)).toBe(false);
+
+      repo.insertSource({ id: 'S1', title: 'Book' });
+      repo.insertCitation({ id: 'C1', sourceId: 'S1', targetType: 'person', targetId: 'P1', page: '1' });
+      repo.insertMedia({ id: 'M1', title: 'Photo', targetType: 'person', targetId: 'P1' });
+      repo.insertTag({ id: 'TAG1', name: 'Family' });
+      repo.insertTagLink({ id: 'TL1', tagId: 'TAG1', targetType: 'person', targetId: 'P1' });
+      repo.insertContact({ id: 'CT1', targetType: 'person', targetId: 'P1', kind: 'email', value: 'a@b.c' });
+      repo.insertRestriction({ id: 'R1', targetType: 'person', targetId: 'P1', level: 'confidential' });
+      repo.insertSubmitter({ id: 'SU1', name: 'Submitter' });
+      repo.insertRecordSubmitter('RS1', 'SU1', 'person', 'P1', 'contributor');
+      const rich = repo.listAttachmentsFor('person', 'P1');
+      expect(attachmentsMatch(ctx, 'person', 'P1', rich)).toBe(true);
+      repo.updateCitation({ ...rich.citations[0]!, page: '2' });
+      expect(attachmentsMatch(ctx, 'person', 'P1', rich)).toBe(false);
     } finally {
       cleanupRepo(fixture);
     }
