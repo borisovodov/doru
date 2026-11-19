@@ -38,6 +38,25 @@ import {
 import styles from './MediaTab.module.css';
 import './MediaTab.css';
 
+type MediaDraftSnapshot = {
+  title: string;
+  date: ReturnType<typeof toDateDraft>;
+  place: string;
+  placeId: string;
+  objectType: string;
+  description: string;
+  keywords: string;
+};
+
+type MediaDirtyFields = {
+  title: boolean;
+  date: boolean;
+  place: boolean;
+  objectType: boolean;
+  description: boolean;
+  keywords: boolean;
+};
+
 export function MediaTab({
   entityId,
   media,
@@ -102,10 +121,8 @@ function MediaTabBody({
   const savedRef = useRef<MediaRecord>(record);
   const submittedRef = useRef<typeof metadataRef.current | undefined>(undefined);
   const submissionTokenRef = useRef<object | undefined>(undefined);
-  const submittedDirtyRef = useRef<
-    | { title: boolean; date: boolean; place: boolean; objectType: boolean; description: boolean; keywords: boolean }
-    | undefined
-  >(undefined);
+  const submittedDirtyRef = useRef<MediaDirtyFields | undefined>(undefined);
+  const saveChainRef = useRef<Promise<void>>(Promise.resolve());
   const metadataRef = useRef({
     title,
     date,
@@ -192,12 +209,58 @@ function MediaTabBody({
     baselineRef.current = refreshed;
   }, [record]);
 
-  const save = async () => {
-    const submission = metadataRef.current;
+  /**
+   * Merges a refresh that arrived while a write was pending. Fields this
+   * submission did not touch adopt the refreshed values; edited fields keep
+   * the draft (or the just-written value after a successful save) so a retry
+   * still sends the user's change.
+   */
+  const reconcileAfterRefresh = (
+    latest: MediaRecord,
+    base: MediaRecord,
+    dirty: MediaDirtyFields,
+    next?: MediaRecord,
+  ): void => {
+    const refreshed: MediaRecord = { ...latest };
+    if (!dirty.title) {
+      setTitle(latest.title ?? '');
+    } else {
+      refreshed.title = (next ?? base).title;
+    }
+    if (!dirty.date) {
+      setDate(toDateDraft(latest.date));
+    } else {
+      refreshed.date = (next ?? base).date;
+    }
+    if (!dirty.place) {
+      setPlace(latest.place ?? '');
+      setPlaceId(latest.placeId ?? '');
+    } else {
+      refreshed.place = (next ?? base).place;
+      refreshed.placeId = (next ?? base).placeId;
+    }
+    if (!dirty.objectType) {
+      setObjectType(latest.objectType ?? '');
+    } else {
+      refreshed.objectType = (next ?? base).objectType;
+    }
+    if (!dirty.description) {
+      setDescription(latest.description ?? '');
+    } else {
+      refreshed.description = (next ?? base).description;
+    }
+    if (!dirty.keywords) {
+      setKeywords(latest.keywords ?? '');
+    } else {
+      refreshed.keywords = (next ?? base).keywords;
+    }
+    baselineRef.current = refreshed;
+  };
+
+  const performSave = async (submission: MediaDraftSnapshot, base: MediaRecord): Promise<void> => {
     const token = {};
     submissionTokenRef.current = token;
     submittedRef.current = submission;
-    const base = baselineRef.current;
     const baseDraft = {
       title: base.title ?? '',
       date: toDateDraft(base.date),
@@ -207,7 +270,7 @@ function MediaTabBody({
       description: base.description ?? '',
       keywords: base.keywords ?? '',
     };
-    submittedDirtyRef.current = {
+    const dirty: MediaDirtyFields = {
       title: submission.title.trim() !== baseDraft.title,
       date: !mediaDateDraftEqual(submission.date, base.date),
       place: submission.place.trim() !== baseDraft.place || submission.placeId !== baseDraft.placeId,
@@ -215,27 +278,28 @@ function MediaTabBody({
       description: submission.description.trim() !== baseDraft.description,
       keywords: submission.keywords.trim() !== baseDraft.keywords,
     };
+    submittedDirtyRef.current = dirty;
     // Use the latest saved state even while the refreshed prop is pending.
     const current = savedRef.current;
     const next: MediaRecord = { ...current };
-    if (title.trim() !== (base.title ?? '')) {
-      next.title = title.trim() || undefined;
+    if (submission.title.trim() !== (base.title ?? '')) {
+      next.title = submission.title.trim() || undefined;
     }
-    if (!mediaDateDraftEqual(date, base.date)) {
-      next.date = fromDateDraft(date, current.date);
+    if (!mediaDateDraftEqual(submission.date, base.date)) {
+      next.date = fromDateDraft(submission.date, current.date);
     }
-    if (place.trim() !== (base.place ?? '') || placeId !== (base.placeId ?? '')) {
-      next.place = place.trim() || undefined;
-      next.placeId = placeId || undefined;
+    if (submission.place.trim() !== (base.place ?? '') || submission.placeId !== (base.placeId ?? '')) {
+      next.place = submission.place.trim() || undefined;
+      next.placeId = submission.placeId || undefined;
     }
-    if (objectType.trim() !== (base.objectType ?? '')) {
-      next.objectType = objectType.trim() || undefined;
+    if (submission.objectType.trim() !== (base.objectType ?? '')) {
+      next.objectType = submission.objectType.trim() || undefined;
     }
-    if (description.trim() !== (base.description ?? '')) {
-      next.description = description.trim() || undefined;
+    if (submission.description.trim() !== (base.description ?? '')) {
+      next.description = submission.description.trim() || undefined;
     }
-    if (keywords.trim() !== (base.keywords ?? '')) {
-      next.keywords = keywords.trim() || undefined;
+    if (submission.keywords.trim() !== (base.keywords ?? '')) {
+      next.keywords = submission.keywords.trim() || undefined;
     }
     const recordBeforeSave = recordRef.current;
     try {
@@ -246,6 +310,7 @@ function MediaTabBody({
           // A refresh arrived while the write was pending; retry from the
           // latest stored record so files added meanwhile are not dropped.
           savedRef.current = recordRef.current;
+          reconcileAfterRefresh(recordRef.current, base, dirty);
         }
         if (submittedRef.current === submission) {
           submittedRef.current = undefined;
@@ -264,8 +329,27 @@ function MediaTabBody({
         savedRef.current = next;
       } else {
         savedRef.current = recordRef.current;
+        reconcileAfterRefresh(recordRef.current, base, dirty, next);
       }
     }
+  };
+
+  const save = (): Promise<void> => {
+    // Capture the click-time draft and baseline, then queue behind earlier
+    // writes so overlapping saves cannot race over the same draft.
+    const submission = {
+      title,
+      date,
+      place,
+      placeId,
+      objectType,
+      description,
+      keywords,
+    };
+    const base = baselineRef.current;
+    const task: Promise<void> = saveChainRef.current.then(() => performSave(submission, base));
+    saveChainRef.current = task.catch(() => undefined);
+    return saveChainRef.current;
   };
 
   const remove = async () => {

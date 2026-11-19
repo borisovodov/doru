@@ -117,6 +117,7 @@
   "features.tree.address.open": "打开地址",
   "features.tree.address.postalCode": "邮政编码",
   "features.tree.address.removeLine": "Remove address line",
+  "features.tree.address.saveFailed": "地址已被其他更改删除，无法保存。请再次保存以重新创建。",
   "features.tree.address.state": "州/地区",
   "features.tree.address.title": "地址",
   "features.tree.address.unlink": "取消地址关联",

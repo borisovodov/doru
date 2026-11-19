@@ -62,6 +62,8 @@ export function deletePersonOp(
 ): Op {
   let baselinePerson = person;
   let attachmentBaseline = attachments;
+  let baselineAssociations = associations;
+  let baselineParticipants = participants;
   return {
     id: crypto.randomUUID(),
     kind: 'person.delete',
@@ -122,7 +124,7 @@ export function deletePersonOp(
           return false;
         }
       }
-      const capturedAssociationById = new Map(associations.map((association) => [association.id, association]));
+      const capturedAssociationById = new Map(baselineAssociations.map((association) => [association.id, association]));
       for (const association of ctx.repo.listAssociationsFor(person.id)) {
         const captured = capturedAssociationById.get(association.id);
         if (captured === undefined || !sameRecord(captured, association)) {
@@ -140,7 +142,7 @@ export function deletePersonOp(
         }
       }
       const capturedParticipants = new Map(
-        participants.map((entry) => [`${entry.factId}\u0000${entry.participant.id}`, entry.participant]),
+        baselineParticipants.map((entry) => [`${entry.factId}\u0000${entry.participant.id}`, entry.participant]),
       );
       for (const fact of current.facts) {
         for (const participant of fact.participants ?? []) {
@@ -200,6 +202,8 @@ export function deletePersonOp(
       }
       baselinePerson = ctx.repo.getPerson(person.id) ?? person;
       attachmentBaseline = ctx.repo.listAttachmentsFor('person', person.id);
+      baselineAssociations = ctx.repo.listAssociationsFor(person.id);
+      baselineParticipants = ctx.repo.listParticipantsForPerson(person.id);
     },
   };
 }

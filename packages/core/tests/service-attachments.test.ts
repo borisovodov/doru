@@ -589,6 +589,9 @@ describe('TreeService attachments', () => {
       service.undo();
 
       expect(fixture.repo.getSubmitter('SU1')).toBeDefined();
+      expect(fixture.repo.getMedia('M1')?.links).toEqual([
+        expect.objectContaining({ id: 'ML1', targetType: 'submitter', targetId: 'SU1' }),
+      ]);
       expect(fixture.repo.listRecordSubmittersFor('media_link', 'ML1')).toEqual([link]);
     } finally {
       cleanupRepo(fixture);

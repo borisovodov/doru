@@ -117,6 +117,7 @@
   "features.tree.address.open": "Otevřít adresu",
   "features.tree.address.postalCode": "PSČ",
   "features.tree.address.removeLine": "Remove address line",
+  "features.tree.address.saveFailed": "Adresu se nepodařilo uložit, protože ji odstranila jiná změna. Uložte znovu a vytvořte ji.",
   "features.tree.address.state": "Kraj",
   "features.tree.address.title": "Adresa",
   "features.tree.address.unlink": "Odpojit adresu",

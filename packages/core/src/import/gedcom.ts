@@ -1,3 +1,4 @@
+import { ADOPTION_PHRASE_PREFIX } from '../gedcomPhraseMarker';
 import type {
   Calendar,
   DateFields,
@@ -698,7 +699,12 @@ function importPerson(record: GedcomIndividualRecord, ctx: ImportContext): void 
       return;
     }
     importCitations(structure.detail?.citations, 'fact', fact.id, ctx);
-    importNotes(structure.detail?.notes, 'fact', fact.id, ctx);
+    importNotes(
+      structure.tag === 'ADOP' ? factNotes(structure.detail?.notes) : structure.detail?.notes,
+      'fact',
+      fact.id,
+      ctx,
+    );
     if (structure.tag === 'WILL') {
       // WILL.TEXT is normalized into ordinary notes on the fact; export
       // writes them back as NOTE (see docs/decisions.md).
@@ -781,13 +787,21 @@ interface EventFamilyRef {
   familyChild?: string | undefined;
 }
 
-function queueFactFamily(structure: EventFamilyRef | undefined, factId: string, ctx: ImportContext): void {
+function queueFactFamily(
+  structure: EventFamilyRef | undefined,
+  factId: string,
+  ctx: ImportContext,
+  notes?: NoteStructure[],
+): void {
   if (structure?.adoptionFamily !== undefined) {
+    const marker = notes?.find((note) => 'payload' in note && note.payload.startsWith(ADOPTION_PHRASE_PREFIX));
+    const markerPhrase =
+      marker !== undefined && 'payload' in marker ? marker.payload.slice(ADOPTION_PHRASE_PREFIX.length) : undefined;
     ctx.pendingFactFamilies.push({
       factId,
       familyXref: structure.adoptionFamily.family,
       adoptedBy: structure.adoptionFamily.adoption?.payload as 'HUSB' | 'WIFE' | 'BOTH' | undefined,
-      phrase: structure.adoptionFamily.adoption?.phrase,
+      phrase: structure.adoptionFamily.adoption?.phrase ?? markerPhrase,
       position: 0,
     });
     return;
@@ -815,6 +829,14 @@ function linkFactFamilies(ctx: ImportContext): void {
   }
 }
 
+function factNotes(notes: NoteStructure[] | undefined): NoteStructure[] | undefined {
+  if (notes === undefined) {
+    return undefined;
+  }
+  const filtered = notes.filter((note) => !('payload' in note && note.payload.startsWith(ADOPTION_PHRASE_PREFIX)));
+  return filtered.length === notes.length ? notes : filtered;
+}
+
 function mapFact(
   base: {
     id: string;
@@ -829,7 +851,7 @@ function mapFact(
   ctx: ImportContext,
   structure?: EventFamilyRef,
 ): FactRecord {
-  queueFactFamily(structure, base.id, ctx);
+  queueFactFamily(structure, base.id, ctx, detail?.notes);
   importMediaLinks(detail?.media, 'fact', base.id, ctx);
   importRestrictions(detail?.restriction, 'fact', base.id, ctx);
   importIdentifiers(

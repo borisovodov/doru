@@ -1,4 +1,4 @@
-import { realpath } from 'node:fs/promises';
+import { lstat, readlink, realpath } from 'node:fs/promises';
 import { basename, dirname, isAbsolute, join, relative, resolve, sep } from 'node:path';
 import { MEDIA_DIR_NAME } from '@doru/core';
 
@@ -57,4 +57,40 @@ export async function resolveMediaPath(projectDir: string, mediaPath: string): P
   }
   const canonicalTarget = await canonicalPath(absolute);
   return isInside(canonicalMedia, canonicalTarget) ? canonicalTarget : null;
+}
+
+/**
+ * Whether a symlink chain starting at `reference` ends at `target`. Follows
+ * every hop (a symlink may point at another symlink) and stops on cycles.
+ * Unlike realpath, the target itself may be missing — the media cleanup
+ * stages the bytes under a new name before running this check.
+ */
+export async function symlinkChainResolvesTo(reference: string, target: string): Promise<boolean> {
+  let current = reference;
+  const seen = new Set<string>();
+  for (;;) {
+    if (seen.has(current)) {
+      return false;
+    }
+    seen.add(current);
+    let info;
+    try {
+      info = await lstat(current);
+    } catch {
+      return false;
+    }
+    if (!info.isSymbolicLink()) {
+      return current === target;
+    }
+    let next: string;
+    try {
+      next = resolve(dirname(current), await readlink(current));
+    } catch {
+      return false;
+    }
+    if (next === target) {
+      return true;
+    }
+    current = next;
+  }
 }

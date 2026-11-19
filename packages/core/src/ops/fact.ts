@@ -57,6 +57,7 @@ export function deleteFactOp(fact: FactRecord, attachments: AttachmentsSnapshot 
           attachmentBaseline = ctx.repo.listAttachmentsFor('fact', fact.id);
         }
       },
+      snapshots: [attachments],
     },
     (ctx) =>
       ctx.repo.getFact(fact.id) !== undefined &&

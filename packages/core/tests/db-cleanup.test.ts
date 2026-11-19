@@ -23,6 +23,30 @@ describe('db cleanup paths', () => {
     }
   });
 
+  it('restores file evidence for a snapshot captured outside a transaction', () => {
+    const fixture = makeRepo();
+    try {
+      const { repo } = fixture;
+      repo.insertPerson({ id: 'P1', names: [], sex: 'U', facts: [] });
+      repo.insertMedia({
+        id: 'M1',
+        path: 'media/a.jpg',
+        files: [{ id: 'MF1', path: 'media/a.jpg' }],
+        targetType: 'person',
+        targetId: 'P1',
+      });
+      repo.insertNote({ id: 'N1', text: 'file note', targetType: 'media_file', targetId: 'MF1' });
+      const snapshot = repo.listAttachmentsFor('person', 'P1');
+      repo.deleteAttachmentsFor('media_file', 'MF1');
+      expect(repo.listAttachmentsFor('media_file', 'MF1').noteLinks).toEqual([]);
+
+      repo.restoreAttachments(snapshot);
+      expect(repo.listAttachmentsFor('media_file', 'MF1').noteLinks.map((entry) => entry.note.id)).toEqual(['N1']);
+    } finally {
+      cleanupRepo(fixture);
+    }
+  });
+
   it('deletes a note when its last link goes away', () => {
     const fixture = makeRepo();
     try {

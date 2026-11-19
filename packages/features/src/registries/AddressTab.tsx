@@ -77,7 +77,7 @@ function AddressTabBody({
   onCreated: (realId: string) => void;
 }) {
   const base: AddressRecord = record ?? { id: crypto.randomUUID(), lines: [] };
-  const { address, setAddress, saveAddress } = useRegistryAddress(api, record?.id);
+  const { address, setAddress, addressSaveFailed, saveAddress } = useRegistryAddress(api, record?.id);
   const preview = addressLabel(addressDraftToRecord(address));
   const usage = {
     facts: facts.filter((fact) => fact.addressId === base.id).length,
@@ -87,7 +87,12 @@ function AddressTabBody({
   const usageCount = usage.facts + usage.repositories + usage.submitters;
 
   const save = async () => {
-    const id = await saveAddress();
+    let id: string | undefined;
+    try {
+      id = await saveAddress();
+    } catch {
+      return;
+    }
     if (id === undefined) {
       return;
     }
@@ -136,6 +141,11 @@ function AddressTabBody({
             />
           )}
         />
+        {addressSaveFailed && (
+          <p className="side-registries-note" role="alert">
+            {nls.t('features.tree.address.saveFailed')}
+          </p>
+        )}
         {usageCount > 0 && (
           <p className="side-registries-note">{nls.t('features.tree.address.deleteWarning', usageCount)}</p>
         )}

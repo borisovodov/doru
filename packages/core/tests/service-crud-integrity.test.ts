@@ -1465,6 +1465,28 @@ describe('TreeService CRUD integrity', () => {
     }
   });
 
+  it('keeps a concurrent name reorder when the draft order is unchanged', () => {
+    const { fixture, service } = makeService();
+    const { repo } = fixture;
+    try {
+      service.addPerson({
+        id: 'P1',
+        sex: 'U',
+        names: [
+          { id: 'N1', given: 'Anna' },
+          { id: 'N2', given: 'Maria' },
+        ],
+        facts: [],
+      });
+      const before = repo.getPerson('P1')!;
+      repo.updatePerson({ ...before, names: [before.names[1]!, before.names[0]!] });
+      service.updatePerson(before, { ...before, sex: 'F' });
+      expect(repo.getPerson('P1')?.names.map((name) => name.id)).toEqual(['N2', 'N1']);
+    } finally {
+      cleanupRepo(fixture);
+    }
+  });
+
   it('reactivates a newly selected disproven child link', () => {
     const { fixture, service } = makeService();
     const { repo } = fixture;

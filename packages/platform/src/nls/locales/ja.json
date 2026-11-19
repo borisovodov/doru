@@ -117,6 +117,7 @@
   "features.tree.address.open": "住所を開く",
   "features.tree.address.postalCode": "郵便番号",
   "features.tree.address.removeLine": "Remove address line",
+  "features.tree.address.saveFailed": "住所は別の変更で削除されたため保存できませんでした。もう一度保存して再作成してください。",
   "features.tree.address.state": "地域",
   "features.tree.address.title": "住所",
   "features.tree.address.unlink": "住所のリンクを解除",

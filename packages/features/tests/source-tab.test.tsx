@@ -92,6 +92,90 @@ describe('SourceTab', () => {
     resolveSave();
   });
 
+  it('keeps post-submission edits when an unrelated refresh arrives', async () => {
+    let resolveSave!: () => void;
+    const updateSource = vi.fn(
+      async () =>
+        new Promise<void>((resolve) => {
+          resolveSave = resolve;
+        }),
+    );
+    const api = stubApi<SourceEditorApi>({
+      updateSource,
+      getRepositories: async () => [],
+      getTitles: async () => [],
+      getNotes: async () => [],
+      getAllNotes: async () => [],
+      getCitations: async () => [],
+      getTags: async () => [],
+      getTagLinks: async () => [],
+      getIdentifiers: async () => [],
+      getContacts: async () => [],
+      getRestrictions: async () => [],
+      getChanges: async () => [],
+      getSubmitters: async () => [],
+      getRecordSubmitters: async () => [],
+      getMediaFor: async () => [],
+      getAllMedia: async () => [],
+      getTodosFor: async () => [],
+    });
+    const mediaApi = stubApi<MediaTargetApi>({ getMediaFor: async () => [], getAllMedia: async () => [] });
+    const source = { id: 'S1', title: 'Old title', author: 'Alice' };
+    const renderSource = (record: typeof source) =>
+      renderUi(
+        <SourceTab
+          entityId="S1"
+          sources={[record]}
+          api={api}
+          persons={[]}
+          families={[]}
+          facts={[]}
+          places={[]}
+          citations={[]}
+          notes={[]}
+          media={[]}
+          mediaApi={mediaApi}
+          onOpenPerson={vi.fn()}
+          onOpenMedia={vi.fn()}
+          onOpenSource={vi.fn()}
+          onClose={vi.fn()}
+          onCreated={vi.fn()}
+        />,
+      );
+
+    const view = renderSource(source);
+    fireEvent.change(screen.getByDisplayValue('Old title'), { target: { value: 'New title' } });
+    fireEvent.click(screen.getByRole('button', { name: nls.t('features.tree.save') }));
+    await waitFor(() => expect(updateSource).toHaveBeenCalledTimes(1));
+
+    // After Save, the user restores the previous title while a concurrent
+    // author change arrives from another writer.
+    fireEvent.change(screen.getByDisplayValue('New title'), { target: { value: 'Old title' } });
+    view.rerender(
+      <SourceTab
+        entityId="S1"
+        sources={[{ ...source, author: 'Bob' }]}
+        api={api}
+        persons={[]}
+        families={[]}
+        facts={[]}
+        places={[]}
+        citations={[]}
+        notes={[]}
+        media={[]}
+        mediaApi={mediaApi}
+        onOpenPerson={vi.fn()}
+        onOpenMedia={vi.fn()}
+        onOpenSource={vi.fn()}
+        onClose={vi.fn()}
+        onCreated={vi.fn()}
+      />,
+    );
+    expect(screen.getByDisplayValue('Old title')).toBeInTheDocument();
+    expect(screen.getByDisplayValue('Bob')).toBeInTheDocument();
+    resolveSave();
+  });
+
   it('shows a missing-source message for an unknown id', () => {
     renderTab({ entityId: 'missing' });
     expect(screen.getByText(nls.t('features.sources.notFound'))).toBeInTheDocument();

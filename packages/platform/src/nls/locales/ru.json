@@ -117,6 +117,7 @@
   "features.tree.address.open": "Открыть адрес",
   "features.tree.address.postalCode": "Индекс",
   "features.tree.address.removeLine": "Remove address line",
+  "features.tree.address.saveFailed": "Адрес не удалось сохранить: он был удалён другим изменением. Сохраните ещё раз, чтобы создать его заново.",
   "features.tree.address.state": "Регион",
   "features.tree.address.title": "Адрес",
   "features.tree.address.unlink": "Отвязать адрес",

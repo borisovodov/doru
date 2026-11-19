@@ -117,6 +117,7 @@
   "features.tree.address.open": "Cím megnyitása",
   "features.tree.address.postalCode": "Irányítószám",
   "features.tree.address.removeLine": "Remove address line",
+  "features.tree.address.saveFailed": "A címet nem sikerült menteni, mert egy másik módosítás eltávolította. Mentse újra az újbóli létrehozáshoz.",
   "features.tree.address.state": "Régió",
   "features.tree.address.title": "Cím",
   "features.tree.address.unlink": "Cím leválasztása",

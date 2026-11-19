@@ -117,6 +117,7 @@
   "features.tree.address.open": "Adresi aç",
   "features.tree.address.postalCode": "Posta kodu",
   "features.tree.address.removeLine": "Remove address line",
+  "features.tree.address.saveFailed": "Adres başka bir değişiklik tarafından kaldırıldığı için kaydedilemedi. Yeniden oluşturmak için tekrar kaydedin.",
   "features.tree.address.state": "Bölge",
   "features.tree.address.title": "Adres",
   "features.tree.address.unlink": "Adres bağlantısını kaldır",

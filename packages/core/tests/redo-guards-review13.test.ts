@@ -322,6 +322,121 @@ describe('redo guards for nested attachment targets', () => {
     }
   });
 
+  it('allows repository redo after a task was reassigned before undo', () => {
+    const { fixture, service } = makeService();
+    const { repo } = fixture;
+    try {
+      service.addRepository({ id: 'R1', name: 'Archive' });
+      service.addRepository({ id: 'R2', name: 'Library' });
+      service.addTodo({ id: 'TD1', text: 'Look it up', repositoryId: 'R1' });
+      service.addTitle({ id: 'TI1', name: 'Register', repositoryId: 'R1' });
+      service.deleteRepository(repo.getRepository('R1')!);
+      repo.updateTodo({ ...repo.getTodo('TD1')!, repositoryId: 'R2' });
+      repo.updateTitle({ ...repo.getTitle('TI1')!, repositoryId: 'R2' });
+      service.undo();
+      expect(repo.getTodo('TD1')?.repositoryId).toBe('R2');
+      expect(repo.getTitle('TI1')?.repositoryId).toBe('R2');
+      expect(service.redo().redoBlocked).toBeUndefined();
+      expect(repo.getRepository('R1')).toBeUndefined();
+    } finally {
+      cleanupRepo(fixture);
+    }
+  });
+
+  it('allows person redo when a dependency vanished before undo', () => {
+    const { fixture, service } = makeService();
+    const { repo } = fixture;
+    try {
+      service.addPerson(person('P1'));
+      service.addPerson(person('P2'));
+      service.addAssociation({ id: 'A1', personId: 'P1', otherPersonId: 'P2', role: 'witness' });
+      service.addFact({
+        id: 'F1',
+        personId: 'P2',
+        tag: 'EVEN',
+        participants: [{ id: 'FP1', personId: 'P1', position: 0 }],
+      });
+      service.deletePerson(repo.getPerson('P1')!);
+      repo.deletePerson('P2');
+      service.undo();
+      expect(repo.getPerson('P1')).toBeDefined();
+      expect(service.redo().redoBlocked).toBeUndefined();
+      expect(repo.getPerson('P1')).toBeUndefined();
+    } finally {
+      cleanupRepo(fixture);
+    }
+  });
+
+  it('allows family redo when a cited source vanished before undo', () => {
+    const { fixture, service } = makeService();
+    const { repo } = fixture;
+    try {
+      service.addPerson(person('P1'));
+      service.addFamily(family('F1', { partners: ['P1'] }));
+      service.addSource({ id: 'S1', title: 'Book' });
+      service.addFact({ id: 'FACT1', familyId: 'F1', tag: 'MARR' });
+      service.attachSource('S1', 'fact', 'FACT1');
+      service.deleteFamily(repo.getFamily('F1')!);
+      repo.deleteSource('S1');
+      service.undo();
+      expect(repo.getFamily('F1')).toBeDefined();
+      expect(service.redo().redoBlocked).toBeUndefined();
+      expect(repo.getFamily('F1')).toBeUndefined();
+    } finally {
+      cleanupRepo(fixture);
+    }
+  });
+
+  it('blocks place redo when a nested row gained a change record', () => {
+    const { fixture, service } = makeService();
+    const { repo } = fixture;
+    try {
+      service.addPlace({
+        id: 'PL1',
+        names: [{ id: 'PN1', kind: 'official', position: 0, value: 'Moscow' }],
+      });
+      repo.insertNote({ id: 'N1', text: 'note', targetType: 'place_name', targetId: 'PN1' });
+      service.deletePlace(repo.getPlace('PL1')!);
+      service.undo();
+      repo.insertChange({ id: 'CH1', targetType: 'note', targetId: 'N1', kind: 'changed' });
+      expect(service.redo().redoBlocked).toBe(true);
+    } finally {
+      cleanupRepo(fixture);
+    }
+  });
+
+  it('blocks alias redo when the same pair already exists under another id', () => {
+    const { fixture, service } = makeService();
+    const { repo } = fixture;
+    try {
+      service.addPerson(person('P1'));
+      service.addPerson(person('P2'));
+      service.addAlias('P1', 'P2');
+      service.undo();
+      repo.insertAlias('AL2', 'P1', 'P2');
+      expect(service.redo().redoBlocked).toBe(true);
+      expect(repo.listAliasRowsFor('P1').filter((row) => row.aliasId === 'P2')).toHaveLength(1);
+    } finally {
+      cleanupRepo(fixture);
+    }
+  });
+
+  it('blocks family redo when the live graph would gain a cycle', () => {
+    const { fixture, service } = makeService();
+    const { repo } = fixture;
+    try {
+      service.addPerson(person('P1'));
+      service.addPerson(person('P2'));
+      service.addFamily(family('F1', { partners: ['P1'], children: ['P2'] }));
+      service.undo();
+      repo.insertFamily(family('F2', { partners: ['P2'], children: ['P1'] }));
+      expect(service.redo().redoBlocked).toBe(true);
+      expect(repo.getFamily('F1')).toBeUndefined();
+    } finally {
+      cleanupRepo(fixture);
+    }
+  });
+
   it('blocks alias redo when an endpoint disappeared', () => {
     const { fixture, service } = makeService();
     const { repo } = fixture;

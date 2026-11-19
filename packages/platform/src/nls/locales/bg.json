@@ -117,6 +117,7 @@
   "features.tree.address.open": "Отваряне на адрес",
   "features.tree.address.postalCode": "Пощенски код",
   "features.tree.address.removeLine": "Remove address line",
+  "features.tree.address.saveFailed": "Адресът не можа да бъде запазен, защото беше премахнат от друга промяна. Запазете отново, за да го създадете.",
   "features.tree.address.state": "Област",
   "features.tree.address.title": "Адрес",
   "features.tree.address.unlink": "Отвързване на адрес",

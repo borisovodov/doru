@@ -349,11 +349,88 @@ describe('P1 GEDCOM export gaps', () => {
         ].map((match) => match[0]);
         const singlePartner = adoptionEvents.find((event) => event.includes('FAMC @F1@'));
         const twoPartners = adoptionEvents.find((event) => event.includes('FAMC @F2@'));
-        expect(singlePartner).toContain('ADOP WIFE');
+        expect(singlePartner).toContain('ADOP HUSB');
         expect(twoPartners).toContain('ADOP WIFE');
       }
     } finally {
       cleanupRepo(fixture);
+    }
+  });
+
+  it('round-trips a phrase-only adoption link without leaving a marker note', () => {
+    const fixture = makeRepo();
+    const target = makeRepo();
+    try {
+      const { repo } = fixture;
+      repo.insertPerson({ id: 'P1', names: [], sex: 'U', facts: [] });
+      repo.insertFamily({ id: 'F1', partners: [], children: ['P1'] });
+      repo.updatePerson({
+        id: 'P1',
+        names: [],
+        sex: 'U',
+        facts: [
+          {
+            id: 'ADOP1',
+            personId: 'P1',
+            tag: 'ADOP',
+            familyLinks: [{ id: 'FF1', familyId: 'F1', phrase: 'raised together', position: 0 }],
+          },
+        ],
+      });
+      const serialized = serializeGedcom70(buildGedcomDataset(repo));
+      expect(serialized.ok).toBe(true);
+      if (!serialized.ok) {
+        return;
+      }
+      expect(serialized.value).toContain('_DORU_ADOP_PHRASE: raised together');
+
+      importGedcomDataset(parseDataset(serialized.value), target.repo);
+      const child = target.repo.listAllPersons().find((entry) => entry.facts.some((fact) => fact.tag === 'ADOP'))!;
+      const fact = child.facts.find((entry) => entry.tag === 'ADOP')!;
+      expect(fact.familyLinks?.[0]?.phrase).toBe('raised together');
+      expect(target.repo.listAttachmentsFor('fact', fact.id).noteLinks).toEqual([]);
+    } finally {
+      cleanupRepo(fixture);
+      cleanupRepo(target);
+    }
+  });
+
+  it('round-trips metadata on a disproven child link', () => {
+    const fixture = makeRepo();
+    const target = makeRepo();
+    try {
+      const { repo } = fixture;
+      repo.insertPerson({ id: 'P1', names: [], sex: 'U', facts: [] });
+      repo.insertPerson({ id: 'C1', names: [], sex: 'U', facts: [] });
+      repo.insertFamily({
+        id: 'F1',
+        partners: ['P1'],
+        children: ['C1'],
+        childLinks: [
+          {
+            id: 'CL1',
+            childId: 'C1',
+            status: 'disproven',
+            statusPhrase: 'not the father',
+            multiplicity: 'TWIN',
+            preferred: true,
+          },
+        ],
+      });
+      const serialized = serializeGedcom70(buildGedcomDataset(repo));
+      expect(serialized.ok).toBe(true);
+      if (!serialized.ok) {
+        return;
+      }
+      expect(serialized.value).toMatch(/1 CHIL @I\d+@\r?\n(?:2 .*\r?\n)*?2 _STAT TWIN/);
+
+      importGedcomDataset(parseDataset(serialized.value), target.repo);
+      const family = target.repo.listFamilies()[0]!;
+      const link = family.childLinks?.[0];
+      expect(link).toMatchObject({ status: 'disproven', multiplicity: 'TWIN', preferred: true });
+    } finally {
+      cleanupRepo(fixture);
+      cleanupRepo(target);
     }
   });
 

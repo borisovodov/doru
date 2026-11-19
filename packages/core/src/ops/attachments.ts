@@ -20,6 +20,7 @@ import type {
 } from '../model/types';
 import { emptyAttachments } from '../model/types';
 import {
+  attachmentTargetExists,
   attachmentsMatch,
   restoreCitation,
   restoreMedia,
@@ -142,28 +143,41 @@ export function attachNoteOp(noteId: string, link: NoteLinkRecord): Op {
  * note is shared and the link is not the last one.
  */
 export function detachNoteOp(note: NoteRecord, link: NoteLinkRecord, attachments?: AttachmentsSnapshot): Op {
-  const last = (note.links?.length ?? 1) <= 1;
-  return op(
-    crypto.randomUUID(),
-    'note.detach',
-    (ctx) => {
-      ctx.repo.removeNoteLink(link.id);
-      if (last) {
-        ctx.repo.deleteAttachmentsFor('note', note.id);
-      }
-    },
-    (ctx) => {
-      if (ctx.repo.getNote(note.id) === undefined) {
-        ctx.repo.insertNote(note);
-      } else {
-        ctx.repo.addNoteLink(note.id, link);
-      }
-      if (last && attachments !== undefined) {
-        ctx.repo.restoreAttachments(attachments);
-      }
-    },
-    { targetType: link.targetType, targetId: link.targetId, kind: 'changed' },
-  );
+  let removedEvidence = false;
+  return {
+    ...op(
+      crypto.randomUUID(),
+      'note.detach',
+      (ctx) => {
+        const stored = ctx.repo.getNote(note.id);
+        if (stored === undefined || !(stored.links ?? []).some((entry) => entry.id === link.id)) {
+          return;
+        }
+        // The stored note decides whether this is the last link: another
+        // writer may have added or removed links since the draft was made.
+        ctx.repo.removeNoteLink(link.id);
+        if (ctx.repo.getNote(note.id) === undefined && attachments !== undefined) {
+          ctx.repo.deleteAttachmentsFor('note', note.id);
+          removedEvidence = true;
+        }
+      },
+      (ctx) => {
+        if (ctx.repo.getNote(note.id) === undefined) {
+          ctx.repo.insertNote(note);
+          if (removedEvidence && attachments !== undefined) {
+            ctx.repo.restoreAttachments(attachments);
+          }
+        } else {
+          ctx.repo.addNoteLink(note.id, link);
+        }
+      },
+      { targetType: link.targetType, targetId: link.targetId, kind: 'changed' },
+      (ctx) => {
+        const stored = ctx.repo.getNote(note.id);
+        return stored !== undefined && (stored.links ?? []).some((entry) => entry.id === link.id);
+      },
+    ),
+  };
 }
 
 // --- sources -----------------------------------------------------------------
@@ -196,7 +210,10 @@ export function updateSourceOp(before: SourceRecord, after: SourceRecord): Op {
       (ctx) => ctx.repo.updateSource(before),
     ),
     change: { targetType: 'source', targetId: before.id, kind: 'changed' },
-    redoSafe: (ctx) => ctx.repo.getSource(before.id) !== undefined,
+    redoSafe: (ctx) => {
+      const current = ctx.repo.getSource(before.id);
+      return current !== undefined && sameRecord(current, before);
+    },
   };
 }
 
@@ -282,6 +299,10 @@ export function updateCitationOp(before: CitationRecord, after: CitationRecord):
     (ctx) => ctx.repo.updateCitation(after),
     (ctx) => ctx.repo.updateCitation(before),
     { targetType: 'citation', targetId: before.id, kind: 'changed' },
+    (ctx) => {
+      const current = ctx.repo.getCitation(before.id);
+      return current !== undefined && sameRecord(current, before);
+    },
   );
 }
 
@@ -346,7 +367,10 @@ export function updateMediaLinkOp(before: MediaLinkRecord, after: MediaLinkRecor
       (ctx) => ctx.repo.updateMediaLink(before),
     ),
     change: { targetType: 'media', targetId: before.mediaId, kind: 'changed' },
-    redoSafe: (ctx) => ctx.repo.hasMediaLink(before.id),
+    redoSafe: (ctx) => {
+      const current = ctx.repo.getMedia(before.mediaId)?.links?.find((link) => link.id === before.id);
+      return current !== undefined && sameRecord(current, before);
+    },
   };
 }
 
@@ -376,7 +400,7 @@ export function detachMediaOp(
           if (linkAttachments !== undefined && restoredLinks.has(link.id)) {
             ctx.repo.restoreAttachments(linkAttachments);
           }
-        } else {
+        } else if (attachmentTargetExists(ctx, link.targetType, link.targetId)) {
           ctx.repo.addMediaLink(link.mediaId, link);
           if (linkAttachments !== undefined) {
             ctx.repo.restoreAttachments(linkAttachments);
@@ -616,7 +640,10 @@ export function updateTagLinkOp(before: TagLinkRecord, after: TagLinkRecord): Op
       (ctx) => ctx.repo.updateTagLink(before),
     ),
     change: { targetType: after.targetType, targetId: after.targetId, kind: 'changed' },
-    redoSafe: (ctx) => ctx.repo.listAllTagLinks().some((link) => link.id === before.id),
+    redoSafe: (ctx) => {
+      const current = ctx.repo.listAllTagLinks().find((link) => link.id === before.id);
+      return current !== undefined && sameRecord(current, before);
+    },
   };
 }
 
@@ -663,6 +690,9 @@ export function deleteRepositoryOp(
   attachments: AttachmentsSnapshot,
   consumers: RepositoryConsumers = {},
 ): Op {
+  let baselineSources = consumers.sourceRepositories ?? [];
+  let baselineTodos = consumers.todos ?? [];
+  let baselineTitles = consumers.titles ?? [];
   return {
     ...op(
       crypto.randomUUID(),
@@ -680,6 +710,12 @@ export function deleteRepositoryOp(
         for (const title of consumers.titles ?? []) {
           ctx.repo.setTitleRepositoryId(title.id, repository.id);
         }
+        // A concurrent writer may have moved a task or title to another
+        // repository; the inverse leaves those reassignments alone, so the
+        // redo comparison must follow what was actually restored.
+        baselineSources = ctx.repo.listSourceRepositoriesFor(repository.id);
+        baselineTodos = ctx.repo.listTodos().filter((todo) => todo.repositoryId === repository.id);
+        baselineTitles = ctx.repo.listTitles().filter((title) => title.repositoryId === repository.id);
       },
     ),
     redoSafe(ctx) {
@@ -690,7 +726,7 @@ export function deleteRepositoryOp(
       if (!attachmentsMatch(ctx, 'repository', repository.id, attachments)) {
         return false;
       }
-      const capturedSources = (consumers.sourceRepositories ?? []).map((link) => JSON.stringify(link)).sort();
+      const capturedSources = baselineSources.map((link) => JSON.stringify(link)).sort();
       const liveSources = ctx.repo
         .listSourceRepositoriesFor(repository.id)
         .map((link) => JSON.stringify(link))
@@ -698,7 +734,7 @@ export function deleteRepositoryOp(
       if (JSON.stringify(capturedSources) !== JSON.stringify(liveSources)) {
         return false;
       }
-      const capturedTodos = (consumers.todos ?? []).map((todo) => todo.id).sort();
+      const capturedTodos = baselineTodos.map((todo) => todo.id).sort();
       const liveTodos = ctx.repo
         .listTodos()
         .filter((todo) => todo.repositoryId === repository.id)
@@ -707,7 +743,7 @@ export function deleteRepositoryOp(
       if (JSON.stringify(capturedTodos) !== JSON.stringify(liveTodos)) {
         return false;
       }
-      const capturedTitles = (consumers.titles ?? []).map((title) => title.id).sort();
+      const capturedTitles = baselineTitles.map((title) => title.id).sort();
       const liveTitles = ctx.repo
         .listTitles()
         .filter((title) => title.repositoryId === repository.id)

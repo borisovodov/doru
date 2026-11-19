@@ -129,7 +129,10 @@ function SubmitterTabBody({
   const [name, setName] = useState(base.name);
   const [languages, setLanguages] = useState<string[]>([...(base.languages ?? [])]);
   const [linkedAddressId, setLinkedAddressId] = useState<string | undefined>(base.addressId);
-  const { address, setAddress, addressBefore, saveAddress, unlinkAddress } = useRegistryAddress(api, linkedAddressId);
+  const { address, setAddress, addressBefore, addressSaveFailed, saveAddress, unlinkAddress } = useRegistryAddress(
+    api,
+    linkedAddressId,
+  );
   const addressText = addressBefore !== undefined ? addressLabel(addressBefore) : '';
   const targetId = (lastSaved ?? record)?.id;
   const {
@@ -164,7 +167,15 @@ function SubmitterTabBody({
       name: name.trim(),
       languages: languages.map((language) => language.trim()).filter((language) => language !== ''),
     };
-    next.addressId = linkedAddressId ?? (await saveAddress());
+    if (linkedAddressId === undefined) {
+      try {
+        next.addressId = await saveAddress();
+      } catch {
+        return;
+      }
+    } else {
+      next.addressId = linkedAddressId;
+    }
     if (isNew && lastSaved === undefined) {
       await api.addSubmitter(next);
       onCreated(next.id);
@@ -261,6 +272,11 @@ function SubmitterTabBody({
             />
           )}
         />
+        {addressSaveFailed && (
+          <p className="side-registries-note" role="alert">
+            {nls.t('features.tree.address.saveFailed')}
+          </p>
+        )}
       </SectionCard>
       {targetId !== undefined && (
         <>

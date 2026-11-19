@@ -136,7 +136,9 @@ describe('place ops', () => {
     try {
       service.addPlace(moscow);
       service.deletePlace(moscow);
-      service.undo();
+      const undone = service.undo();
+      expect(fixture.repo.getPlace('PL1')).toBeDefined();
+      expect(undone.canRedo).toBe(true);
       const state = service.redo();
       expect(state.redoBlocked).toBeUndefined();
       expect(fixture.repo.getPlace('PL1')).toBeUndefined();

@@ -78,6 +78,30 @@ describe('media repo edge cases', () => {
     }
   });
 
+  it('includes a restored self-file link in the media redo baseline', () => {
+    const fixture = makeRepo();
+    try {
+      const { repo } = fixture;
+      repo.insertPerson({ id: 'P1', names: [], sex: 'U', facts: [] });
+      repo.insertMedia({
+        id: 'M1',
+        path: 'media/a.jpg',
+        files: [{ id: 'MF1', path: 'media/a.jpg' }],
+        targetType: 'person',
+        targetId: 'P1',
+      });
+      repo.addMediaLink('M1', { id: 'ML1', mediaId: 'M1', targetType: 'media_file', targetId: 'MF1' });
+      const service = new TreeService(repo, new OpQueue());
+      service.deleteMedia(repo.getMedia('M1')!);
+      service.undo();
+      expect(repo.getMedia('M1')?.links?.map((link) => link.id)).toContain('ML1');
+      expect(service.redo().redoBlocked).toBeUndefined();
+      expect(repo.getMedia('M1')).toBeUndefined();
+    } finally {
+      cleanupRepo(fixture);
+    }
+  });
+
   it('keeps a shared media record while any link remains and removes it with the last', () => {
     const fixture = makeRepo();
     try {

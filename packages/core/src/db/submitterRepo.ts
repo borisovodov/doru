@@ -1,6 +1,26 @@
 import type { DatabaseSync } from 'node:sqlite';
 import type { RecordSubmitterLink, SubmitterRecord } from '../model/types';
 
+interface RecordSubmitterRow {
+  id: string;
+  submitter_id: string;
+  target_type: string;
+  target_id: string;
+  kind: string;
+}
+
+const RECORD_SUBMITTER_COLUMNS = 'id, submitter_id, target_type, target_id, kind';
+
+function decodeRecordSubmitter(row: RecordSubmitterRow): RecordSubmitterLink {
+  return {
+    id: row.id,
+    submitterId: row.submitter_id,
+    targetType: row.target_type,
+    targetId: row.target_id,
+    kind: row.kind as RecordSubmitterLink['kind'],
+  };
+}
+
 /** Submitters (GEDCOM SUBM) and their record links (SUBM on records). */
 export class SubmitterRepo {
   constructor(private readonly db: DatabaseSync) {}
@@ -85,20 +105,10 @@ export class SubmitterRepo {
   }
 
   getRecordSubmitter(id: string): RecordSubmitterLink | undefined {
-    const row = this.db
-      .prepare('SELECT id, submitter_id, target_type, target_id, kind FROM record_submitter WHERE id = ?')
-      .get(id) as
-      | { id: string; submitter_id: string; target_type: string; target_id: string; kind: string }
+    const row = this.db.prepare(`SELECT ${RECORD_SUBMITTER_COLUMNS} FROM record_submitter WHERE id = ?`).get(id) as
+      | RecordSubmitterRow
       | undefined;
-    return row === undefined
-      ? undefined
-      : {
-          id: row.id,
-          submitterId: row.submitter_id,
-          targetType: row.target_type,
-          targetId: row.target_id,
-          kind: row.kind as RecordSubmitterLink['kind'],
-        };
+    return row === undefined ? undefined : decodeRecordSubmitter(row);
   }
 
   /** Only ordinary SUBM contributions; ANCI/DESI interests are separate. */
@@ -116,66 +126,30 @@ export class SubmitterRepo {
   listRecordSubmittersFor(targetType: string, targetId: string): RecordSubmitterLink[] {
     const rows = this.db
       .prepare(
-        `SELECT id, submitter_id, target_type, target_id, kind FROM record_submitter
+        `SELECT ${RECORD_SUBMITTER_COLUMNS} FROM record_submitter
          WHERE target_type = ? AND target_id = ? ORDER BY id`,
       )
-      .all(targetType, targetId) as unknown as {
-      id: string;
-      submitter_id: string;
-      target_type: string;
-      target_id: string;
-      kind: string;
-    }[];
-    return rows.map((row) => ({
-      id: row.id,
-      submitterId: row.submitter_id,
-      targetType: row.target_type,
-      targetId: row.target_id,
-      kind: row.kind as RecordSubmitterLink['kind'],
-    }));
+      .all(targetType, targetId) as unknown as RecordSubmitterRow[];
+    return rows.map(decodeRecordSubmitter);
   }
 
   /** Every record this submitter contributes to, for the delete/undo snapshot. */
   listRecordSubmittersForSubmitter(submitterId: string): RecordSubmitterLink[] {
     const rows = this.db
       .prepare(
-        `SELECT id, submitter_id, target_type, target_id, kind FROM record_submitter
+        `SELECT ${RECORD_SUBMITTER_COLUMNS} FROM record_submitter
          WHERE submitter_id = ? ORDER BY id`,
       )
-      .all(submitterId) as unknown as {
-      id: string;
-      submitter_id: string;
-      target_type: string;
-      target_id: string;
-      kind: string;
-    }[];
-    return rows.map((row) => ({
-      id: row.id,
-      submitterId: row.submitter_id,
-      targetType: row.target_type,
-      targetId: row.target_id,
-      kind: row.kind as RecordSubmitterLink['kind'],
-    }));
+      .all(submitterId) as unknown as RecordSubmitterRow[];
+    return rows.map(decodeRecordSubmitter);
   }
 
   /** Every submitter link in the tree, for the global registries. */
   listAllRecordSubmitters(): RecordSubmitterLink[] {
     const rows = this.db
-      .prepare('SELECT id, submitter_id, target_type, target_id, kind FROM record_submitter ORDER BY id')
-      .all() as unknown as {
-      id: string;
-      submitter_id: string;
-      target_type: string;
-      target_id: string;
-      kind: string;
-    }[];
-    return rows.map((row) => ({
-      id: row.id,
-      submitterId: row.submitter_id,
-      targetType: row.target_type,
-      targetId: row.target_id,
-      kind: row.kind as RecordSubmitterLink['kind'],
-    }));
+      .prepare(`SELECT ${RECORD_SUBMITTER_COLUMNS} FROM record_submitter ORDER BY id`)
+      .all() as unknown as RecordSubmitterRow[];
+    return rows.map(decodeRecordSubmitter);
   }
 
   deleteRecordSubmittersFor(targetType: string, targetId: string): void {

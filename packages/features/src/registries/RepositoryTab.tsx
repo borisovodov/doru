@@ -120,7 +120,10 @@ function RepositoryTabBody({
   const [lastSaved, setLastSaved] = useState<RepositoryRecord | undefined>(record);
   const [name, setName] = useState(base.name);
   const [linkedAddressId, setLinkedAddressId] = useState<string | undefined>(base.addressId);
-  const { address, setAddress, addressBefore, saveAddress, unlinkAddress } = useRegistryAddress(api, linkedAddressId);
+  const { address, setAddress, addressBefore, addressSaveFailed, saveAddress, unlinkAddress } = useRegistryAddress(
+    api,
+    linkedAddressId,
+  );
   const addressText = addressBefore !== undefined ? addressLabel(addressBefore) : '';
   const targetId = (lastSaved ?? record)?.id;
   const {
@@ -147,7 +150,15 @@ function RepositoryTabBody({
 
   const save = async () => {
     const next: RepositoryRecord = { id: base.id, xref: base.xref, name: name.trim() };
-    next.addressId = linkedAddressId ?? (await saveAddress());
+    if (linkedAddressId === undefined) {
+      try {
+        next.addressId = await saveAddress();
+      } catch {
+        return;
+      }
+    } else {
+      next.addressId = linkedAddressId;
+    }
     if (isNew && lastSaved === undefined) {
       await api.addRepository(next);
       onCreated(next.id);
@@ -210,6 +221,11 @@ function RepositoryTabBody({
             />
           )}
         />
+        {addressSaveFailed && (
+          <p className="side-registries-note" role="alert">
+            {nls.t('features.tree.address.saveFailed')}
+          </p>
+        )}
       </SectionCard>
       {targetId !== undefined && (
         <>

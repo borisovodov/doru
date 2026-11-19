@@ -562,7 +562,10 @@ export class TreeService {
   addFamily(family: FamilyRecord): UndoRedoState {
     return this.applyAfterCommit(() => {
       this.assertFamilyAcyclic(family);
-      return addFamilyOp(family);
+      return addFamilyOp(family, (ctx) => {
+        const graph = [...ctx.repo.listFamilies().filter((entry) => entry.id !== family.id), family];
+        return !this.familyHasCycle(family, graph);
+      });
     });
   }
 
@@ -581,9 +584,17 @@ export class TreeService {
       ) {
         const links: FamilyPartnerLink[] =
           current.partnerLinks ?? current.partners.map((personId) => ({ id: crypto.randomUUID(), personId }));
-        const kept = after.partners.map(
-          (personId) => links.find((link) => link.personId === personId) ?? { id: crypto.randomUUID(), personId },
-        );
+        const kept: FamilyPartnerLink[] = [];
+        for (const personId of after.partners) {
+          const existing = links.find((link) => link.personId === personId);
+          if (existing !== undefined) {
+            kept.push(existing);
+          } else if (!before.partners.includes(personId)) {
+            // Only a member the draft added is created here; an unchanged id
+            // whose link another writer removed stays removed.
+            kept.push({ id: crypto.randomUUID(), personId });
+          }
+        }
         for (const link of links) {
           if (!before.partners.includes(link.personId) && !after.partners.includes(link.personId)) {
             kept.push(link);
@@ -609,7 +620,7 @@ export class TreeService {
                 ? { ...existing, status: undefined, statusPhrase: undefined }
                 : existing,
             );
-          } else {
+          } else if (!before.children.includes(childId)) {
             kept.push({ id: crypto.randomUUID(), childId });
           }
         }
@@ -1384,6 +1395,17 @@ export class TreeService {
     }
   }
 
+  private familyHasCycle(family: FamilyRecord, graph: FamilyRecord[]): boolean {
+    for (const childId of this.activeChildIds(family)) {
+      for (const parentId of this.partnerIds(family)) {
+        if (this.isAncestor(childId, parentId, graph)) {
+          return true;
+        }
+      }
+    }
+    return false;
+  }
+
   /** True when `ancestorId` is `personId` itself or one of their ancestors. */
   private isAncestor(ancestorId: string, personId: string, families: FamilyRecord[]): boolean {
     if (ancestorId === personId) {
@@ -1581,7 +1603,7 @@ export class TreeService {
     const previousNames = new Map(before.names.map((name) => [name.id, name]));
     const currentNames = new Map(current.names.map((name) => [name.id, name]));
     const afterNameIds = new Set(after.names.map((name) => name.id));
-    const names: PersonRecord['names'] = [];
+    let names: PersonRecord['names'] = [];
     for (const name of after.names) {
       const previous = previousNames.get(name.id);
       const stored = currentNames.get(name.id);
@@ -1602,6 +1624,29 @@ export class TreeService {
       if (!previousNames.has(name.id) && !afterNameIds.has(name.id)) {
         names.push(name);
       }
+    }
+    const beforeOrder = before.names.map((name) => name.id).filter((id) => afterNameIds.has(id));
+    const draftOrder = after.names.map((name) => name.id).filter((id) => previousNames.has(id));
+    if (draftOrder.length === beforeOrder.length && draftOrder.every((id, index) => id === beforeOrder[index])) {
+      // The draft kept the original order; adopt a concurrent reorder instead
+      // of writing the stale sequence back.
+      const mergedById = new Map(names.map((name) => [name.id, name]));
+      const ordered: PersonRecord['names'] = [];
+      for (const name of current.names) {
+        const merged = mergedById.get(name.id);
+        if (merged !== undefined) {
+          ordered.push(merged);
+          mergedById.delete(name.id);
+        }
+      }
+      for (const name of names) {
+        const merged = mergedById.get(name.id);
+        if (merged !== undefined) {
+          ordered.push(merged);
+          mergedById.delete(name.id);
+        }
+      }
+      names = ordered;
     }
 
     const previousFacts = new Map(before.facts.map((fact) => [fact.id, fact]));

@@ -21,6 +21,7 @@ export function useRegistryAddress(api: RegistriesEditorApi, addressId: string |
   const [address, setAddress] = useState<AddressDraft>(emptyAddressDraft());
   const [addressLoaded, setAddressLoaded] = useState(false);
   const [addressBefore, setAddressBefore] = useState<AddressRecord | undefined>(undefined);
+  const [addressSaveFailed, setAddressSaveFailed] = useState(false);
   const apiRef = useRef(api);
   apiRef.current = api;
 
@@ -59,10 +60,22 @@ export function useRegistryAddress(api: RegistriesEditorApi, addressId: string |
     }
     const record = addressDraftToRecord(address);
     if (addressBefore) {
-      await api.updateAddress(addressBefore, record);
+      try {
+        await api.updateAddress(addressBefore, record);
+      } catch (error) {
+        // The stored address may have been deleted since it was loaded. Drop
+        // the stale baseline so a retry recreates the row instead of calling
+        // the same doomed update forever.
+        if ((await api.getAddress(addressBefore.id)) === undefined) {
+          setAddressBefore(undefined);
+        }
+        setAddressSaveFailed(true);
+        throw error;
+      }
     } else {
       await api.addAddress(record);
     }
+    setAddressSaveFailed(false);
     setAddress((current) => ({ ...current, id: record.id }));
     setAddressBefore(record);
     return record.id;
@@ -75,5 +88,5 @@ export function useRegistryAddress(api: RegistriesEditorApi, addressId: string |
     setAddressLoaded(true);
   };
 
-  return { address, setAddress, addressLoaded, addressBefore, saveAddress, unlinkAddress };
+  return { address, setAddress, addressLoaded, addressBefore, addressSaveFailed, saveAddress, unlinkAddress };
 }

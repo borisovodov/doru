@@ -1,3 +1,4 @@
+import { ADOPTION_PHRASE_PREFIX } from '../gedcomPhraseMarker';
 import type {
   Calendar,
   ChangeDate,
@@ -302,6 +303,7 @@ type MappedFamilyFact =
 function eventFamilyFields(
   fact: FactRecord,
   xrefs: Xrefs,
+  singlePartner: boolean,
 ): {
   adoptionFamily?: {
     tag: 'FAMC';
@@ -315,15 +317,18 @@ function eventFamilyFields(
     return {};
   }
   if (fact.tag === 'ADOP') {
+    // A family with one partner exports that person in the HUSB slot even
+    // when the stored marker names WIFE; the marker must name a real slot.
+    const adoptedBy = link.adoptedBy === undefined ? undefined : singlePartner ? 'HUSB' : link.adoptedBy;
     return {
       adoptionFamily: {
         tag: 'FAMC',
         family: xrefs.of(link.familyId),
-        ...(link.adoptedBy !== undefined
+        ...(adoptedBy !== undefined
           ? {
               adoption: {
                 tag: 'ADOP' as const,
-                payload: link.adoptedBy,
+                payload: adoptedBy,
                 ...(link.phrase !== undefined ? { phrase: link.phrase } : {}),
               },
             }
@@ -343,10 +348,12 @@ function buildPersonFact(fact: FactRecord, repo: TreeRepository, xrefs: Xrefs): 
   if (adoptionLink?.adoptedBy === undefined && adoptionLink?.phrase !== undefined) {
     detail = {
       ...(detail ?? {}),
-      notes: [...(detail?.notes ?? []), { tag: 'NOTE', payload: adoptionLink.phrase }],
+      notes: [...(detail?.notes ?? []), { tag: 'NOTE', payload: `${ADOPTION_PHRASE_PREFIX}${adoptionLink.phrase}` }],
     } as typeof detail;
   }
-  const familyFields = eventFamilyFields(fact, xrefs);
+  const singlePartner =
+    adoptionLink !== undefined && (repo.getFamily(adoptionLink.familyId)?.partners.length ?? 0) <= 1;
+  const familyFields = eventFamilyFields(fact, xrefs, singlePartner);
   if (fact.tag === 'EVEN' || (!INDIVIDUAL_EVENT_TAGS.has(fact.tag) && !INDIVIDUAL_ATTRIBUTE_TAGS.has(fact.tag))) {
     return {
       kind: 'event',
@@ -510,15 +517,13 @@ function buildFamily(family: FamilyRecord, repo: TreeRepository, xrefs: Xrefs): 
         }
       : undefined;
   const childLinks = family.childLinks ?? [];
-  const children = childLinks
-    .filter((link) => link.status !== 'disproven')
-    .map((link) => ({
-      child: xrefs.of(link.childId),
-      ...(link.fatherRelation !== undefined ? { fatherRelation: link.fatherRelation } : {}),
-      ...(link.motherRelation !== undefined ? { motherRelation: link.motherRelation } : {}),
-      ...(link.preferred === true ? { preferred: true } : {}),
-      ...(link.multiplicity !== undefined ? { multiplicity: link.multiplicity } : {}),
-    }));
+  const children = childLinks.map((link) => ({
+    child: xrefs.of(link.childId),
+    ...(link.fatherRelation !== undefined ? { fatherRelation: link.fatherRelation } : {}),
+    ...(link.motherRelation !== undefined ? { motherRelation: link.motherRelation } : {}),
+    ...(link.preferred === true ? { preferred: true } : {}),
+    ...(link.multiplicity !== undefined ? { multiplicity: link.multiplicity } : {}),
+  }));
   const events: FamilyEventStructure[] = [];
   const attributes: FamilyAttributeStructure[] = [];
   const nonEvents: NonEventStructure[] = [];

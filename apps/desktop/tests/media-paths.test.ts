@@ -1,8 +1,8 @@
-import { mkdirSync, mkdtempSync, rmSync, symlinkSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, renameSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { resolveImportFile, resolveMediaPath } from '../src/main/mediaPaths';
+import { resolveImportFile, resolveMediaPath, symlinkChainResolvesTo } from '../src/main/mediaPaths';
 
 let projectDir = '';
 let temp = '';
@@ -63,5 +63,24 @@ describe('resolveMediaPath', () => {
     mkdirSync(outside);
     symlinkSync(outside, join(projectDir, 'media', 'linked'));
     expect(await resolveMediaPath(projectDir, 'media/linked/photo.jpg')).toBeNull();
+  });
+});
+
+describe('symlinkChainResolvesTo', () => {
+  it.skipIf(process.platform === 'win32')('follows every hop after the target was staged', () => {
+    const target = join(projectDir, 'media', 'photo.jpg');
+    writeFileSync(target, 'bytes');
+    symlinkSync(target, join(projectDir, 'media', 'middle.jpg'));
+    symlinkSync(join(projectDir, 'media', 'middle.jpg'), join(projectDir, 'media', 'alias.jpg'));
+    renameSync(target, join(projectDir, 'media', 'photo.jpg.doru-deleting'));
+    return expect(symlinkChainResolvesTo(join(projectDir, 'media', 'alias.jpg'), target)).resolves.toBe(true);
+  });
+
+  it.skipIf(process.platform === 'win32')('stops on a symlink cycle', () => {
+    symlinkSync(join(projectDir, 'media', 'b.jpg'), join(projectDir, 'media', 'a.jpg'));
+    symlinkSync(join(projectDir, 'media', 'a.jpg'), join(projectDir, 'media', 'b.jpg'));
+    return expect(
+      symlinkChainResolvesTo(join(projectDir, 'media', 'a.jpg'), join(projectDir, 'media', 'photo.jpg')),
+    ).resolves.toBe(false);
   });
 });

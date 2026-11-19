@@ -1,12 +1,12 @@
 import { BrowserWindow, dialog, type OpenDialogOptions } from 'electron';
 import { randomUUID } from 'node:crypto';
-import { lstat, readlink, rename, stat, unlink } from 'node:fs/promises';
+import { rename, stat, unlink } from 'node:fs/promises';
 import { dirname, extname, join, resolve } from 'node:path';
 import { IMAGE_EXTENSIONS, MEDIA_DIR_NAME, type MediaFile, type MediaRecord } from '@doru/core';
 import { NodeFileSystem } from './filesystem';
 import { log } from './log';
 import { readMediaFileFacts, type MediaFileFacts } from './mediaFacts';
-import { resolveMediaPath } from './mediaPaths';
+import { resolveMediaPath, symlinkChainResolvesTo } from './mediaPaths';
 import { ensureRuntime, runtimeFilePath } from './runtime';
 import { focusedWindow } from './windows';
 
@@ -323,17 +323,11 @@ async function removeMediaFile(
     let stillReferenced = current.has(absolute);
     if (!stillReferenced) {
       for (const reference of current) {
-        try {
-          if ((await lstat(reference)).isSymbolicLink()) {
-            const target = resolve(dirname(reference), await readlink(reference));
-            if (target === absolute) {
-              stillReferenced = true;
-              break;
-            }
-          }
-        } catch {
-          // A stale reference path that no longer exists cannot point at the
-          // staged file.
+        // Follow the whole symlink chain: an alias may point at another link
+        // whose final target is the staged file.
+        if (await symlinkChainResolvesTo(reference, absolute)) {
+          stillReferenced = true;
+          break;
         }
       }
     }

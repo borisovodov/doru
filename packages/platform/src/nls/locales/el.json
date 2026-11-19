@@ -117,6 +117,7 @@
   "features.tree.address.open": "Άνοιγμα διεύθυνσης",
   "features.tree.address.postalCode": "Ταχυδρομικός κώδικας",
   "features.tree.address.removeLine": "Remove address line",
+  "features.tree.address.saveFailed": "Η διεύθυνση δεν αποθηκεύτηκε επειδή αφαιρέθηκε από άλλη αλλαγή. Αποθηκεύστε ξανά για να τη δημιουργήσετε.",
   "features.tree.address.state": "Περιφέρεια",
   "features.tree.address.title": "Διεύθυνση",
   "features.tree.address.unlink": "Αποσύνδεση διεύθυνσης",

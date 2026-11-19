@@ -117,6 +117,7 @@
   "features.tree.address.open": "주소 열기",
   "features.tree.address.postalCode": "우편번호",
   "features.tree.address.removeLine": "Remove address line",
+  "features.tree.address.saveFailed": "다른 변경으로 주소가 삭제되어 저장하지 못했습니다. 다시 저장하여 새로 만드세요.",
   "features.tree.address.state": "지역",
   "features.tree.address.title": "주소",
   "features.tree.address.unlink": "주소 연결 해제",

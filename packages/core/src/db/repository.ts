@@ -271,6 +271,7 @@ export class SqliteTreeRepository implements TreeRepository {
   private readonly transactions: TransactionScope;
   private readonly snapshotMarkers = new WeakMap<object, Set<string>>();
   private readonly transactionFrames: Set<string>[] = [];
+  private readonly restoreScopes: Set<AttachmentsSnapshot>[] = [];
   private readonly persons: PersonRepo;
   private readonly names: NameRepo;
   private readonly families: FamilyRepo;
@@ -1347,6 +1348,19 @@ export class SqliteTreeRepository implements TreeRepository {
   }
 
   restoreAttachments(snapshot: AttachmentsSnapshot): void {
+    const scope = this.restoreScopes[this.restoreScopes.length - 1];
+    if (scope !== undefined) {
+      if (scope.has(snapshot)) {
+        return;
+      }
+      scope.add(snapshot);
+      this.restoreAttachmentsInternal(snapshot, scope);
+      return;
+    }
+    this.restoreAttachmentsInternal(snapshot, new Set());
+  }
+
+  private restoreAttachmentsInternal(snapshot: AttachmentsSnapshot, visitedFiles: Set<AttachmentsSnapshot>): void {
     const removed = this.removedTargets(snapshot);
     const restoredNotes = new Set<string>();
     for (const entry of snapshot.noteLinks) {
@@ -1367,7 +1381,7 @@ export class SqliteTreeRepository implements TreeRepository {
     }
     for (const nested of snapshot.noteAttachments) {
       if (restoredNotes.has(nested.targetId)) {
-        this.restoreAttachments(nested.attachments);
+        this.restoreAttachmentsInternal(nested.attachments, visitedFiles);
       }
     }
     const skippedCitations = new Set<string>();
@@ -1382,7 +1396,7 @@ export class SqliteTreeRepository implements TreeRepository {
     }
     for (const nested of snapshot.citationAttachments) {
       if (!skippedCitations.has(nested.targetId)) {
-        this.restoreAttachments(nested.attachments);
+        this.restoreAttachmentsInternal(nested.attachments, visitedFiles);
       }
     }
     const restoredMedia = new Set<string>();
@@ -1406,12 +1420,17 @@ export class SqliteTreeRepository implements TreeRepository {
     }
     for (const nested of snapshot.mediaAttachments) {
       if (restoredMedia.has(nested.targetId)) {
-        this.restoreAttachments(nested.attachments);
+        this.restoreAttachmentsInternal(nested.attachments, visitedFiles);
       }
     }
     for (const nested of snapshot.mediaFileAttachments) {
-      if (removed.has(`media_file\u0000${nested.targetId}`) && this.media.hasFile(nested.targetId)) {
-        this.restoreAttachments(nested.attachments);
+      if (
+        (removed.size === 0 || removed.has(`media_file\u0000${nested.targetId}`)) &&
+        this.media.hasFile(nested.targetId) &&
+        !visitedFiles.has(nested.attachments)
+      ) {
+        visitedFiles.add(nested.attachments);
+        this.restoreAttachmentsInternal(nested.attachments, visitedFiles);
       }
     }
     for (const nested of snapshot.mediaLinkAttachments) {
@@ -1419,7 +1438,7 @@ export class SqliteTreeRepository implements TreeRepository {
         (removed.size === 0 || removed.has(`media_link\u0000${nested.targetId}`)) &&
         this.media.hasLink(nested.targetId)
       ) {
-        this.restoreAttachments(nested.attachments);
+        this.restoreAttachmentsInternal(nested.attachments, visitedFiles);
       }
     }
     const identifierIds = new Set(
@@ -1499,7 +1518,7 @@ export class SqliteTreeRepository implements TreeRepository {
     }
     for (const nested of snapshot.todoAttachments) {
       if (this.research.getTodo(nested.targetId) !== undefined) {
-        this.restoreAttachments(nested.attachments);
+        this.restoreAttachmentsInternal(nested.attachments, visitedFiles);
       }
     }
     for (const entry of snapshot.recordSubmitters) {
@@ -1530,9 +1549,11 @@ export class SqliteTreeRepository implements TreeRepository {
   transaction<T>(fn: () => T): T {
     const frame = new Set<string>();
     this.transactionFrames.push(frame);
+    this.restoreScopes.push(new Set());
     try {
       return this.transactions.run(fn);
     } finally {
+      this.restoreScopes.pop();
       this.transactionFrames.pop();
     }
   }

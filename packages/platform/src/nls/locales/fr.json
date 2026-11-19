@@ -117,6 +117,7 @@
   "features.tree.address.open": "Ouvrir l'adresse",
   "features.tree.address.postalCode": "Code postal",
   "features.tree.address.removeLine": "Remove address line",
+  "features.tree.address.saveFailed": "L’adresse n’a pas pu être enregistrée, car elle a été supprimée par une autre modification. Enregistrez à nouveau pour la recréer.",
   "features.tree.address.state": "Région",
   "features.tree.address.title": "Adresse",
   "features.tree.address.unlink": "Dissocier l'adresse",

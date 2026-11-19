@@ -1,6 +1,6 @@
 import type { AssociationRecord, AttachmentsSnapshot, FactRecord, FamilyRecord } from '../model/types';
 import { emptyAttachments } from '../model/types';
-import type { NestedAttachments, Op } from './op';
+import type { MutationContext, NestedAttachments, Op } from './op';
 import {
   attachmentTargetExists,
   attachmentsMatch,
@@ -10,8 +10,9 @@ import {
   sameRecord,
 } from './restore';
 
-export function addFamilyOp(family: FamilyRecord): Op {
+export function addFamilyOp(family: FamilyRecord, redoSafe?: NonNullable<Op['redoSafe']>): Op {
   return {
+    ...(redoSafe ? { redoSafe } : {}),
     id: crypto.randomUUID(),
     kind: 'family.add',
     timestamp: new Date().toISOString(),
@@ -38,15 +39,11 @@ export function updateFamilyOp(
     change: { targetType: 'family', targetId: before.id, kind: 'changed' },
     apply(ctx) {
       ctx.repo.updateFamily(after);
-      for (const update of adoptionUpdates) {
-        ctx.repo.updateFact(update.after);
-      }
+      applyAdoptionUpdates(ctx, adoptionUpdates, 'after');
     },
     inverse(ctx) {
       ctx.repo.updateFamily(before);
-      for (const update of adoptionUpdates) {
-        ctx.repo.updateFact(update.before);
-      }
+      applyAdoptionUpdates(ctx, adoptionUpdates, 'before');
       for (const link of removedLinkAttachments) {
         ctx.repo.restoreAttachments(link.attachments);
       }
@@ -78,6 +75,7 @@ export function deleteFamilyOp(
   let baselineLinkedFacts = linkedFacts;
   let baselineAssociations = associations;
   let baselineLinkAttachments = linkAttachments;
+  let baselineNestedAttachments = nestedAttachments;
   return {
     id: crypto.randomUUID(),
     kind: 'family.delete',
@@ -108,7 +106,7 @@ export function deleteFamilyOp(
       }
       const liveAssociations = ctx.repo.listAssociationsForFamily(family.id);
       const liveAssociationById = new Map(liveAssociations.map((association) => [association.id, association]));
-      for (const nested of nestedAttachments) {
+      for (const nested of baselineNestedAttachments) {
         const exists =
           nested.targetType === 'fact'
             ? ctx.repo.getFact(nested.targetId) !== undefined
@@ -221,6 +219,40 @@ export function deleteFamilyOp(
           ...link,
           attachments: ctx.repo.listAttachmentsFor(link.targetType, link.targetId),
         }));
+      baselineNestedAttachments = nestedAttachments
+        .filter((nested) => {
+          if (nested.targetType === 'association') {
+            return ctx.repo.listAssociations().some((entry) => entry.id === nested.targetId);
+          }
+          return ctx.repo.getFact(nested.targetId) !== undefined;
+        })
+        .map((nested) => ({
+          ...nested,
+          attachments: ctx.repo.listAttachmentsFor(nested.targetType, nested.targetId),
+        }));
     },
   };
+}
+
+function applyAdoptionUpdates(
+  ctx: MutationContext,
+  updates: Array<{ before: FactRecord; after: FactRecord }>,
+  direction: 'before' | 'after',
+): void {
+  for (const update of updates) {
+    const current = ctx.repo.getFact(update.after.id);
+    if (current === undefined) {
+      continue;
+    }
+    const expected = direction === 'after' ? update.before : update.after;
+    const desired = direction === 'after' ? update.after : update.before;
+    const familyLinks = (current.familyLinks ?? []).map((link) => {
+      const expectedLink = (expected.familyLinks ?? []).find((entry) => entry.id === link.id);
+      const desiredLink = (desired.familyLinks ?? []).find((entry) => entry.id === link.id);
+      return expectedLink !== undefined && desiredLink !== undefined && link.adoptedBy === expectedLink.adoptedBy
+        ? { ...link, adoptedBy: desiredLink.adoptedBy }
+        : link;
+    });
+    ctx.repo.updateFact({ ...current, familyLinks });
+  }
 }

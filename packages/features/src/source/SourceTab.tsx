@@ -193,7 +193,16 @@ function SourceTabBody({
       );
       return;
     }
-    if (previous !== undefined) {
+    if (submitted !== undefined) {
+      // A save is still in flight: the submission is the real baseline, so
+      // edits made after clicking Save survive even when they restore the
+      // previous stored value, while untouched fields take the refresh.
+      setDraft(
+        JSON.stringify(draftRef.current) === JSON.stringify(submitted)
+          ? sourceToDraft(record)
+          : mergeSourceDraft(draftRef.current, submitted, sourceToDraft(record)),
+      );
+    } else if (previous !== undefined) {
       if (sourceDraftMatches(draftRef.current, previous)) {
         setDraft(sourceToDraft(record));
       } else {

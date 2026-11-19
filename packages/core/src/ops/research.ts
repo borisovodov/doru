@@ -99,7 +99,10 @@ export function addAliasOp(id: string, personId: string, aliasId: string): Op {
     },
     (ctx) => ctx.repo.deleteAlias(id),
     { targetType: 'person', targetId: personId, kind: 'changed' },
-    (ctx) => ctx.repo.getPerson(personId) !== undefined && ctx.repo.getPerson(aliasId) !== undefined,
+    (ctx) =>
+      ctx.repo.getPerson(personId) !== undefined &&
+      ctx.repo.getPerson(aliasId) !== undefined &&
+      !ctx.repo.listAliasRowsFor(personId).some((row) => row.personId === personId && row.aliasId === aliasId),
   );
 }
 
@@ -173,7 +176,14 @@ export function updateTitleOp(before: TitleRecord, after: TitleRecord): Op {
     (ctx) => ctx.repo.updateTitle(after),
     (ctx) => ctx.repo.updateTitle(before),
     { targetType: 'title', targetId: before.id, kind: 'changed' },
-    (ctx) => ctx.repo.getTitle(before.id) !== undefined,
+    (ctx) => {
+      const current = ctx.repo.getTitle(before.id);
+      return (
+        current !== undefined &&
+        sameRecord(current, before) &&
+        (after.repositoryId === undefined || ctx.repo.getRepository(after.repositoryId) !== undefined)
+      );
+    },
   );
 }
 

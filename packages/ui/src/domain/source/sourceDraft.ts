@@ -147,6 +147,9 @@ export function sourceToDraft(source: SourceRecord): SourceDraft {
 }
 
 function mergeSourceRows<T extends { id: string }>(current: T[], base: T[], refreshed: T[]): T[] {
+  if (JSON.stringify(current) === JSON.stringify(base)) {
+    return refreshed;
+  }
   const baseById = new Map(base.map((row) => [row.id, row]));
   const refreshedById = new Map(refreshed.map((row) => [row.id, row]));
   const currentIds = new Set(current.map((row) => row.id));

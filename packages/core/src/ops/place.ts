@@ -35,6 +35,7 @@ export function updatePlaceOp(
     kind: 'place.update',
     timestamp: new Date().toISOString(),
     change: { targetType: 'place', targetId: before.id, kind: 'changed' },
+    snapshots: removedAttachments.map((nested) => nested.attachments),
     apply(ctx) {
       ctx.repo.updatePlace(after);
     },
@@ -135,12 +136,12 @@ export function deletePlaceOp(
       }
       // Consumers added since the undo would be cleared by the redo and are
       // absent from the captured snapshots, so they could never come back.
-      const capturedFacts = new Map(facts.map((link) => [link.before.id, link.before]));
+      const capturedFactEntries = new Map(facts.map((link) => [link.before.id, link]));
       for (const fact of [
         ...ctx.repo.listFactsForPlace(place.id),
         ...ctx.repo.listFactsWithAdditionalPlace(place.id),
       ]) {
-        if (!capturedFacts.has(fact.id)) {
+        if (!capturedFactEntries.has(fact.id)) {
           return false;
         }
       }
@@ -150,7 +151,8 @@ export function deletePlaceOp(
         positions.push(row.position);
         livePositions.set(row.factId, positions);
       }
-      for (const [factId, captured] of capturedFacts) {
+      for (const [factId, entry] of capturedFactEntries) {
+        const captured = entry.before;
         const fact = ctx.repo.getFact(factId);
         if (fact === undefined) {
           continue;
@@ -158,7 +160,7 @@ export function deletePlaceOp(
         if ((fact.placeId === place.id) !== (captured.placeId === place.id)) {
           return false;
         }
-        const capturedPositions = facts.find((entry) => entry.before.id === factId)?.positions ?? [];
+        const capturedPositions = entry.positions ?? [];
         const currentPositions = livePositions.get(factId) ?? [];
         if (
           capturedPositions.length !== currentPositions.length ||

@@ -117,6 +117,7 @@
   "features.tree.address.open": "Apri indirizzo",
   "features.tree.address.postalCode": "Codice postale",
   "features.tree.address.removeLine": "Remove address line",
+  "features.tree.address.saveFailed": "Impossibile salvare l’indirizzo perché è stato rimosso da un’altra modifica. Salva di nuovo per ricrearlo.",
   "features.tree.address.state": "Regione",
   "features.tree.address.title": "Indirizzo",
   "features.tree.address.unlink": "Scollega indirizzo",

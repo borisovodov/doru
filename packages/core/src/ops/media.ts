@@ -94,11 +94,11 @@ export function deleteMediaOp(
     inverse(ctx) {
       const restoredLinks = restoreMedia(ctx, media);
       ctx.repo.restoreAttachments(attachments);
-      baseline = ctx.repo.getMedia(media.id) ?? media;
-      const liveFiles = new Set((baseline.files ?? []).map((file) => file.id));
-      const liveLinks = new Set((baseline.links ?? []).map((entry) => entry.id));
+      let current = ctx.repo.getMedia(media.id) ?? media;
+      let liveFiles = new Set((current.files ?? []).map((file) => file.id));
+      let liveLinks = new Set((current.links ?? []).map((entry) => entry.id));
       for (const nested of fileAttachments) {
-        if (liveFiles.has(nested.targetId)) {
+        if (liveFiles.has(nested.targetId) || ctx.repo.hasMediaFile(nested.targetId)) {
           ctx.repo.restoreAttachments(nested.attachments);
         }
       }
@@ -107,6 +107,11 @@ export function deleteMediaOp(
           ctx.repo.restoreAttachments(nested.attachments);
         }
       }
+      // Re-read after file restoration: a file may have introduced a link.
+      current = ctx.repo.getMedia(media.id) ?? current;
+      baseline = current;
+      liveFiles = new Set((current.files ?? []).map((file) => file.id));
+      liveLinks = new Set((current.links ?? []).map((entry) => entry.id));
       attachmentBaseline = ctx.repo.listAttachmentsFor('media', media.id);
       const fileSnapshotById = new Map(fileAttachments.map((nested) => [nested.targetId, nested]));
       fileBaseline = (baseline.files ?? []).flatMap((file) => {

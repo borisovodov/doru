@@ -13,11 +13,16 @@ export function detectParentCycles(doc: TreeDocument): ValidationIssue[] {
   const parentsOf = (id: string): string[] => {
     const result: string[] = [];
     for (const family of doc.families.values()) {
-      const link = family.childLinks?.find((entry) => entry.childId === id);
-      // A disproven child link does not establish ancestry.
-      if (family.children.includes(id) && link?.status !== 'disproven') {
-        result.push(...family.partners);
+      const children =
+        family.childLinks !== undefined
+          ? family.childLinks.filter((entry) => entry.status !== 'disproven').map((entry) => entry.childId)
+          : family.children;
+      if (!children.includes(id)) {
+        continue;
       }
+      result.push(
+        ...(family.partnerLinks !== undefined ? family.partnerLinks.map((entry) => entry.personId) : family.partners),
+      );
     }
     return result;
   };
