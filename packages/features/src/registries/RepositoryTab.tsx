@@ -201,7 +201,13 @@ function RepositoryTabBody({
           onChange={setAddress}
           onOpen={onOpenAddress}
           renderAttachments={(lineId) => (
-            <AttachmentsPanel targetType="address_line" targetId={lineId} api={api} sources={sources} />
+            <AttachmentsPanel
+              targetType="address_line"
+              targetId={lineId}
+              api={api}
+              sources={sources}
+              onOpenSource={onOpenSource}
+            />
           )}
         />
       </SectionCard>

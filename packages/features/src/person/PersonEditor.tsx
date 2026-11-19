@@ -316,6 +316,7 @@ export function PersonEditor({
                 targetId={name.id}
                 api={api}
                 sources={sources}
+                onOpenSource={(sourceId) => api.openSource?.(sourceId)}
                 sections={[
                   'notes',
                   'sources',
@@ -329,13 +330,24 @@ export function PersonEditor({
                   'changes',
                 ]}
                 renderCitationAttachments={(citation) => (
-                  <CitationAttachments citation={citation} api={api} sources={sources} />
+                  <CitationAttachments
+                    citation={citation}
+                    api={api}
+                    sources={sources}
+                    onOpenSource={(sourceId) => api.openSource?.(sourceId)}
+                  />
                 )}
               />
             ) : null
           }
           renderPartAttachments={(partId) => (
-            <AttachmentsPanel targetType="name_part" targetId={partId} api={api} sources={sources} />
+            <AttachmentsPanel
+              targetType="name_part"
+              targetId={partId}
+              api={api}
+              sources={sources}
+              onOpenSource={(sourceId) => api.openSource?.(sourceId)}
+            />
           )}
         />
       </SectionCard>
@@ -408,7 +420,12 @@ export function PersonEditor({
             onUpdateCitation={api.updateCitation}
             onOpenSource={(sourceId) => api.openSource?.(sourceId)}
             renderCitationAttachments={(citation) => (
-              <CitationAttachments citation={citation} api={api} sources={sources} />
+              <CitationAttachments
+                citation={citation}
+                api={api}
+                sources={sources}
+                onOpenSource={(sourceId) => api.openSource?.(sourceId)}
+              />
             )}
           />
           <FamilySection
@@ -440,7 +457,13 @@ export function PersonEditor({
               await refreshAssociations();
             }}
             renderAttachments={(association) => (
-              <AttachmentsPanel targetType="association" targetId={association.id} api={api} sources={sources} />
+              <AttachmentsPanel
+                targetType="association"
+                targetId={association.id}
+                api={api}
+                sources={sources}
+                onOpenSource={(sourceId) => api.openSource?.(sourceId)}
+              />
             )}
           />
           <AliasesSection
@@ -483,6 +506,7 @@ export function PersonEditor({
                 targetId={fact.id}
                 api={api}
                 sources={sources}
+                onOpenSource={(sourceId) => api.openSource?.(sourceId)}
                 sections={[
                   'notes',
                   'sources',
@@ -496,7 +520,12 @@ export function PersonEditor({
                   'changes',
                 ]}
                 renderCitationAttachments={(citation) => (
-                  <CitationAttachments citation={citation} api={api} sources={sources} />
+                  <CitationAttachments
+                    citation={citation}
+                    api={api}
+                    sources={sources}
+                    onOpenSource={(sourceId) => api.openSource?.(sourceId)}
+                  />
                 )}
               />
             )}

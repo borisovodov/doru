@@ -219,10 +219,22 @@ function PlaceTabBody({
         onSave={() => void save()}
         onDelete={!isNew || lastSaved !== undefined ? () => void remove() : undefined}
         renderAttachments={(linkId) => (
-          <AttachmentsPanel targetType="place_hierarchy" targetId={linkId} api={api} sources={sources} />
+          <AttachmentsPanel
+            targetType="place_hierarchy"
+            targetId={linkId}
+            api={api}
+            sources={sources}
+            onOpenSource={onOpenSource}
+          />
         )}
         renderNameAttachments={(nameId) => (
-          <AttachmentsPanel targetType="place_name" targetId={nameId} api={api} sources={sources} />
+          <AttachmentsPanel
+            targetType="place_name"
+            targetId={nameId}
+            api={api}
+            sources={sources}
+            onOpenSource={onOpenSource}
+          />
         )}
       />
       {(lastSaved !== undefined || record !== undefined) && (

@@ -88,6 +88,9 @@ export class FactRepo {
   }
 
   private updateFactRows(fact: FactRecord): void {
+    if (this.db.prepare('SELECT 1 FROM fact WHERE id = ?').get(fact.id) === undefined) {
+      throw new Error(`fact ${fact.id} no longer exists`);
+    }
     const old = this.db.prepare('SELECT date_id, end_date_id, sort_date_id FROM fact WHERE id = ?').get(fact.id) as
       | { date_id: string | null; end_date_id: string | null; sort_date_id: string | null }
       | undefined;

@@ -19,6 +19,9 @@ export class AddressRepo {
   }
 
   updateAddress(address: AddressRecord): void {
+    if (this.db.prepare('SELECT 1 FROM address WHERE id = ?').get(address.id) === undefined) {
+      throw new Error(`address ${address.id} no longer exists`);
+    }
     this.db
       .prepare('UPDATE address SET city = ?, state = ?, postal_code = ?, country = ? WHERE id = ?')
       .run(

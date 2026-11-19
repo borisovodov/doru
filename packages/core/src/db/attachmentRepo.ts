@@ -232,6 +232,9 @@ export class AttachmentRepo {
   }
 
   updateTagLink(link: TagLinkRecord): void {
+    if (this.db.prepare('SELECT 1 FROM tag_link WHERE id = ?').get(link.id) === undefined) {
+      throw new Error(`tag_link ${link.id} no longer exists`);
+    }
     const before = this.db.prepare('SELECT date_id FROM tag_link WHERE id = ?').get(link.id) as
       | { date_id: string | null }
       | undefined;

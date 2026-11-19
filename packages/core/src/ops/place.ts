@@ -8,6 +8,7 @@ import type {
 } from '../model/types';
 import { emptyAttachments } from '../model/types';
 import type { NestedAttachments, Op } from './op';
+import { sameRecord } from './restore';
 
 export function addPlaceOp(place: PlaceRecord): Op {
   return {
@@ -81,7 +82,8 @@ export function deletePlaceOp(
       ctx.repo.deletePlace(place.id);
     },
     redoSafe(ctx) {
-      if (ctx.repo.getPlace(place.id) === undefined) {
+      const current = ctx.repo.getPlace(place.id);
+      if (current === undefined || !sameRecord(current, place)) {
         return false;
       }
       // Consumers added since the undo would be cleared by the redo and are

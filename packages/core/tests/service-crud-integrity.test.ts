@@ -1161,6 +1161,92 @@ describe('TreeService CRUD integrity', () => {
     }
   });
 
+  it('restores a fact without a participant whose person vanished', () => {
+    const { fixture, service } = makeService();
+    const { repo } = fixture;
+    try {
+      service.addPerson(person('P1'));
+      service.addPerson(person('P2'));
+      service.addFact({
+        id: 'F1',
+        personId: 'P1',
+        tag: 'BIRT',
+        participants: [{ id: 'PT1', personId: 'P2', position: 0 }],
+      });
+      service.deleteFact(repo.getFact('F1')!);
+      repo.deletePerson('P2');
+
+      service.undo();
+      const restored = repo.getFact('F1')!;
+      expect(restored.id).toBe('F1');
+      expect(restored.participants?.[0]?.id).toBe('PT1');
+      expect(restored.participants?.[0]?.personId).toBeUndefined();
+    } finally {
+      cleanupRepo(fixture);
+    }
+  });
+
+  it('rejects redoing a note delete after a new link appeared', () => {
+    const { fixture, service } = makeService();
+    const { repo } = fixture;
+    try {
+      service.addNote(note('N1', 'person', 'P1'));
+      service.deleteNote(repo.getNote('N1')!);
+      service.undo();
+
+      repo.addNoteLink('N1', { id: 'L2', targetType: 'person', targetId: 'P2' });
+      expect(service.redo().canRedo).toBe(true);
+      expect(repo.getNote('N1')).toBeDefined();
+
+      repo.removeNoteLink('L2');
+      expect(service.redo().canRedo).toBe(false);
+      expect(repo.getNote('N1')).toBeUndefined();
+    } finally {
+      cleanupRepo(fixture);
+    }
+  });
+
+  it('restores a task without a repository that vanished', () => {
+    const { fixture, service } = makeService();
+    const { repo } = fixture;
+    try {
+      service.addRepository({ id: 'R1', name: 'Archive' });
+      service.addTodo({ id: 'T1', text: 'Task', repositoryId: 'R1' });
+      service.deleteTodo(repo.getTodo('T1')!);
+      repo.deleteRepository('R1');
+
+      service.undo();
+      const restored = repo.getTodo('T1')!;
+      expect(restored.text).toBe('Task');
+      expect(restored.repositoryId).toBeUndefined();
+    } finally {
+      cleanupRepo(fixture);
+    }
+  });
+
+  it('restores a source event without a place that vanished', () => {
+    const { fixture, service } = makeService();
+    const { repo } = fixture;
+    try {
+      service.addPlace({ id: 'PL1', names: [{ id: 'PN1', kind: 'official', position: 0, value: 'Moscow' }] });
+      service.addSource({
+        id: 'S1',
+        title: 'Book',
+        dataEvents: [{ id: 'SE1', tag: 'DATA', placeId: 'PL1' }],
+      });
+      service.deleteSource(repo.getSource('S1')!);
+      repo.deletePlace('PL1');
+
+      service.undo();
+      const restored = repo.getSource('S1')!;
+      expect(restored.title).toBe('Book');
+      expect(restored.dataEvents?.[0]?.id).toBe('SE1');
+      expect(restored.dataEvents?.[0]?.placeId).toBeUndefined();
+    } finally {
+      cleanupRepo(fixture);
+    }
+  });
+
   it('uses the persisted source for the delete and undo snapshot', () => {
     const { fixture, service } = makeService();
     const { repo } = fixture;

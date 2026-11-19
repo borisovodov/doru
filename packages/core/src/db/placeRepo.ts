@@ -73,6 +73,9 @@ export class PlaceRepo {
 
   /** Replaces the place's names, hierarchy and postal codes wholesale. */
   updatePlace(place: PlaceRecord): void {
+    if (this.db.prepare('SELECT 1 FROM place WHERE id = ?').get(place.id) === undefined) {
+      throw new Error(`place ${place.id} no longer exists`);
+    }
     this.db
       .prepare(`UPDATE place SET xref = ?, latitude = ?, longitude = ?, verified = ?, form = ?,
         abbreviation = ?, preposition = ?, gov_id = ?, maidenhead = ?, place_type = ? WHERE id = ?`)

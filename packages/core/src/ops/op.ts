@@ -39,6 +39,11 @@ export interface Op {
   redoSafe?(ctx: MutationContext): boolean;
 }
 
+/** Attaches a redo-safety check to an op without repeating its shape. */
+export function withRedoSafe(op: Op, redoSafe: NonNullable<Op['redoSafe']>): Op {
+  return { ...op, redoSafe };
+}
+
 export class OpQueue {
   private readonly undoStack: Op[] = [];
   private readonly redoStack: Op[] = [];

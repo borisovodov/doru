@@ -19,11 +19,35 @@ import type {
   TodoRecord,
 } from '../model/types';
 import { emptyAttachments } from '../model/types';
-import { insertRestoredMedia } from './media';
+import {
+  attachmentsMatch,
+  restoreCitation,
+  restoreMedia,
+  restoreRecordSubmitter,
+  restoreSource,
+  restoreSourceRepository,
+  restoreTagLink,
+  sameRecord,
+} from './restore';
 import type { NestedAttachments, Op } from './op';
 
-function op(id: string, kind: string, apply: Op['apply'], inverse: Op['inverse'], change?: Op['change']): Op {
-  return { id, kind, timestamp: new Date().toISOString(), ...(change ? { change } : {}), apply, inverse };
+function op(
+  id: string,
+  kind: string,
+  apply: Op['apply'],
+  inverse: Op['inverse'],
+  change?: Op['change'],
+  redoSafe?: NonNullable<Op['redoSafe']>,
+): Op {
+  return {
+    id,
+    kind,
+    timestamp: new Date().toISOString(),
+    ...(change ? { change } : {}),
+    ...(redoSafe ? { redoSafe } : {}),
+    apply,
+    inverse,
+  };
 }
 
 // --- notes -------------------------------------------------------------------
@@ -88,6 +112,10 @@ export function deleteNoteOp(note: NoteRecord, attachments: AttachmentsSnapshot)
     owner !== undefined
       ? { targetType: owner.targetType, targetId: owner.targetId, kind: 'changed' }
       : { targetType: 'note', targetId: note.id, kind: 'changed' },
+    (ctx) =>
+      ctx.repo.getNote(note.id) !== undefined &&
+      sameRecord(ctx.repo.getNote(note.id), note) &&
+      attachmentsMatch(ctx, 'note', note.id, attachments),
   );
 }
 
@@ -178,14 +206,14 @@ export function deleteSourceOp(
     'source.delete',
     (ctx) => ctx.repo.deleteSource(source.id),
     (ctx) => {
-      ctx.repo.insertSource(source);
+      restoreSource(ctx, source);
       ctx.repo.restoreAttachments(attachments);
       // Citations of the source cascade with the source row (FK) and are
       // not part of the attachment snapshot (that one is keyed by target):
       // re-insert them explicitly so one undo restores everything.
       for (const citation of citations) {
         if (ctx.repo.getCitation(citation.id) === undefined) {
-          ctx.repo.insertCitation(citation);
+          restoreCitation(ctx, citation);
         }
       }
       for (const nested of citationAttachments) {
@@ -193,6 +221,19 @@ export function deleteSourceOp(
       }
     },
     { targetType: 'source', targetId: source.id, kind: 'changed' },
+    (ctx) => {
+      if (ctx.repo.getSource(source.id) === undefined || !sameRecord(ctx.repo.getSource(source.id), source)) {
+        return false;
+      }
+      if (!attachmentsMatch(ctx, 'source', source.id, attachments)) {
+        return false;
+      }
+      const captured = new Set(citations.map((citation) => citation.id));
+      return ctx.repo
+        .listAllCitations()
+        .filter((citation) => citation.sourceId === source.id)
+        .every((citation) => captured.has(citation.id));
+    },
   );
 }
 
@@ -225,6 +266,7 @@ export function detachCitationOp(citation: CitationRecord): Op {
     (ctx) => ctx.repo.deleteCitation(citation.id),
     (ctx) => ctx.repo.insertCitation(citation),
     { targetType: citation.targetType, targetId: citation.targetId, kind: 'changed' },
+    (ctx) => ctx.repo.getCitation(citation.id) !== undefined && sameRecord(ctx.repo.getCitation(citation.id), citation),
   );
 }
 
@@ -245,7 +287,7 @@ export function attachMediaOp(
       (ctx) => {
         ctx.repo.removeMediaLink(link.id);
         if (ctx.repo.getMedia(link.mediaId) === undefined && media !== undefined) {
-          insertRestoredMedia(ctx, media);
+          restoreMedia(ctx, media);
           if (attachments !== undefined) {
             ctx.repo.restoreAttachments(attachments);
           }
@@ -288,7 +330,7 @@ export function detachMediaOp(
       (ctx) => ctx.repo.removeMediaLink(link.id),
       (ctx) => {
         if (ctx.repo.getMedia(link.mediaId) === undefined && media !== undefined) {
-          insertRestoredMedia(ctx, media);
+          restoreMedia(ctx, media);
           if (attachments !== undefined) {
             ctx.repo.restoreAttachments(attachments);
           }
@@ -444,10 +486,18 @@ export function deleteTagOp(tag: TagRecord, links: TagLinkRecord[]): Op {
     (ctx) => {
       ctx.repo.insertTag(tag);
       for (const link of links) {
-        ctx.repo.insertTagLink(link);
+        restoreTagLink(ctx, link);
       }
     },
     { targetType: 'tag', targetId: tag.id, kind: 'changed' },
+    (ctx) => {
+      const current = ctx.repo.listTags().find((entry) => entry.id === tag.id);
+      if (current === undefined || !sameRecord(current, tag)) {
+        return false;
+      }
+      const capturedLinks = new Set(links.map((link) => link.id));
+      return ctx.repo.listTagLinksByTag(tag.id).every((link) => capturedLinks.has(link.id));
+    },
   );
 }
 
@@ -536,7 +586,7 @@ export function deleteRepositoryOp(
         ctx.repo.insertRepository(repository);
         ctx.repo.restoreAttachments(attachments);
         for (const link of consumers.sourceRepositories ?? []) {
-          ctx.repo.restoreSourceRepository(link);
+          restoreSourceRepository(ctx, link);
         }
         for (const todo of consumers.todos ?? []) {
           ctx.repo.setTodoRepositoryId(todo.id, repository.id);
@@ -547,7 +597,8 @@ export function deleteRepositoryOp(
       },
     ),
     redoSafe(ctx) {
-      if (ctx.repo.getRepository(repository.id) === undefined) {
+      const current = ctx.repo.getRepository(repository.id);
+      if (current === undefined || !sameRecord(current, repository)) {
         return false;
       }
       const capturedSources = new Set((consumers.sourceRepositories ?? []).map((link) => link.id));
@@ -624,7 +675,7 @@ export function deleteSubmitterOp(
               .listRecordSubmittersFor(link.targetType, link.targetId)
               .some((existing) => existing.id === link.id)
           ) {
-            ctx.repo.insertRecordSubmitter(link.id, link.submitterId, link.targetType, link.targetId, link.kind);
+            restoreRecordSubmitter(ctx, link);
           }
         }
       },

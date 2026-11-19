@@ -8,6 +8,7 @@ import type {
 import { emptyAttachments } from '../model/types';
 import type { FamilyLinkAttachments } from './family';
 import type { NestedAttachments, Op } from './op';
+import { restoreAlias, restoreAssociation, restorePerson, sameRecord } from './restore';
 
 export function updatePersonOp(
   before: PersonRecord,
@@ -59,7 +60,8 @@ export function deletePersonOp(
       ctx.repo.deletePerson(person.id);
     },
     redoSafe(ctx) {
-      if (ctx.repo.getPerson(person.id) === undefined) {
+      const current = ctx.repo.getPerson(person.id);
+      if (current === undefined || !sameRecord(current, person)) {
         return false;
       }
       // Anything attached to the person since the undo would be cascaded away
@@ -86,9 +88,8 @@ export function deletePersonOp(
           return false;
         }
       }
-      const current = ctx.repo.getPerson(person.id);
       const capturedParticipants = new Set(participants.map((entry) => `${entry.factId}:${entry.participant.id}`));
-      for (const fact of current?.facts ?? []) {
+      for (const fact of current.facts) {
         for (const participant of fact.participants ?? []) {
           capturedParticipants.add(`${fact.id}:${participant.id}`);
         }
@@ -101,21 +102,25 @@ export function deletePersonOp(
       return true;
     },
     inverse(ctx) {
-      ctx.repo.insertPerson(person);
+      restorePerson(ctx, person);
       for (const association of associations) {
-        ctx.repo.insertAssociation(association);
+        restoreAssociation(ctx, association);
       }
       for (const alias of aliases) {
-        ctx.repo.insertAlias(alias.id, alias.personId, alias.aliasId);
+        restoreAlias(ctx, alias.id, alias.personId, alias.aliasId);
       }
       for (const entry of [...participants].sort(
         (left, right) => left.participant.position - right.participant.position,
       )) {
         // The fact may have been deleted by another writer since the person
         // was removed; its FK would abort the rest of the inverse.
-        if (ctx.repo.getFact(entry.factId) !== undefined) {
-          ctx.repo.insertParticipant(entry.factId, entry.participant);
+        if (ctx.repo.getFact(entry.factId) === undefined) {
+          continue;
         }
+        if (entry.participant.personId !== undefined && ctx.repo.getPerson(entry.participant.personId) === undefined) {
+          continue;
+        }
+        ctx.repo.insertParticipant(entry.factId, entry.participant);
       }
       for (const link of familyLinks) {
         ctx.repo.updateFamily(link.before);

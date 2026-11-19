@@ -84,6 +84,27 @@ describe('db cleanup paths', () => {
     }
   });
 
+  it('does not leak a date when a stale update targets a deleted todo', () => {
+    const fixture = makeRepo();
+    try {
+      const { repo } = fixture;
+      repo.insertTodo({ id: 'T1', text: 'Task' });
+      repo.deleteTodo('T1');
+
+      expect(() =>
+        repo.updateTodo({
+          id: 'T1',
+          text: 'Edited',
+          createdDate: { quality: 'exact', component: { year: 2026, month: 1, day: 2 } },
+        }),
+      ).toThrow(/no longer exists/);
+      const { n } = fixture.store.db.prepare('SELECT COUNT(*) AS n FROM date').get() as { n: number };
+      expect(n).toBe(0);
+    } finally {
+      cleanupRepo(fixture);
+    }
+  });
+
   it('deletes sources and citations together with their date rows', () => {
     const fixture = makeRepo();
     try {

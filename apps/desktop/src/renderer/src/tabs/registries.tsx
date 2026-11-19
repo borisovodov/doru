@@ -145,6 +145,7 @@ export const addressTab: TabDescriptor = {
       sources={context.tree.sources}
       api={{ ...context.tree.registriesApi, openTask: context.tabs.open.task }}
       onClose={() => context.tabs.closeTab(id)}
+      onOpenSource={context.tabs.open.source}
       onCreated={(realId) => context.tabs.replaceTab(id, entityTabId('address', realId))}
     />
   ),

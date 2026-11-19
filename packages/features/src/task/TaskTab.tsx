@@ -51,6 +51,7 @@ export function TaskTab({
   api,
   onClose,
   onOpenMedia,
+  onOpenSource,
   onCreated,
 }: {
   entityId: string;
@@ -71,6 +72,7 @@ export function TaskTab({
   api: TodoEditorApi;
   onClose: () => void;
   onOpenMedia: (mediaId: string) => void;
+  onOpenSource: (sourceId: string) => void;
   onCreated: (realId: string) => void;
 }) {
   const taskId = entityId;
@@ -100,6 +102,7 @@ export function TaskTab({
       api={api}
       onClose={onClose}
       onOpenMedia={onOpenMedia}
+      onOpenSource={onOpenSource}
       onCreated={onCreated}
     />
   );
@@ -125,6 +128,7 @@ function TaskTabBody({
   api,
   onClose,
   onOpenMedia,
+  onOpenSource,
   onCreated,
 }: {
   record: TodoRecord | undefined;
@@ -146,6 +150,7 @@ function TaskTabBody({
   api: TodoEditorApi;
   onClose: () => void;
   onOpenMedia: (mediaId: string) => void;
+  onOpenSource: (sourceId: string) => void;
   onCreated: (realId: string) => void;
 }) {
   const base = record ?? { id: crypto.randomUUID(), text: '' };
@@ -249,7 +254,14 @@ function TaskTabBody({
         <TaskEditorFields edit={draft} data={targetData} onChange={patch} />
       </SectionCard>
       {targetId !== undefined && (
-        <AttachmentsPanel targetType="todo" targetId={targetId} api={api} sources={sources} onOpenMedia={onOpenMedia} />
+        <AttachmentsPanel
+          targetType="todo"
+          targetId={targetId}
+          api={api}
+          sources={sources}
+          onOpenSource={onOpenSource}
+          onOpenMedia={onOpenMedia}
+        />
       )}
     </EntityTab>
   );

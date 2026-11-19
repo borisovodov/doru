@@ -22,6 +22,9 @@ export class ResearchRepo {
   }
 
   updateTodo(todo: TodoRecord): void {
+    if (this.db.prepare('SELECT 1 FROM todo WHERE id = ?').get(todo.id) === undefined) {
+      throw new Error(`todo ${todo.id} no longer exists`);
+    }
     const before = this.db
       .prepare('SELECT created_date_id, scheduled_date_id, reminder_date_id, closed_date_id FROM todo WHERE id = ?')
       .get(todo.id) as
@@ -167,6 +170,9 @@ export class ResearchRepo {
   }
 
   updateTitle(title: TitleRecord): void {
+    if (this.db.prepare('SELECT 1 FROM title WHERE id = ?').get(title.id) === undefined) {
+      throw new Error(`title ${title.id} no longer exists`);
+    }
     this.db
       .prepare(
         `UPDATE title SET xref = ?, name = ?, author = ?, publisher = ?, series = ?, abbreviation = ?,

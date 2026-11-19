@@ -646,18 +646,20 @@ export class TreeService {
   }
 
   deleteSource(source: SourceRecord): UndoRedoState {
-    const current = this.repo.getSource(source.id);
-    if (current === undefined) {
-      return this.historyState();
-    }
-    const attachments = this.repo.listAttachmentsFor('source', current.id);
-    const citations = this.repo.listAllCitations().filter((citation) => citation.sourceId === current.id);
-    const citationAttachments = citations.map((citation) => ({
-      targetType: 'citation',
-      targetId: citation.id,
-      attachments: this.repo.listAttachmentsFor('citation', citation.id),
-    }));
-    return this.apply(deleteSourceOp(current, attachments, citations, citationAttachments));
+    return this.applyAfterCommit(() => {
+      const current = this.repo.getSource(source.id);
+      if (current === undefined) {
+        return undefined;
+      }
+      const attachments = this.repo.listAttachmentsFor('source', current.id);
+      const citations = this.repo.listAllCitations().filter((citation) => citation.sourceId === current.id);
+      const citationAttachments = citations.map((citation) => ({
+        targetType: 'citation',
+        targetId: citation.id,
+        attachments: this.repo.listAttachmentsFor('citation', citation.id),
+      }));
+      return deleteSourceOp(current, attachments, citations, citationAttachments);
+    });
   }
 
   attachSource(sourceId: string, targetType: string, targetId: string): UndoRedoState {
@@ -688,12 +690,14 @@ export class TreeService {
   }
 
   deleteFact(fact: FactRecord): UndoRedoState {
-    const current = this.repo.getFact(fact.id);
-    if (current === undefined) {
-      return this.historyState();
-    }
-    const attachments = this.repo.listAttachmentsFor('fact', current.id);
-    return this.apply(deleteFactOp(current, attachments));
+    return this.applyAfterCommit(() => {
+      const current = this.repo.getFact(fact.id);
+      if (current === undefined) {
+        return undefined;
+      }
+      const attachments = this.repo.listAttachmentsFor('fact', current.id);
+      return deleteFactOp(current, attachments);
+    });
   }
 
   addNote(note: NoteRecord): UndoRedoState {
@@ -734,12 +738,14 @@ export class TreeService {
   }
 
   deleteNote(note: NoteRecord): UndoRedoState {
-    const current = this.repo.getNote(note.id);
-    if (current === undefined) {
-      return this.historyState();
-    }
-    const attachments = this.repo.listAttachmentsFor('note', current.id);
-    return this.apply(deleteNoteOp(current, attachments));
+    return this.applyAfterCommit(() => {
+      const current = this.repo.getNote(note.id);
+      if (current === undefined) {
+        return undefined;
+      }
+      const attachments = this.repo.listAttachmentsFor('note', current.id);
+      return deleteNoteOp(current, attachments);
+    });
   }
 
   addMedia(media: MediaRecord): UndoRedoState {
@@ -751,42 +757,51 @@ export class TreeService {
   }
 
   updateMedia(before: MediaRecord, after: MediaRecord): UndoRedoState {
-    const current = this.repo.getMedia(before.id) ?? before;
-    const remaining = new Set((after.files ?? []).map((file) => file.id));
-    const removedFiles = (current.files ?? []).filter((file) => !remaining.has(file.id));
-    const fileAttachments = removedFiles.map((file) => ({
-      targetType: 'media_file',
-      targetId: file.id,
-      attachments: this.repo.listAttachmentsFor('media_file', file.id),
-    }));
-    return this.apply(updateMediaOp(current, after, fileAttachments));
+    return this.applyAfterCommit(() => {
+      const current = this.repo.getMedia(before.id) ?? before;
+      const remaining = new Set((after.files ?? []).map((file) => file.id));
+      const removedFiles = (current.files ?? []).filter((file) => !remaining.has(file.id));
+      const fileAttachments = removedFiles.map((file) => ({
+        targetType: 'media_file',
+        targetId: file.id,
+        attachments: this.repo.listAttachmentsFor('media_file', file.id),
+      }));
+      return updateMediaOp(current, after, fileAttachments);
+    });
   }
 
   deleteMedia(media: MediaRecord): UndoRedoState {
-    const current = this.repo.getMedia(media.id) ?? media;
-    const attachments = this.repo.listAttachmentsFor('media', media.id);
-    const fileAttachments = (current.files ?? []).map((file) => ({
-      targetType: 'media_file',
-      targetId: file.id,
-      attachments: this.repo.listAttachmentsFor('media_file', file.id),
-    }));
-    const linkAttachments = (current.links ?? []).map((link) => ({
-      targetType: 'media_link',
-      targetId: link.id,
-      attachments: this.repo.listAttachmentsFor('media_link', link.id),
-    }));
-    return this.apply(deleteMediaOp(current, attachments, fileAttachments, linkAttachments));
+    return this.applyAfterCommit(() => {
+      const current = this.repo.getMedia(media.id);
+      if (current === undefined) {
+        return undefined;
+      }
+      const attachments = this.repo.listAttachmentsFor('media', current.id);
+      const fileAttachments = (current.files ?? []).map((file) => ({
+        targetType: 'media_file',
+        targetId: file.id,
+        attachments: this.repo.listAttachmentsFor('media_file', file.id),
+      }));
+      const linkAttachments = (current.links ?? []).map((link) => ({
+        targetType: 'media_link',
+        targetId: link.id,
+        attachments: this.repo.listAttachmentsFor('media_link', link.id),
+      }));
+      return deleteMediaOp(current, attachments, fileAttachments, linkAttachments);
+    });
   }
 
   attachMedia(link: MediaLinkRecord): UndoRedoState {
-    const media = this.repo.getMedia(link.mediaId);
-    const attachments = this.repo.listAttachmentsFor('media', link.mediaId);
-    const fileAttachments = (media?.files ?? []).map((file) => ({
-      targetType: 'media_file',
-      targetId: file.id,
-      attachments: this.repo.listAttachmentsFor('media_file', file.id),
-    }));
-    return this.apply(attachMediaOp(link, media, attachments, fileAttachments));
+    return this.applyAfterCommit(() => {
+      const media = this.repo.getMedia(link.mediaId);
+      const attachments = this.repo.listAttachmentsFor('media', link.mediaId);
+      const fileAttachments = (media?.files ?? []).map((file) => ({
+        targetType: 'media_file',
+        targetId: file.id,
+        attachments: this.repo.listAttachmentsFor('media_file', file.id),
+      }));
+      return attachMediaOp(link, media, attachments, fileAttachments);
+    });
   }
 
   updateMediaLink(before: MediaLinkRecord, after: MediaLinkRecord): UndoRedoState {
@@ -794,15 +809,17 @@ export class TreeService {
   }
 
   detachMedia(link: MediaLinkRecord): UndoRedoState {
-    const media = this.repo.getMedia(link.mediaId);
-    const attachments = this.repo.listAttachmentsFor('media', link.mediaId);
-    const fileAttachments = (media?.files ?? []).map((file) => ({
-      targetType: 'media_file',
-      targetId: file.id,
-      attachments: this.repo.listAttachmentsFor('media_file', file.id),
-    }));
-    const linkAttachments = this.repo.listAttachmentsFor('media_link', link.id);
-    return this.apply(detachMediaOp(link, media, attachments, fileAttachments, linkAttachments));
+    return this.applyAfterCommit(() => {
+      const media = this.repo.getMedia(link.mediaId);
+      const attachments = this.repo.listAttachmentsFor('media', link.mediaId);
+      const fileAttachments = (media?.files ?? []).map((file) => ({
+        targetType: 'media_file',
+        targetId: file.id,
+        attachments: this.repo.listAttachmentsFor('media_file', file.id),
+      }));
+      const linkAttachments = this.repo.listAttachmentsFor('media_link', link.id);
+      return detachMediaOp(link, media, attachments, fileAttachments, linkAttachments);
+    });
   }
 
   // --- universal attachments --------------------------------------------------
@@ -876,7 +893,12 @@ export class TreeService {
   }
 
   deleteTag(tag: TagRecord): UndoRedoState {
-    return this.apply(deleteTagOp(tag, this.repo.listTagLinksByTag(tag.id)));
+    return this.applyAfterCommit(() => {
+      if (!this.repo.listTags().some((entry) => entry.id === tag.id)) {
+        return undefined;
+      }
+      return deleteTagOp(tag, this.repo.listTagLinksByTag(tag.id));
+    });
   }
 
   attachTag(link: TagLinkRecord): UndoRedoState {
@@ -941,13 +963,15 @@ export class TreeService {
   }
 
   deleteSubmitter(submitter: SubmitterRecord): UndoRedoState {
-    const current = this.repo.getSubmitter(submitter.id);
-    if (current === undefined) {
-      return this.historyState();
-    }
-    const attachments = this.repo.listAttachmentsFor('submitter', current.id);
-    const consumers = { recordSubmitters: this.repo.listRecordSubmittersForSubmitter(current.id) };
-    return this.apply(deleteSubmitterOp(current, attachments, consumers));
+    return this.applyAfterCommit(() => {
+      const current = this.repo.getSubmitter(submitter.id);
+      if (current === undefined) {
+        return undefined;
+      }
+      const attachments = this.repo.listAttachmentsFor('submitter', current.id);
+      const consumers = { recordSubmitters: this.repo.listRecordSubmittersForSubmitter(current.id) };
+      return deleteSubmitterOp(current, attachments, consumers);
+    });
   }
 
   /** The submitters linked as contributors of a record (GEDCOM SUBM on INDI/FAM). */
@@ -1013,23 +1037,25 @@ export class TreeService {
   }
 
   deleteAddress(address: AddressRecord): UndoRedoState {
-    const current = this.repo.getAddress(address.id);
-    if (current === undefined) {
-      return this.historyState();
-    }
-    const attachments = this.repo.listAttachmentsFor('address', current.id);
-    const nested: NestedAttachments[] = current.lines.map((line) => ({
-      targetType: 'address_line',
-      targetId: line.id,
-      attachments: this.repo.listAttachmentsFor('address_line', line.id),
-    }));
-    const consumers = {
-      repositories: this.repo.listRepositories().filter((entry) => entry.addressId === current.id),
-      submitters: this.repo.listSubmitters().filter((entry) => entry.addressId === current.id),
-      factIds: this.repo.listFactIdsForAddress(current.id),
-      personIds: this.repo.listPersonIdsForAddress(current.id),
-    };
-    return this.apply(deleteAddressOp(current, attachments, consumers, nested));
+    return this.applyAfterCommit(() => {
+      const current = this.repo.getAddress(address.id);
+      if (current === undefined) {
+        return undefined;
+      }
+      const attachments = this.repo.listAttachmentsFor('address', current.id);
+      const nested: NestedAttachments[] = current.lines.map((line) => ({
+        targetType: 'address_line',
+        targetId: line.id,
+        attachments: this.repo.listAttachmentsFor('address_line', line.id),
+      }));
+      const consumers = {
+        repositories: this.repo.listRepositories().filter((entry) => entry.addressId === current.id),
+        submitters: this.repo.listSubmitters().filter((entry) => entry.addressId === current.id),
+        factIds: this.repo.listFactIdsForAddress(current.id),
+        personIds: this.repo.listPersonIdsForAddress(current.id),
+      };
+      return deleteAddressOp(current, attachments, consumers, nested);
+    });
   }
 
   addAssociation(association: AssociationRecord): UndoRedoState {
@@ -1041,8 +1067,10 @@ export class TreeService {
   }
 
   deleteAssociation(association: AssociationRecord): UndoRedoState {
-    const attachments = this.repo.listAttachmentsFor('association', association.id);
-    return this.apply(deleteAssociationOp(association, attachments));
+    return this.applyAfterCommit(() => {
+      const attachments = this.repo.listAttachmentsFor('association', association.id);
+      return deleteAssociationOp(association, attachments);
+    });
   }
 
   listAssociations(): AssociationRecord[] {
@@ -1082,12 +1110,14 @@ export class TreeService {
   }
 
   deleteTodo(todo: TodoRecord): UndoRedoState {
-    const current = this.repo.getTodo(todo.id);
-    if (current === undefined) {
-      return this.historyState();
-    }
-    const attachments = this.repo.listAttachmentsFor('todo', current.id);
-    return this.apply(deleteTodoOp(current, attachments));
+    return this.applyAfterCommit(() => {
+      const current = this.repo.getTodo(todo.id);
+      if (current === undefined) {
+        return undefined;
+      }
+      const attachments = this.repo.listAttachmentsFor('todo', current.id);
+      return deleteTodoOp(current, attachments);
+    });
   }
 
   addTitle(title: TitleRecord): UndoRedoState {
@@ -1103,13 +1133,15 @@ export class TreeService {
   }
 
   deleteTitle(title: TitleRecord): UndoRedoState {
-    const current = this.repo.getTitle(title.id);
-    if (current === undefined) {
-      return this.historyState();
-    }
-    const attachments = this.repo.listAttachmentsFor('title', current.id);
-    const consumers = { sources: this.repo.listSourcesForTitle(current.id) };
-    return this.apply(deleteTitleOp(current, attachments, consumers));
+    return this.applyAfterCommit(() => {
+      const current = this.repo.getTitle(title.id);
+      if (current === undefined) {
+        return undefined;
+      }
+      const attachments = this.repo.listAttachmentsFor('title', current.id);
+      const consumers = { sources: this.repo.listSourcesForTitle(current.id) };
+      return deleteTitleOp(current, attachments, consumers);
+    });
   }
 
   // --- plumbing -------------------------------------------------------------

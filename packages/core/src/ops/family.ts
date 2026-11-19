@@ -1,6 +1,7 @@
 import type { AssociationRecord, AttachmentsSnapshot, FactRecord, FamilyRecord } from '../model/types';
 import { emptyAttachments } from '../model/types';
 import type { NestedAttachments, Op } from './op';
+import { restoreAssociation, restoreFact, restoreFamily, sameRecord } from './restore';
 
 export function addFamilyOp(family: FamilyRecord): Op {
   return {
@@ -67,7 +68,8 @@ export function deleteFamilyOp(
       ctx.repo.deleteFamily(family.id);
     },
     redoSafe(ctx) {
-      if (ctx.repo.getFamily(family.id) === undefined) {
+      const current = ctx.repo.getFamily(family.id);
+      if (current === undefined || !sameRecord(current, family)) {
         return false;
       }
       // New facts or associations pointing at the family since the undo
@@ -93,28 +95,17 @@ export function deleteFamilyOp(
       return true;
     },
     inverse(ctx) {
-      ctx.repo.insertFamily(family);
+      restoreFamily(ctx, family);
       for (const fact of facts) {
-        // Family links may point at families deleted by another writer while
-        // this family was gone; the fact can only come back without them.
-        const familyLinks = fact.familyLinks?.filter(
-          (link) => link.familyId === family.id || ctx.repo.getFamily(link.familyId) !== undefined,
-        );
-        const restored =
-          familyLinks !== undefined && familyLinks.length !== fact.familyLinks?.length
-            ? { ...fact, familyLinks }
-            : fact;
-        ctx.repo.insertFact(restored);
+        restoreFact(ctx, fact);
       }
       const restoredAssociations = new Set<string>();
       for (const association of associations) {
         // The other person may have been deleted by another writer; the
         // association FK would abort the rest of the inverse.
-        if (ctx.repo.getPerson(association.otherPersonId) === undefined) {
-          continue;
+        if (restoreAssociation(ctx, association)) {
+          restoredAssociations.add(association.id);
         }
-        ctx.repo.insertAssociation(association);
-        restoredAssociations.add(association.id);
       }
       // Facts owned by the family were re-inserted with their links above.
       // Surviving facts may have been edited since the delete, so restore

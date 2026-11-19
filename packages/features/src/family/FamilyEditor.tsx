@@ -534,6 +534,7 @@ export function FamilyEditor({
             targetId={fact.id}
             api={api}
             sources={sources}
+            onOpenSource={onOpenSource}
             sections={[
               'notes',
               'sources',
@@ -547,7 +548,7 @@ export function FamilyEditor({
               'changes',
             ]}
             renderCitationAttachments={(citation) => (
-              <CitationAttachments citation={citation} api={api} sources={sources} />
+              <CitationAttachments citation={citation} api={api} sources={sources} onOpenSource={onOpenSource} />
             )}
           />
         )}

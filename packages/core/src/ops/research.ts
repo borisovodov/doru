@@ -1,9 +1,25 @@
 import type { AssociationRecord, AttachmentsSnapshot, TitleRecord, TodoRecord } from '../model/types';
 import { emptyAttachments } from '../model/types';
 import type { Op } from './op';
+import { attachmentsMatch, restoreAlias, restoreAssociation, restoreTitle, restoreTodo, sameRecord } from './restore';
 
-function op(id: string, kind: string, apply: Op['apply'], inverse: Op['inverse'], change?: Op['change']): Op {
-  return { id, kind, timestamp: new Date().toISOString(), ...(change ? { change } : {}), apply, inverse };
+function op(
+  id: string,
+  kind: string,
+  apply: Op['apply'],
+  inverse: Op['inverse'],
+  change?: Op['change'],
+  redoSafe?: NonNullable<Op['redoSafe']>,
+): Op {
+  return {
+    id,
+    kind,
+    timestamp: new Date().toISOString(),
+    ...(change ? { change } : {}),
+    ...(redoSafe ? { redoSafe } : {}),
+    apply,
+    inverse,
+  };
 }
 
 export function addAssociationOp(association: AssociationRecord): Op {
@@ -35,10 +51,19 @@ export function deleteAssociationOp(
     'association.delete',
     (ctx) => ctx.repo.deleteAssociation(association.id),
     (ctx) => {
-      ctx.repo.insertAssociation(association);
+      restoreAssociation(ctx, association);
       ctx.repo.restoreAttachments(attachments);
     },
     { targetType: 'association', targetId: association.id, kind: 'changed' },
+    (ctx) => {
+      const current =
+        association.personId !== undefined
+          ? ctx.repo.listAssociationsFor(association.personId).find((entry) => entry.id === association.id)
+          : association.familyId !== undefined
+            ? ctx.repo.listAssociationsForFamily(association.familyId).find((entry) => entry.id === association.id)
+            : undefined;
+      return current !== undefined && sameRecord(current, association);
+    },
   );
 }
 
@@ -46,7 +71,9 @@ export function addAliasOp(id: string, personId: string, aliasId: string): Op {
   return op(
     crypto.randomUUID(),
     'alias.add',
-    (ctx) => ctx.repo.insertAlias(id, personId, aliasId),
+    (ctx) => {
+      restoreAlias(ctx, id, personId, aliasId);
+    },
     (ctx) => ctx.repo.deleteAlias(id),
     { targetType: 'person', targetId: personId, kind: 'changed' },
   );
@@ -59,6 +86,10 @@ export function deleteAliasOp(id: string, personId: string, aliasId: string): Op
     (ctx) => ctx.repo.deleteAlias(id),
     (ctx) => ctx.repo.insertAlias(id, personId, aliasId),
     { targetType: 'person', targetId: personId, kind: 'changed' },
+    (ctx) =>
+      ctx.repo.getPerson(personId) !== undefined &&
+      ctx.repo.getPerson(aliasId) !== undefined &&
+      ctx.repo.listAliasRowsFor(personId).some((row) => row.id === id),
   );
 }
 
@@ -88,10 +119,14 @@ export function deleteTodoOp(todo: TodoRecord, attachments: AttachmentsSnapshot 
     'todo.delete',
     (ctx) => ctx.repo.deleteTodo(todo.id),
     (ctx) => {
-      ctx.repo.insertTodo(todo);
+      restoreTodo(ctx, todo);
       ctx.repo.restoreAttachments(attachments);
     },
     { targetType: 'todo', targetId: todo.id, kind: 'changed' },
+    (ctx) =>
+      ctx.repo.getTodo(todo.id) !== undefined &&
+      sameRecord(ctx.repo.getTodo(todo.id), todo) &&
+      attachmentsMatch(ctx, 'todo', todo.id, attachments),
   );
 }
 
@@ -130,12 +165,13 @@ export function deleteTitleOp(
     'title.delete',
     (ctx) => ctx.repo.deleteTitle(title.id),
     (ctx) => {
-      ctx.repo.insertTitle(title);
+      restoreTitle(ctx, title);
       ctx.repo.restoreAttachments(attachments);
       for (const source of consumers.sources ?? []) {
         ctx.repo.setSourceTitle(source.id, source.titleId);
       }
     },
     { targetType: 'title', targetId: title.id, kind: 'changed' },
+    (ctx) => ctx.repo.getTitle(title.id) !== undefined && sameRecord(ctx.repo.getTitle(title.id), title),
   );
 }

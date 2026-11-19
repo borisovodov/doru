@@ -17,6 +17,7 @@ export function AddressTab({
   sources,
   api,
   onClose,
+  onOpenSource,
   onCreated,
 }: {
   entityId: string;
@@ -27,6 +28,7 @@ export function AddressTab({
   sources: SourceRecord[];
   api: RegistriesEditorApi;
   onClose: () => void;
+  onOpenSource: (sourceId: string) => void;
   onCreated: (realId: string) => void;
 }) {
   const addressId = entityId;
@@ -45,6 +47,7 @@ export function AddressTab({
       sources={sources}
       api={api}
       onClose={onClose}
+      onOpenSource={onOpenSource}
       onCreated={onCreated}
     />
   );
@@ -59,6 +62,7 @@ function AddressTabBody({
   sources,
   api,
   onClose,
+  onOpenSource,
   onCreated,
 }: {
   record: AddressRecord | undefined;
@@ -69,6 +73,7 @@ function AddressTabBody({
   sources: SourceRecord[];
   api: RegistriesEditorApi;
   onClose: () => void;
+  onOpenSource: (sourceId: string) => void;
   onCreated: (realId: string) => void;
 }) {
   const base: AddressRecord = record ?? { id: crypto.randomUUID(), lines: [] };
@@ -122,7 +127,13 @@ function AddressTabBody({
           address={address}
           onChange={setAddress}
           renderAttachments={(lineId) => (
-            <AttachmentsPanel targetType="address_line" targetId={lineId} api={api} sources={sources} />
+            <AttachmentsPanel
+              targetType="address_line"
+              targetId={lineId}
+              api={api}
+              sources={sources}
+              onOpenSource={onOpenSource}
+            />
           )}
         />
         {usageCount > 0 && (
@@ -130,7 +141,13 @@ function AddressTabBody({
         )}
       </SectionCard>
       {record !== undefined && (
-        <AttachmentsPanel targetType="address" targetId={record.id} api={api} sources={sources} />
+        <AttachmentsPanel
+          targetType="address"
+          targetId={record.id}
+          api={api}
+          sources={sources}
+          onOpenSource={onOpenSource}
+        />
       )}
     </EntityTab>
   );

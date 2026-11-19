@@ -22,6 +22,9 @@ export class RelationRepo {
   }
 
   updateAssociation(association: AssociationRecord): void {
+    if (this.db.prepare('SELECT 1 FROM association WHERE id = ?').get(association.id) === undefined) {
+      throw new Error(`association ${association.id} no longer exists`);
+    }
     const before = this.db
       .prepare('SELECT period_start_id, period_end_id FROM association WHERE id = ?')
       .get(association.id) as { period_start_id: string | null; period_end_id: string | null } | undefined;

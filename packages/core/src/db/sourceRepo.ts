@@ -71,6 +71,9 @@ export class SourceRepo {
   }
 
   updateSource(source: SourceRecord): void {
+    if (this.db.prepare('SELECT 1 FROM source WHERE id = ?').get(source.id) === undefined) {
+      throw new Error(`source ${source.id} no longer exists`);
+    }
     const before = this.db.prepare('SELECT pub_date_id FROM source WHERE id = ?').get(source.id) as
       | { pub_date_id: string | null }
       | undefined;
@@ -216,6 +219,9 @@ export class SourceRepo {
   }
 
   updateCitation(citation: CitationRecord): void {
+    if (this.db.prepare('SELECT 1 FROM citation WHERE id = ?').get(citation.id) === undefined) {
+      throw new Error(`citation ${citation.id} no longer exists`);
+    }
     const before = this.db.prepare('SELECT date_id FROM citation WHERE id = ?').get(citation.id) as
       | { date_id: string | null }
       | undefined;

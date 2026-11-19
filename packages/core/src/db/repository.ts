@@ -673,7 +673,9 @@ export class SqliteTreeRepository implements TreeRepository {
   }
 
   updateSource(source: SourceRecord): void {
-    this.sources.updateSource(source);
+    this.transactions.run(() => {
+      this.sources.updateSource(source);
+    });
   }
 
   getSource(id: string): SourceRecord | undefined {
@@ -729,7 +731,9 @@ export class SqliteTreeRepository implements TreeRepository {
   }
 
   updateCitation(citation: CitationRecord): void {
-    this.sources.updateCitation(citation);
+    this.transactions.run(() => {
+      this.sources.updateCitation(citation);
+    });
   }
 
   deleteCitation(id: string): boolean {
@@ -1079,7 +1083,9 @@ export class SqliteTreeRepository implements TreeRepository {
   }
 
   updateTagLink(link: TagLinkRecord): void {
-    this.attachments.updateTagLink(link);
+    this.transactions.run(() => {
+      this.attachments.updateTagLink(link);
+    });
   }
 
   listTagLinksFor(targetType: string, targetId: string): Array<{ tagId: string; link: TagLinkRecord }> {
@@ -1099,7 +1105,9 @@ export class SqliteTreeRepository implements TreeRepository {
   }
 
   updateAssociation(association: AssociationRecord): void {
-    this.relations.updateAssociation(association);
+    this.transactions.run(() => {
+      this.relations.updateAssociation(association);
+    });
   }
 
   deleteAssociation(id: string): boolean {
@@ -1142,7 +1150,9 @@ export class SqliteTreeRepository implements TreeRepository {
   }
 
   updateTodo(todo: TodoRecord): void {
-    this.research.updateTodo(todo);
+    this.transactions.run(() => {
+      this.research.updateTodo(todo);
+    });
   }
 
   getTodo(id: string): TodoRecord | undefined {
@@ -1173,7 +1183,9 @@ export class SqliteTreeRepository implements TreeRepository {
   }
 
   updateTitle(title: TitleRecord): void {
-    this.research.updateTitle(title);
+    this.transactions.run(() => {
+      this.research.updateTitle(title);
+    });
   }
 
   getTitle(id: string): TitleRecord | undefined {
@@ -1370,7 +1382,10 @@ export class SqliteTreeRepository implements TreeRepository {
     }
     for (const entry of snapshot.mediaLinks) {
       if (this.media.getMedia(entry.media.id) === undefined) {
-        this.media.insertMedia(entry.media);
+        // The historical place may have been deleted while the media record
+        // was gone; keep the raw place text and restore the rest.
+        const placeMissing = entry.media.placeId !== undefined && this.getPlace(entry.media.placeId) === undefined;
+        this.media.insertMedia(placeMissing ? { ...entry.media, placeId: undefined } : entry.media);
       } else if (!this.media.hasLink(entry.link.id)) {
         this.media.addMediaLink(entry.media.id, entry.link);
       }
@@ -1426,6 +1441,7 @@ export class SqliteTreeRepository implements TreeRepository {
     }
     for (const entry of snapshot.tagLinks) {
       if (
+        this.listTags().some((tag) => tag.id === entry.tagId) &&
         !this.attachments
           .listTagLinksFor(entry.link.targetType, entry.link.targetId)
           .some((existing) => existing.link.id === entry.link.id)
@@ -1435,7 +1451,9 @@ export class SqliteTreeRepository implements TreeRepository {
     }
     for (const todo of snapshot.todos) {
       if (this.research.getTodo(todo.id) === undefined) {
-        this.research.insertTodo(todo);
+        const repositoryMissing =
+          todo.repositoryId !== undefined && this.getRepository(todo.repositoryId) === undefined;
+        this.research.insertTodo(repositoryMissing ? { ...todo, repositoryId: undefined } : todo);
       }
     }
     for (const nested of snapshot.todoAttachments) {
@@ -1445,6 +1463,7 @@ export class SqliteTreeRepository implements TreeRepository {
     }
     for (const entry of snapshot.recordSubmitters) {
       if (
+        this.getSubmitter(entry.submitterId) !== undefined &&
         !this.submitters
           .listRecordSubmittersFor(entry.targetType, entry.targetId)
           .some((existing) => existing.id === entry.id)

@@ -36,6 +36,7 @@ export const taskTab: TabDescriptor = {
       api={{ ...context.tree.todosApi, openTask: context.tabs.open.task }}
       onClose={() => context.tabs.closeTab(id)}
       onOpenMedia={context.tabs.open.media}
+      onOpenSource={context.tabs.open.source}
       onCreated={(realId) => context.tabs.replaceTab(id, entityTabId('task', realId))}
     />
   ),
