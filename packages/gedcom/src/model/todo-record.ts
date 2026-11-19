@@ -12,7 +12,7 @@
  */
 import type { Pointer, Special, Text, Xref } from '../primitives';
 import type { ChangeDate, DateStructure, NoteStructure } from './common';
-import type { GedcomStructureBase } from './extensions';
+import type { ExtensionStructure, GedcomStructureBase } from './extensions';
 import type { RepositoryRecord } from './repository-record';
 
 export interface TodoRecord extends GedcomStructureBase {
@@ -58,6 +58,8 @@ export interface TodoRecord extends GedcomStructureBase {
    * written back as `_TCDT`.
    */
   createdDate?: Text;
+  /** Unknown children carried beneath `_TCDT` (kept verbatim). */
+  createdDateExtensions?: ExtensionStructure[];
   /**
    * _UID {0:M} — unique identifiers of the task (the My Family Tree
    * `_TASK` record form; same source as `title`). Written back as
@@ -70,6 +72,8 @@ export interface TodoRecord extends GedcomStructureBase {
    * the same tag for the same purpose. Written back as `REPO`.
    */
   repository?: Pointer<RepositoryRecord>;
+  /** Unknown children carried beneath `REPO` (kept verbatim). */
+  repositoryExtensions?: ExtensionStructure[];
   /**
    * CHAN {0:1} — the change stamp of the task (the My Family Tree
    * `_TASK` record form; same source as `title`). Written back as
@@ -135,12 +139,16 @@ export interface TodoStructure extends GedcomStructureBase {
    * `_TCDT`.
    */
   createdDate?: Text;
+  /** Unknown children carried beneath `_TCDT` (kept verbatim). */
+  createdDateExtensions?: ExtensionStructure[];
   /** _CDATE {0:1} — the date of completing the task (GEDCOM-L E1). */
   closedDate?: DateStructure;
   /** _RDATE {0:1} — the reminder date (GEDCOM-L E1). */
   reminderDate?: DateStructure;
   /** REPO {0:1} — a pointer to a repository record (GEDCOM-L E1). */
   repository?: Pointer<RepositoryRecord>;
+  /** Unknown children carried beneath `REPO` (kept verbatim). */
+  repositoryExtensions?: ExtensionStructure[];
   /** _UID {0:M} — unique identifiers of the task (GEDCOM-L E1). */
   uids?: Special[];
   /** <<NOTE_STRUCTURE>> {0:M}. */

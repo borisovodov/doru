@@ -8,7 +8,7 @@ import type {
 } from '../model/types';
 import { emptyAttachments } from '../model/types';
 import type { NestedAttachments, Op } from './op';
-import { sameRecord } from './restore';
+import { attachmentsMatch, restorePlace, sameRecord } from './restore';
 
 export function addPlaceOp(place: PlaceRecord): Op {
   return {
@@ -17,7 +17,7 @@ export function addPlaceOp(place: PlaceRecord): Op {
     timestamp: new Date().toISOString(),
     change: { targetType: 'place', targetId: place.id, kind: 'created' },
     apply(ctx) {
-      ctx.repo.insertPlace(place);
+      restorePlace(ctx, place);
     },
     inverse(ctx) {
       ctx.repo.deletePlace(place.id);
@@ -86,45 +86,109 @@ export function deletePlaceOp(
       if (current === undefined || !sameRecord(current, place)) {
         return false;
       }
+      if (!attachmentsMatch(ctx, 'place', place.id, attachments)) {
+        return false;
+      }
+      const places = ctx.repo.listPlaces();
+      const liveHierarchy = new Set([
+        ...(current.hierarchy ?? []).map((link) => link.id),
+        ...places.flatMap((entry) =>
+          (entry.hierarchy ?? []).filter((link) => link.parentId === place.id).map((link) => link.id),
+        ),
+      ]);
+      const liveNames = new Set(current.names.map((name) => name.id));
+      for (const nested of nestedAttachments) {
+        if (nested.targetType === 'place_name' && liveNames.has(nested.targetId)) {
+          if (!attachmentsMatch(ctx, 'place_name', nested.targetId, nested.attachments)) {
+            return false;
+          }
+        }
+        if (nested.targetType === 'place_hierarchy' && liveHierarchy.has(nested.targetId)) {
+          if (!attachmentsMatch(ctx, 'place_hierarchy', nested.targetId, nested.attachments)) {
+            return false;
+          }
+        }
+      }
       // Consumers added since the undo would be cleared by the redo and are
       // absent from the captured snapshots, so they could never come back.
-      const factIds = new Set(facts.map((link) => link.before.id));
+      const capturedFacts = new Map(facts.map((link) => [link.before.id, link.before]));
       for (const fact of [
         ...ctx.repo.listFactsForPlace(place.id),
         ...ctx.repo.listFactsWithAdditionalPlace(place.id),
       ]) {
-        if (!factIds.has(fact.id)) {
+        if (!capturedFacts.has(fact.id)) {
           return false;
         }
       }
-      const familyIds = new Set((consumers.families ?? []).map((family) => family.id));
-      for (const family of ctx.repo.listFamilies()) {
+      for (const [factId, captured] of capturedFacts) {
+        const fact = ctx.repo.getFact(factId);
+        if (fact === undefined) {
+          continue;
+        }
+        if ((fact.placeId === place.id) !== (captured.placeId === place.id)) {
+          return false;
+        }
         if (
-          (family.marriageStatuses ?? []).some((status) => status.placeId === place.id) &&
-          !familyIds.has(family.id)
+          (fact.additionalPlaceIds ?? []).includes(place.id) !== (captured.additionalPlaceIds ?? []).includes(place.id)
         ) {
           return false;
         }
       }
-      const sourceIds = new Set((consumers.sources ?? []).map((source) => source.id));
-      for (const source of ctx.repo.listSources()) {
-        if ((source.dataEvents ?? []).some((event) => event.placeId === place.id) && !sourceIds.has(source.id)) {
-          return false;
-        }
+      const capturedStatuses = new Set(
+        (consumers.families ?? []).flatMap((family) =>
+          (family.marriageStatuses ?? []).filter((status) => status.placeId === place.id).map((status) => status.id),
+        ),
+      );
+      const currentStatuses = new Set(
+        ctx.repo
+          .listFamilies()
+          .flatMap((family) =>
+            (family.marriageStatuses ?? []).filter((status) => status.placeId === place.id).map((status) => status.id),
+          ),
+      );
+      if (
+        capturedStatuses.size !== currentStatuses.size ||
+        [...capturedStatuses].some((id) => !currentStatuses.has(id))
+      ) {
+        return false;
       }
-      const mediaIds = new Set((consumers.media ?? []).map((media) => media.id));
-      for (const media of ctx.repo.listAllMedia()) {
-        if (media.placeId === place.id && !mediaIds.has(media.id)) {
-          return false;
-        }
+      const capturedEvents = new Set(
+        (consumers.sources ?? []).flatMap((source) =>
+          (source.dataEvents ?? []).filter((event) => event.placeId === place.id).map((event) => event.id),
+        ),
+      );
+      const currentEvents = new Set(
+        ctx.repo
+          .listSources()
+          .flatMap((source) =>
+            (source.dataEvents ?? []).filter((event) => event.placeId === place.id).map((event) => event.id),
+          ),
+      );
+      if (capturedEvents.size !== currentEvents.size || [...capturedEvents].some((id) => !currentEvents.has(id))) {
+        return false;
       }
-      const childIds = new Set((consumers.childPlaces ?? []).map((child) => child.id));
-      for (const child of ctx.repo.listPlaces()) {
-        if ((child.hierarchy ?? []).some((link) => link.parentId === place.id) && !childIds.has(child.id)) {
-          return false;
-        }
+      const capturedHierarchy = new Set([
+        ...(place.hierarchy ?? []).map((link) => link.id),
+        ...(consumers.childPlaces ?? []).flatMap((child) =>
+          (child.hierarchy ?? []).filter((link) => link.parentId === place.id).map((link) => link.id),
+        ),
+      ]);
+      if (
+        capturedHierarchy.size !== liveHierarchy.size ||
+        [...capturedHierarchy].some((id) => !liveHierarchy.has(id))
+      ) {
+        return false;
       }
-      return true;
+      const capturedMedia = new Set(
+        (consumers.media ?? []).filter((entry) => entry.placeId === place.id).map((entry) => entry.id),
+      );
+      const currentMedia = new Set(
+        ctx.repo
+          .listAllMedia()
+          .filter((entry) => entry.placeId === place.id)
+          .map((entry) => entry.id),
+      );
+      return capturedMedia.size === currentMedia.size && [...capturedMedia].every((id) => currentMedia.has(id));
     },
     inverse(ctx) {
       ctx.repo.insertPlace(place);
@@ -180,8 +244,22 @@ export function deletePlaceOp(
         }
       }
       ctx.repo.restoreAttachments(attachments);
+      const restoredNames = new Set(ctx.repo.getPlace(place.id)?.names.map((name) => name.id) ?? []);
+      const restoredHierarchy = new Set([
+        ...(ctx.repo.getPlace(place.id)?.hierarchy ?? []).map((link) => link.id),
+        ...ctx.repo
+          .listPlaces()
+          .flatMap((entry) =>
+            (entry.hierarchy ?? []).filter((link) => link.parentId === place.id).map((link) => link.id),
+          ),
+      ]);
       for (const nested of nestedAttachments) {
-        if (nested.targetType === 'place_hierarchy' && skippedHierarchy.has(nested.targetId)) {
+        if (nested.targetType === 'place_hierarchy') {
+          if (skippedHierarchy.has(nested.targetId) || !restoredHierarchy.has(nested.targetId)) {
+            continue;
+          }
+        }
+        if (nested.targetType === 'place_name' && !restoredNames.has(nested.targetId)) {
           continue;
         }
         ctx.repo.restoreAttachments(nested.attachments);

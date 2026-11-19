@@ -69,17 +69,22 @@ export class OpQueue {
     return op;
   }
 
-  redo(ctx: MutationContext): Op | undefined {
+  /**
+   * Replays the top redo entry. A rejected entry is dropped so it cannot
+   * block the ones below it; the caller gets it back in `blocked`.
+   */
+  redo(ctx: MutationContext): { op?: Op; blocked?: Op } | undefined {
     const op = this.redoStack[this.redoStack.length - 1];
     if (!op) {
       return undefined;
     }
     if (op.redoSafe !== undefined && !op.redoSafe(ctx)) {
-      return undefined;
+      this.redoStack.pop();
+      return { blocked: op };
     }
     op.apply(ctx);
     this.commitRedo();
-    return op;
+    return { op };
   }
 
   /**
@@ -102,6 +107,11 @@ export class OpQueue {
       this.undoStack.push(op);
     }
     return op;
+  }
+
+  /** Drops the top redo entry when replaying it would discard newer data. */
+  discardRedo(): Op | undefined {
+    return this.redoStack.pop();
   }
 
   /** The op that `undo` would invert, without touching the stacks. */

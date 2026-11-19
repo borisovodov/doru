@@ -253,27 +253,7 @@ function mediaReferenceSignature(media: MediaRecord[]): string {
 }
 
 /** Canonical identities of every stored file and translation. */
-async function resolveMediaReferencePaths(projectPath: string, getMedia: () => MediaRecord[]): Promise<Set<string>> {
-  for (let attempt = 0; attempt < 3; attempt += 1) {
-    const media = getMedia();
-    const signature = mediaReferenceSignature(media);
-    const resolved = new Set<string>();
-    for (const record of media) {
-      for (const file of record.files ?? []) {
-        const paths = [file.path, ...(file.translations ?? []).map((translation) => translation.path)];
-        for (const path of paths) {
-          const absolute = await mediaAbsolutePath(projectPath, path);
-          if (absolute !== null) {
-            resolved.add(absolute);
-          }
-        }
-      }
-    }
-    if (mediaReferenceSignature(getMedia()) === signature) {
-      return resolved;
-    }
-  }
-  const media = getMedia();
+async function resolveReferenceSet(projectPath: string, media: MediaRecord[]): Promise<Set<string>> {
   const resolved = new Set<string>();
   for (const record of media) {
     for (const file of record.files ?? []) {
@@ -287,6 +267,18 @@ async function resolveMediaReferencePaths(projectPath: string, getMedia: () => M
     }
   }
   return resolved;
+}
+
+async function resolveMediaReferencePaths(projectPath: string, getMedia: () => MediaRecord[]): Promise<Set<string>> {
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    const media = getMedia();
+    const signature = mediaReferenceSignature(media);
+    const resolved = await resolveReferenceSet(projectPath, media);
+    if (mediaReferenceSignature(getMedia()) === signature) {
+      return resolved;
+    }
+  }
+  return resolveReferenceSet(projectPath, getMedia());
 }
 
 async function removeMediaFileCopies(
@@ -315,6 +307,7 @@ async function removeMediaFile(
   if ((referenced ?? (await references())).has(absolute)) {
     return;
   }
+  let trash: string | undefined;
   try {
     const info = await stat(absolute);
     // A stored translation may name a directory; never remove its contents.
@@ -323,14 +316,23 @@ async function removeMediaFile(
     }
     // Move the bytes aside first: if undo restores a reference during the
     // final check, the original file can be put back without data loss.
-    const trash = `${absolute}.doru-deleting-${randomUUID()}`;
+    trash = `${absolute}.doru-deleting-${randomUUID()}`;
     await rename(absolute, trash);
     if ((await references()).has(absolute)) {
       await rename(trash, absolute);
+      trash = undefined;
       return;
     }
     await unlink(trash);
+    trash = undefined;
   } catch (error) {
     log.warn('could not remove media file', absolute, error);
+    if (trash !== undefined) {
+      try {
+        await rename(trash, absolute);
+      } catch {
+        // Best effort: the original bytes may already be gone.
+      }
+    }
   }
 }

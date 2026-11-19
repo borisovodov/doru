@@ -238,6 +238,11 @@ function MediaTabBody({
     try {
       await api.updateMedia(current, next);
     } catch (error) {
+      if (recordRef.current !== recordBeforeSave) {
+        // A refresh arrived while the write was pending; retry from the
+        // latest stored record so files added meanwhile are not dropped.
+        savedRef.current = recordRef.current;
+      }
       if (submittedRef.current === submission) {
         submittedRef.current = undefined;
         submittedDirtyRef.current = undefined;
@@ -608,7 +613,7 @@ function mediaRecordHasSubmission(
 ): boolean {
   return (
     (!dirty.title || values.title.trim() === (record.title ?? '')) &&
-    (!dirty.date || dateDraftsEqual(values.date, toDateDraft(record.date))) &&
+    (!dirty.date || dateDraftsEqual(toDateDraft(fromDateDraft(values.date, record.date)), toDateDraft(record.date))) &&
     (!dirty.place || (values.place.trim() === (record.place ?? '') && values.placeId === (record.placeId ?? ''))) &&
     (!dirty.objectType || values.objectType.trim() === (record.objectType ?? '')) &&
     (!dirty.description || values.description.trim() === (record.description ?? '')) &&

@@ -401,8 +401,11 @@ CREATE TABLE IF NOT EXISTS citation_template_field (
 );
 
 -- Media: records with file rows and links. File bytes live in the media/
--- folder next to the .doru file, never in the database; only the path and
--- the title are stored (MIME, size, dimensions come from the file).
+-- folder next to the .doru file, never in the database. Historical GEDCOM
+-- metadata (date, place, object type, description, keywords) is stored on
+-- the media row; medium, content type and transcription text live on the
+-- file rows, and translated files in media_file_translation. MIME, size and
+-- dimensions are derived from the file itself.
 
 CREATE TABLE IF NOT EXISTS media (
   id TEXT PRIMARY KEY,

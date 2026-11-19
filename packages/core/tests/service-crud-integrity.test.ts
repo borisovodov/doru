@@ -1111,6 +1111,40 @@ describe('TreeService CRUD integrity', () => {
     }
   });
 
+  it('clears only baseline links when a draft removes its last family link', () => {
+    const { fixture, service } = makeService();
+    const { repo } = fixture;
+    try {
+      service.addPerson(person('P1'));
+      service.addFamily({ id: 'F1', partners: ['P1'], children: [] });
+      service.addFamily({ id: 'F2', partners: ['P1'], children: [] });
+      service.addFact({
+        id: 'ADOP1',
+        personId: 'P1',
+        tag: 'ADOP',
+        familyLinks: [{ id: 'FL1', familyId: 'F1', position: 0 }],
+      });
+      const before = repo.getPerson('P1')!;
+      repo.updateFact({
+        ...before.facts[0]!,
+        familyLinks: [
+          { id: 'FL1', familyId: 'F1', position: 0 },
+          { id: 'FL2', familyId: 'F2', position: 1 },
+        ],
+      });
+
+      // The draft removes FL1 and omits the field entirely.
+      service.updatePerson(before, {
+        ...before,
+        facts: [{ ...before.facts[0]!, familyLinks: undefined }],
+      });
+
+      expect(repo.getPerson('P1')?.facts[0]?.familyLinks?.map((link) => link.id)).toEqual(['FL2']);
+    } finally {
+      cleanupRepo(fixture);
+    }
+  });
+
   it('drops ownership links whose family disappeared before the undo', () => {
     const { fixture, service } = makeService();
     const { repo } = fixture;
@@ -1150,12 +1184,10 @@ describe('TreeService CRUD integrity', () => {
       // A concurrent writer adds a family membership the captured inverse
       // could not restore if the redo deleted it.
       repo.insertFamily({ id: 'F2', partners: ['P1'], children: [] });
-      expect(service.redo().canRedo).toBe(true);
+      const refused = service.redo();
+      expect(refused.redoBlocked).toBe(true);
+      expect(refused.canRedo).toBe(false);
       expect(repo.getPerson('P1')).toBeDefined();
-
-      repo.deleteFamily('F2');
-      expect(service.redo().canRedo).toBe(false);
-      expect(repo.getPerson('P1')).toBeUndefined();
     } finally {
       cleanupRepo(fixture);
     }
@@ -1195,12 +1227,10 @@ describe('TreeService CRUD integrity', () => {
       service.undo();
 
       repo.addNoteLink('N1', { id: 'L2', targetType: 'person', targetId: 'P2' });
-      expect(service.redo().canRedo).toBe(true);
+      const refused = service.redo();
+      expect(refused.redoBlocked).toBe(true);
+      expect(refused.canRedo).toBe(false);
       expect(repo.getNote('N1')).toBeDefined();
-
-      repo.removeNoteLink('L2');
-      expect(service.redo().canRedo).toBe(false);
-      expect(repo.getNote('N1')).toBeUndefined();
     } finally {
       cleanupRepo(fixture);
     }
@@ -1242,6 +1272,35 @@ describe('TreeService CRUD integrity', () => {
       expect(restored.title).toBe('Book');
       expect(restored.dataEvents?.[0]?.id).toBe('SE1');
       expect(restored.dataEvents?.[0]?.placeId).toBeUndefined();
+    } finally {
+      cleanupRepo(fixture);
+    }
+  });
+
+  it('does not add an undo entry for an alias that was not created', () => {
+    const { fixture, service } = makeService();
+    const { repo } = fixture;
+    try {
+      service.addPerson(person('P1'));
+      expect(() => service.addAlias('P1', 'missing')).toThrow(/cannot add alias/);
+      expect(repo.listAliasesFor('P1')).toEqual([]);
+
+      service.undo();
+      expect(repo.getPerson('P1')).toBeUndefined();
+    } finally {
+      cleanupRepo(fixture);
+    }
+  });
+
+  it('does not leave a change-log row when a stale update fails', () => {
+    const { fixture, service } = makeService();
+    const { repo } = fixture;
+    try {
+      service.addPerson(person('P1'));
+      expect(() =>
+        service.updateFact({ id: 'F404', personId: 'P1', tag: 'BIRT' }, { id: 'F404', personId: 'P1', tag: 'DEAT' }),
+      ).toThrow(/no longer exists/);
+      expect(repo.listChangesFor('fact', 'F404')).toEqual([]);
     } finally {
       cleanupRepo(fixture);
     }

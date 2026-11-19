@@ -109,6 +109,8 @@ export interface TreeStats {
 export interface UndoRedoState {
   canUndo: boolean;
   canRedo: boolean;
+  /** The last redo was refused because newer data would have been lost. */
+  redoBlocked?: boolean;
 }
 
 export interface PersonCounts {
@@ -266,6 +268,11 @@ export class TreeService {
       });
       if (applied) {
         this.queue.commitRedo();
+      } else {
+        // The entry can never become safe again: drop it and report the
+        // refusal so the caller can explain it (or offer a fresh action).
+        this.queue.discardRedo();
+        return { ...this.historyState(), redoBlocked: true };
       }
     }
     return this.historyState();
@@ -478,16 +485,38 @@ export class TreeService {
   // --- families ------------------------------------------------------------
 
   addFamily(family: FamilyRecord): UndoRedoState {
-    this.assertFamilyAcyclic(family);
-    return this.apply(addFamilyOp(family));
+    return this.applyAfterCommit(() => {
+      this.assertFamilyAcyclic(family);
+      return addFamilyOp(family);
+    });
   }
 
   updateFamily(before: FamilyRecord, after: FamilyRecord): UndoRedoState {
-    this.assertFamilyAcyclic(after);
     return this.applyAfterCommit(() => {
       const current = this.repo.getFamily(before.id) ?? before;
-      const removed = this.removedLinkAttachments(current, after);
-      return updateFamilyOp(current, after, removed);
+      // A caller that edits the flat partner/child lists while carrying the
+      // old link rows unchanged means the flat list wins; otherwise the
+      // repository would keep the stale explicit links.
+      const candidate: FamilyRecord = { ...after };
+      if (
+        after.partnerLinks !== undefined &&
+        JSON.stringify(after.partnerLinks) === JSON.stringify(current.partnerLinks) &&
+        JSON.stringify(after.partners) !== JSON.stringify(current.partners)
+      ) {
+        delete candidate.partnerLinks;
+      }
+      if (
+        after.childLinks !== undefined &&
+        JSON.stringify(after.childLinks) === JSON.stringify(current.childLinks) &&
+        JSON.stringify(after.children) !== JSON.stringify(current.children)
+      ) {
+        delete candidate.childLinks;
+      }
+      // Validate against the graph inside the write transaction: another
+      // connection must not close a cycle between the check and the write.
+      this.assertFamilyAcyclic(candidate);
+      const removed = this.removedLinkAttachments(current, candidate);
+      return updateFamilyOp(current, candidate, removed);
     });
   }
 
@@ -894,10 +923,11 @@ export class TreeService {
 
   deleteTag(tag: TagRecord): UndoRedoState {
     return this.applyAfterCommit(() => {
-      if (!this.repo.listTags().some((entry) => entry.id === tag.id)) {
+      const stored = this.repo.listTags().find((entry) => entry.id === tag.id);
+      if (stored === undefined) {
         return undefined;
       }
-      return deleteTagOp(tag, this.repo.listTagLinksByTag(tag.id));
+      return deleteTagOp(stored, this.repo.listTagLinksByTag(stored.id));
     });
   }
 
@@ -1068,8 +1098,12 @@ export class TreeService {
 
   deleteAssociation(association: AssociationRecord): UndoRedoState {
     return this.applyAfterCommit(() => {
-      const attachments = this.repo.listAttachmentsFor('association', association.id);
-      return deleteAssociationOp(association, attachments);
+      const stored = this.repo.listAssociations().find((entry) => entry.id === association.id);
+      if (stored === undefined) {
+        return undefined;
+      }
+      const attachments = this.repo.listAttachmentsFor('association', stored.id);
+      return deleteAssociationOp(stored, attachments);
     });
   }
 
@@ -1154,7 +1188,7 @@ export class TreeService {
   private assertFamilyAcyclic(family: FamilyRecord): void {
     const graph = [...this.repo.listFamilies().filter((entry) => entry.id !== family.id), family];
     for (const childId of this.activeChildIds(family)) {
-      for (const parentId of family.partners) {
+      for (const parentId of this.partnerIds(family)) {
         if (this.isAncestor(childId, parentId, graph)) {
           throw new ParentCycleError(childId, parentId);
         }
@@ -1175,7 +1209,7 @@ export class TreeService {
         if (!this.activeChildIds(family).includes(current)) {
           continue;
         }
-        for (const parent of family.partners) {
+        for (const parent of this.partnerIds(family)) {
           if (parent === ancestorId) {
             return true;
           }
@@ -1281,6 +1315,27 @@ export class TreeService {
       const storedRecord = stored as Record<string, unknown>;
       const merged: Record<string, unknown> = { ...storedRecord };
       for (const key of new Set([...Object.keys(beforeRecord), ...Object.keys(afterRecord)])) {
+        if (key === 'familyLinks' && afterRecord[key] === undefined && Array.isArray(beforeRecord[key])) {
+          // A draft that clears its last family link omits the field; remove
+          // only the baseline IDs and keep concurrent additions.
+          const baseline = new Set(
+            (beforeRecord[key] as unknown[]).flatMap((entry) =>
+              typeof entry === 'object' && entry !== null && 'id' in entry ? [(entry as { id: string }).id] : [],
+            ),
+          );
+          const storedLinks = Array.isArray(storedRecord[key]) ? (storedRecord[key] as unknown[]) : [];
+          const remaining = storedLinks.filter(
+            (entry) =>
+              !(
+                typeof entry === 'object' &&
+                entry !== null &&
+                'id' in entry &&
+                baseline.has((entry as { id: string }).id)
+              ),
+          );
+          merged[key] = remaining.length > 0 ? remaining : undefined;
+          continue;
+        }
         merged[key] = this.mergeChangedFields(beforeRecord[key], afterRecord[key], storedRecord[key]);
       }
       return merged;
@@ -1350,6 +1405,11 @@ export class TreeService {
       names,
       facts,
     };
+  }
+
+  /** Parent ids from explicit partner links when present, else the flat list. */
+  private partnerIds(family: FamilyRecord): string[] {
+    return family.partnerLinks !== undefined ? family.partnerLinks.map((link) => link.personId) : family.partners;
   }
 
   private activeChildIds(family: FamilyRecord): string[] {
@@ -1437,8 +1497,13 @@ export class TreeService {
   }
 
   private apply(op: Op): UndoRedoState {
-    this.recordChange(op, op.change?.kind ?? 'changed');
-    this.queue.apply(op, { repo: this.repo });
+    // The change-log row and the mutation must commit together; the op joins
+    // the undo stack only after COMMIT so a failed write leaves no history.
+    this.repo.transaction(() => {
+      this.recordChange(op, op.change?.kind ?? 'changed');
+      op.apply({ repo: this.repo });
+    });
+    this.queue.push(op);
     return this.historyState();
   }
 

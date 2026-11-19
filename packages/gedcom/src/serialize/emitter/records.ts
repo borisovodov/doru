@@ -38,6 +38,7 @@ import {
   emitAssociation,
   emitDate,
   emitDateExact,
+  emitExtensionList,
   emitExtensions,
   emitMultimediaLink,
   emitNoteStructure,
@@ -837,7 +838,9 @@ export function emitTodoRecord(
     priority?: string;
     scheduledDate?: string;
     createdDate?: string;
+    createdDateExtensions?: ExtensionStructure[];
     repository?: string;
+    repositoryExtensions?: ExtensionStructure[];
     uids?: string[];
     changed?: ChangeDate;
     extensions?: ExtensionStructure[];
@@ -876,11 +879,13 @@ export function emitTodoRecord(
   if (rec.createdDate !== undefined) {
     // My Family Tree: the creation date (see TodoRecord.createdDate).
     w.line(1, '_TCDT', { value: rec.createdDate });
+    emitExtensionList(w, _version, 2, rec.createdDateExtensions);
   }
   if (rec.repository !== undefined) {
     // GEDCOM-L E1 / record form: the repository the task belongs to
     // (see TodoRecord.repository).
     ptr(w, _version, 1, 'REPO', rec.repository);
+    emitExtensionList(w, _version, 2, rec.repositoryExtensions);
   }
   for (const uid of rec.uids ?? []) {
     // My Family Tree: the unique identifier (see TodoRecord.uids).
@@ -1119,6 +1124,7 @@ export function emitTodoStructure(w: Writer, version: Version, level: number, re
     // The structure form of the record's creation date (see
     // TodoStructure.createdDate).
     w.line(level + 1, '_TCDT', { value: rec.createdDate });
+    emitExtensionList(w, version, level + 2, rec.createdDateExtensions);
   }
   for (const note of rec.notes ?? []) {
     emitNoteStructure(w, version, level + 1, note);
@@ -1142,6 +1148,7 @@ export function emitTodoStructure(w: Writer, version: Version, level: number, re
     // GEDCOM-L E1: a pointer to a repository record (see
     // TodoStructure.repository).
     ptr(w, version, level + 1, 'REPO', rec.repository);
+    emitExtensionList(w, version, level + 2, rec.repositoryExtensions);
   }
   for (const uid of rec.uids ?? []) {
     // GEDCOM-L E1: unique identifiers of the task (see TodoStructure.uids).
@@ -1578,6 +1585,7 @@ export function emitSource(
     url?: string;
     confidence?: string;
     certainty?: string;
+    certaintyExtensions?: ExtensionStructure[];
     accessDate?: string;
     updatedAt?: string;
     ancestryPointers?: string[];
@@ -1785,6 +1793,7 @@ export function emitSource(
     // Heredis writes the whole-source certainty assessment as QUAY at the
     // record level (see SourceRecord.certainty); written back verbatim.
     w.line(1, '_QUAY', { value: rec.certainty });
+    emitExtensionList(w, version, 2, rec.certaintyExtensions);
   }
   if (rec.accessDate !== undefined) {
     // The date the source was accessed (see SourceRecord.accessDate).

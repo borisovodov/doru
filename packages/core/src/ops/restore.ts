@@ -6,6 +6,7 @@ import type {
   FamilyRecord,
   MediaRecord,
   PersonName,
+  PlaceRecord,
   PersonRecord,
   SourceRecord,
   TitleRecord,
@@ -113,6 +114,19 @@ export function restorePerson(ctx: MutationContext, person: PersonRecord): void 
     return restored === undefined ? [] : [restored];
   });
   ctx.repo.insertPerson(clean);
+}
+
+export function restorePlace(ctx: MutationContext, place: PlaceRecord): void {
+  const clean: PlaceRecord = { ...place };
+  if (clean.hierarchy !== undefined) {
+    const links = clean.hierarchy.filter((link) => ctx.repo.getPlace(link.parentId) !== undefined);
+    if (links.length > 0) {
+      clean.hierarchy = links;
+    } else {
+      delete clean.hierarchy;
+    }
+  }
+  ctx.repo.insertPlace(clean);
 }
 
 export function restoreFamily(ctx: MutationContext, family: FamilyRecord): void {
@@ -261,15 +275,35 @@ export function attachmentsMatch(
 ): boolean {
   const signature = (snapshot: AttachmentsSnapshot): string =>
     JSON.stringify({
-      noteLinks: snapshot.noteLinks.map((entry) => entry.link.id).sort(),
-      citations: snapshot.citations.map((entry) => entry.id).sort(),
-      mediaLinks: snapshot.mediaLinks.map((entry) => entry.link.id).sort(),
-      identifiers: snapshot.identifiers.map((entry) => entry.id).sort(),
-      contacts: snapshot.contacts.map((entry) => entry.id).sort(),
-      restrictions: snapshot.restrictions.map((entry) => entry.id).sort(),
-      tagLinks: snapshot.tagLinks.map((entry) => entry.link.id).sort(),
-      todos: snapshot.todos.map((entry) => entry.id).sort(),
-      recordSubmitters: snapshot.recordSubmitters.map((entry) => entry.id).sort(),
+      noteLinks: snapshot.noteLinks
+        .map((entry) => [
+          entry.link.id,
+          entry.note.id,
+          entry.note.text,
+          entry.note.mime ?? null,
+          entry.note.language ?? null,
+        ])
+        .sort(),
+      citations: snapshot.citations.map((entry) => JSON.stringify(entry)).sort(),
+      mediaLinks: snapshot.mediaLinks
+        .map((entry) => [
+          entry.link.id,
+          entry.media.id,
+          entry.media.title ?? null,
+          entry.media.date ?? null,
+          entry.media.place ?? null,
+          entry.media.placeId ?? null,
+          entry.media.objectType ?? null,
+          entry.media.description ?? null,
+          entry.media.keywords ?? null,
+        ])
+        .sort(),
+      identifiers: snapshot.identifiers.map((entry) => JSON.stringify(entry)).sort(),
+      contacts: snapshot.contacts.map((entry) => JSON.stringify(entry)).sort(),
+      restrictions: snapshot.restrictions.map((entry) => JSON.stringify(entry)).sort(),
+      tagLinks: snapshot.tagLinks.map((entry) => JSON.stringify(entry.link)).sort(),
+      todos: snapshot.todos.map((entry) => JSON.stringify(entry)).sort(),
+      recordSubmitters: snapshot.recordSubmitters.map((entry) => JSON.stringify(entry)).sort(),
     });
   return signature(ctx.repo.listAttachmentsFor(targetType, targetId)) === signature(captured);
 }
@@ -277,4 +311,34 @@ export function attachmentsMatch(
 /** True when the stored row still equals the record captured before its delete. */
 export function sameRecord(left: unknown, right: unknown): boolean {
   return JSON.stringify(left) === JSON.stringify(right);
+}
+
+/** Whether a captured nested attachment target still exists to restore onto. */
+export function attachmentTargetExists(ctx: MutationContext, targetType: string, targetId: string): boolean {
+  switch (targetType) {
+    case 'fact':
+      return ctx.repo.getFact(targetId) !== undefined;
+    case 'association':
+      return ctx.repo.listAssociations().some((entry) => entry.id === targetId);
+    case 'person':
+      return ctx.repo.getPerson(targetId) !== undefined;
+    case 'place':
+      return ctx.repo.getPlace(targetId) !== undefined;
+    case 'media':
+      return ctx.repo.getMedia(targetId) !== undefined;
+    case 'note':
+      return ctx.repo.getNote(targetId) !== undefined;
+    case 'todo':
+      return ctx.repo.getTodo(targetId) !== undefined;
+    case 'source':
+      return ctx.repo.getSource(targetId) !== undefined;
+    case 'repository':
+      return ctx.repo.getRepository(targetId) !== undefined;
+    case 'submitter':
+      return ctx.repo.getSubmitter(targetId) !== undefined;
+    case 'address':
+      return ctx.repo.getAddress(targetId) !== undefined;
+    default:
+      return true;
+  }
 }

@@ -103,8 +103,11 @@ export function deletePersonOp(
     },
     inverse(ctx) {
       restorePerson(ctx, person);
+      const restoredAssociations = new Set<string>();
       for (const association of associations) {
-        restoreAssociation(ctx, association);
+        if (restoreAssociation(ctx, association)) {
+          restoredAssociations.add(association.id);
+        }
       }
       for (const alias of aliases) {
         restoreAlias(ctx, alias.id, alias.personId, alias.aliasId);
@@ -127,6 +130,9 @@ export function deletePersonOp(
       }
       ctx.repo.restoreAttachments(attachments);
       for (const nested of nestedAttachments) {
+        if (nested.targetType === 'association' && !restoredAssociations.has(nested.targetId)) {
+          continue;
+        }
         ctx.repo.restoreAttachments(nested.attachments);
       }
       for (const link of linkAttachments) {

@@ -28,6 +28,17 @@ async function canonicalPath(path: string): Promise<string> {
 }
 
 /**
+ * Resolves an import-time file only when its canonical path stays inside
+ * `directory`. Absolute payloads and `..` segments outside it are skipped,
+ * including paths that escape through a symlink.
+ */
+export async function resolveImportFile(directory: string, candidate: string): Promise<string | null> {
+  const canonicalDir = await canonicalPath(directory);
+  const canonicalTarget = await canonicalPath(resolve(candidate));
+  return isInside(canonicalDir, canonicalTarget) ? canonicalTarget : null;
+}
+
+/**
  * Resolves a stored media path under the project's media folder. Returns
  * null for anything that resolves to the media folder itself or outside it,
  * including paths escaping through a symlink.

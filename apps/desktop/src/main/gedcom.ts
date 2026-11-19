@@ -1,6 +1,6 @@
 import { dialog } from 'electron';
 import { randomUUID } from 'node:crypto';
-import { basename, dirname, extname, isAbsolute, join } from 'node:path';
+import { basename, dirname, extname, join, resolve } from 'node:path';
 import {
   buildGedcomDataset,
   importGedcomDataset,
@@ -17,7 +17,7 @@ import {
   type GedzipMediaEntry,
 } from '@doru/gedcom';
 import { NodeFileSystem } from './filesystem';
-import { resolveMediaPath } from './mediaPaths';
+import { resolveImportFile, resolveMediaPath } from './mediaPaths';
 import { log } from './log';
 import { ensureRuntime, openUntitledStore, runtimeFilePath } from './runtime';
 import { projectWindows, untitledProjects } from './state';
@@ -57,9 +57,14 @@ async function prepareGedcomMedia(
       if (original === '' || paths.has(original)) {
         return;
       }
-      const candidate = isAbsolute(original) ? original : join(dirname(sourcePath), original);
-      if (await fs.exists(candidate)) {
-        await store(await fs.readBinary(candidate), original);
+      // A GEDCOM from another person may name any readable file: only payloads
+      // whose canonical path stays beside the source file may be imported.
+      const candidate = resolve(dirname(sourcePath), original);
+      const safe = await resolveImportFile(dirname(sourcePath), candidate);
+      if (safe !== null && (await fs.exists(safe))) {
+        await store(await fs.readBinary(safe), original);
+      } else if (safe === null) {
+        log.warn('gedcom import: skipped media outside the source folder', original);
       }
     };
     for (const file of record.files) {

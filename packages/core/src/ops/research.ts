@@ -51,8 +51,9 @@ export function deleteAssociationOp(
     'association.delete',
     (ctx) => ctx.repo.deleteAssociation(association.id),
     (ctx) => {
-      restoreAssociation(ctx, association);
-      ctx.repo.restoreAttachments(attachments);
+      if (restoreAssociation(ctx, association)) {
+        ctx.repo.restoreAttachments(attachments);
+      }
     },
     { targetType: 'association', targetId: association.id, kind: 'changed' },
     (ctx) => {
@@ -62,7 +63,11 @@ export function deleteAssociationOp(
           : association.familyId !== undefined
             ? ctx.repo.listAssociationsForFamily(association.familyId).find((entry) => entry.id === association.id)
             : undefined;
-      return current !== undefined && sameRecord(current, association);
+      return (
+        current !== undefined &&
+        sameRecord(current, association) &&
+        attachmentsMatch(ctx, 'association', association.id, attachments)
+      );
     },
   );
 }
@@ -72,7 +77,9 @@ export function addAliasOp(id: string, personId: string, aliasId: string): Op {
     crypto.randomUUID(),
     'alias.add',
     (ctx) => {
-      restoreAlias(ctx, id, personId, aliasId);
+      if (!restoreAlias(ctx, id, personId, aliasId)) {
+        throw new Error(`cannot add alias ${id}: person ${personId} or ${aliasId} no longer exists`);
+      }
     },
     (ctx) => ctx.repo.deleteAlias(id),
     { targetType: 'person', targetId: personId, kind: 'changed' },
@@ -172,6 +179,9 @@ export function deleteTitleOp(
       }
     },
     { targetType: 'title', targetId: title.id, kind: 'changed' },
-    (ctx) => ctx.repo.getTitle(title.id) !== undefined && sameRecord(ctx.repo.getTitle(title.id), title),
+    (ctx) =>
+      ctx.repo.getTitle(title.id) !== undefined &&
+      sameRecord(ctx.repo.getTitle(title.id), title) &&
+      attachmentsMatch(ctx, 'title', title.id, attachments),
   );
 }

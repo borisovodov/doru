@@ -738,7 +738,7 @@ export interface NestedAttachmentSnapshot {
 /** Everything attached to one target, for op snapshots and cascades. */
 export interface AttachmentsSnapshot {
   noteLinks: Array<{ note: NoteRecord; link: NoteLinkRecord }>;
-  /** Attachments of notes that lose their last link with this target. */
+  /** Attachments of linked notes, restored when this snapshot reinserts one. */
   noteAttachments: NestedAttachmentSnapshot[];
   citations: CitationRecord[];
   /** Attachments of citations that would be deleted with this target. */

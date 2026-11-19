@@ -1190,6 +1190,17 @@ export function emitExtension(w: Writer, version: Version, level: number, ext: E
   }
 }
 
+export function emitExtensionList(
+  w: Writer,
+  version: Version,
+  level: number,
+  extensions: ExtensionStructure[] | undefined,
+): void {
+  for (const ext of extensions ?? []) {
+    emitExtension(w, version, level, ext);
+  }
+}
+
 export function emitExtensions(w: Writer, version: Version, level: number, structure: GedcomStructureBase): void {
   for (const ext of structure.extensions ?? []) {
     emitExtension(w, version, level, ext, undefined);

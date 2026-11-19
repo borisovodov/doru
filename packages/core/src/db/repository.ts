@@ -1229,17 +1229,14 @@ export class SqliteTreeRepository implements TreeRepository {
     const citations = this.sources.listCitations(targetType, targetId);
     const todos = this.research.listTodosFor(targetType, targetId);
     const noteLinks = this.notes.listLinksFor(targetType, targetId);
-    const removedLinksByNote = new Map<string, number>();
-    for (const entry of noteLinks) {
-      removedLinksByNote.set(entry.note.id, (removedLinksByNote.get(entry.note.id) ?? 0) + 1);
-    }
-    const deletedNoteIds = [...removedLinksByNote]
-      .filter(([noteId, removed]) => this.notes.countLinksForNote(noteId) - removed <= 0)
-      .map(([noteId]) => noteId);
+    // Capture every linked note: another target removed by the same
+    // operation may take the note's last link, and this snapshot is then
+    // the only place its attachments were recorded.
+    const linkedNoteIds = [...new Set(noteLinks.map((entry) => entry.note.id))];
     const linkedMedia = [...new Map(mediaLinks.map((entry) => [entry.media.id, entry.media])).values()];
     const snapshot: AttachmentsSnapshot = {
       noteLinks,
-      noteAttachments: deletedNoteIds.map((noteId) => ({
+      noteAttachments: linkedNoteIds.map((noteId) => ({
         targetType: 'note',
         targetId: noteId,
         attachments: this.collectAttachments('note', noteId, state),
@@ -1337,22 +1334,21 @@ export class SqliteTreeRepository implements TreeRepository {
   }
 
   restoreAttachments(snapshot: AttachmentsSnapshot): void {
-    const restoreMedia = new Set(
-      snapshot.mediaAttachments
-        .filter((entry) => this.media.getMedia(entry.targetId) === undefined)
-        .map((entry) => entry.targetId),
-    );
     const restoreFiles = new Set(
       snapshot.mediaFileAttachments
         .filter((entry) => !this.media.hasFile(entry.targetId))
         .map((entry) => entry.targetId),
     );
+    const restoredNotes = new Set<string>();
     for (const entry of snapshot.noteLinks) {
       if (this.notes.getNote(entry.note.id) === undefined) {
-        // The note was deleted (it had no other links): re-inserting it
-        // restores all of its links at once.
-        this.notes.insertNote(entry.note);
-      } else if (
+        // Reinsert the note without its captured links: only the links this
+        // operation removed may come back, not ones another writer removed
+        // while the undo was pending.
+        this.notes.insertNote({ ...entry.note, links: [] });
+        restoredNotes.add(entry.note.id);
+      }
+      if (
         !this.notes
           .listLinksFor(entry.link.targetType, entry.link.targetId)
           .some((existing) => existing.link.id === entry.link.id)
@@ -1361,7 +1357,7 @@ export class SqliteTreeRepository implements TreeRepository {
       }
     }
     for (const nested of snapshot.noteAttachments) {
-      if (this.notes.getNote(nested.targetId) !== undefined) {
+      if (restoredNotes.has(nested.targetId)) {
         this.restoreAttachments(nested.attachments);
       }
     }
@@ -1380,18 +1376,24 @@ export class SqliteTreeRepository implements TreeRepository {
         this.restoreAttachments(nested.attachments);
       }
     }
+    const restoredMedia = new Set<string>();
     for (const entry of snapshot.mediaLinks) {
       if (this.media.getMedia(entry.media.id) === undefined) {
         // The historical place may have been deleted while the media record
-        // was gone; keep the raw place text and restore the rest.
+        // was gone; keep the raw place text and restore the rest. Reinsert
+        // without captured links so only this operation's links return.
         const placeMissing = entry.media.placeId !== undefined && this.getPlace(entry.media.placeId) === undefined;
-        this.media.insertMedia(placeMissing ? { ...entry.media, placeId: undefined } : entry.media);
-      } else if (!this.media.hasLink(entry.link.id)) {
+        this.media.insertMedia(
+          placeMissing ? { ...entry.media, placeId: undefined, links: [] } : { ...entry.media, links: [] },
+        );
+        restoredMedia.add(entry.media.id);
+      }
+      if (!this.media.hasLink(entry.link.id)) {
         this.media.addMediaLink(entry.media.id, entry.link);
       }
     }
     for (const nested of snapshot.mediaAttachments) {
-      if (restoreMedia.has(nested.targetId)) {
+      if (restoredMedia.has(nested.targetId)) {
         this.restoreAttachments(nested.attachments);
       }
     }

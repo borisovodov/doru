@@ -1,7 +1,14 @@
 import type { AssociationRecord, AttachmentsSnapshot, FactRecord, FamilyRecord } from '../model/types';
 import { emptyAttachments } from '../model/types';
 import type { NestedAttachments, Op } from './op';
-import { restoreAssociation, restoreFact, restoreFamily, sameRecord } from './restore';
+import {
+  attachmentTargetExists,
+  attachmentsMatch,
+  restoreAssociation,
+  restoreFact,
+  restoreFamily,
+  sameRecord,
+} from './restore';
 
 export function addFamilyOp(family: FamilyRecord): Op {
   return {
@@ -74,6 +81,22 @@ export function deleteFamilyOp(
       }
       // New facts or associations pointing at the family since the undo
       // would disappear with the redo and are missing from the snapshot.
+      if (!attachmentsMatch(ctx, 'family', family.id, attachments)) {
+        return false;
+      }
+      for (const link of linkAttachments) {
+        if (!attachmentsMatch(ctx, link.targetType, link.targetId, link.attachments)) {
+          return false;
+        }
+      }
+      for (const nested of nestedAttachments) {
+        if (
+          attachmentTargetExists(ctx, nested.targetType, nested.targetId) &&
+          !attachmentsMatch(ctx, nested.targetType, nested.targetId, nested.attachments)
+        ) {
+          return false;
+        }
+      }
       const owned = new Set(facts.map((fact) => fact.id));
       for (const fact of ctx.repo.listFactsForFamily(family.id)) {
         if (!owned.has(fact.id)) {

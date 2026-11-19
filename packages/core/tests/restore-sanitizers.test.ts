@@ -214,6 +214,12 @@ describe('undo restore sanitizers', () => {
       repo.insertNote({ id: 'N1', text: 'Note', targetType: 'person', targetId: 'P1' });
       expect(attachmentsMatch(ctx, 'person', 'P1', empty)).toBe(false);
       expect(attachmentsMatch(ctx, 'person', 'P1', emptyAttachments())).toBe(false);
+
+      repo.insertTodo({ id: 'T1', text: 'Draft', targetType: 'person', targetId: 'P1' });
+      const withTask = repo.listAttachmentsFor('person', 'P1');
+      expect(attachmentsMatch(ctx, 'person', 'P1', withTask)).toBe(true);
+      repo.updateTodo({ id: 'T1', text: 'Reviewed', targetType: 'person', targetId: 'P1' });
+      expect(attachmentsMatch(ctx, 'person', 'P1', withTask)).toBe(false);
     } finally {
       cleanupRepo(fixture);
     }

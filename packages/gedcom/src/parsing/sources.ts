@@ -26,6 +26,7 @@ import type {
   SourceText,
   WebTagStructure,
 } from '../structures';
+import { parseExtension } from './context';
 import type { Ctx } from './context';
 import {
   addExtension,
@@ -625,6 +626,9 @@ export function parseSourceRecord(node: RawNode, ctx: Ctx): SourceRecord {
     // the standard QUAY spelling; exports write the extension-safe _QUAY
     // (see SourceRecord.certainty).
     rec.certainty = parseEnum(reqText(child), QUALITY_ENUM_VALUES, child.position);
+    if (child.children.length > 0) {
+      rec.certaintyExtensions = child.children.map((grandchild) => parseExtension(grandchild, ctx));
+    }
   };
   handlers['QUAY'] = certainty;
   handlers['_QUAY'] = certainty;

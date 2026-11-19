@@ -141,9 +141,16 @@ describe('P1 schema v5 GEDCOM structures', () => {
           const imported = target.repo.listAllPersons().find((entry) => entry.names[0]?.given === 'Child')!;
           expect(imported.deathStatus).toBe('dead');
           const links = target.repo.listRecordSubmittersFor('person', imported.id);
-          expect(new Set(links.map((link) => link.kind))).toEqual(
-            new Set(['contributor', 'ancestor_interest', 'descendant_interest']),
+          const submitterLabel = new Map(
+            target.repo
+              .listSubmitters()
+              .map((submitter) => [submitter.id, submitter.name === 'Researcher One' ? 'U1' : 'U2']),
           );
+          expect(links.map((link) => `${link.kind}:${submitterLabel.get(link.submitterId)}`).sort()).toEqual([
+            'ancestor_interest:U1',
+            'contributor:U1',
+            'descendant_interest:U2',
+          ]);
           expect(target.repo.listCitationRecordsFor('person_sex', imported.id)).toHaveLength(1);
           expect(imported.facts.find((fact) => fact.tag === 'ADOP')?.familyLinks?.[0]).toMatchObject({
             adoptedBy: 'BOTH',

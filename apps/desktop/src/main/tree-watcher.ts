@@ -62,12 +62,12 @@ export class StampedOpQueue extends OpQueue {
     return op;
   }
 
-  override redo(ctx: MutationContext): Op | undefined {
-    const op = super.redo(ctx);
-    if (op) {
+  override redo(ctx: MutationContext): { op?: Op; blocked?: Op } | undefined {
+    const result = super.redo(ctx);
+    if (result?.op) {
       this.onWrite();
     }
-    return op;
+    return result;
   }
 }
 

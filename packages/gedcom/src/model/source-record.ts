@@ -172,6 +172,8 @@ export interface SourceRecord extends GedcomStructureBase {
    * `_QUAY` at record level.
    */
   certainty?: QualityEnum;
+  /** Unknown children carried beneath `_QUAY` (kept verbatim). */
+  certaintyExtensions?: ExtensionStructure[];
   /**
    * _UPD {0:1} — the record's last-updated timestamp, kept verbatim
    * (the wire format is undocumented). Written by MyHeritage under any

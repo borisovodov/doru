@@ -6,7 +6,7 @@
  * the TodoRecord / TodoStructure JSDoc.
  */
 
-import { addExtension, dispatch, reqPtr, reqText } from './context';
+import { addExtension, dispatch, parseExtension, reqPtr, reqText } from './context';
 import type { Ctx } from './context';
 import { fail } from '../errors';
 import type { RawNode } from './lines';
@@ -61,6 +61,9 @@ export function parseTodoRecord(node: RawNode, ctx: Ctx): TodoRecord {
         // My Family Tree `_TASK`: the creation date in the vendor's
         // encoded form (see TodoRecord.createdDate).
         out.createdDate = reqText(child);
+        if (child.children.length > 0) {
+          out.createdDateExtensions = child.children.map((grandchild) => parseExtension(grandchild, ctx));
+        }
       },
       _TRDT: (child) => {
         // My Family Tree `_TASK`: the reminder date — the same slot
@@ -97,6 +100,9 @@ export function parseTodoRecord(node: RawNode, ctx: Ctx): TodoRecord {
           return;
         }
         out.repository = reqPtr(child, ctx);
+        if (child.children.length > 0) {
+          out.repositoryExtensions = child.children.map((grandchild) => parseExtension(grandchild, ctx));
+        }
       },
       CHAN: (child) => {
         // My Family Tree `_TASK`: the change stamp (see
@@ -187,11 +193,17 @@ export function parseTodoStructure(node: RawNode, ctx: Ctx): TodoStructure {
         // The structure form of the record's creation date (see
         // TodoStructure.createdDate).
         out.createdDate = reqText(child);
+        if (child.children.length > 0) {
+          out.createdDateExtensions = child.children.map((grandchild) => parseExtension(grandchild, ctx));
+        }
       },
       REPO: (child) => {
         // GEDCOM-L E1: a pointer to a repository record (see
         // TodoStructure.repository).
         out.repository = reqPtr(child, ctx);
+        if (child.children.length > 0) {
+          out.repositoryExtensions = child.children.map((grandchild) => parseExtension(grandchild, ctx));
+        }
       },
       _UID: (child) => {
         // GEDCOM-L E1: unique identifiers of the task (see
