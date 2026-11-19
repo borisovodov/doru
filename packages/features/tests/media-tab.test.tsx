@@ -55,6 +55,7 @@ function attachmentsStub(overrides: Partial<AttachmentsPanelApi> = {}): Attachme
 const record: MediaWithPath = {
   id: 'M1',
   title: 'Old title',
+  absolutePath: '',
   files: [],
   links: [{ id: 'L1', mediaId: 'M1', targetType: 'person', targetId: 'P1' }],
 };
@@ -67,12 +68,11 @@ describe('MediaTab', () => {
       updateMedia,
       getMediaFor: async () => [],
       getAllMedia: async () => [],
-      getTodosFor: async () => [],
     });
     const view = renderUi(
       <MediaTab
         entityId="M1"
-        media={[{ id: 'M1', title: 'Old title', files: [] }]}
+        media={[{ id: 'M1', title: 'Old title', absolutePath: '', files: [] }]}
         api={api}
         attachmentsApi={attachmentsStub()}
         sources={[]}
@@ -90,7 +90,7 @@ describe('MediaTab', () => {
     view.rerender(
       <MediaTab
         entityId="M1"
-        media={[{ id: 'M1', title: 'Old title', files: [] }]}
+        media={[{ id: 'M1', title: 'Old title', absolutePath: '', files: [] }]}
         api={api}
         attachmentsApi={attachmentsStub()}
         sources={[]}
@@ -110,7 +110,6 @@ describe('MediaTab', () => {
       openSource,
       getMediaFor: async () => [],
       getAllMedia: async () => [],
-      getTodosFor: async () => [],
     });
     const attachmentsApi = attachmentsStub({
       getCitations: async (targetType: string) =>

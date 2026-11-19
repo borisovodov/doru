@@ -62,7 +62,7 @@ describe('db cleanup paths', () => {
       const { repo } = fixture;
       repo.insertNote({ id: 'N1', text: 'shared note', targetType: 'person', targetId: 'P1' });
       const [link] = repo.listNotesFor('person', 'P1')[0]!.links ?? [];
-      repo.addNoteLink('N1', { id: 'L2', noteId: 'N1', targetType: 'person', targetId: 'P2' });
+      repo.addNoteLink('N1', { id: 'L2', targetType: 'person', targetId: 'P2' });
       repo.insertIdentifier({ id: 'NI1', targetType: 'note', targetId: 'N1', namespace: 'uid', value: 'note-1' });
 
       repo.deleteAttachmentsFor('person', 'P1');
