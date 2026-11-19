@@ -40,6 +40,8 @@ export interface MediaTargetApi {
 /** Media operations used by the media editor. */
 export interface MediaAdminApi extends MediaTargetApi {
   getMedia(id: string): Promise<MediaWithPath | undefined>;
+  /** Opens a source from a media attachment link. */
+  openSource?: ((sourceId: string) => void) | undefined;
   updateMedia(before: MediaRecord, after: MediaRecord): Promise<void>;
   addMediaFile(mediaId: string): Promise<void>;
   removeMediaFile(media: MediaRecord, file: MediaFile): Promise<void>;

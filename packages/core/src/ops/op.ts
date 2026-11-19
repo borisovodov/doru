@@ -31,6 +31,12 @@ export interface Op {
   readonly change?: OpChange;
   apply(ctx: MutationContext): void;
   inverse(ctx: MutationContext): void;
+  /**
+   * Whether redoing a destructive op is still safe: a concurrent writer may
+   * have added rows that `apply` would cascade away and `inverse` cannot
+   * restore. Ops leave this unset when redo always replays exactly.
+   */
+  redoSafe?(ctx: MutationContext): boolean;
 }
 
 export class OpQueue {
@@ -54,8 +60,7 @@ export class OpQueue {
       return undefined;
     }
     op.inverse(ctx);
-    this.undoStack.pop();
-    this.redoStack.push(op);
+    this.commitUndo();
     return op;
   }
 
@@ -64,9 +69,33 @@ export class OpQueue {
     if (!op) {
       return undefined;
     }
+    if (op.redoSafe !== undefined && !op.redoSafe(ctx)) {
+      return undefined;
+    }
     op.apply(ctx);
-    this.redoStack.pop();
-    this.undoStack.push(op);
+    this.commitRedo();
+    return op;
+  }
+
+  /**
+   * Moves the top undo entry to the redo stack. Callers that run the inverse
+   * in their own transaction invoke this only after COMMIT succeeds; a failed
+   * replay or commit leaves the history untouched so the user can retry.
+   */
+  commitUndo(): Op | undefined {
+    const op = this.undoStack.pop();
+    if (op !== undefined) {
+      this.redoStack.push(op);
+    }
+    return op;
+  }
+
+  /** Moves the top redo entry back to the undo stack after a committed apply. */
+  commitRedo(): Op | undefined {
+    const op = this.redoStack.pop();
+    if (op !== undefined) {
+      this.undoStack.push(op);
+    }
     return op;
   }
 

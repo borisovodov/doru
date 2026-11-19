@@ -120,6 +120,12 @@ export class NoteRepo {
   }
 
   /** Removes every link to the target, deleting notes left with no links. */
+  /** How many targets currently link this note. */
+  countLinksForNote(noteId: string): number {
+    const row = this.db.prepare('SELECT COUNT(*) AS n FROM note_link WHERE note_id = ?').get(noteId) as { n: number };
+    return row.n;
+  }
+
   deleteLinksFor(targetType: string, targetId: string): void {
     const links = this.db
       .prepare('SELECT id, note_id FROM note_link WHERE target_type = ? AND target_id = ?')

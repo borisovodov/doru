@@ -19,6 +19,7 @@ import type {
   TodoRecord,
 } from '../model/types';
 import { emptyAttachments } from '../model/types';
+import { insertRestoredMedia } from './media';
 import type { NestedAttachments, Op } from './op';
 
 function op(id: string, kind: string, apply: Op['apply'], inverse: Op['inverse'], change?: Op['change']): Op {
@@ -244,7 +245,7 @@ export function attachMediaOp(
       (ctx) => {
         ctx.repo.removeMediaLink(link.id);
         if (ctx.repo.getMedia(link.mediaId) === undefined && media !== undefined) {
-          ctx.repo.insertMedia(media);
+          insertRestoredMedia(ctx, media);
           if (attachments !== undefined) {
             ctx.repo.restoreAttachments(attachments);
           }
@@ -287,7 +288,7 @@ export function detachMediaOp(
       (ctx) => ctx.repo.removeMediaLink(link.id),
       (ctx) => {
         if (ctx.repo.getMedia(link.mediaId) === undefined && media !== undefined) {
-          ctx.repo.insertMedia(media);
+          insertRestoredMedia(ctx, media);
           if (attachments !== undefined) {
             ctx.repo.restoreAttachments(attachments);
           }
@@ -545,6 +546,30 @@ export function deleteRepositoryOp(
         }
       },
     ),
+    redoSafe(ctx) {
+      if (ctx.repo.getRepository(repository.id) === undefined) {
+        return false;
+      }
+      const capturedSources = new Set((consumers.sourceRepositories ?? []).map((link) => link.id));
+      for (const link of ctx.repo.listSourceRepositoriesFor(repository.id)) {
+        if (!capturedSources.has(link.id)) {
+          return false;
+        }
+      }
+      const todoIds = new Set((consumers.todos ?? []).map((todo) => todo.id));
+      for (const todo of ctx.repo.listTodos()) {
+        if (todo.repositoryId === repository.id && !todoIds.has(todo.id)) {
+          return false;
+        }
+      }
+      const titleIds = new Set((consumers.titles ?? []).map((title) => title.id));
+      for (const title of ctx.repo.listTitles()) {
+        if (title.repositoryId === repository.id && !titleIds.has(title.id)) {
+          return false;
+        }
+      }
+      return true;
+    },
     change: { targetType: 'repository', targetId: repository.id, kind: 'changed' },
   };
 }

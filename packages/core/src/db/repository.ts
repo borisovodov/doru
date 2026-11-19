@@ -96,6 +96,7 @@ export interface TreeRepository {
   listFactsForPlace(placeId: string): FactRecord[];
   /** Facts that list the place among their additional places. */
   listFactsWithAdditionalPlace(placeId: string): FactRecord[];
+  listFactPlaceRows(placeId: string): Array<{ factId: string; position: number }>;
   /** Participants that point at a person, with their fact id, for delete/undo snapshots. */
   listParticipantsForPerson(personId: string): Array<{ factId: string; participant: FactParticipant }>;
   insertParticipant(factId: string, participant: FactParticipant): void;
@@ -592,6 +593,10 @@ export class SqliteTreeRepository implements TreeRepository {
     return this.facts.listFactsWithAdditionalPlace(placeId);
   }
 
+  listFactPlaceRows(placeId: string): Array<{ factId: string; position: number }> {
+    return this.facts.listFactPlaceRows(placeId);
+  }
+
   listParticipantsForPerson(personId: string): Array<{ factId: string; participant: FactParticipant }> {
     return this.facts.listParticipantsForPerson(personId);
   }
@@ -794,14 +799,18 @@ export class SqliteTreeRepository implements TreeRepository {
   }
 
   updateMedia(media: MediaRecord): void {
-    const before = this.media.getMedia(media.id);
-    const remaining = new Set((media.files ?? []).map((file) => file.id));
-    this.media.updateMedia(media);
-    for (const file of before?.files ?? []) {
-      if (!remaining.has(file.id)) {
-        this.deleteAttachmentsFor('media_file', file.id);
+    // The row update and the cleanup of removed files must commit together:
+    // a cleanup failure must not leave the new record saved.
+    this.transactions.run(() => {
+      const before = this.media.getMedia(media.id);
+      const remaining = new Set((media.files ?? []).map((file) => file.id));
+      this.media.updateMedia(media);
+      for (const file of before?.files ?? []) {
+        if (!remaining.has(file.id)) {
+          this.deleteAttachmentsFor('media_file', file.id);
+        }
       }
-    }
+    });
   }
 
   getMedia(id: string): MediaRecord | undefined {
@@ -1207,9 +1216,22 @@ export class SqliteTreeRepository implements TreeRepository {
     const mediaLinks = this.media.listLinksFor(targetType, targetId);
     const citations = this.sources.listCitations(targetType, targetId);
     const todos = this.research.listTodosFor(targetType, targetId);
+    const noteLinks = this.notes.listLinksFor(targetType, targetId);
+    const removedLinksByNote = new Map<string, number>();
+    for (const entry of noteLinks) {
+      removedLinksByNote.set(entry.note.id, (removedLinksByNote.get(entry.note.id) ?? 0) + 1);
+    }
+    const deletedNoteIds = [...removedLinksByNote]
+      .filter(([noteId, removed]) => this.notes.countLinksForNote(noteId) - removed <= 0)
+      .map(([noteId]) => noteId);
     const linkedMedia = [...new Map(mediaLinks.map((entry) => [entry.media.id, entry.media])).values()];
     const snapshot: AttachmentsSnapshot = {
-      noteLinks: this.notes.listLinksFor(targetType, targetId),
+      noteLinks,
+      noteAttachments: deletedNoteIds.map((noteId) => ({
+        targetType: 'note',
+        targetId: noteId,
+        attachments: this.collectAttachments('note', noteId, state),
+      })),
       citations,
       citationAttachments: citations.map((citation) => ({
         targetType: 'citation',
@@ -1262,7 +1284,20 @@ export class SqliteTreeRepository implements TreeRepository {
       return;
     }
     visited.add(key);
+    const noteLinks = this.notes.listLinksFor(targetType, targetId);
+    const removedLinksByNote = new Map<string, number>();
+    for (const entry of noteLinks) {
+      removedLinksByNote.set(entry.note.id, (removedLinksByNote.get(entry.note.id) ?? 0) + 1);
+    }
+    const deletedNoteIds = [...removedLinksByNote]
+      .filter(([noteId, removed]) => this.notes.countLinksForNote(noteId) - removed <= 0)
+      .map(([noteId]) => noteId);
     this.notes.deleteLinksFor(targetType, targetId);
+    // A note that just lost its last link is gone; its own attachments must
+    // follow it instead of being left behind as orphan rows.
+    for (const noteId of deletedNoteIds) {
+      this.deleteAttachmentsForInternal('note', noteId, visited);
+    }
     for (const citation of this.sources.listCitations(targetType, targetId)) {
       this.deleteAttachmentsForInternal('citation', citation.id, visited);
     }
@@ -1311,6 +1346,11 @@ export class SqliteTreeRepository implements TreeRepository {
           .some((existing) => existing.link.id === entry.link.id)
       ) {
         this.notes.addNoteLink(entry.note.id, entry.link);
+      }
+    }
+    for (const nested of snapshot.noteAttachments) {
+      if (this.notes.getNote(nested.targetId) !== undefined) {
+        this.restoreAttachments(nested.attachments);
       }
     }
     const skippedCitations = new Set<string>();

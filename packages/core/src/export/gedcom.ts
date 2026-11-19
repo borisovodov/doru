@@ -762,11 +762,16 @@ function formatTodoDate(date: DateValue | undefined): string | undefined {
     value.calendar !== undefined ||
     value.epoch !== undefined ||
     (value.month !== undefined && typeof value.month !== 'number');
-  const yearless = (value: NonNullable<typeof component>): boolean =>
-    value.year === undefined && (value.month !== undefined || value.day !== undefined);
+  // The compact `YYYY[-MM[-DD]]` form drops any part it cannot render, so
+  // every partial shape (a day without a month, a month without a year)
+  // needs the structured JSON branch.
+  const partial = (value: NonNullable<typeof component>): boolean =>
+    value.year === undefined
+      ? value.month !== undefined || value.day !== undefined
+      : value.month === undefined && value.day !== undefined;
   if (
-    (component !== undefined && (complexComponent(component) || yearless(component))) ||
-    (date.end !== undefined && (complexComponent(date.end) || yearless(date.end))) ||
+    (component !== undefined && (complexComponent(component) || partial(component))) ||
+    (date.end !== undefined && (complexComponent(date.end) || partial(date.end))) ||
     date.time !== undefined ||
     date.modifier !== undefined
   ) {

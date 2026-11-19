@@ -64,7 +64,7 @@ export interface PlaceConsumers {
 
 export function deletePlaceOp(
   place: PlaceRecord,
-  facts: Array<{ before: FactRecord; after: FactRecord }>,
+  facts: Array<{ before: FactRecord; after: FactRecord; position?: number }>,
   attachments: AttachmentsSnapshot = emptyAttachments(),
   consumers: PlaceConsumers = {},
   nestedAttachments: NestedAttachments[] = [],
@@ -79,6 +79,50 @@ export function deletePlaceOp(
         ctx.repo.detachFactPlace(link.before.id, place.id);
       }
       ctx.repo.deletePlace(place.id);
+    },
+    redoSafe(ctx) {
+      if (ctx.repo.getPlace(place.id) === undefined) {
+        return false;
+      }
+      // Consumers added since the undo would be cleared by the redo and are
+      // absent from the captured snapshots, so they could never come back.
+      const factIds = new Set(facts.map((link) => link.before.id));
+      for (const fact of [
+        ...ctx.repo.listFactsForPlace(place.id),
+        ...ctx.repo.listFactsWithAdditionalPlace(place.id),
+      ]) {
+        if (!factIds.has(fact.id)) {
+          return false;
+        }
+      }
+      const familyIds = new Set((consumers.families ?? []).map((family) => family.id));
+      for (const family of ctx.repo.listFamilies()) {
+        if (
+          (family.marriageStatuses ?? []).some((status) => status.placeId === place.id) &&
+          !familyIds.has(family.id)
+        ) {
+          return false;
+        }
+      }
+      const sourceIds = new Set((consumers.sources ?? []).map((source) => source.id));
+      for (const source of ctx.repo.listSources()) {
+        if ((source.dataEvents ?? []).some((event) => event.placeId === place.id) && !sourceIds.has(source.id)) {
+          return false;
+        }
+      }
+      const mediaIds = new Set((consumers.media ?? []).map((media) => media.id));
+      for (const media of ctx.repo.listAllMedia()) {
+        if (media.placeId === place.id && !mediaIds.has(media.id)) {
+          return false;
+        }
+      }
+      const childIds = new Set((consumers.childPlaces ?? []).map((child) => child.id));
+      for (const child of ctx.repo.listPlaces()) {
+        if ((child.hierarchy ?? []).some((link) => link.parentId === place.id) && !childIds.has(child.id)) {
+          return false;
+        }
+      }
+      return true;
     },
     inverse(ctx) {
       ctx.repo.insertPlace(place);
@@ -125,9 +169,11 @@ export function deletePlaceOp(
         if (link.before.placeId === place.id && current.placeId === undefined) {
           ctx.repo.setFactPlaceId(link.before.id, place.id);
         }
-        for (const [position, placeId] of (link.before.additionalPlaceIds ?? []).entries()) {
+        for (const [index, placeId] of (link.before.additionalPlaceIds ?? []).entries()) {
           if (placeId === place.id && !(current.additionalPlaceIds ?? []).includes(placeId)) {
-            ctx.repo.insertFactPlace(link.before.id, placeId, position);
+            // Restore at the row's stored position so later deletions that
+            // left gaps do not reshuffle the surviving additional places.
+            ctx.repo.insertFactPlace(link.before.id, placeId, link.position ?? index);
           }
         }
       }

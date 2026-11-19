@@ -1474,7 +1474,12 @@ function validStructuredComponent(component: NonNullable<DateValue['component']>
   if (component.calendar !== undefined && component.calendar !== '' && component.calendar !== 'julian') {
     return true;
   }
-  const leap = component.year % 4 === 0 && (component.year % 100 !== 0 || component.year % 400 === 0);
+  // Julian leap years are every fourth year; the Gregorian century
+  // exception applies only to Gregorian dates (1900-02-29 stays invalid there).
+  const leap =
+    component.calendar === 'julian'
+      ? component.year % 4 === 0
+      : component.year % 4 === 0 && (component.year % 100 !== 0 || component.year % 400 === 0);
   const days = [31, leap ? 29 : 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31][component.month - 1] ?? 31;
   return component.day >= 1 && component.day <= days;
 }

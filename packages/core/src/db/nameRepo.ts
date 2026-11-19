@@ -321,12 +321,12 @@ export function partsFromFlat(name: PersonName, existingParts?: NamePart[]): Nam
   ];
   const parts: NamePart[] = [];
   const usedIds = new Set<string>();
-  const partId = (kind: NamePart['kind'], value: string): string => {
-    // Prefer the same kind and value, then the part that previously supplied
-    // the flat field (the first unused one of that kind). Positions shift when
-    // a prefix is added, but the value still identifies the unchanged piece.
+  const partId = (kind: NamePart['kind']): string => {
+    // The flat field was always supplied by the first unused part of that
+    // kind, so an edit keeps that part's id even when the value now matches a
+    // later part. Explicit `parts` callers pick a different part themselves.
     const candidates = (existingParts ?? []).filter((part) => part.kind === kind && !usedIds.has(part.id));
-    const existing = candidates.find((part) => part.value === value) ?? candidates[0];
+    const existing = candidates[0];
     const id = existing?.id ?? crypto.randomUUID();
     usedIds.add(id);
     return id;
@@ -334,12 +334,12 @@ export function partsFromFlat(name: PersonName, existingParts?: NamePart[]): Nam
   pieces.forEach(([kind, value]) => {
     if (value !== undefined && value !== '') {
       const position = parts.length;
-      parts.push({ id: partId(kind, value), kind, value, position });
+      parts.push({ id: partId(kind), kind, value, position });
     }
   });
   if (name.full !== undefined && name.full.trim() !== '') {
     const position = parts.length;
-    parts.push({ id: partId('full', name.full.trim()), kind: 'full', value: name.full.trim(), position });
+    parts.push({ id: partId('full'), kind: 'full', value: name.full.trim(), position });
   }
   return parts;
 }

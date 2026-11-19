@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { deleteMediaOp } from '../src/ops/media';
 import { cleanupRepo, makeRepo } from './helpers';
 
 describe('media repo edge cases', () => {
@@ -14,6 +15,35 @@ describe('media repo edge cases', () => {
       expect(links).toHaveLength(1);
       expect(links[0]?.media).toMatchObject({ id: 'M1', title: 'Renamed' });
       expect(links[0]?.link).toMatchObject({ mediaId: 'M1', targetType: 'person', targetId: 'P1' });
+    } finally {
+      cleanupRepo(fixture);
+    }
+  });
+
+  it('restores media without a vanished historical place link', () => {
+    const fixture = makeRepo();
+    try {
+      const { repo } = fixture;
+      repo.insertPlace({ id: 'PL1', names: [{ id: 'PN1', kind: 'official', position: 0, value: 'Moscow' }] });
+      repo.insertMedia({
+        id: 'M1',
+        title: 'Portrait',
+        place: 'Moscow',
+        placeId: 'PL1',
+        targetType: 'person',
+        targetId: 'P1',
+      });
+      const media = repo.getMedia('M1')!;
+
+      const del = deleteMediaOp(media);
+      del.apply({ repo });
+      // Another writer removes the place while the media record is gone.
+      repo.deletePlace('PL1');
+      del.inverse({ repo });
+
+      const restored = repo.getMedia('M1')!;
+      expect(restored.place).toBe('Moscow');
+      expect(restored.placeId).toBeUndefined();
     } finally {
       cleanupRepo(fixture);
     }

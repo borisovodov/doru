@@ -305,7 +305,9 @@ export function usePersonEditorApi(
           return;
         }
         await window.doru.addTag(projectPath, tag);
-        await refreshTree();
+        // The tag already exists; a failed snapshot reload must not stop the
+        // caller from attaching it (the follow-up refresh runs then).
+        await refreshTree().catch(() => undefined);
       },
       attachTag: async (link) => {
         if (!projectPath) {

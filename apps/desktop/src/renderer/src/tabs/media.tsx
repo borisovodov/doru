@@ -15,7 +15,7 @@ export const mediaTab: TabDescriptor = {
     <MediaTab
       entityId={id.slice(prefix.length)}
       media={context.tree.media}
-      api={context.tree.mediaAdminApi}
+      api={{ ...context.tree.mediaAdminApi, openSource: context.tabs.open.source }}
       attachmentsApi={{ ...context.tree.api, openTask: context.tabs.open.task }}
       sources={context.tree.sources}
       targetData={{

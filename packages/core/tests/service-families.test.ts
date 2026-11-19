@@ -79,6 +79,40 @@ describe('TreeService families, persons and facts', () => {
     }
   });
 
+  it('keeps evidence on active and challenged child links when reparenting', () => {
+    const { fixture, service } = makeService();
+    try {
+      service.addPerson(person('P1'));
+      service.addPerson(person('K1'));
+      service.addFamily(
+        family({
+          partners: ['P1'],
+          children: ['K1'],
+          childLinks: [{ id: 'FC1', childId: 'K1', status: 'challenged', statusPhrase: 'maybe' }],
+        }),
+      );
+      service.reparent('K1', 'P1');
+      expect(fixture.repo.getFamily('F1')?.childLinks?.find((link) => link.childId === 'K1')).toMatchObject({
+        id: 'FC1',
+        status: 'challenged',
+        statusPhrase: 'maybe',
+      });
+
+      const before = fixture.repo.getFamily('F1')!;
+      service.updateFamily(before, {
+        ...before,
+        childLinks: [{ id: 'FC1', childId: 'K1', status: 'disproven', statusPhrase: 'not the father' }],
+      });
+      service.reparent('K1', 'P1');
+      expect(fixture.repo.getFamily('F1')?.childLinks?.find((link) => link.childId === 'K1')).toMatchObject({
+        id: 'FC1',
+      });
+      expect(fixture.repo.getFamily('F1')?.childLinks?.find((link) => link.childId === 'K1')?.status).toBeUndefined();
+    } finally {
+      cleanupRepo(fixture);
+    }
+  });
+
   it('clears partner dates and child details when an edited link omits them', () => {
     const { fixture, service } = makeService();
     try {

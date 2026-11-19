@@ -106,6 +106,31 @@ describe('place ops', () => {
     }
   });
 
+  it('restores additional places at their stored positions', () => {
+    const { fixture, service } = makeService();
+    try {
+      service.addPerson({ id: 'P1', names: [], sex: 'U', facts: [] });
+      for (const id of ['PL1', 'PL2', 'PL3', 'PL4']) {
+        service.addPlace({ id, names: [{ id: `PN-${id}`, kind: 'official', position: 0, value: id }] });
+      }
+      service.addFact({
+        id: 'F1',
+        personId: 'P1',
+        tag: 'BIRT',
+        additionalPlaceIds: ['PL1', 'PL2', 'PL3', 'PL4'],
+      });
+
+      service.deletePlace(fixture.repo.getPlace('PL1')!);
+      service.deletePlace(fixture.repo.getPlace('PL4')!);
+      expect(fixture.repo.listFactsForPerson('P1')[0]?.additionalPlaceIds).toEqual(['PL2', 'PL3']);
+
+      service.undo();
+      expect(fixture.repo.listFactsForPerson('P1')[0]?.additionalPlaceIds).toEqual(['PL2', 'PL3', 'PL4']);
+    } finally {
+      cleanupRepo(fixture);
+    }
+  });
+
   it('updates a place through the service with undo', () => {
     const { fixture, service } = makeService();
     try {

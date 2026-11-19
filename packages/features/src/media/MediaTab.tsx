@@ -101,6 +101,10 @@ function MediaTabBody({
   const baselineRef = useRef<MediaRecord>(record);
   const savedRef = useRef<MediaRecord>(record);
   const submittedRef = useRef<typeof metadataRef.current | undefined>(undefined);
+  const submittedDirtyRef = useRef<
+    | { title: boolean; date: boolean; place: boolean; objectType: boolean; description: boolean; keywords: boolean }
+    | undefined
+  >(undefined);
   const metadataRef = useRef({
     title,
     date,
@@ -121,9 +125,17 @@ function MediaTabBody({
     }
     const previous = recordRef.current;
     recordRef.current = record;
-    savedRef.current = record;
     const submitted = submittedRef.current;
+    const dirty = submittedDirtyRef.current;
+    // A refresh that still carries pre-write values (or any unrelated
+    // snapshot) must not replace a draft whose write is still pending; wait
+    // until the incoming record reflects the submitted fields.
+    if (submitted !== undefined && dirty !== undefined && !mediaRecordHasSubmission(record, submitted, dirty)) {
+      return;
+    }
     submittedRef.current = undefined;
+    submittedDirtyRef.current = undefined;
+    savedRef.current = record;
     if (submitted === undefined && mediaMetadataMatches(metadataRef.current, previous)) {
       baselineRef.current = record;
       setTitle(record.title ?? '');
@@ -183,6 +195,23 @@ function MediaTabBody({
     const submission = metadataRef.current;
     submittedRef.current = submission;
     const base = baselineRef.current;
+    const baseDraft = {
+      title: base.title ?? '',
+      date: toDateDraft(base.date),
+      place: base.place ?? '',
+      placeId: base.placeId ?? '',
+      objectType: base.objectType ?? '',
+      description: base.description ?? '',
+      keywords: base.keywords ?? '',
+    };
+    submittedDirtyRef.current = {
+      title: submission.title.trim() !== baseDraft.title,
+      date: !dateDraftsEqual(submission.date, baseDraft.date),
+      place: submission.place.trim() !== baseDraft.place || submission.placeId !== baseDraft.placeId,
+      objectType: submission.objectType.trim() !== baseDraft.objectType,
+      description: submission.description.trim() !== baseDraft.description,
+      keywords: submission.keywords.trim() !== baseDraft.keywords,
+    };
     // Use the latest saved state even while the refreshed prop is pending.
     const current = savedRef.current;
     const next: MediaRecord = { ...current };
@@ -211,6 +240,7 @@ function MediaTabBody({
     } catch (error) {
       if (submittedRef.current === submission) {
         submittedRef.current = undefined;
+        submittedDirtyRef.current = undefined;
       }
       throw error;
     }
@@ -385,7 +415,13 @@ function MediaTabBody({
                 </Button>
               </div>
               {expandedFileId === file.id && (
-                <AttachmentsPanel targetType="media_file" targetId={file.id} api={attachmentsApi} sources={sources} />
+                <AttachmentsPanel
+                  targetType="media_file"
+                  targetId={file.id}
+                  api={attachmentsApi}
+                  sources={sources}
+                  onOpenSource={(sourceId) => api.openSource?.(sourceId)}
+                />
               )}
             </li>
           ))}
@@ -405,6 +441,7 @@ function MediaTabBody({
               canDetach={(record.links?.length ?? 0) > 1}
               attachmentsApi={attachmentsApi}
               sources={sources}
+              onOpenSource={(sourceId) => api.openSource?.(sourceId)}
               onSave={(after) => api.updateMediaLink(link, after)}
               onDetach={async () => {
                 if ((record.links?.length ?? 0) > 1) {
@@ -422,7 +459,13 @@ function MediaTabBody({
         </ul>
       </SectionCard>
 
-      <AttachmentsPanel targetType="media" targetId={record.id} api={attachmentsApi} sources={sources} />
+      <AttachmentsPanel
+        targetType="media"
+        targetId={record.id}
+        api={attachmentsApi}
+        sources={sources}
+        onOpenSource={(sourceId) => api.openSource?.(sourceId)}
+      />
     </EntityTab>
   );
 }
@@ -433,6 +476,7 @@ function MediaLinkRow({
   canDetach,
   attachmentsApi,
   sources,
+  onOpenSource,
   onSave,
   onDetach,
 }: {
@@ -441,6 +485,7 @@ function MediaLinkRow({
   canDetach: boolean;
   attachmentsApi: AttachmentsPanelApi;
   sources: SourceRecord[];
+  onOpenSource: (sourceId: string) => void;
   onSave: (link: MediaLinkRecord) => Promise<void>;
   onDetach: () => Promise<void>;
 }) {
@@ -532,10 +577,42 @@ function MediaLinkRow({
           targetId={link.id}
           api={attachmentsApi}
           sources={sources}
+          onOpenSource={onOpenSource}
           sections={['sources']}
         />
       )}
     </li>
+  );
+}
+
+/** True when the stored record already contains every submitted (dirty) field. */
+function mediaRecordHasSubmission(
+  record: MediaWithPath,
+  values: {
+    title: string;
+    date: ReturnType<typeof toDateDraft>;
+    place: string;
+    placeId: string;
+    objectType: string;
+    description: string;
+    keywords: string;
+  },
+  dirty: {
+    title: boolean;
+    date: boolean;
+    place: boolean;
+    objectType: boolean;
+    description: boolean;
+    keywords: boolean;
+  },
+): boolean {
+  return (
+    (!dirty.title || values.title.trim() === (record.title ?? '')) &&
+    (!dirty.date || dateDraftsEqual(values.date, toDateDraft(record.date))) &&
+    (!dirty.place || (values.place.trim() === (record.place ?? '') && values.placeId === (record.placeId ?? ''))) &&
+    (!dirty.objectType || values.objectType.trim() === (record.objectType ?? '')) &&
+    (!dirty.description || values.description.trim() === (record.description ?? '')) &&
+    (!dirty.keywords || values.keywords.trim() === (record.keywords ?? ''))
   );
 }
 

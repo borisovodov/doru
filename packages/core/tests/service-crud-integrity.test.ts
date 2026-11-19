@@ -1084,6 +1084,83 @@ describe('TreeService CRUD integrity', () => {
     }
   });
 
+  it('keeps concurrent ids when an optional link collection was absent', () => {
+    const { fixture, service } = makeService();
+    const { repo } = fixture;
+    try {
+      service.addPerson(person('P1'));
+      service.addFamily({ id: 'F1', partners: ['P1'], children: [] });
+      service.addFamily({ id: 'F2', partners: ['P1'], children: [] });
+      service.addFact({ id: 'ADOP1', personId: 'P1', tag: 'ADOP' });
+      const before = repo.getPerson('P1')!;
+      expect(before.facts[0]?.familyLinks).toBeUndefined();
+
+      repo.updateFact({
+        ...before.facts[0]!,
+        familyLinks: [{ id: 'FL1', familyId: 'F1', position: 0 }],
+      });
+      service.updatePerson(before, {
+        ...before,
+        facts: [{ ...before.facts[0]!, familyLinks: [{ id: 'FL2', familyId: 'F2', position: 0 }] }],
+      });
+
+      const links = repo.getPerson('P1')?.facts[0]?.familyLinks ?? [];
+      expect(links.map((link) => link.id).sort()).toEqual(['FL1', 'FL2']);
+    } finally {
+      cleanupRepo(fixture);
+    }
+  });
+
+  it('drops ownership links whose family disappeared before the undo', () => {
+    const { fixture, service } = makeService();
+    const { repo } = fixture;
+    try {
+      service.addPerson(person('P1'));
+      service.addFamily({ id: 'F1', partners: ['P1'], children: [] });
+      service.addFamily({ id: 'F2', partners: ['P1'], children: [] });
+      service.addFact({
+        id: 'ADOP1',
+        familyId: 'F1',
+        tag: 'ADOP',
+        familyLinks: [{ id: 'FF1', familyId: 'F2', position: 0 }],
+      });
+
+      service.deleteFamily(repo.getFamily('F1')!);
+      // Another writer removes the linked family while F1 is deleted.
+      repo.deleteFamily('F2');
+
+      service.undo();
+      expect(repo.getFamily('F1')).toBeDefined();
+      const restored = repo.listFactsForFamily('F1')[0]!;
+      expect(restored.id).toBe('ADOP1');
+      expect(restored.familyLinks).toBeUndefined();
+    } finally {
+      cleanupRepo(fixture);
+    }
+  });
+
+  it('rejects redo when a dependency appeared after the undo', () => {
+    const { fixture, service } = makeService();
+    const { repo } = fixture;
+    try {
+      service.addPerson(person('P1'));
+      service.deletePerson(repo.getPerson('P1')!);
+      service.undo();
+
+      // A concurrent writer adds a family membership the captured inverse
+      // could not restore if the redo deleted it.
+      repo.insertFamily({ id: 'F2', partners: ['P1'], children: [] });
+      expect(service.redo().canRedo).toBe(true);
+      expect(repo.getPerson('P1')).toBeDefined();
+
+      repo.deleteFamily('F2');
+      expect(service.redo().canRedo).toBe(false);
+      expect(repo.getPerson('P1')).toBeUndefined();
+    } finally {
+      cleanupRepo(fixture);
+    }
+  });
+
   it('uses the persisted source for the delete and undo snapshot', () => {
     const { fixture, service } = makeService();
     const { repo } = fixture;

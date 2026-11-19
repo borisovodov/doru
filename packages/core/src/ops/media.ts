@@ -1,6 +1,16 @@
 import type { AttachmentsSnapshot, MediaRecord } from '../model/types';
 import { emptyAttachments } from '../model/types';
-import type { NestedAttachments, Op } from './op';
+import type { MutationContext, NestedAttachments, Op } from './op';
+
+/**
+ * Restores a deleted media row. If its historical place was deleted by
+ * another writer in the meantime, the id is cleared but the raw place text
+ * stays, so the record (and its attachments) can still come back.
+ */
+export function insertRestoredMedia(ctx: MutationContext, media: MediaRecord): void {
+  const placeMissing = media.placeId !== undefined && ctx.repo.getPlace(media.placeId) === undefined;
+  ctx.repo.insertMedia(placeMissing ? { ...media, placeId: undefined } : media);
+}
 
 export function addMediaOp(media: MediaRecord): Op {
   return {
@@ -49,8 +59,27 @@ export function deleteMediaOp(
     apply(ctx) {
       ctx.repo.deleteMedia(media.id);
     },
+    redoSafe(ctx) {
+      const current = ctx.repo.getMedia(media.id);
+      if (current === undefined) {
+        return false;
+      }
+      const fileIds = new Set((media.files ?? []).map((file) => file.id));
+      for (const file of current.files ?? []) {
+        if (!fileIds.has(file.id)) {
+          return false;
+        }
+      }
+      const linkIds = new Set((media.links ?? []).map((link) => link.id));
+      for (const link of current.links ?? []) {
+        if (!linkIds.has(link.id)) {
+          return false;
+        }
+      }
+      return true;
+    },
     inverse(ctx) {
-      ctx.repo.insertMedia(media);
+      insertRestoredMedia(ctx, media);
       ctx.repo.restoreAttachments(attachments);
       for (const nested of fileAttachments) {
         ctx.repo.restoreAttachments(nested.attachments);

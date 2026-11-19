@@ -58,6 +58,48 @@ export function deletePersonOp(
       }
       ctx.repo.deletePerson(person.id);
     },
+    redoSafe(ctx) {
+      if (ctx.repo.getPerson(person.id) === undefined) {
+        return false;
+      }
+      // Anything attached to the person since the undo would be cascaded away
+      // by the redo and could not be restored from the captured snapshot.
+      const capturedFamilies = new Set(
+        familyLinks
+          .filter((link) => link.before.partners.includes(person.id) || link.before.children.includes(person.id))
+          .map((link) => link.before.id),
+      );
+      for (const family of ctx.repo.listFamiliesForPerson(person.id)) {
+        if (!capturedFamilies.has(family.id)) {
+          return false;
+        }
+      }
+      const capturedAssociations = new Set(associations.map((association) => association.id));
+      for (const association of ctx.repo.listAssociationsFor(person.id)) {
+        if (!capturedAssociations.has(association.id)) {
+          return false;
+        }
+      }
+      const capturedAliases = new Set(aliases.map((alias) => alias.id));
+      for (const alias of ctx.repo.listAliasRowsFor(person.id)) {
+        if (!capturedAliases.has(alias.id)) {
+          return false;
+        }
+      }
+      const current = ctx.repo.getPerson(person.id);
+      const capturedParticipants = new Set(participants.map((entry) => `${entry.factId}:${entry.participant.id}`));
+      for (const fact of current?.facts ?? []) {
+        for (const participant of fact.participants ?? []) {
+          capturedParticipants.add(`${fact.id}:${participant.id}`);
+        }
+      }
+      for (const entry of ctx.repo.listParticipantsForPerson(person.id)) {
+        if (!capturedParticipants.has(`${entry.factId}:${entry.participant.id}`)) {
+          return false;
+        }
+      }
+      return true;
+    },
     inverse(ctx) {
       ctx.repo.insertPerson(person);
       for (const association of associations) {

@@ -66,10 +66,45 @@ export function deleteFamilyOp(
     apply(ctx) {
       ctx.repo.deleteFamily(family.id);
     },
+    redoSafe(ctx) {
+      if (ctx.repo.getFamily(family.id) === undefined) {
+        return false;
+      }
+      // New facts or associations pointing at the family since the undo
+      // would disappear with the redo and are missing from the snapshot.
+      const owned = new Set(facts.map((fact) => fact.id));
+      for (const fact of ctx.repo.listFactsForFamily(family.id)) {
+        if (!owned.has(fact.id)) {
+          return false;
+        }
+      }
+      const known = new Set([...owned, ...linkedFacts.map((fact) => fact.id)]);
+      for (const fact of ctx.repo.listFactsLinkedToFamily(family.id)) {
+        if (!known.has(fact.id)) {
+          return false;
+        }
+      }
+      const capturedAssociations = new Set(associations.map((association) => association.id));
+      for (const association of ctx.repo.listAssociationsForFamily(family.id)) {
+        if (!capturedAssociations.has(association.id)) {
+          return false;
+        }
+      }
+      return true;
+    },
     inverse(ctx) {
       ctx.repo.insertFamily(family);
       for (const fact of facts) {
-        ctx.repo.insertFact(fact);
+        // Family links may point at families deleted by another writer while
+        // this family was gone; the fact can only come back without them.
+        const familyLinks = fact.familyLinks?.filter(
+          (link) => link.familyId === family.id || ctx.repo.getFamily(link.familyId) !== undefined,
+        );
+        const restored =
+          familyLinks !== undefined && familyLinks.length !== fact.familyLinks?.length
+            ? { ...fact, familyLinks }
+            : fact;
+        ctx.repo.insertFact(restored);
       }
       const restoredAssociations = new Set<string>();
       for (const association of associations) {

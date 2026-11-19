@@ -151,9 +151,25 @@ export class FactRepo {
   /** Facts that link to a family through fact_family, without scanning the tree. */
   listFactsLinkedToFamily(familyId: string): FactRecord[] {
     const rows = this.db
-      .prepare('SELECT fact_id FROM fact_family WHERE family_id = ? ORDER BY position, id')
-      .all(familyId) as unknown as { fact_id: string }[];
-    return rows.map((row) => this.getFact(row.fact_id)).filter((fact): fact is FactRecord => fact !== undefined);
+      .prepare(
+        `SELECT ${FACT_COLUMNS} FROM fact WHERE id IN (SELECT DISTINCT fact_id FROM fact_family WHERE family_id = ?)`,
+      )
+      .all(familyId) as unknown as FactRow[];
+    const facts: FactRecord[] = [];
+    // Hydrating in bounded batches keeps the parameter count below SQLite's
+    // limit while touching each fact exactly once.
+    for (let index = 0; index < rows.length; index += 400) {
+      facts.push(...this.hydrate(rows.slice(index, index + 400)));
+    }
+    return facts;
+  }
+
+  /** Stored positions of a place within each fact's additional places. */
+  listFactPlaceRows(placeId: string): Array<{ factId: string; position: number }> {
+    const rows = this.db
+      .prepare('SELECT fact_id, position FROM fact_place WHERE place_id = ?')
+      .all(placeId) as unknown as { fact_id: string; position: number }[];
+    return rows.map((row) => ({ factId: row.fact_id, position: row.position }));
   }
 
   /** Detaches one deleted place from the current fact, preserving later edits. */

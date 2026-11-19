@@ -244,8 +244,11 @@ export class TreeService {
         // Record before the inverse mutates the tree: recording afterwards
         // would leave a change row for a target the inverse just deleted.
         this.recordChange(pending, 'changed');
-        this.queue.undo({ repo: this.repo });
+        pending.inverse({ repo: this.repo });
       });
+      // The inverse committed; only now move the entry between stacks so a
+      // failed replay or commit can still be retried.
+      this.queue.commitUndo();
     }
     return this.historyState();
   }
@@ -253,10 +256,17 @@ export class TreeService {
   redo(): UndoRedoState {
     const pending = this.queue.peekRedo();
     if (pending) {
-      this.repo.transaction(() => {
+      const applied = this.repo.transaction(() => {
+        if (pending.redoSafe !== undefined && !pending.redoSafe({ repo: this.repo })) {
+          return false;
+        }
         this.recordChange(pending, 'changed');
-        this.queue.redo({ repo: this.repo });
+        pending.apply({ repo: this.repo });
+        return true;
       });
+      if (applied) {
+        this.queue.commitRedo();
+      }
     }
     return this.historyState();
   }
@@ -381,41 +391,50 @@ export class TreeService {
    * that family when it does not exist — one undo step.
    */
   reparent(childId: string, newParentId: string): UndoRedoState {
-    if (this.isAncestor(childId, newParentId, this.repo.listFamilies())) {
-      throw new ParentCycleError(childId, newParentId);
-    }
-    const target = this.repo.listFamiliesForPerson(newParentId).find((entry) => entry.partners.includes(newParentId));
-    const links: Array<{ before: FamilyRecord; after: FamilyRecord }> = [];
-    for (const family of this.repo
-      .listFamiliesForPerson(childId)
-      .filter((entry) => entry.children.includes(childId) && entry.id !== target?.id)) {
-      links.push({
-        before: family,
-        after: {
-          ...family,
-          children: family.children.filter((id) => id !== childId),
-          childLinks: family.childLinks?.filter((link) => link.childId !== childId),
-        },
-      });
-    }
-    if (target) {
-      const existing = (target.childLinks ?? []).find((link) => link.childId === childId);
-      const childLinks = existing
-        ? (target.childLinks ?? []).map((link) =>
-            link.childId === childId ? { ...link, status: undefined, statusPhrase: undefined } : link,
-          )
-        : [...(target.childLinks ?? []), { id: crypto.randomUUID(), childId }];
-      const after = {
-        ...target,
-        children: target.children.includes(childId) ? target.children : [...target.children, childId],
-        childLinks,
-      };
-      this.assertFamilyAcyclic(after);
-      links.push({ before: target, after });
-    }
-    const created = target ? undefined : { id: crypto.randomUUID(), partners: [newParentId], children: [childId] };
-    const linkAttachments = links.flatMap(({ before, after }) => this.removedLinkAttachments(before, after));
-    return this.applyAfterCommit(() => reparentOp(links, created, childId, linkAttachments));
+    return this.applyAfterCommit(() => {
+      // Every read, validation and snapshot runs inside the write
+      // transaction: a concurrent writer cannot introduce a cycle between
+      // the check and the commit.
+      if (this.isAncestor(childId, newParentId, this.repo.listFamilies())) {
+        throw new ParentCycleError(childId, newParentId);
+      }
+      const target = this.repo.listFamiliesForPerson(newParentId).find((entry) => entry.partners.includes(newParentId));
+      const links: Array<{ before: FamilyRecord; after: FamilyRecord }> = [];
+      for (const family of this.repo
+        .listFamiliesForPerson(childId)
+        .filter((entry) => entry.children.includes(childId) && entry.id !== target?.id)) {
+        links.push({
+          before: family,
+          after: {
+            ...family,
+            children: family.children.filter((id) => id !== childId),
+            childLinks: family.childLinks?.filter((link) => link.childId !== childId),
+          },
+        });
+      }
+      if (target) {
+        const existing = (target.childLinks ?? []).find((link) => link.childId === childId);
+        // Only activating a disproven link clears its evidence; an already
+        // active (or challenged) link keeps its status and phrase.
+        const childLinks = existing
+          ? (target.childLinks ?? []).map((link) =>
+              link.childId === childId && link.status === 'disproven'
+                ? { ...link, status: undefined, statusPhrase: undefined }
+                : link,
+            )
+          : [...(target.childLinks ?? []), { id: crypto.randomUUID(), childId }];
+        const after = {
+          ...target,
+          children: target.children.includes(childId) ? target.children : [...target.children, childId],
+          childLinks,
+        };
+        this.assertFamilyAcyclic(after);
+        links.push({ before: target, after });
+      }
+      const created = target ? undefined : { id: crypto.randomUUID(), partners: [newParentId], children: [childId] };
+      const linkAttachments = links.flatMap(({ before, after }) => this.removedLinkAttachments(before, after));
+      return reparentOp(links, created, childId, linkAttachments);
+    });
   }
 
   /**
@@ -565,6 +584,7 @@ export class TreeService {
       ]) {
         byId.set(fact.id, fact);
       }
+      const placePositions = new Map(this.repo.listFactPlaceRows(current.id).map((row) => [row.factId, row.position]));
       const facts = [...byId.values()].map((fact) => {
         const after: FactRecord = { ...fact };
         if (fact.placeId === current.id) {
@@ -576,7 +596,8 @@ export class TreeService {
         } else {
           delete after.additionalPlaceIds;
         }
-        return { before: fact, after };
+        const position = placePositions.get(fact.id);
+        return position === undefined ? { before: fact, after } : { before: fact, after, position };
       });
       const families = this.repo
         .listFamilies()
@@ -894,17 +915,21 @@ export class TreeService {
   }
 
   deleteRepository(repository: RepositoryRecord): UndoRedoState {
-    const current = this.repo.getRepository(repository.id);
-    if (current === undefined) {
-      return this.historyState();
-    }
-    const attachments = this.repo.listAttachmentsFor('repository', current.id);
-    const consumers = {
-      sourceRepositories: this.repo.listSourceRepositoriesFor(current.id),
-      todos: this.repo.listTodos().filter((todo) => todo.repositoryId === current.id),
-      titles: this.repo.listTitles().filter((title) => title.repositoryId === current.id),
-    };
-    return this.apply(deleteRepositoryOp(current, attachments, consumers));
+    return this.applyAfterCommit(() => {
+      // Snapshot the consumers inside the delete transaction so a task added
+      // just before deletion is still restored on undo.
+      const current = this.repo.getRepository(repository.id);
+      if (current === undefined) {
+        return undefined;
+      }
+      const attachments = this.repo.listAttachmentsFor('repository', current.id);
+      const consumers = {
+        sourceRepositories: this.repo.listSourceRepositoriesFor(current.id),
+        todos: this.repo.listTodos().filter((todo) => todo.repositoryId === current.id),
+        titles: this.repo.listTitles().filter((title) => title.repositoryId === current.id),
+      };
+      return deleteRepositoryOp(current, attachments, consumers);
+    });
   }
 
   addSubmitter(submitter: SubmitterRecord): UndoRedoState {
@@ -1135,6 +1160,27 @@ export class TreeService {
   private mergeChangedFields(before: unknown, after: unknown, stored: unknown): unknown {
     if (JSON.stringify(before) === JSON.stringify(after)) {
       return stored;
+    }
+    if (Array.isArray(after) && before === undefined) {
+      // An optional ID-bearing collection that was absent in the draft's
+      // baseline: the stored rows are concurrent additions, not removals, so
+      // keep them next to the draft's own new rows.
+      const afterRows: unknown[] = after;
+      const storedRows: unknown[] = Array.isArray(stored) ? stored : [];
+      const afterIds = new Set<string>(
+        afterRows.flatMap((entry) =>
+          typeof entry === 'object' && entry !== null && 'id' in entry ? [(entry as { id: string }).id] : [],
+        ),
+      );
+      const merged: unknown[] = [...afterRows];
+      for (const entry of storedRows) {
+        if (typeof entry === 'object' && entry !== null && 'id' in entry) {
+          if (!afterIds.has((entry as { id: string }).id)) {
+            merged.push(entry);
+          }
+        }
+      }
+      return merged;
     }
     if (Array.isArray(before) && Array.isArray(after)) {
       const beforeRows: unknown[] = before;

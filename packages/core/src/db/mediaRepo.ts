@@ -86,6 +86,9 @@ export class MediaRepo {
       const old = this.db.prepare('SELECT date_id FROM media WHERE id = ?').get(media.id) as
         | { date_id: string | null }
         | undefined;
+      if (old === undefined) {
+        throw new Error(`media ${media.id} no longer exists`);
+      }
       const params = mediaParams(media, this.dates);
       this.db
         .prepare(
@@ -93,7 +96,7 @@ export class MediaRepo {
              object_type = ?, description = ?, keywords = ? WHERE id = ?`,
         )
         .run(...params.slice(1), media.id);
-      this.deleteStaleDate(old?.date_id ?? null, params[3] as string | null);
+      this.deleteStaleDate(old.date_id, params[3] as string | null);
       this.replaceFiles(media);
     });
   }

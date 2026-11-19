@@ -36,6 +36,54 @@ describe('db cleanup paths', () => {
     }
   });
 
+  it('cleans and restores the attachments of a note that loses its last link', () => {
+    const fixture = makeRepo();
+    try {
+      const { repo } = fixture;
+      repo.insertNote({ id: 'N1', text: 'linked note', targetType: 'person', targetId: 'P1' });
+      repo.insertIdentifier({ id: 'NI1', targetType: 'note', targetId: 'N1', namespace: 'uid', value: 'note-1' });
+      const snapshot = repo.listAttachmentsFor('person', 'P1');
+
+      repo.deleteAttachmentsFor('person', 'P1');
+      expect(repo.getNote('N1')).toBeUndefined();
+      expect(repo.listIdentifiersFor('note', 'N1')).toEqual([]);
+
+      repo.restoreAttachments(snapshot);
+      expect(repo.getNote('N1')).toBeDefined();
+      expect(repo.listIdentifiersFor('note', 'N1').map((entry) => entry.id)).toEqual(['NI1']);
+    } finally {
+      cleanupRepo(fixture);
+    }
+  });
+
+  it('keeps note attachments while another link survives', () => {
+    const fixture = makeRepo();
+    try {
+      const { repo } = fixture;
+      repo.insertNote({ id: 'N1', text: 'shared note', targetType: 'person', targetId: 'P1' });
+      const [link] = repo.listNotesFor('person', 'P1')[0]!.links ?? [];
+      repo.addNoteLink('N1', { id: 'L2', noteId: 'N1', targetType: 'person', targetId: 'P2' });
+      repo.insertIdentifier({ id: 'NI1', targetType: 'note', targetId: 'N1', namespace: 'uid', value: 'note-1' });
+
+      repo.deleteAttachmentsFor('person', 'P1');
+      expect(repo.getNote('N1')).toBeDefined();
+      expect(repo.listIdentifiersFor('note', 'N1').map((entry) => entry.id)).toEqual(['NI1']);
+      expect(link).toBeDefined();
+    } finally {
+      cleanupRepo(fixture);
+    }
+  });
+
+  it('rejects updating a media record that no longer exists', () => {
+    const fixture = makeRepo();
+    try {
+      expect(() => fixture.repo.updateMedia({ id: 'M404', title: 'Gone' })).toThrow(/no longer exists/);
+      expect(fixture.repo.getMedia('M404')).toBeUndefined();
+    } finally {
+      cleanupRepo(fixture);
+    }
+  });
+
   it('deletes sources and citations together with their date rows', () => {
     const fixture = makeRepo();
     try {
