@@ -167,7 +167,13 @@ function FamilyTabBody({
           ])
         }
         renderStatusAttachments={(statusId) => (
-          <AttachmentsPanel targetType="family_marriage_status" targetId={statusId} api={api} sources={sources} />
+          <AttachmentsPanel
+            targetType="family_marriage_status"
+            targetId={statusId}
+            api={api}
+            sources={sources}
+            onOpenSource={onOpenSource}
+          />
         )}
         renderLinkAttachments={(kind, linkId) => (
           <AttachmentsPanel
@@ -175,10 +181,12 @@ function FamilyTabBody({
             targetId={linkId}
             api={api}
             sources={sources}
+            onOpenSource={onOpenSource}
           />
         )}
         onSave={() => void save()}
         onDelete={() => void remove()}
+        onOpenSource={onOpenSource}
       />
       <SourcesSection
         targetType="family"

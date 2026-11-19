@@ -156,6 +156,14 @@ export class FactRepo {
     return rows.map((row) => this.getFact(row.fact_id)).filter((fact): fact is FactRecord => fact !== undefined);
   }
 
+  /** Detaches one deleted place from the current fact, preserving later edits. */
+  detachFactPlace(factId: string, placeId: string): void {
+    this.transactions.run(() => {
+      this.db.prepare('UPDATE fact SET place_id = NULL WHERE id = ? AND place_id = ?').run(factId, placeId);
+      this.db.prepare('DELETE FROM fact_place WHERE fact_id = ? AND place_id = ?').run(factId, placeId);
+    });
+  }
+
   /** Reconnects a fact to its place without rewriting other fields. */
   setFactPlaceId(factId: string, placeId: string | undefined): void {
     this.db.prepare('UPDATE fact SET place_id = ? WHERE id = ? AND place_id IS NULL').run(placeId ?? null, factId);

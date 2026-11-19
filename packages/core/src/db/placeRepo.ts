@@ -1,6 +1,7 @@
 import type { DatabaseSync } from 'node:sqlite';
 import type { PlaceName, PlaceRecord } from '../model/types';
 import type { DateRepo } from './dateRepo';
+import type { TransactionScope } from './transaction';
 
 interface PlaceRow {
   id: string;
@@ -41,6 +42,7 @@ export class PlaceRepo {
   constructor(
     private readonly db: DatabaseSync,
     private readonly dates: DateRepo,
+    private readonly transactions: TransactionScope,
   ) {
     this.insertName = this.db.prepare(
       `INSERT INTO place_name (id, place_id, kind, language, type, position, value,
@@ -112,10 +114,15 @@ export class PlaceRepo {
     childId: string,
     link: { id: string; parentId: string; type?: string; date?: import('../model/types').DateValue },
   ): void {
-    const dateId = link.date ? this.dates.upsert(link.date) : null;
-    this.db
-      .prepare('INSERT OR IGNORE INTO place_hierarchy (id, parent_id, child_id, type, date_id) VALUES (?, ?, ?, ?, ?)')
-      .run(link.id, link.parentId, childId, link.type ?? null, dateId);
+    this.transactions.run(() => {
+      if (this.db.prepare('SELECT 1 FROM place_hierarchy WHERE id = ?').get(link.id) !== undefined) {
+        return;
+      }
+      const dateId = link.date ? this.dates.upsert(link.date) : null;
+      this.db
+        .prepare('INSERT INTO place_hierarchy (id, parent_id, child_id, type, date_id) VALUES (?, ?, ?, ?, ?)')
+        .run(link.id, link.parentId, childId, link.type ?? null, dateId);
+    });
   }
 
   deletePlace(id: string): boolean {

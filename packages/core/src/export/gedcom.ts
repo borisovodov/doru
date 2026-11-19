@@ -756,10 +756,26 @@ function formatTodoDate(date: DateValue | undefined): string | undefined {
     }
     return `${year}-${month}-${String(value.day).padStart(2, '0')}`;
   };
+  const complexComponent = (value: NonNullable<typeof component>): boolean =>
+    value.calendar !== undefined ||
+    value.epoch !== undefined ||
+    (value.month !== undefined && typeof value.month !== 'number');
+  if (
+    (component !== undefined && complexComponent(component)) ||
+    (date.end !== undefined && complexComponent(date.end)) ||
+    date.time !== undefined ||
+    date.modifier !== undefined
+  ) {
+    const { id: _id, ...structured } = date;
+    return `json:${JSON.stringify(structured)}`;
+  }
   const start = component?.year !== undefined ? iso(component) : '';
   const end = date.end?.year !== undefined ? iso(date.end) : '';
   if (start === '' && end === '') {
-    return date.text;
+    if (date.text === undefined) {
+      return undefined;
+    }
+    return date.quality === 'unknown' ? `unknown:|${date.text}` : date.text;
   }
   const quality = date.quality === 'exact' ? '' : `${date.quality}:`;
   const range = end !== '' ? `..${end}` : '';

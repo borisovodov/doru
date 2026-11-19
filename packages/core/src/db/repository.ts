@@ -77,6 +77,8 @@ export interface TreeRepository {
   setFactAddressId(factId: string, addressId: string | undefined): void;
   /** Reconnects a fact to its primary place without rewriting other fields. */
   setFactPlaceId(factId: string, placeId: string | undefined): void;
+  /** Detaches one deleted place from the current fact. */
+  detachFactPlace(factId: string, placeId: string): void;
   /** Re-adds one additional place row to a surviving fact. */
   insertFactPlace(factId: string, placeId: string, position: number): void;
   deleteFact(id: string): boolean;
@@ -283,7 +285,7 @@ export class SqliteTreeRepository implements TreeRepository {
     this.names = new NameRepo(db, dates);
     this.families = new FamilyRepo(db, this.transactions, dates);
     this.facts = new FactRepo(db, dates, this.transactions);
-    this.places = new PlaceRepo(db, dates);
+    this.places = new PlaceRepo(db, dates, this.transactions);
     this.sources = new SourceRepo(db, dates);
     this.notes = new NoteRepo(db);
     this.media = new MediaRepo(db, dates, this.transactions);
@@ -539,6 +541,10 @@ export class SqliteTreeRepository implements TreeRepository {
 
   setFactPlaceId(factId: string, placeId: string | undefined): void {
     this.facts.setFactPlaceId(factId, placeId);
+  }
+
+  detachFactPlace(factId: string, placeId: string): void {
+    this.facts.detachFactPlace(factId, placeId);
   }
 
   insertFactPlace(factId: string, placeId: string, position: number): void {

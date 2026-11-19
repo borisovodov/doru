@@ -94,6 +94,7 @@ function MediaTabBody({
   const recordRef = useRef(record);
   const baselineRef = useRef<MediaRecord>(record);
   const savedRef = useRef<MediaRecord>(record);
+  const submittedRef = useRef<typeof metadataRef.current | undefined>(undefined);
   const metadataRef = useRef({
     title,
     date,
@@ -115,7 +116,9 @@ function MediaTabBody({
     const previous = recordRef.current;
     recordRef.current = record;
     savedRef.current = record;
-    if (mediaMetadataMatches(metadataRef.current, previous)) {
+    const submitted = submittedRef.current;
+    submittedRef.current = undefined;
+    if (submitted === undefined && mediaMetadataMatches(metadataRef.current, previous)) {
       baselineRef.current = record;
       setTitle(record.title ?? '');
       setDate(toDateDraft(record.date));
@@ -129,31 +132,41 @@ function MediaTabBody({
     // Keep the user's edits, but advance the baseline for every field they
     // did not touch so a later save reads those values from the current row.
     const draft = metadataRef.current;
-    const base = baselineRef.current;
+    const base =
+      submitted ??
+      ({
+        title: baselineRef.current.title ?? '',
+        date: toDateDraft(baselineRef.current.date),
+        place: baselineRef.current.place ?? '',
+        placeId: baselineRef.current.placeId ?? '',
+        objectType: baselineRef.current.objectType ?? '',
+        description: baselineRef.current.description ?? '',
+        keywords: baselineRef.current.keywords ?? '',
+      } as const);
     const refreshed: MediaRecord = { ...record };
-    if (draft.title === (base.title ?? '')) {
+    if (draft.title === base.title) {
       refreshed.title = record.title;
       setTitle(record.title ?? '');
     }
-    if (dateDraftsEqual(draft.date, toDateDraft(base.date))) {
+    if (dateDraftsEqual(draft.date, base.date)) {
       refreshed.date = record.date;
       setDate(toDateDraft(record.date));
     }
-    if (draft.place === (base.place ?? '') && draft.placeId === (base.placeId ?? '')) {
+    if (draft.place === base.place && draft.placeId === base.placeId) {
       refreshed.place = record.place;
       refreshed.placeId = record.placeId;
       setPlace(record.place ?? '');
       setPlaceId(record.placeId ?? '');
     }
-    if (draft.objectType === (base.objectType ?? '')) {
+    if (draft.objectType === base.objectType) {
       refreshed.objectType = record.objectType;
       setObjectType(record.objectType ?? '');
     }
-    if (draft.description === (base.description ?? '')) {
+    if (draft.description === base.description) {
       refreshed.description = record.description;
       setDescription(record.description ?? '');
     }
-    if (draft.keywords === (base.keywords ?? '')) {
+    if (draft.keywords === base.keywords) {
       refreshed.keywords = record.keywords;
       setKeywords(record.keywords ?? '');
     }
@@ -161,6 +174,7 @@ function MediaTabBody({
   }, [record]);
 
   const save = async () => {
+    submittedRef.current = metadataRef.current;
     const base = baselineRef.current;
     // Use the latest saved state even while the refreshed prop is pending.
     const current = savedRef.current;

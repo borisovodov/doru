@@ -141,6 +141,8 @@ interface ImportContext {
   }>;
   /** Families imported with only a WIFE slot (the exporter moves them to HUSB). */
   singleWifeFamilies: Set<string>;
+  /** `personXref\0familyXref` pairs already linked through a CHIL row. */
+  linkedChildPairs: Set<string>;
   /** Person xref → family xref → the FAMC link details (pedigree, status, relations). */
   childLinkDetails: Map<
     string,
@@ -192,6 +194,7 @@ export function importGedcomDataset(
     spouseLinkNotes: new Map(),
     pendingFactFamilies: [],
     singleWifeFamilies: new Set(),
+    linkedChildPairs: new Set(),
     childLinkDetails: new Map(),
     dropped: 0,
   };
@@ -1121,6 +1124,9 @@ function importFamily(record: GedcomFamilyRecord, ctx: ImportContext): void {
     if (personId === undefined) {
       continue;
     }
+    if (record.xref !== undefined) {
+      ctx.linkedChildPairs.add(`${link.child}\u0000${record.xref}`);
+    }
     const pedigree = link.pedigrees?.[0]?.pedigree;
     const details = ctx.childLinkDetails.get(link.child)?.get(record.xref ?? '');
     childLinks.push({
@@ -1293,6 +1299,9 @@ function importPersonRelations(records: GedcomRecord[], ctx: ImportContext): voi
     // A person-side FAMC without a reciprocal CHIL still describes a child
     // link. Keep its pedigree/status/relations/notes instead of dropping it.
     for (const [familyXref, details] of ctx.childLinkDetails.get(record.xref ?? '') ?? []) {
+      if (ctx.linkedChildPairs.has(`${record.xref ?? ''}\u0000${familyXref}`)) {
+        continue;
+      }
       const familyId = ctx.familyIds.get(familyXref);
       if (familyId === undefined) {
         continue;
@@ -1435,6 +1444,21 @@ function parseTodoDate(text: string | undefined): DateValue | undefined {
   if (text === undefined || text.trim() === '') {
     return undefined;
   }
+  if (text.startsWith('json:')) {
+    try {
+      const parsed = JSON.parse(text.slice('json:'.length)) as unknown;
+      if (
+        typeof parsed === 'object' &&
+        parsed !== null &&
+        typeof (parsed as { quality?: unknown }).quality === 'string'
+      ) {
+        return parsed as DateValue;
+      }
+    } catch {
+      // Fall through to the unknown-text fallback.
+    }
+    return { quality: 'unknown', text };
+  }
   const match =
     /^(?:(exact|about|before|after|range|unknown):)?(?:(\d{4})(?:-(\d{2}))?(?:-(\d{2}))?)?(?:\.\.(\d{4})(?:-(\d{2}))?(?:-(\d{2}))?)?(?:\|([\s\S]*))?$/.exec(
       text.trim(),
@@ -1459,9 +1483,10 @@ function parseTodoDate(text: string | undefined): DateValue | undefined {
   const endYear = match?.[5] !== undefined ? Number(match[5]) : undefined;
   const endMonth = match?.[6] !== undefined ? Number(match[6]) : undefined;
   const endDay = match?.[7] !== undefined ? Number(match[7]) : undefined;
+  const hasDate = year !== undefined || endYear !== undefined;
   if (
     match === null ||
-    (year === undefined && endYear === undefined) ||
+    (!hasDate && !(match[1] === 'unknown' && match[8] !== undefined)) ||
     (year !== undefined && !valid(year, month, day)) ||
     (endYear !== undefined && !valid(endYear, endMonth, endDay))
   ) {

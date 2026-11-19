@@ -76,7 +76,7 @@ export function deletePlaceOp(
     change: { targetType: 'place', targetId: place.id, kind: 'changed' },
     apply(ctx) {
       for (const link of facts) {
-        ctx.repo.updateFact(link.after);
+        ctx.repo.detachFactPlace(link.before.id, place.id);
       }
       ctx.repo.deletePlace(place.id);
     },

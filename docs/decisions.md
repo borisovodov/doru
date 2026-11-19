@@ -122,6 +122,20 @@ at parity, and thinking mode wins no scenario while costing ~2.5x latency.
 A larger model tier re-enters through the same gate later — it is a manifest
 entry, not architecture. Minimum machine: 8 GB of RAM.
 
+## GEDCOM vendor spellings
+
+The standard writers keep unknown standard tags from being emitted where a
+version has no slot for them. Two deliberate vendor mappings are documented
+here:
+
+- Source-level certainty from Heredis is written as the extension-safe
+  `_QUAY` at the `SOUR` record level. The parser accepts both `QUAY` and
+  `_QUAY`, so existing Heredis files still round-trip.
+- Citations attached to the `SEX` fact are written as `SOUR` children of
+  `SEX`. GEDCOM 5.5.1 and 7.0 do not define that substructure, but the
+  alternative record-level placement loses the link to the sex fact. When no
+  `SEX` line can be emitted, the citations fall back to the record level.
+
 ## Rejected alternatives
 
 - **Tauri instead of Electron** — a Rust shell would break the TypeScript-only

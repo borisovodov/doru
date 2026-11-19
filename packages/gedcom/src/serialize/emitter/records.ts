@@ -1784,7 +1784,7 @@ export function emitSource(
   if (rec.certainty !== undefined) {
     // Heredis writes the whole-source certainty assessment as QUAY at the
     // record level (see SourceRecord.certainty); written back verbatim.
-    w.line(1, 'QUAY', { value: rec.certainty });
+    w.line(1, '_QUAY', { value: rec.certainty });
   }
   if (rec.accessDate !== undefined) {
     // The date the source was accessed (see SourceRecord.accessDate).

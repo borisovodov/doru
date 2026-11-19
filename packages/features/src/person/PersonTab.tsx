@@ -129,7 +129,7 @@ function PersonTabBody({
       if (current.addressId === next.addressId) {
         patch.addressTouched = false;
       }
-      if (JSON.stringify(current.names) === JSON.stringify(persisted.names)) {
+      if (JSON.stringify(current.names) === JSON.stringify(draft.names)) {
         patch.namesTouched = false;
       }
       if (JSON.stringify(current.birth) === JSON.stringify(persisted.birth)) {

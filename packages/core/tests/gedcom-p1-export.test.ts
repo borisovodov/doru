@@ -108,7 +108,7 @@ describe('P1 GEDCOM export gaps', () => {
         expect(text).toContain('_FLGS');
         expect(text).toContain('__PREFERRED Preferred');
         expect(text).toContain('__PRIVATE Private');
-        expect(text).toContain('1 QUAY 2');
+        expect(text).toContain('1 _QUAY 2');
         if (hasPlaceCards) {
           // 5.5.1 has no place-card record: the identifiers and CHAN have
           // no slot and only the 7.0 `_PLAC` record can carry them.
@@ -205,6 +205,21 @@ describe('P1 GEDCOM export gaps', () => {
         text: 'End-only task',
         createdDate: { quality: 'range', end: { year: 1900 } },
       });
+      repo.insertTodo({
+        id: 'T4',
+        text: 'Unknown text task',
+        createdDate: { quality: 'unknown', text: '1900' },
+      });
+      repo.insertTodo({
+        id: 'T5',
+        text: 'Julian task',
+        createdDate: {
+          quality: 'about',
+          modifier: 'CAL',
+          component: { calendar: 'julian', year: 1900, month: 1, day: 1 },
+          time: { hour: 12, minute: 0 },
+        },
+      });
       const serialized = serializeGedcom70(buildGedcomDataset(repo));
       expect(serialized.ok).toBe(true);
       if (!serialized.ok) {
@@ -213,6 +228,8 @@ describe('P1 GEDCOM export gaps', () => {
       expect(serialized.value).toContain('_TCDT 0999-11-17');
       expect(serialized.value).toContain('_TCDT about:1900|circa');
       expect(serialized.value).toContain('_TCDT range:..1900');
+      expect(serialized.value).toContain('_TCDT unknown:|1900');
+      expect(serialized.value).toContain('_TCDT json:');
 
       const target = makeRepo();
       try {
@@ -229,6 +246,16 @@ describe('P1 GEDCOM export gaps', () => {
         expect(target.repo.listTodos().find((todo) => todo.text === 'End-only task')?.createdDate).toMatchObject({
           quality: 'range',
           end: { year: 1900 },
+        });
+        expect(target.repo.listTodos().find((todo) => todo.text === 'Unknown text task')?.createdDate).toMatchObject({
+          quality: 'unknown',
+          text: '1900',
+        });
+        expect(target.repo.listTodos().find((todo) => todo.text === 'Julian task')?.createdDate).toMatchObject({
+          quality: 'about',
+          modifier: 'CAL',
+          component: { calendar: 'julian', year: 1900, month: 1, day: 1 },
+          time: { hour: 12, minute: 0 },
         });
       } finally {
         cleanupRepo(target);

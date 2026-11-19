@@ -762,6 +762,56 @@ describe('TreeService CRUD integrity', () => {
     }
   });
 
+  it('does not overwrite a conflicting hierarchy date on place undo', () => {
+    const { fixture, service } = makeService();
+    const { repo } = fixture;
+    try {
+      service.addPlace({ id: 'PL1', names: [{ id: 'PN1', kind: 'official', position: 0, value: 'Tula' }] });
+      service.addPlace({ id: 'PL2', names: [{ id: 'PN2', kind: 'official', position: 0, value: 'Moscow' }] });
+      service.addPlace({ id: 'PC', names: [{ id: 'PNC', kind: 'official', position: 0, value: 'District' }] });
+      repo.updatePlace({
+        ...repo.getPlace('PC')!,
+        hierarchy: [{ id: 'H1', parentId: 'PL1', type: 'poli', date: { quality: 'exact', component: { year: 1800 } } }],
+      });
+
+      service.deletePlace(repo.getPlace('PL1')!);
+      repo.updatePlace({
+        ...repo.getPlace('PC')!,
+        hierarchy: [{ id: 'H1', parentId: 'PL2', type: 'poli', date: { quality: 'exact', component: { year: 2000 } } }],
+      });
+      service.undo();
+
+      expect(repo.getPlace('PC')?.hierarchy?.[0]).toMatchObject({
+        id: 'H1',
+        parentId: 'PL2',
+        date: { component: { year: 2000 } },
+      });
+    } finally {
+      cleanupRepo(fixture);
+    }
+  });
+
+  it('preserves later fact edits when redoing a place deletion', () => {
+    const { fixture, service } = makeService();
+    const { repo } = fixture;
+    try {
+      service.addPlace({ id: 'PL1', names: [{ id: 'PN1', kind: 'official', position: 0, value: 'Tula' }] });
+      service.addPerson(person('P1'));
+      const p1 = repo.getPerson('P1')!;
+      repo.updatePerson({ ...p1, facts: [{ id: 'F1', personId: 'P1', tag: 'EVEN', placeId: 'PL1' }] });
+
+      service.deletePlace(repo.getPlace('PL1')!);
+      repo.updateFact({ ...repo.getFact('F1')!, value: 'edited later' });
+      service.undo();
+      expect(repo.getFact('F1')).toMatchObject({ value: 'edited later', placeId: 'PL1' });
+
+      service.redo();
+      expect(repo.getFact('F1')).toMatchObject({ value: 'edited later', placeId: undefined });
+    } finally {
+      cleanupRepo(fixture);
+    }
+  });
+
   it('restores externally added family statuses and their notes on undo', () => {
     const { fixture, service } = makeService();
     const { repo } = fixture;

@@ -55,6 +55,7 @@ export function FamilyEditor({
   renderStatusAttachments,
   onSave,
   onDelete,
+  onOpenSource,
 }: {
   draft: FamilyDraft;
   savedLinkIds?: ReadonlySet<string> | undefined;
@@ -68,6 +69,7 @@ export function FamilyEditor({
   api: FamilyEditorApi;
   onSave: () => void;
   onDelete: (() => void) | undefined;
+  onOpenSource: (sourceId: string) => void;
 }) {
   const [facts, setFacts] = useState<FactRecord[]>([]);
   const [places, setPlaces] = useState<PlaceRecord[]>([]);
@@ -495,7 +497,13 @@ export function FamilyEditor({
         onUpdate={api.updateAssociation}
         onDelete={api.deleteAssociation}
         renderAttachments={(association) => (
-          <AttachmentsPanel targetType="association" targetId={association.id} api={api} sources={sources} />
+          <AttachmentsPanel
+            targetType="association"
+            targetId={association.id}
+            api={api}
+            sources={sources}
+            onOpenSource={onOpenSource}
+          />
         )}
       />
 

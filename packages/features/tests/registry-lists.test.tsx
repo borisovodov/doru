@@ -54,6 +54,29 @@ describe('registry sidebar lists', () => {
     expect(screen.getByText('Ivan Petrov')).toBeInTheDocument();
   });
 
+  it('shows every linked target of a shared note', () => {
+    renderUi(
+      <NotesList
+        notes={[
+          {
+            id: 'N1',
+            text: 'Shared note',
+            links: [
+              { id: 'L1', targetType: 'person', targetId: 'P1' },
+              { id: 'L2', targetType: 'person', targetId: 'P2' },
+            ],
+          },
+        ]}
+        targetData={{
+          ...targetData,
+          persons: [...targetData.persons, { id: 'P2', sex: 'U', names: [{ id: 'N2', given: 'Maria' }], facts: [] }],
+        }}
+      />,
+    );
+    expect(screen.getByText(/Ivan Petrov/)).toBeInTheDocument();
+    expect(screen.getByText(/Maria/)).toBeInTheDocument();
+  });
+
   it('expands the full note text from the global note list', () => {
     renderUi(
       <NotesList

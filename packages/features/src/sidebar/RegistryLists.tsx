@@ -171,11 +171,15 @@ export function NotesList({ notes, targetData }: { notes: NoteRecord[]; targetDa
           <EntityCard
             icon={<NotebookText size={15} aria-hidden="true" />}
             title={note.text}
-            subtitle={
-              note.targetType !== undefined && note.targetId !== undefined
+            subtitle={(() => {
+              const targets = note.links ?? [];
+              if (targets.length > 0) {
+                return [...new Set(targets.map((link) => targetLabel(link.targetType, link.targetId)))].join(' · ');
+              }
+              return note.targetType !== undefined && note.targetId !== undefined
                 ? targetLabel(note.targetType, note.targetId)
-                : null
-            }
+                : null;
+            })()}
           />
           <details className="side-note-details">
             <summary>{nls.t('features.tree.notes.showFull')}</summary>

@@ -1,6 +1,6 @@
 import { BrowserWindow, dialog, type OpenDialogOptions } from 'electron';
 import { randomUUID } from 'node:crypto';
-import { stat, unlink } from 'node:fs/promises';
+import { rename, stat, unlink } from 'node:fs/promises';
 import { dirname, extname, join } from 'node:path';
 import { IMAGE_EXTENSIONS, MEDIA_DIR_NAME, type MediaFile, type MediaRecord } from '@doru/core';
 import { NodeFileSystem } from './filesystem';
@@ -290,11 +290,15 @@ async function removeMediaFile(
     if (!info.isFile()) {
       return;
     }
-    // The stat itself is another await; a restored reference may have landed.
+    // Move the bytes aside first: if undo restores a reference during the
+    // final check, the original file can be put back without data loss.
+    const trash = `${absolute}.doru-deleting-${randomUUID()}`;
+    await rename(absolute, trash);
     if ((await references()).has(absolute)) {
+      await rename(trash, absolute);
       return;
     }
-    await unlink(absolute);
+    await unlink(trash);
   } catch (error) {
     log.warn('could not remove media file', absolute, error);
   }
