@@ -20,6 +20,7 @@ import {
 import { NodeFileSystem } from './filesystem';
 import { resolveImportFile, resolveMediaPath } from './mediaPaths';
 import { log } from './log';
+import { nls } from './nls';
 import { ensureRuntime, openUntitledStore, runtimeFilePath } from './runtime';
 import { projectWindows, untitledProjects } from './state';
 import { createUntitledProject, disposeUntitled } from './untitled';
@@ -128,8 +129,12 @@ export async function openGedcomAsProject(filePath: string, senderId?: number): 
   } catch (error) {
     await disposeUntitled(key);
     dialog.showErrorBox(
-      'GEDCOM Import',
-      `Could not import ${basename(filePath)}: ${error instanceof Error ? error.message : String(error)}`,
+      nls.t('gedcom.dialog.import.error.title'),
+      nls.t(
+        'gedcom.dialog.import.error.message',
+        basename(filePath),
+        error instanceof Error ? error.message : String(error),
+      ),
     );
     return null;
   }
@@ -195,7 +200,7 @@ export async function exportGedcom(
     const window = projectWindows.get(projectPath);
     const extension = format === 'gdz' ? 'gdz' : 'ged';
     const options: Electron.SaveDialogOptions = {
-      title: 'Export GEDCOM',
+      title: nls.t('gedcom.dialog.export.title'),
       defaultPath: join(dirname(runtimeFilePath(projectPath)), `${stem}.${extension}`),
       filters: format === 'gdz' ? [{ name: 'GEDZIP', extensions: ['gdz'] }] : [{ name: 'GEDCOM', extensions: ['ged'] }],
     };
@@ -208,8 +213,8 @@ export async function exportGedcom(
     return { path: save.filePath };
   } catch (error) {
     dialog.showErrorBox(
-      'GEDCOM Export',
-      `Could not export the project: ${error instanceof Error ? error.message : String(error)}`,
+      nls.t('gedcom.dialog.export.error.title'),
+      nls.t('gedcom.dialog.export.error.message', error instanceof Error ? error.message : String(error)),
     );
     return null;
   }

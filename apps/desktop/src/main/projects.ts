@@ -1,11 +1,12 @@
-import { BrowserWindow, app, dialog, type OpenDialogOptions, type SaveDialogOptions } from 'electron';
+import { BrowserWindow, dialog, type OpenDialogOptions, type SaveDialogOptions } from 'electron';
 import { basename, dirname, join } from 'node:path';
 import { MEDIA_DIR_NAME, TREE_FILE_EXTENSION, type ProjectBinding, type ProjectSummary } from '@doru/core';
-import { GEDCOM_INTEROP_VISIBLE, LocalizationService, resolveLocale } from '@doru/platform';
+import { GEDCOM_INTEROP_VISIBLE } from '@doru/platform';
 import { createBookmark, releaseBookmarkAccess, startAccessing } from './bookmarks';
 import { NodeFileSystem } from './filesystem';
 import { openGedcomAsProject } from './gedcom';
 import { log } from './log';
+import { nls } from './nls';
 import { closeProjectRuntime, ensureRuntime, openUntitledStore } from './runtime';
 import { updateSession } from './session';
 import { activeBookmarks, isUntitledKey, projectWindows, recents, runtimes, untitledProjects } from './state';
@@ -67,8 +68,8 @@ export async function openProject(options: OpenProjectOptions, senderId?: number
   if (!filePath) {
     const dialogOptions: OpenDialogOptions = {
       properties: ['openFile'],
-      filters: [{ name: 'Dóru project', extensions: ['doru'] }],
-      title: 'Open Project',
+      filters: [{ name: nls.t('project.dialog.open.filter'), extensions: ['doru'] }],
+      title: nls.t('project.dialog.open.title'),
     };
     const parent = focusedWindow();
     const result =
@@ -134,7 +135,6 @@ export async function openProject(options: OpenProjectOptions, senderId?: number
 
 /** Shows the failure of a user-picked file in the locale of the app. */
 async function showOpenProjectError(filePath: string, error: unknown, senderId?: number): Promise<void> {
-  const nls = new LocalizationService(resolveLocale(app.getLocale()));
   const detail = error instanceof Error ? error.message : String(error);
   const options = {
     type: 'error' as const,
@@ -181,13 +181,13 @@ export async function openAnyProjectDialog(senderId?: number): Promise<ProjectSu
   const dialogOptions: OpenDialogOptions = GEDCOM_INTEROP_VISIBLE
     ? {
         properties: ['openFile'],
-        filters: [{ name: 'Dóru project or GEDCOM file', extensions: ['doru', 'ged', 'gdz'] }],
-        title: 'Open Project or Import GEDCOM',
+        filters: [{ name: nls.t('project.dialog.openGedcom.filter'), extensions: ['doru', 'ged', 'gdz'] }],
+        title: nls.t('project.dialog.openGedcom.title'),
       }
     : {
         properties: ['openFile'],
-        filters: [{ name: 'Dóru project', extensions: ['doru'] }],
-        title: 'Open Project',
+        filters: [{ name: nls.t('project.dialog.open.filter'), extensions: ['doru'] }],
+        title: nls.t('project.dialog.open.title'),
       };
   const parent = senderId !== undefined ? windowById(senderId) : focusedWindow();
   const result =
@@ -200,10 +200,10 @@ export async function openAnyProjectDialog(senderId?: number): Promise<ProjectSu
 
 export async function createProject(senderId?: number): Promise<ProjectSummary | null> {
   const dialogOptions: SaveDialogOptions = {
-    filters: [{ name: 'Dóru project', extensions: ['doru'] }],
-    title: 'Create New Project',
-    buttonLabel: 'Create',
-    defaultPath: 'Family Tree.doru',
+    filters: [{ name: nls.t('project.dialog.open.filter'), extensions: ['doru'] }],
+    title: nls.t('project.dialog.create.title'),
+    buttonLabel: nls.t('project.dialog.create.button'),
+    defaultPath: nls.t('project.dialog.create.defaultName'),
   };
   const result =
     focusedWindow() !== null
@@ -251,9 +251,9 @@ export async function saveProject(projectKey: string): Promise<ProjectBinding | 
   }
   const parent = projectWindows.get(projectKey) ?? focusedWindow();
   const dialogOptions: SaveDialogOptions = {
-    filters: [{ name: 'Dóru project', extensions: ['doru'] }],
-    title: 'Save Project',
-    buttonLabel: 'Save',
+    filters: [{ name: nls.t('project.dialog.open.filter'), extensions: ['doru'] }],
+    title: nls.t('project.dialog.save.title'),
+    buttonLabel: nls.t('project.dialog.save.button'),
     defaultPath: `${untitled.name.replace(/\.(ged|gdz)$/i, '')}.doru`,
   };
   const result =
@@ -266,11 +266,11 @@ export async function saveProject(projectKey: string): Promise<ProjectBinding | 
     : `${result.filePath}${TREE_FILE_EXTENSION}`;
   const openElsewhere = projectWindows.get(filePath);
   if (openElsewhere && !openElsewhere.isDestroyed()) {
-    const message = 'This file is already open in another window.';
+    const message = nls.t('project.dialog.error.openInAnotherWindow');
     if (parent) {
       await dialog.showMessageBox(parent, { type: 'error', message });
     } else {
-      dialog.showErrorBox('Save Project', message);
+      dialog.showErrorBox(nls.t('project.dialog.save.title'), message);
     }
     return null;
   }
@@ -293,11 +293,11 @@ export async function saveProject(projectKey: string): Promise<ProjectBinding | 
     // The temporary files stay where they were; reopen the store so the
     // window keeps working and the project can be saved again.
     openUntitledStore(projectKey, untitled.tempPath);
-    const message = `Could not save the project: ${error instanceof Error ? error.message : String(error)}`;
+    const message = nls.t('project.dialog.error.saveFailed', error instanceof Error ? error.message : String(error));
     if (parent) {
       await dialog.showMessageBox(parent, { type: 'error', message });
     } else {
-      dialog.showErrorBox('Save Project', message);
+      dialog.showErrorBox(nls.t('project.dialog.save.title'), message);
     }
     return null;
   }
