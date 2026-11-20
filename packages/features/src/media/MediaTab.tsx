@@ -219,38 +219,52 @@ function MediaTabBody({
     latest: MediaRecord,
     base: MediaRecord,
     dirty: MediaDirtyFields,
+    submitted: MediaDraftSnapshot,
     next?: MediaRecord,
   ): void => {
     const refreshed: MediaRecord = { ...latest };
+    const draft = metadataRef.current;
     if (!dirty.title) {
-      setTitle(latest.title ?? '');
+      if (draft.title === submitted.title) {
+        setTitle(latest.title ?? '');
+      }
     } else {
       refreshed.title = (next ?? base).title;
     }
     if (!dirty.date) {
-      setDate(toDateDraft(latest.date));
+      if (JSON.stringify(draft.date) === JSON.stringify(submitted.date)) {
+        setDate(toDateDraft(latest.date));
+      }
     } else {
       refreshed.date = (next ?? base).date;
     }
     if (!dirty.place) {
-      setPlace(latest.place ?? '');
-      setPlaceId(latest.placeId ?? '');
+      if (draft.place === submitted.place && draft.placeId === submitted.placeId) {
+        setPlace(latest.place ?? '');
+        setPlaceId(latest.placeId ?? '');
+      }
     } else {
       refreshed.place = (next ?? base).place;
       refreshed.placeId = (next ?? base).placeId;
     }
     if (!dirty.objectType) {
-      setObjectType(latest.objectType ?? '');
+      if (draft.objectType === submitted.objectType) {
+        setObjectType(latest.objectType ?? '');
+      }
     } else {
       refreshed.objectType = (next ?? base).objectType;
     }
     if (!dirty.description) {
-      setDescription(latest.description ?? '');
+      if (draft.description === submitted.description) {
+        setDescription(latest.description ?? '');
+      }
     } else {
       refreshed.description = (next ?? base).description;
     }
     if (!dirty.keywords) {
-      setKeywords(latest.keywords ?? '');
+      if (draft.keywords === submitted.keywords) {
+        setKeywords(latest.keywords ?? '');
+      }
     } else {
       refreshed.keywords = (next ?? base).keywords;
     }
@@ -310,7 +324,7 @@ function MediaTabBody({
           // A refresh arrived while the write was pending; retry from the
           // latest stored record so files added meanwhile are not dropped.
           savedRef.current = recordRef.current;
-          reconcileAfterRefresh(recordRef.current, base, dirty);
+          reconcileAfterRefresh(recordRef.current, base, dirty, submission);
         }
         if (submittedRef.current === submission) {
           submittedRef.current = undefined;
@@ -329,7 +343,7 @@ function MediaTabBody({
         savedRef.current = next;
       } else {
         savedRef.current = recordRef.current;
-        reconcileAfterRefresh(recordRef.current, base, dirty, next);
+        reconcileAfterRefresh(recordRef.current, base, dirty, submission, next);
       }
     }
   };

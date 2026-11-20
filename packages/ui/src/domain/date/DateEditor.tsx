@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import type { DateQuality } from '@doru/core';
 import { nls } from '../../nls';
 import { Checkbox } from '../../atoms/form/Checkbox';
@@ -22,6 +23,34 @@ export function DateEditor({
   hidePlace?: boolean;
 }) {
   const set = (patch: Partial<DateDraft>) => onChange({ ...value, ...patch });
+  // Keep the date's own custom spellings selectable while editing: changing
+  // ABT back to none must not hide a modifier the record imported with.
+  const [original] = useState(() => ({
+    modifier: value.modifier,
+    calendar: value.calendar,
+    endCalendar: value.endCalendar,
+  }));
+  const customModifiers = [
+    ...new Set(
+      [value.modifier, original.modifier].filter(
+        (modifier) => modifier !== '' && !['ABT', 'CAL', 'EST'].includes(modifier),
+      ),
+    ),
+  ];
+  const customCalendars = [
+    ...new Set(
+      [value.calendar, original.calendar].filter(
+        (calendar) => calendar !== '' && !(CALENDARS as readonly string[]).includes(calendar),
+      ),
+    ),
+  ];
+  const customEndCalendars = [
+    ...new Set(
+      [value.endCalendar, original.endCalendar].filter(
+        (calendar) => calendar !== '' && !(CALENDARS as readonly string[]).includes(calendar),
+      ),
+    ),
+  ];
 
   return (
     <div className={styles['dateEditor']}>
@@ -101,9 +130,11 @@ export function DateEditor({
             <option value="ABT">{nls.t('features.tree.date.modifier.ABT')}</option>
             <option value="CAL">{nls.t('features.tree.date.modifier.CAL')}</option>
             <option value="EST">{nls.t('features.tree.date.modifier.EST')}</option>
-            {!['', 'ABT', 'CAL', 'EST'].includes(value.modifier) && (
-              <option value={value.modifier}>{value.modifier}</option>
-            )}
+            {customModifiers.map((modifier) => (
+              <option key={modifier} value={modifier}>
+                {modifier}
+              </option>
+            ))}
           </Select>
         </div>
       )}
@@ -165,9 +196,11 @@ export function DateEditor({
               )}
             </option>
           ))}
-          {!(CALENDARS as readonly string[]).includes(value.calendar) && value.calendar !== '' && (
-            <option value={value.calendar}>{value.calendar}</option>
-          )}
+          {customCalendars.map((calendar) => (
+            <option key={calendar} value={calendar}>
+              {calendar}
+            </option>
+          ))}
         </Select>
         <Checkbox
           label={nls.t('features.tree.date.bce')}
@@ -192,9 +225,11 @@ export function DateEditor({
                   )}
                 </option>
               ))}
-              {!(CALENDARS as readonly string[]).includes(value.endCalendar) && value.endCalendar !== '' && (
-                <option value={value.endCalendar}>{value.endCalendar}</option>
-              )}
+              {customEndCalendars.map((calendar) => (
+                <option key={calendar} value={calendar}>
+                  {calendar}
+                </option>
+              ))}
             </Select>
             <Checkbox
               label={nls.t('features.tree.date.bce')}

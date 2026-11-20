@@ -382,7 +382,7 @@ describe('P1 GEDCOM export gaps', () => {
       if (!serialized.ok) {
         return;
       }
-      expect(serialized.value).toContain('_DORU_ADOP_PHRASE: raised together');
+      expect(serialized.value).toContain('_DORU_ADOP raised together');
 
       importGedcomDataset(parseDataset(serialized.value), target.repo);
       const child = target.repo.listAllPersons().find((entry) => entry.facts.some((fact) => fact.tag === 'ADOP'))!;
@@ -428,6 +428,29 @@ describe('P1 GEDCOM export gaps', () => {
       const family = target.repo.listFamilies()[0]!;
       const link = family.childLinks?.[0];
       expect(link).toMatchObject({ status: 'disproven', multiplicity: 'TWIN', preferred: true });
+    } finally {
+      cleanupRepo(fixture);
+      cleanupRepo(target);
+    }
+  });
+
+  it('uses the structured task date when its phrase has trailing whitespace', () => {
+    const fixture = makeRepo();
+    const target = makeRepo();
+    try {
+      fixture.repo.insertTodo({
+        id: 'T1',
+        text: 'Task',
+        createdDate: { quality: 'exact', component: { year: 1900 }, text: 'recorded ' },
+      });
+      const serialized = serializeGedcom70(buildGedcomDataset(fixture.repo));
+      expect(serialized.ok).toBe(true);
+      if (!serialized.ok) {
+        return;
+      }
+      expect(serialized.value).toContain('json:');
+      importGedcomDataset(parseDataset(serialized.value), target.repo);
+      expect(target.repo.listTodos()[0]?.createdDate).toMatchObject({ quality: 'exact', text: 'recorded ' });
     } finally {
       cleanupRepo(fixture);
       cleanupRepo(target);

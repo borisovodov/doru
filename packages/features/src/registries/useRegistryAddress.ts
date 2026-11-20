@@ -63,17 +63,27 @@ export function useRegistryAddress(api: RegistriesEditorApi, addressId: string |
       try {
         await api.updateAddress(addressBefore, record);
       } catch (error) {
+        setAddressSaveFailed(true);
         // The stored address may have been deleted since it was loaded. Drop
         // the stale baseline so a retry recreates the row instead of calling
-        // the same doomed update forever.
-        if ((await api.getAddress(addressBefore.id)) === undefined) {
-          setAddressBefore(undefined);
+        // the same doomed update forever. A failed diagnostic lookup must not
+        // replace the original save error.
+        try {
+          if ((await api.getAddress(addressBefore.id)) === undefined) {
+            setAddressBefore(undefined);
+          }
+        } catch {
+          // The diagnostic is best effort; keep the stale baseline.
         }
-        setAddressSaveFailed(true);
         throw error;
       }
     } else {
-      await api.addAddress(record);
+      try {
+        await api.addAddress(record);
+      } catch (error) {
+        setAddressSaveFailed(true);
+        throw error;
+      }
     }
     setAddressSaveFailed(false);
     setAddress((current) => ({ ...current, id: record.id }));

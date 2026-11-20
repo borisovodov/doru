@@ -111,9 +111,22 @@ export class FamilyRepo {
           dateIds.add(status.date_id);
         }
       }
+      // Family-owned associations cascade with the family; their period dates
+      // become unreferenced and must be collected before the delete.
+      const associationDates = this.db
+        .prepare('SELECT period_start_id, period_end_id FROM association WHERE family_id = ?')
+        .all(id) as unknown as { period_start_id: string | null; period_end_id: string | null }[];
+      for (const row of associationDates) {
+        if (row.period_start_id !== null) {
+          dateIds.add(row.period_start_id);
+        }
+        if (row.period_end_id !== null) {
+          dateIds.add(row.period_end_id);
+        }
+      }
       const removed = this.db.prepare('DELETE FROM family WHERE id = ?').run(id).changes > 0;
       for (const dateId of dateIds) {
-        this.dates.delete(dateId);
+        this.dates.deleteIfUnused(dateId);
       }
       return removed;
     });

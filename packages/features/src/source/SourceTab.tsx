@@ -194,14 +194,37 @@ function SourceTabBody({
       return;
     }
     if (submitted !== undefined) {
-      // A save is still in flight: the submission is the real baseline, so
-      // edits made after clicking Save survive even when they restore the
-      // previous stored value, while untouched fields take the refresh.
-      setDraft(
-        JSON.stringify(draftRef.current) === JSON.stringify(submitted)
-          ? sourceToDraft(record)
-          : mergeSourceDraft(draftRef.current, submitted, sourceToDraft(record)),
-      );
+      // A save is still in flight. Keep every field the submitted draft
+      // changed, plus every post-submission edit, and take refreshed values
+      // only for fields that stayed exactly as submitted.
+      const draft = draftRef.current;
+      const refreshed = sourceToDraft(record);
+      if (previous === undefined) {
+        setDraft(draft);
+      } else {
+        const previousDraft = sourceToDraft(previous);
+        const merged: SourceDraft = { ...draft };
+        const changedInSubmission = (key: keyof SourceDraft): boolean =>
+          JSON.stringify(submitted[key]) !== JSON.stringify(previousDraft[key]);
+        const editedSinceSubmission = (key: keyof SourceDraft): boolean =>
+          JSON.stringify(draft[key]) !== JSON.stringify(submitted[key]);
+        for (const key of Object.keys(refreshed) as Array<keyof SourceDraft>) {
+          if (key === 'id' || Array.isArray(refreshed[key])) {
+            continue;
+          }
+          if (!changedInSubmission(key) && !editedSinceSubmission(key)) {
+            (merged as unknown as Record<string, unknown>)[key] = refreshed[key];
+          }
+        }
+        for (const key of ['texts', 'dataEvents', 'repositories', 'templateFields'] as const) {
+          if (!changedInSubmission(key) && !editedSinceSubmission(key)) {
+            (merged as unknown as Record<string, unknown>)[key] = refreshed[key];
+          } else if (editedSinceSubmission(key)) {
+            (merged as unknown as Record<string, unknown>)[key] = mergeSourceDraft(draft, submitted, refreshed)[key];
+          }
+        }
+        setDraft(merged);
+      }
     } else if (previous !== undefined) {
       if (sourceDraftMatches(draftRef.current, previous)) {
         setDraft(sourceToDraft(record));

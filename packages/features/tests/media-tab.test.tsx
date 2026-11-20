@@ -140,6 +140,49 @@ describe('MediaTab', () => {
     expect(screen.getByDisplayValue('Second title')).toBeInTheDocument();
   });
 
+  it('keeps post-submission edits when the save completion refreshes', async () => {
+    const pending = deferred();
+    const updateMedia = vi.fn(async () => pending.promise);
+    const api = stubApi<MediaAdminApi>({
+      updateMedia,
+      getMediaFor: async () => [],
+      getAllMedia: async () => [],
+    });
+    const media = (title: string, description: string) => [
+      { id: 'M1', title, description, absolutePath: '', files: [] },
+    ];
+    const view = renderUi(
+      <MediaTab
+        entityId="M1"
+        media={media('Old', 'X')}
+        api={api}
+        attachmentsApi={attachmentsStub()}
+        sources={[]}
+        targetData={targetData}
+        onClose={vi.fn()}
+      />,
+    );
+    fireEvent.change(screen.getByDisplayValue('Old'), { target: { value: 'New' } });
+    fireEvent.click(screen.getByRole('button', { name: nls.t('features.tree.save') }));
+    await waitFor(() => expect(updateMedia).toHaveBeenCalledTimes(1));
+    fireEvent.change(screen.getByDisplayValue('X'), { target: { value: 'Z' } });
+
+    view.rerender(
+      <MediaTab
+        entityId="M1"
+        media={media('New', 'Y')}
+        api={api}
+        attachmentsApi={attachmentsStub()}
+        sources={[]}
+        targetData={targetData}
+        onClose={vi.fn()}
+      />,
+    );
+    await act(async () => pending.resolve());
+    expect(screen.getByDisplayValue('New')).toBeInTheDocument();
+    expect(screen.getByDisplayValue('Z')).toBeInTheDocument();
+  });
+
   it('opens a source from the media-link sources panel', async () => {
     const openSource = vi.fn();
     const api = stubApi<MediaAdminApi>({

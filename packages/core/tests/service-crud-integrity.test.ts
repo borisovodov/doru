@@ -1441,6 +1441,26 @@ describe('TreeService CRUD integrity', () => {
     }
   });
 
+  it('preserves repeated additional-place occurrences when appending', () => {
+    const { fixture, service } = makeService();
+    const { repo } = fixture;
+    try {
+      service.addPerson({ id: 'P1', names: [], sex: 'U', facts: [] });
+      for (const id of ['A', 'B']) {
+        service.addPlace({ id, names: [{ id: `PN-${id}`, kind: 'official', position: 0, value: id }] });
+      }
+      service.addFact({ id: 'F1', personId: 'P1', tag: 'BIRT', additionalPlaceIds: ['A', 'A'] });
+      const before = repo.getPerson('P1')!;
+      service.updatePerson(before, {
+        ...before,
+        facts: [{ ...before.facts[0]!, additionalPlaceIds: ['A', 'A', 'B'] }],
+      });
+      expect(repo.getPerson('P1')?.facts[0]?.additionalPlaceIds).toEqual(['A', 'A', 'B']);
+    } finally {
+      cleanupRepo(fixture);
+    }
+  });
+
   it('remaps an adoption slot when family partners are reordered', () => {
     const { fixture, service } = makeService();
     const { repo } = fixture;

@@ -30,6 +30,10 @@ export function updateFactOp(before: FactRecord, after: FactRecord): Op {
     inverse(ctx) {
       ctx.repo.updateFact(before);
     },
+    redoSafe(ctx) {
+      const current = ctx.repo.getFact(before.id);
+      return current !== undefined && sameRecord(current, before);
+    },
   };
 }
 

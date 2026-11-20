@@ -10,6 +10,7 @@ function op(
   inverse: Op['inverse'],
   change?: Op['change'],
   redoSafe?: NonNullable<Op['redoSafe']>,
+  snapshots?: AttachmentsSnapshot[],
 ): Op {
   return {
     id,
@@ -17,6 +18,7 @@ function op(
     timestamp: new Date().toISOString(),
     ...(change ? { change } : {}),
     ...(redoSafe ? { redoSafe } : {}),
+    ...(snapshots ? { snapshots } : {}),
     apply,
     inverse,
   };
@@ -85,6 +87,7 @@ export function deleteAssociationOp(
         attachmentsMatch(ctx, 'association', association.id, attachments)
       );
     },
+    [attachments],
   );
 }
 
@@ -156,6 +159,7 @@ export function deleteTodoOp(todo: TodoRecord, attachments: AttachmentsSnapshot 
       ctx.repo.getTodo(todo.id) !== undefined &&
       sameRecord(ctx.repo.getTodo(todo.id), baseline) &&
       attachmentsMatch(ctx, 'todo', todo.id, attachments),
+    [attachments],
   );
 }
 
@@ -226,5 +230,6 @@ export function deleteTitleOp(
         .sort();
       return JSON.stringify(captured) === JSON.stringify(live);
     },
+    [attachments],
   );
 }

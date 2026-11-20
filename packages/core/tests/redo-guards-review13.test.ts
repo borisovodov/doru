@@ -78,6 +78,7 @@ describe('redo guards for nested attachment targets', () => {
       const link = repo.listAttachmentsFor('person', 'P1').mediaLinks[0]!.link;
       service.detachMedia(link);
       service.undo();
+      expect(repo.getMedia('M1')?.links?.map((entry) => entry.id)).toEqual([link.id]);
       repo.insertCitation({ id: 'C2', sourceId: 'S1', targetType: 'media_link', targetId: link.id });
       expect(service.redo().redoBlocked).toBe(true);
     } finally {
@@ -432,6 +433,194 @@ describe('redo guards for nested attachment targets', () => {
       repo.insertFamily(family('F2', { partners: ['P2'], children: ['P1'] }));
       expect(service.redo().redoBlocked).toBe(true);
       expect(repo.getFamily('F1')).toBeUndefined();
+    } finally {
+      cleanupRepo(fixture);
+    }
+  });
+
+  it('handles a fact deleted before its edit is redone', () => {
+    const { fixture, service } = makeService();
+    const { repo } = fixture;
+    try {
+      service.addPerson(person('P1'));
+      service.addFact({ id: 'F1', personId: 'P1', tag: 'EVEN' });
+      service.updateFact(repo.getFact('F1')!, { ...repo.getFact('F1')!, value: 'edited' });
+      service.undo();
+      repo.deleteFact('F1');
+      const state = service.redo();
+      expect(state.redoBlocked).toBe(true);
+    } finally {
+      cleanupRepo(fixture);
+    }
+  });
+
+  it('allows place redo after a fact moved to another place before undo', () => {
+    const { fixture, service } = makeService();
+    const { repo } = fixture;
+    try {
+      service.addPerson(person('P1'));
+      service.addPlace({ id: 'PL1', names: [{ id: 'PN1', kind: 'official', position: 0, value: 'A' }] });
+      service.addPlace({ id: 'PL2', names: [{ id: 'PN2', kind: 'official', position: 0, value: 'B' }] });
+      service.addFact({ id: 'F1', personId: 'P1', tag: 'BIRT', placeId: 'PL1' });
+      service.deletePlace(repo.getPlace('PL1')!);
+      repo.updateFact({ ...repo.getFact('F1')!, placeId: 'PL2' });
+      service.undo();
+      expect(repo.getFact('F1')?.placeId).toBe('PL2');
+      expect(service.redo().redoBlocked).toBeUndefined();
+      expect(repo.getPlace('PL1')).toBeUndefined();
+      expect(repo.getFact('F1')?.placeId).toBe('PL2');
+    } finally {
+      cleanupRepo(fixture);
+    }
+  });
+
+  it('blocks place redo when a newer change row was recorded after undo', () => {
+    const { fixture, service } = makeService();
+    const { repo } = fixture;
+    try {
+      service.addPlace({ id: 'PL1', names: [{ id: 'PN1', kind: 'official', position: 0, value: 'A' }] });
+      service.deletePlace(repo.getPlace('PL1')!);
+      service.undo();
+      repo.insertChange({ id: 'CH1', targetType: 'place', targetId: 'PL1', kind: 'changed' });
+      expect(service.redo().redoBlocked).toBe(true);
+    } finally {
+      cleanupRepo(fixture);
+    }
+  });
+
+  it('blocks family redo when the adoption marker moved before undo', () => {
+    const { fixture, service } = makeService();
+    const { repo } = fixture;
+    try {
+      service.addPerson(person('A'));
+      service.addPerson(person('B'));
+      service.addPerson(person('C'));
+      service.addFamily(family('F1', { partners: ['A', 'B'], children: ['C'] }));
+      service.addFact({
+        id: 'ADOP1',
+        personId: 'C',
+        tag: 'ADOP',
+        familyLinks: [{ id: 'FF1', familyId: 'F1', adoptedBy: 'HUSB', position: 0 }],
+      });
+      const before = repo.getFamily('F1')!;
+      service.updateFamily(before, { ...before, partners: ['B', 'A'] });
+      service.undo();
+      repo.updateFact({
+        ...repo.getFact('ADOP1')!,
+        familyLinks: [{ id: 'FF1', familyId: 'F1', adoptedBy: 'WIFE', position: 0 }],
+      });
+      expect(service.redo().redoBlocked).toBe(true);
+      expect(repo.getFamily('F1')?.partners).toEqual(['A', 'B']);
+    } finally {
+      cleanupRepo(fixture);
+    }
+  });
+
+  it('blocks media redo when a removed file gained evidence after undo', () => {
+    const { fixture, service } = makeService();
+    const { repo } = fixture;
+    try {
+      service.addSource({ id: 'S1', title: 'Book' });
+      service.addMedia({ id: 'M1', title: 'Photo', files: [{ id: 'MF1', path: 'media/a.jpg' }] });
+      const before = repo.getMedia('M1')!;
+      service.updateMedia(before, { ...before, files: [] });
+      service.undo();
+      repo.insertCitation({ id: 'C1', sourceId: 'S1', targetType: 'media_file', targetId: 'MF1' });
+      expect(service.redo().redoBlocked).toBe(true);
+    } finally {
+      cleanupRepo(fixture);
+    }
+  });
+
+  it('allows tag redo when a linked person vanished before undo', () => {
+    const { fixture, service } = makeService();
+    const { repo } = fixture;
+    try {
+      service.addPerson(person('P1'));
+      service.addTag({ id: 'TAG1', name: 'Family' });
+      service.attachTag({ id: 'TL1', tagId: 'TAG1', targetType: 'person', targetId: 'P1' });
+      service.deleteTag(repo.listTags()[0]!);
+      repo.deletePerson('P1');
+      service.undo();
+      expect(repo.listTagLinksByTag('TAG1')).toEqual([]);
+      expect(service.redo().redoBlocked).toBeUndefined();
+      expect(repo.listTags()).toEqual([]);
+    } finally {
+      cleanupRepo(fixture);
+    }
+  });
+
+  it('allows submitter redo when a linked person vanished before undo', () => {
+    const { fixture, service } = makeService();
+    const { repo } = fixture;
+    try {
+      service.addPerson(person('P1'));
+      service.addSubmitter({ id: 'SU1', name: 'Researcher' });
+      service.addRecordSubmitter('SU1', 'person', 'P1');
+      service.deleteSubmitter(repo.getSubmitter('SU1')!);
+      repo.deletePerson('P1');
+      service.undo();
+      expect(repo.getSubmitter('SU1')?.id).toBe('SU1');
+      expect(repo.listRecordSubmittersForSubmitter('SU1')).toEqual([]);
+      expect(service.redo().redoBlocked).toBeUndefined();
+      expect(repo.getSubmitter('SU1')).toBeUndefined();
+    } finally {
+      cleanupRepo(fixture);
+    }
+  });
+
+  it('allows source redo when a cited source vanished before undo', () => {
+    const { fixture, service } = makeService();
+    const { repo } = fixture;
+    try {
+      service.addSource({ id: 'S1', title: 'Book' });
+      service.addSource({ id: 'S2', title: 'Other' });
+      service.attachSource('S1', 'source', 'S2');
+      service.deleteSource(repo.getSource('S1')!);
+      repo.deleteSource('S2');
+      service.undo();
+      expect(repo.getSource('S1')).toBeDefined();
+      expect(repo.listAllCitations()).toEqual([]);
+      expect(service.redo().redoBlocked).toBeUndefined();
+      expect(repo.getSource('S1')).toBeUndefined();
+    } finally {
+      cleanupRepo(fixture);
+    }
+  });
+
+  it('allows address redo after a consumer moved to another address before undo', () => {
+    const { fixture, service } = makeService();
+    const { repo } = fixture;
+    try {
+      service.addAddress({ id: 'A1', lines: [] });
+      service.addAddress({ id: 'A2', lines: [] });
+      service.addRepository({ id: 'R1', name: 'Archive', addressId: 'A1' });
+      service.deleteAddress(repo.getAddress('A1')!);
+      repo.updateRepository({ ...repo.getRepository('R1')!, addressId: 'A2' });
+      service.undo();
+      expect(repo.getRepository('R1')?.addressId).toBe('A2');
+      expect(service.redo().redoBlocked).toBeUndefined();
+      expect(repo.getAddress('A1')).toBeUndefined();
+    } finally {
+      cleanupRepo(fixture);
+    }
+  });
+
+  it('allows person redo when a cited source vanished before undo', () => {
+    const { fixture, service } = makeService();
+    const { repo } = fixture;
+    try {
+      service.addPerson(person('P1'));
+      service.addSource({ id: 'S1', title: 'Book' });
+      service.addFact({ id: 'F1', personId: 'P1', tag: 'BIRT' });
+      service.attachSource('S1', 'fact', 'F1');
+      service.deletePerson(repo.getPerson('P1')!);
+      repo.deleteSource('S1');
+      service.undo();
+      expect(repo.getPerson('P1')).toBeDefined();
+      expect(repo.listAttachmentsFor('fact', 'F1').citations).toEqual([]);
+      expect(service.redo().redoBlocked).toBeUndefined();
+      expect(repo.getPerson('P1')).toBeUndefined();
     } finally {
       cleanupRepo(fixture);
     }

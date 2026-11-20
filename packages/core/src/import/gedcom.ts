@@ -1,4 +1,4 @@
-import { ADOPTION_PHRASE_PREFIX } from '../gedcomPhraseMarker';
+import { ADOPTION_PHRASE_TAG } from '../gedcomPhraseMarker';
 import type {
   Calendar,
   DateFields,
@@ -699,12 +699,7 @@ function importPerson(record: GedcomIndividualRecord, ctx: ImportContext): void 
       return;
     }
     importCitations(structure.detail?.citations, 'fact', fact.id, ctx);
-    importNotes(
-      structure.tag === 'ADOP' ? factNotes(structure.detail?.notes) : structure.detail?.notes,
-      'fact',
-      fact.id,
-      ctx,
-    );
+    importNotes(structure.detail?.notes, 'fact', fact.id, ctx);
     if (structure.tag === 'WILL') {
       // WILL.TEXT is normalized into ordinary notes on the fact; export
       // writes them back as NOTE (see docs/decisions.md).
@@ -785,23 +780,24 @@ interface EventFamilyRef {
       }
     | undefined;
   familyChild?: string | undefined;
+  extensions?: ExtensionStructure[] | undefined;
 }
 
 function queueFactFamily(
   structure: EventFamilyRef | undefined,
   factId: string,
   ctx: ImportContext,
-  notes?: NoteStructure[],
+  detail?: EventDetail,
 ): void {
   if (structure?.adoptionFamily !== undefined) {
-    const marker = notes?.find((note) => 'payload' in note && note.payload.startsWith(ADOPTION_PHRASE_PREFIX));
-    const markerPhrase =
-      marker !== undefined && 'payload' in marker ? marker.payload.slice(ADOPTION_PHRASE_PREFIX.length) : undefined;
+    const marker =
+      structure.extensions?.find((entry) => entry.tag === ADOPTION_PHRASE_TAG) ??
+      detail?.extensions?.find((entry) => entry.tag === ADOPTION_PHRASE_TAG);
     ctx.pendingFactFamilies.push({
       factId,
       familyXref: structure.adoptionFamily.family,
       adoptedBy: structure.adoptionFamily.adoption?.payload as 'HUSB' | 'WIFE' | 'BOTH' | undefined,
-      phrase: structure.adoptionFamily.adoption?.phrase ?? markerPhrase,
+      phrase: structure.adoptionFamily.adoption?.phrase ?? marker?.payload,
       position: 0,
     });
     return;
@@ -829,14 +825,6 @@ function linkFactFamilies(ctx: ImportContext): void {
   }
 }
 
-function factNotes(notes: NoteStructure[] | undefined): NoteStructure[] | undefined {
-  if (notes === undefined) {
-    return undefined;
-  }
-  const filtered = notes.filter((note) => !('payload' in note && note.payload.startsWith(ADOPTION_PHRASE_PREFIX)));
-  return filtered.length === notes.length ? notes : filtered;
-}
-
 function mapFact(
   base: {
     id: string;
@@ -851,7 +839,7 @@ function mapFact(
   ctx: ImportContext,
   structure?: EventFamilyRef,
 ): FactRecord {
-  queueFactFamily(structure, base.id, ctx, detail?.notes);
+  queueFactFamily(structure, base.id, ctx, detail);
   importMediaLinks(detail?.media, 'fact', base.id, ctx);
   importRestrictions(detail?.restriction, 'fact', base.id, ctx);
   importIdentifiers(
@@ -933,7 +921,7 @@ function factFlags(detail: EventDetail | undefined): FactFlag[] | undefined {
   if (flags === undefined || flags.length === 0) {
     return undefined;
   }
-  return flags.map((flag) => GEDCOM_TO_CORE_FACT_FLAG[flag]);
+  return [...new Set(flags.map((flag) => GEDCOM_TO_CORE_FACT_FLAG[flag]))];
 }
 
 function mapAges(age: AgeStructure | undefined): FactRecord['ages'] {
@@ -1491,9 +1479,11 @@ function parseStructuredComponent(value: unknown): NonNullable<DateValue['compon
   const record = value as Record<string, unknown>;
   if (
     (record['calendar'] !== undefined && typeof record['calendar'] !== 'string') ||
-    (record['year'] !== undefined && typeof record['year'] !== 'number') ||
-    (record['month'] !== undefined && typeof record['month'] !== 'number' && typeof record['month'] !== 'string') ||
-    (record['day'] !== undefined && typeof record['day'] !== 'number') ||
+    (record['year'] !== undefined && (typeof record['year'] !== 'number' || !Number.isInteger(record['year']))) ||
+    (record['month'] !== undefined &&
+      ((typeof record['month'] !== 'number' && typeof record['month'] !== 'string') ||
+        (typeof record['month'] === 'number' && !Number.isInteger(record['month'])))) ||
+    (record['day'] !== undefined && (typeof record['day'] !== 'number' || !Number.isInteger(record['day']))) ||
     (record['epoch'] !== undefined && record['epoch'] !== 'BCE')
   ) {
     return null;
@@ -2186,9 +2176,8 @@ function linkMediaPlaces(ctx: ImportContext): void {
       continue;
     }
     const placeId = ctx.placeIds.get(placeText);
-    const media = ctx.repo.getMedia(mediaId);
-    if (placeId !== undefined && media !== undefined) {
-      ctx.repo.updateMedia({ ...media, placeId });
+    if (placeId !== undefined) {
+      ctx.repo.setMediaPlaceId(mediaId, placeId);
     }
   }
 }

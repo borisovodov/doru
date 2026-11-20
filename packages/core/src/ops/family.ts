@@ -37,9 +37,38 @@ export function updateFamilyOp(
     kind: 'family.update',
     timestamp: new Date().toISOString(),
     change: { targetType: 'family', targetId: before.id, kind: 'changed' },
+    snapshots: removedLinkAttachments.map((link) => link.attachments),
     apply(ctx) {
       ctx.repo.updateFamily(after);
       applyAdoptionUpdates(ctx, adoptionUpdates, 'after');
+    },
+    redoSafe(ctx) {
+      const current = ctx.repo.getFamily(before.id);
+      if (current === undefined || !sameRecord(current, before)) {
+        return false;
+      }
+      // The partner reorder and its adoption remap are one edit: if another
+      // writer moved the marker, replaying the order would leave it on the
+      // wrong parent.
+      for (const update of adoptionUpdates) {
+        const fact = ctx.repo.getFact(update.after.id);
+        if (fact === undefined) {
+          return false;
+        }
+        for (const desired of update.after.familyLinks ?? []) {
+          const expected = (update.before.familyLinks ?? []).find((link) => link.id === desired.id);
+          const live = (fact.familyLinks ?? []).find((link) => link.id === desired.id);
+          if (expected === undefined) {
+            if (live !== undefined) {
+              return false;
+            }
+          } else if (live === undefined || live.adoptedBy !== expected.adoptedBy) {
+            return false;
+          }
+        }
+      }
+      const graph = [...ctx.repo.listFamilies().filter((entry) => entry.id !== after.id), after];
+      return !familyHasCycle(after, graph);
     },
     inverse(ctx) {
       ctx.repo.updateFamily(before);
@@ -255,4 +284,51 @@ function applyAdoptionUpdates(
     });
     ctx.repo.updateFact({ ...current, familyLinks });
   }
+}
+
+function activeChildIds(family: FamilyRecord): string[] {
+  return family.childLinks !== undefined
+    ? family.childLinks.filter((link) => link.status !== 'disproven').map((link) => link.childId)
+    : family.children;
+}
+
+function partnerIds(family: FamilyRecord): string[] {
+  return family.partnerLinks !== undefined ? family.partnerLinks.map((link) => link.personId) : family.partners;
+}
+
+function familyHasCycle(family: FamilyRecord, graph: FamilyRecord[]): boolean {
+  for (const childId of activeChildIds(family)) {
+    for (const parentId of partnerIds(family)) {
+      if (isAncestor(childId, parentId, graph)) {
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
+function isAncestor(ancestorId: string, personId: string, graph: FamilyRecord[]): boolean {
+  if (ancestorId === personId) {
+    return true;
+  }
+  const seen = new Set<string>();
+  const stack = [personId];
+  while (stack.length > 0) {
+    const current = stack.pop() as string;
+    for (const family of graph) {
+      if (!activeChildIds(family).includes(current)) {
+        continue;
+      }
+      for (const parent of partnerIds(family)) {
+        if (parent === ancestorId) {
+          return true;
+        }
+        if (!seen.has(parent)) {
+          seen.add(parent);
+          stack.push(parent);
+        }
+      }
+    }
+  }
+  return false;
 }

@@ -1,7 +1,7 @@
 import type { AttachmentsSnapshot, MediaRecord } from '../model/types';
 import { emptyAttachments } from '../model/types';
 import type { NestedAttachments, Op } from './op';
-import { attachmentsMatch, restoreMedia, sameRecord } from './restore';
+import { attachmentTargetExists, attachmentsMatch, restoreMedia, sameRecord } from './restore';
 
 export function addMediaOp(media: MediaRecord): Op {
   return {
@@ -19,19 +19,40 @@ export function addMediaOp(media: MediaRecord): Op {
 }
 
 export function updateMediaOp(before: MediaRecord, after: MediaRecord, fileAttachments: NestedAttachments[] = []): Op {
+  let baseline = before;
+  let fileBaseline = fileAttachments;
   return {
     id: crypto.randomUUID(),
     kind: 'media.update',
     timestamp: new Date().toISOString(),
     change: { targetType: 'media', targetId: before.id, kind: 'changed' },
+    snapshots: [...fileAttachments.map((nested) => nested.attachments)],
     apply(ctx) {
       ctx.repo.updateMedia(after);
     },
     inverse(ctx) {
       ctx.repo.updateMedia(before);
+      baseline = ctx.repo.getMedia(before.id) ?? before;
       for (const nested of fileAttachments) {
         ctx.repo.restoreAttachments(nested.attachments);
       }
+      fileBaseline = fileAttachments
+        .filter((nested) => attachmentTargetExists(ctx, nested.targetType, nested.targetId))
+        .map((nested) => ({
+          ...nested,
+          attachments: ctx.repo.listAttachmentsFor(nested.targetType, nested.targetId),
+        }));
+    },
+    redoSafe(ctx) {
+      const current = ctx.repo.getMedia(before.id);
+      if (current === undefined || !sameRecord(current, baseline)) {
+        return false;
+      }
+      return fileBaseline.every(
+        (nested) =>
+          !attachmentTargetExists(ctx, nested.targetType, nested.targetId) ||
+          attachmentsMatch(ctx, nested.targetType, nested.targetId, nested.attachments),
+      );
     },
   };
 }

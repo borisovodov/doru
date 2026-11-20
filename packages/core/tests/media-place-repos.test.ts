@@ -26,6 +26,7 @@ describe('media repo edge cases', () => {
     const fixture = makeRepo();
     try {
       const { repo } = fixture;
+      repo.insertPerson({ id: 'P1', names: [], sex: 'U', facts: [] });
       repo.insertPlace({ id: 'PL1', names: [{ id: 'PN1', kind: 'official', position: 0, value: 'Moscow' }] });
       repo.insertMedia({
         id: 'M1',
@@ -46,6 +47,7 @@ describe('media repo edge cases', () => {
       const restored = repo.getMedia('M1')!;
       expect(restored.place).toBe('Moscow');
       expect(restored.placeId).toBeUndefined();
+      expect(restored.links?.map((link) => link.targetId)).toEqual(['P1']);
     } finally {
       cleanupRepo(fixture);
     }

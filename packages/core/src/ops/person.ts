@@ -27,6 +27,7 @@ export function updatePersonOp(
     kind: 'person.update',
     timestamp: new Date().toISOString(),
     change: { targetType: 'person', targetId: before.id, kind: 'changed' },
+    snapshots: removedAttachments.map((nested) => nested.attachments),
     apply(ctx) {
       ctx.repo.updatePerson(after);
     },
@@ -39,7 +40,16 @@ export function updatePersonOp(
     redoSafe(ctx) {
       // Redo writes the saved aggregate; refuse if another writer changed the
       // person since the undo, so their facts and links are not overwritten.
-      return sameRecord(ctx.repo.getPerson(before.id), before);
+      if (!sameRecord(ctx.repo.getPerson(before.id), before)) {
+        return false;
+      }
+      // The edit removes these rows; new evidence on a row that undo brought
+      // back would be deleted by the replay.
+      return removedAttachments.every(
+        (nested) =>
+          !attachmentTargetExists(ctx, nested.targetType, nested.targetId) ||
+          attachmentsMatch(ctx, nested.targetType, nested.targetId, nested.attachments),
+      );
     },
   };
 }
@@ -64,6 +74,7 @@ export function deletePersonOp(
   let attachmentBaseline = attachments;
   let baselineAssociations = associations;
   let baselineParticipants = participants;
+  let baselineNestedAttachments = nestedAttachments;
   return {
     id: crypto.randomUUID(),
     kind: 'person.delete',
@@ -88,7 +99,7 @@ export function deletePersonOp(
       if (!attachmentsMatch(ctx, 'person', person.id, attachmentBaseline)) {
         return false;
       }
-      for (const nested of nestedAttachments) {
+      for (const nested of baselineNestedAttachments) {
         if (
           attachmentTargetExists(ctx, nested.targetType, nested.targetId) &&
           !attachmentsMatch(ctx, nested.targetType, nested.targetId, nested.attachments)
@@ -204,6 +215,12 @@ export function deletePersonOp(
       attachmentBaseline = ctx.repo.listAttachmentsFor('person', person.id);
       baselineAssociations = ctx.repo.listAssociationsFor(person.id);
       baselineParticipants = ctx.repo.listParticipantsForPerson(person.id);
+      baselineNestedAttachments = nestedAttachments
+        .filter((nested) => attachmentTargetExists(ctx, nested.targetType, nested.targetId))
+        .map((nested) => ({
+          ...nested,
+          attachments: ctx.repo.listAttachmentsFor(nested.targetType, nested.targetId),
+        }));
     },
   };
 }

@@ -70,9 +70,28 @@ describe('typed extension fallbacks', () => {
   test('keeps an unknown certainty value as an extension', () => {
     const text = [...HEAD551, '0 @S1@ SOUR', '1 TITL Book', '1 _QUAY high', '0 TRLR', ''].join('\n');
     const dataset = parse(text, '551');
+    const source = dataset.records.find((record) => record.tag === 'SOUR');
+    expect(source?.certainty).toBeUndefined();
+    expect(source?.extensions).toEqual([expect.objectContaining({ tag: '_QUAY', payload: 'high' })]);
     const out = serialize(dataset, '551');
     expect(out).toContain('1 _QUAY high');
     expect(serialize(parse(out, '551'), '551')).toContain('1 _QUAY high');
+  });
+
+  test('keeps underscore certainty in the typed field', () => {
+    const text = [...HEAD551, '0 @S1@ SOUR', '1 TITL Book', '1 _QUAY _HIGH', '0 TRLR', ''].join('\n');
+    const dataset = parse(text, '551');
+    expect(dataset.records.find((record) => record.tag === 'SOUR')?.certainty).toBe('_HIGH');
+    expect(serialize(dataset, '551')).toContain('1 _QUAY _HIGH');
+  });
+
+  test('preserves a pointer certainty through the extension path', () => {
+    const text = [...HEAD551, '0 @S1@ SOUR', '1 TITL Book', '1 _QUAY @X1@', '0 TRLR', ''].join('\n');
+    const dataset = parse(text, '551');
+    expect(dataset.records.find((record) => record.tag === 'SOUR')?.extensions).toEqual([
+      expect.objectContaining({ tag: '_QUAY', payload: '@X1@', payloadKind: 'pointer' }),
+    ]);
+    expect(serialize(dataset, '551')).toContain('1 _QUAY @X1@');
   });
 
   test('keeps void repository children in 7.0 but not in 5.5.1', () => {

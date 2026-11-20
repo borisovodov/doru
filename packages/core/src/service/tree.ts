@@ -102,6 +102,7 @@ import {
   type FamilyLinkAttachments,
 } from '../ops';
 import { OpQueue, type NestedAttachments, type Op } from '../ops/op';
+import { attachmentsMatch, sameRecord } from '../ops/restore';
 
 export type RelativeRelation = 'child' | 'spouse' | 'parent';
 
@@ -252,7 +253,7 @@ export class TreeService {
         this.repo.transaction(() => {
           // Record before the inverse mutates the tree: recording afterwards
           // would leave a change row for a target the inverse just deleted.
-          this.recordChange(pending, 'changed');
+          this.recordChange(pending, 'changed', true);
           pending.inverse({ repo: this.repo });
         });
       } catch (error) {
@@ -282,7 +283,7 @@ export class TreeService {
         for (const snapshot of pending.snapshots ?? []) {
           this.repo.bindSnapshots(snapshot);
         }
-        this.recordChange(pending, 'changed');
+        this.recordChange(pending, 'changed', true);
         pending.apply({ repo: this.repo });
         return true;
       });
@@ -486,15 +487,12 @@ export class TreeService {
           return false;
         }
         for (const link of linkAttachments) {
-          if (
-            JSON.stringify(ctx.repo.listAttachmentsFor(link.targetType, link.targetId)) !==
-            JSON.stringify(link.attachments)
-          ) {
+          if (!attachmentsMatch(ctx, link.targetType, link.targetId, link.attachments)) {
             return false;
           }
         }
         for (const link of links) {
-          if (JSON.stringify(ctx.repo.getFamily(link.before.id)) !== JSON.stringify(link.before)) {
+          if (!sameRecord(ctx.repo.getFamily(link.before.id), link.before)) {
             return false;
           }
         }
@@ -922,8 +920,13 @@ export class TreeService {
    */
   detachNote(note: NoteRecord, link: NoteLinkRecord): UndoRedoState {
     return this.applyAfterCommit(() => {
-      const attachments = this.repo.listAttachmentsFor('note', note.id);
-      return detachNoteOp(note, link, attachments);
+      const current = this.repo.getNote(note.id);
+      const storedLink = current?.links?.find((entry) => entry.id === link.id);
+      if (current === undefined || storedLink === undefined) {
+        return undefined;
+      }
+      const attachments = this.repo.listAttachmentsFor('note', current.id);
+      return detachNoteOp(current, storedLink, attachments);
     });
   }
 
@@ -1034,9 +1037,12 @@ export class TreeService {
   detachMedia(link: MediaLinkRecord): UndoRedoState {
     return this.applyAfterCommit(() => {
       const media = this.repo.getMedia(link.mediaId);
-      const stored = media?.links?.find((entry) => entry.id === link.id) ?? link;
+      const stored = media?.links?.find((entry) => entry.id === link.id);
+      if (media === undefined || stored === undefined) {
+        return undefined;
+      }
       const attachments = this.repo.listAttachmentsFor('media', link.mediaId);
-      const fileAttachments = (media?.files ?? []).map((file) => ({
+      const fileAttachments = (media.files ?? []).map((file) => ({
         targetType: 'media_file',
         targetId: file.id,
         attachments: this.repo.listAttachmentsFor('media_file', file.id),
@@ -1533,17 +1539,35 @@ export class TreeService {
             merged[key] = storedPlaces.length > 0 ? storedPlaces : undefined;
             continue;
           }
-          const removed = new Set(baseline.filter((id) => !draft.includes(id)));
+          // Occurrences are ordered rows, not unique ids: [P, P] + appended Q
+          // must stay [P, P, Q]. Preserve concurrent removals and additions
+          // by comparing multiplicities instead of a set difference.
+          const count = (list: string[], id: string): number => list.filter((entry) => entry === id).length;
+          const outputCounts = new Map<string, number>();
+          const ids = new Set([...draft, ...storedPlaces, ...baseline]);
+          for (const id of ids) {
+            const draftCount = count(draft, id);
+            const baselineCount = count(baseline, id);
+            const storedCount = count(storedPlaces, id);
+            const keptFromBaseline = Math.min(draftCount, storedCount);
+            const draftAdded = Math.max(0, draftCount - baselineCount);
+            const storedAdded = Math.max(0, storedCount - baselineCount);
+            outputCounts.set(id, keptFromBaseline + Math.max(draftAdded, storedAdded));
+          }
           const mergedPlaces: string[] = [];
-          for (const id of draft) {
-            if (!removed.has(id) && !mergedPlaces.includes(id)) {
+          const emitted = new Map<string, number>();
+          const emit = (id: string): void => {
+            const target = outputCounts.get(id) ?? 0;
+            if ((emitted.get(id) ?? 0) < target) {
               mergedPlaces.push(id);
+              emitted.set(id, (emitted.get(id) ?? 0) + 1);
             }
+          };
+          for (const id of draft) {
+            emit(id);
           }
           for (const id of storedPlaces) {
-            if (!mergedPlaces.includes(id) && !baseline.includes(id)) {
-              mergedPlaces.push(id);
-            }
+            emit(id);
           }
           merged[key] = mergedPlaces.length > 0 ? mergedPlaces : undefined;
           continue;
@@ -1812,13 +1836,14 @@ export class TreeService {
    * before the mutation; the row disappears with the entity when the op
    * deletes it and is restored from the op's attachment snapshot on undo.
    */
-  private recordChange(op: Op, kind: 'created' | 'changed'): void {
+  private recordChange(op: Op, kind: 'created' | 'changed', replay = false): void {
     if (!op.change) {
       return;
     }
     const now = new Date();
+    const id = crypto.randomUUID();
     this.repo.insertChange({
-      id: crypto.randomUUID(),
+      id,
       targetType: op.change.targetType,
       targetId: op.change.targetId,
       kind,
@@ -1833,6 +1858,9 @@ export class TreeService {
         time: { hour: now.getHours(), minute: now.getMinutes(), second: now.getSeconds() },
       },
     });
+    if (replay) {
+      this.repo.markReplayChange(id);
+    }
   }
 
   private historyState(): UndoRedoState {

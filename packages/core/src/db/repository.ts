@@ -204,6 +204,9 @@ export interface TreeRepository {
   listIdentifiersFor(targetType: string, targetId: string): IdentifierRecord[];
   insertChange(change: ChangeRecord): void;
   listChangesFor(targetType: string, targetId: string): ChangeRecord[];
+  /** Marks a change row written by an undo/redo replay, not by a user edit. */
+  markReplayChange(id: string): void;
+  isReplayChange(id: string): boolean;
   insertContact(contact: ContactRecord): void;
   deleteContact(id: string): boolean;
   updateContact(contact: ContactRecord): void;
@@ -221,6 +224,7 @@ export interface TreeRepository {
   updateTagLink(link: TagLinkRecord): void;
   listTagLinksFor(targetType: string, targetId: string): Array<{ tagId: string; link: TagLinkRecord }>;
   listTagLinksByTag(tagId: string): TagLinkRecord[];
+  getTagLink(id: string): TagLinkRecord | undefined;
   /** Every tag link in the tree, for the global tag registry. */
   listAllTagLinks(): TagLinkRecord[];
   insertAssociation(association: AssociationRecord): void;
@@ -270,6 +274,7 @@ export interface TreeRepository {
 export class SqliteTreeRepository implements TreeRepository {
   private readonly transactions: TransactionScope;
   private readonly snapshotMarkers = new WeakMap<object, Set<string>>();
+  private readonly replayChangeIds = new Set<string>();
   private readonly transactionFrames: Set<string>[] = [];
   private readonly restoreScopes: Set<AttachmentsSnapshot>[] = [];
   private readonly persons: PersonRepo;
@@ -1034,6 +1039,14 @@ export class SqliteTreeRepository implements TreeRepository {
     return this.attachments.listChangesFor(targetType, targetId);
   }
 
+  markReplayChange(id: string): void {
+    this.replayChangeIds.add(id);
+  }
+
+  isReplayChange(id: string): boolean {
+    return this.replayChangeIds.has(id);
+  }
+
   insertContact(contact: ContactRecord): void {
     this.attachments.insertContact(contact);
   }
@@ -1102,6 +1115,10 @@ export class SqliteTreeRepository implements TreeRepository {
 
   listTagLinksByTag(tagId: string): TagLinkRecord[] {
     return this.attachments.listTagLinksByTag(tagId);
+  }
+
+  getTagLink(id: string): TagLinkRecord | undefined {
+    return this.attachments.getTagLink(id);
   }
 
   listAllTagLinks(): TagLinkRecord[] {

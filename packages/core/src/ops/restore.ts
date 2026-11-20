@@ -293,7 +293,7 @@ export function attachmentsMatch(
   targetId: string,
   captured: AttachmentsSnapshot,
 ): boolean {
-  const direct = (snapshot: AttachmentsSnapshot, isRoot: boolean): unknown => ({
+  const direct = (snapshot: AttachmentsSnapshot): unknown => ({
     noteLinks: snapshot.noteLinks
       .map((entry) => [entry.link.id, JSON.stringify({ ...entry.note, links: undefined })])
       .sort(),
@@ -307,11 +307,11 @@ export function attachmentsMatch(
     identifiers: snapshot.identifiers.map((entry) => JSON.stringify(entry)).sort(),
     contacts: snapshot.contacts.map((entry) => JSON.stringify(entry)).sort(),
     restrictions: snapshot.restrictions.map((entry) => JSON.stringify(entry)).sort(),
-    // Undo records a change row on the replayed target itself; that
-    // bookkeeping must not block an otherwise unchanged redo. Changes on
-    // nested rows are real edits that the redo would delete.
+    // Undo/redo record a change row on the replayed target itself; that
+    // bookkeeping must not block an otherwise unchanged redo. Every other
+    // change row is a real edit that the redo would delete.
     changes: snapshot.changes
-      .filter((change) => !(isRoot && change.targetType === targetType && change.targetId === targetId))
+      .filter((change) => !ctx.repo.isReplayChange(change.id))
       .map((entry) => JSON.stringify(entry))
       .sort(),
     tagLinks: snapshot.tagLinks.map((entry) => JSON.stringify(entry.link)).sort(),
@@ -325,7 +325,7 @@ export function attachmentsMatch(
       if (records.has(key)) {
         return;
       }
-      records.set(key, JSON.stringify(direct(node, key === rootKey)));
+      records.set(key, JSON.stringify(direct(node)));
       for (const nested of [
         ...node.noteAttachments,
         ...node.citationAttachments,

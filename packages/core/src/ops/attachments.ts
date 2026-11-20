@@ -143,18 +143,20 @@ export function attachNoteOp(noteId: string, link: NoteLinkRecord): Op {
  * note is shared and the link is not the last one.
  */
 export function detachNoteOp(note: NoteRecord, link: NoteLinkRecord, attachments?: AttachmentsSnapshot): Op {
+  let storedNote = note;
   let removedEvidence = false;
+  let attachmentBaseline = attachments ?? emptyAttachments();
   return {
     ...op(
       crypto.randomUUID(),
       'note.detach',
       (ctx) => {
-        const stored = ctx.repo.getNote(note.id);
-        if (stored === undefined || !(stored.links ?? []).some((entry) => entry.id === link.id)) {
+        const current = ctx.repo.getNote(note.id);
+        if (current === undefined || !(current.links ?? []).some((entry) => entry.id === link.id)) {
           return;
         }
-        // The stored note decides whether this is the last link: another
-        // writer may have added or removed links since the draft was made.
+        // Keep the live note for undo: the editor's copy may be stale.
+        storedNote = current;
         ctx.repo.removeNoteLink(link.id);
         if (ctx.repo.getNote(note.id) === undefined && attachments !== undefined) {
           ctx.repo.deleteAttachmentsFor('note', note.id);
@@ -163,18 +165,27 @@ export function detachNoteOp(note: NoteRecord, link: NoteLinkRecord, attachments
       },
       (ctx) => {
         if (ctx.repo.getNote(note.id) === undefined) {
-          ctx.repo.insertNote(note);
+          ctx.repo.insertNote(storedNote);
           if (removedEvidence && attachments !== undefined) {
             ctx.repo.restoreAttachments(attachments);
+            attachmentBaseline = ctx.repo.listAttachmentsFor('note', note.id);
           }
         } else {
-          ctx.repo.addNoteLink(note.id, link);
+          ctx.repo.addNoteLink(note.id, storedNote.links?.find((entry) => entry.id === link.id) ?? link);
         }
       },
       { targetType: link.targetType, targetId: link.targetId, kind: 'changed' },
       (ctx) => {
-        const stored = ctx.repo.getNote(note.id);
-        return stored !== undefined && (stored.links ?? []).some((entry) => entry.id === link.id);
+        const current = ctx.repo.getNote(note.id);
+        const liveLink = current?.links?.find((entry) => entry.id === link.id);
+        if (current === undefined || liveLink === undefined) {
+          return false;
+        }
+        // Removing a non-last link leaves the note and its evidence intact.
+        if ((current.links?.length ?? 0) > 1) {
+          return true;
+        }
+        return sameRecord(current, storedNote) && attachmentsMatch(ctx, 'note', note.id, attachmentBaseline);
       },
     ),
   };
@@ -226,6 +237,7 @@ export function deleteSourceOp(
   // The inverse may sanitize a vanished place; redo compares against what
   // was actually persisted, not against the original snapshot.
   let baseline = source;
+  let attachmentBaseline = attachments;
   let baselineCitations = citations;
   let baselineCitationAttachments = citationAttachments;
   return op(
@@ -249,6 +261,7 @@ export function deleteSourceOp(
           ctx.repo.restoreAttachments(nested.attachments);
         }
       }
+      attachmentBaseline = ctx.repo.listAttachmentsFor('source', source.id);
       baselineCitations = ctx.repo.listAllCitations().filter((citation) => citation.sourceId === source.id);
       baselineCitationAttachments = baselineCitations.map((citation) => ({
         targetType: 'citation',
@@ -261,7 +274,7 @@ export function deleteSourceOp(
       if (ctx.repo.getSource(source.id) === undefined || !sameRecord(ctx.repo.getSource(source.id), baseline)) {
         return false;
       }
-      if (!attachmentsMatch(ctx, 'source', source.id, attachments)) {
+      if (!attachmentsMatch(ctx, 'source', source.id, attachmentBaseline)) {
         return false;
       }
       const capturedCitations = baselineCitations.map((citation) => JSON.stringify(citation)).sort();
@@ -577,37 +590,44 @@ export function deleteTagOp(
   links: TagLinkRecord[],
   attachments: AttachmentsSnapshot = emptyAttachments(),
 ): Op {
-  return op(
-    crypto.randomUUID(),
-    'tag.delete',
-    (ctx) => {
-      ctx.repo.deleteAttachmentsFor('tag', tag.id);
-      ctx.repo.deleteTag(tag.id);
-    },
-    (ctx) => {
-      ctx.repo.insertTag(tag);
-      ctx.repo.restoreAttachments(attachments);
-      for (const link of links) {
-        restoreTagLink(ctx, link);
-      }
-    },
-    { targetType: 'tag', targetId: tag.id, kind: 'changed' },
-    (ctx) => {
-      const current = ctx.repo.listTags().find((entry) => entry.id === tag.id);
-      if (current === undefined || !sameRecord(current, tag)) {
-        return false;
-      }
-      if (!attachmentsMatch(ctx, 'tag', tag.id, attachments)) {
-        return false;
-      }
-      const capturedLinks = links.map((link) => JSON.stringify(link)).sort();
-      const liveLinks = ctx.repo
-        .listTagLinksByTag(tag.id)
-        .map((link) => JSON.stringify(link))
-        .sort();
-      return JSON.stringify(capturedLinks) === JSON.stringify(liveLinks);
-    },
-  );
+  let baselineLinks = links;
+  let attachmentBaseline = attachments;
+  return {
+    ...op(
+      crypto.randomUUID(),
+      'tag.delete',
+      (ctx) => {
+        ctx.repo.deleteAttachmentsFor('tag', tag.id);
+        ctx.repo.deleteTag(tag.id);
+      },
+      (ctx) => {
+        ctx.repo.insertTag(tag);
+        ctx.repo.restoreAttachments(attachments);
+        for (const link of links) {
+          restoreTagLink(ctx, link);
+        }
+        baselineLinks = ctx.repo.listTagLinksByTag(tag.id);
+        attachmentBaseline = ctx.repo.listAttachmentsFor('tag', tag.id);
+      },
+      { targetType: 'tag', targetId: tag.id, kind: 'changed' },
+      (ctx) => {
+        const current = ctx.repo.listTags().find((entry) => entry.id === tag.id);
+        if (current === undefined || !sameRecord(current, tag)) {
+          return false;
+        }
+        if (!attachmentsMatch(ctx, 'tag', tag.id, attachmentBaseline)) {
+          return false;
+        }
+        const capturedLinks = baselineLinks.map((link) => JSON.stringify(link)).sort();
+        const liveLinks = ctx.repo
+          .listTagLinksByTag(tag.id)
+          .map((link) => JSON.stringify(link))
+          .sort();
+        return JSON.stringify(capturedLinks) === JSON.stringify(liveLinks);
+      },
+    ),
+    snapshots: [attachments],
+  };
 }
 
 export function attachTagOp(link: TagLinkRecord): Op {
@@ -641,7 +661,7 @@ export function updateTagLinkOp(before: TagLinkRecord, after: TagLinkRecord): Op
     ),
     change: { targetType: after.targetType, targetId: after.targetId, kind: 'changed' },
     redoSafe: (ctx) => {
-      const current = ctx.repo.listAllTagLinks().find((link) => link.id === before.id);
+      const current = ctx.repo.getTagLink(before.id);
       return current !== undefined && sameRecord(current, before);
     },
   };
@@ -789,6 +809,8 @@ export function deleteSubmitterOp(
   attachments: AttachmentsSnapshot,
   consumers: SubmitterConsumers = {},
 ): Op {
+  let baselineRecordSubmitters = consumers.recordSubmitters ?? [];
+  let attachmentBaseline = attachments;
   return {
     ...op(
       crypto.randomUUID(),
@@ -808,18 +830,21 @@ export function deleteSubmitterOp(
             restoreRecordSubmitter(ctx, link);
           }
         }
+        baselineRecordSubmitters = ctx.repo.listRecordSubmittersForSubmitter(submitter.id);
+        attachmentBaseline = ctx.repo.listAttachmentsFor('submitter', submitter.id);
       },
     ),
     change: { targetType: 'submitter', targetId: submitter.id, kind: 'changed' },
+    snapshots: [attachments],
     redoSafe(ctx) {
       const current = ctx.repo.getSubmitter(submitter.id);
       if (current === undefined || !sameRecord(current, submitter)) {
         return false;
       }
-      if (!attachmentsMatch(ctx, 'submitter', submitter.id, attachments)) {
+      if (!attachmentsMatch(ctx, 'submitter', submitter.id, attachmentBaseline)) {
         return false;
       }
-      const captured = (consumers.recordSubmitters ?? []).map((link) => JSON.stringify(link)).sort();
+      const captured = baselineRecordSubmitters.map((link) => JSON.stringify(link)).sort();
       const live = ctx.repo
         .listRecordSubmittersForSubmitter(submitter.id)
         .map((link) => JSON.stringify(link))
@@ -918,6 +943,14 @@ export function deleteAddressOp(
   } = {},
   nestedAttachments: NestedAttachments[] = [],
 ): Op {
+  let baselineConsumers = {
+    repositories: consumers.repositories ?? [],
+    submitters: consumers.submitters ?? [],
+    factIds: consumers.factIds ?? [],
+    personIds: consumers.personIds ?? [],
+  };
+  let attachmentBaseline = attachments;
+  let nestedBaseline = nestedAttachments;
   return {
     ...op(
       crypto.randomUUID(),
@@ -941,28 +974,42 @@ export function deleteAddressOp(
         for (const personId of consumers.personIds ?? []) {
           ctx.repo.setPersonAddressId(personId, address.id);
         }
+        baselineConsumers = {
+          repositories: ctx.repo.listRepositories().filter((entry) => entry.addressId === address.id),
+          submitters: ctx.repo.listSubmitters().filter((entry) => entry.addressId === address.id),
+          factIds: ctx.repo.listFactIdsForAddress(address.id),
+          personIds: ctx.repo.listPersonIdsForAddress(address.id),
+        };
+        attachmentBaseline = ctx.repo.listAttachmentsFor('address', address.id);
+        nestedBaseline = nestedAttachments
+          .filter((nested) => attachmentTargetExists(ctx, nested.targetType, nested.targetId))
+          .map((nested) => ({
+            ...nested,
+            attachments: ctx.repo.listAttachmentsFor(nested.targetType, nested.targetId),
+          }));
       },
     ),
     change: { targetType: 'address', targetId: address.id, kind: 'changed' },
+    snapshots: [attachments, ...nestedAttachments.map((nested) => nested.attachments)],
     redoSafe(ctx) {
       const current = ctx.repo.getAddress(address.id);
       if (current === undefined || !sameRecord(current, address)) {
         return false;
       }
-      if (!attachmentsMatch(ctx, 'address', address.id, attachments)) {
+      if (!attachmentsMatch(ctx, 'address', address.id, attachmentBaseline)) {
         return false;
       }
-      for (const nested of nestedAttachments) {
+      for (const nested of nestedBaseline) {
         const lineExists =
           nested.targetType === 'address_line' && current.lines.some((line) => line.id === nested.targetId);
         if (lineExists && !attachmentsMatch(ctx, nested.targetType, nested.targetId, nested.attachments)) {
           return false;
         }
       }
-      const repositories = new Set(consumers.repositories?.map((entry) => entry.id) ?? []);
-      const submitters = new Set(consumers.submitters?.map((entry) => entry.id) ?? []);
-      const facts = new Set(consumers.factIds ?? []);
-      const persons = new Set(consumers.personIds ?? []);
+      const repositories = new Set(baselineConsumers.repositories.map((entry) => entry.id));
+      const submitters = new Set(baselineConsumers.submitters.map((entry) => entry.id));
+      const facts = new Set(baselineConsumers.factIds);
+      const persons = new Set(baselineConsumers.personIds);
       const liveRepositories = ctx.repo
         .listRepositories()
         .filter((entry) => entry.addressId === address.id)

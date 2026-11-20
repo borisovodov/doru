@@ -89,6 +89,7 @@ export function deletePlaceOp(
   nestedAttachments: NestedAttachments[] = [],
 ): Op {
   let baselinePlace = place;
+  let baselineFacts = facts;
   let baselineHierarchyLinks = [
     ...(place.hierarchy ?? []),
     ...(consumers.childPlaces ?? []).flatMap((child) =>
@@ -136,7 +137,7 @@ export function deletePlaceOp(
       }
       // Consumers added since the undo would be cleared by the redo and are
       // absent from the captured snapshots, so they could never come back.
-      const capturedFactEntries = new Map(facts.map((link) => [link.before.id, link]));
+      const capturedFactEntries = new Map(baselineFacts.map((link) => [link.before.id, link]));
       for (const fact of [
         ...ctx.repo.listFactsForPlace(place.id),
         ...ctx.repo.listFactsWithAdditionalPlace(place.id),
@@ -273,6 +274,20 @@ export function deletePlaceOp(
           }
         }
       }
+      // A fact moved to another place before undo keeps that reference; the
+      // redo guard must follow what undo actually restored.
+      const livePositions = new Map<string, number[]>();
+      for (const row of ctx.repo.listFactPlaceRows(place.id)) {
+        const positions = livePositions.get(row.factId) ?? [];
+        positions.push(row.position);
+        livePositions.set(row.factId, positions);
+      }
+      baselineFacts = facts.flatMap((entry) => {
+        const fact = ctx.repo.getFact(entry.before.id);
+        return fact === undefined
+          ? []
+          : [{ before: fact, after: entry.after, positions: livePositions.get(fact.id) ?? [] }];
+      });
       ctx.repo.restoreAttachments(attachments);
       const restoredNames = new Set(ctx.repo.getPlace(place.id)?.names.map((name) => name.id) ?? []);
       const restoredHierarchy = new Set([

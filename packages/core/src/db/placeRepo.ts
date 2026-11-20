@@ -129,7 +129,13 @@ export class PlaceRepo {
       if (this.db.prepare('SELECT 1 FROM place_hierarchy WHERE id = ?').get(link.id) !== undefined) {
         return;
       }
-      const dateId = link.date ? this.dates.upsert(link.date) : null;
+      const dateId =
+        link.date === undefined
+          ? null
+          : link.date.id !== undefined &&
+              this.db.prepare('SELECT 1 FROM date WHERE id = ?').get(link.date.id) !== undefined
+            ? link.date.id
+            : this.dates.upsert(link.date);
       this.db
         .prepare('INSERT INTO place_hierarchy (id, parent_id, child_id, type, date_id) VALUES (?, ?, ?, ?, ?)')
         .run(link.id, link.parentId, childId, link.type ?? null, dateId);

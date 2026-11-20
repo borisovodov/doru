@@ -1,4 +1,4 @@
-import { ADOPTION_PHRASE_PREFIX } from '../gedcomPhraseMarker';
+import { ADOPTION_PHRASE_TAG } from '../gedcomPhraseMarker';
 import type {
   Calendar,
   ChangeDate,
@@ -219,13 +219,12 @@ function buildPerson(person: PersonRecord, repo: TreeRepository, xrefs: Xrefs): 
   const nonEvents: NonEventStructure[] = [];
   for (const fact of person.facts) {
     if (fact.negation === true) {
+      const citations = withCitationList(repo, 'fact', fact.id, xrefs);
       nonEvents.push({
         tag: 'NO',
         payload: fact.tag as NonEventStructure['payload'],
         ...(fact.date !== undefined ? { date: buildDatePeriod(fact.date) } : {}),
-        ...(withCitationList(repo, 'fact', fact.id, xrefs).citations.length > 0
-          ? withCitationList(repo, 'fact', fact.id, xrefs)
-          : {}),
+        ...(citations.citations.length > 0 ? citations : {}),
         ...withNoteList(repo, 'fact', fact.id, xrefs),
       });
       continue;
@@ -348,7 +347,10 @@ function buildPersonFact(fact: FactRecord, repo: TreeRepository, xrefs: Xrefs): 
   if (adoptionLink?.adoptedBy === undefined && adoptionLink?.phrase !== undefined) {
     detail = {
       ...(detail ?? {}),
-      notes: [...(detail?.notes ?? []), { tag: 'NOTE', payload: `${ADOPTION_PHRASE_PREFIX}${adoptionLink.phrase}` }],
+      extensions: [
+        ...(detail?.extensions ?? []),
+        { tag: ADOPTION_PHRASE_TAG, payload: adoptionLink.phrase, children: [] },
+      ],
     } as typeof detail;
   }
   const singlePartner =
@@ -529,13 +531,12 @@ function buildFamily(family: FamilyRecord, repo: TreeRepository, xrefs: Xrefs): 
   const nonEvents: NonEventStructure[] = [];
   for (const fact of repo.listFactsForFamily(family.id)) {
     if (fact.negation === true) {
+      const citations = withCitationList(repo, 'fact', fact.id, xrefs);
       nonEvents.push({
         tag: 'NO',
         payload: fact.tag as NonEventStructure['payload'],
         ...(fact.date !== undefined ? { date: buildDatePeriod(fact.date) } : {}),
-        ...(withCitationList(repo, 'fact', fact.id, xrefs).citations.length > 0
-          ? withCitationList(repo, 'fact', fact.id, xrefs)
-          : {}),
+        ...(citations.citations.length > 0 ? citations : {}),
         ...withNoteList(repo, 'fact', fact.id, xrefs),
       });
       continue;
@@ -788,7 +789,8 @@ function formatTodoDate(date: DateValue | undefined): string | undefined {
     (component?.year !== undefined && (component.year < 0 || component.year > 9999)) ||
     (date.end?.year !== undefined && (date.end.year < 0 || date.end.year > 9999)) ||
     date.time !== undefined ||
-    date.modifier !== undefined
+    date.modifier !== undefined ||
+    (date.text !== undefined && date.text !== date.text.trimEnd())
   ) {
     const { id: _id, ...structured } = date;
     return `json:${JSON.stringify(structured)}`;

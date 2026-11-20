@@ -272,6 +272,26 @@ export class AttachmentRepo {
     }));
   }
 
+  getTagLink(id: string): TagLinkRecord | undefined {
+    const row = this.db
+      .prepare('SELECT id, tag_id, target_type, target_id, date_id FROM tag_link WHERE id = ?')
+      .get(id) as
+      | { id: string; tag_id: string; target_type: string; target_id: string; date_id: string | null }
+      | undefined;
+    if (row === undefined) {
+      return undefined;
+    }
+    const datesById =
+      row.date_id === null ? new Map<string, TagLinkRecord['date']>() : this.dates.getMany([row.date_id]);
+    return {
+      id: row.id,
+      tagId: row.tag_id,
+      targetType: row.target_type,
+      targetId: row.target_id,
+      date: row.date_id !== null ? datesById.get(row.date_id) : undefined,
+    };
+  }
+
   listTagLinksByTag(tagId: string): TagLinkRecord[] {
     const rows = this.db
       .prepare('SELECT id, tag_id, target_type, target_id, date_id FROM tag_link WHERE tag_id = ? ORDER BY id')

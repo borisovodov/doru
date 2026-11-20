@@ -40,6 +40,41 @@ describe('DateEditor', () => {
     expect(screen.queryByLabelText(nls.t('features.tree.date.modifier'))).not.toBeInTheDocument();
   });
 
+  it('keeps the original custom modifier and calendars selectable', () => {
+    const onChange = vi.fn();
+    const { rerender } = renderUi(
+      <DateEditor label="Birth" value={{ ...emptyDate(), modifier: 'INT', calendar: 'roman' }} onChange={onChange} />,
+    );
+    expect(screen.getByRole('option', { name: 'INT' })).toBeInTheDocument();
+    expect(screen.getByRole('option', { name: 'roman' })).toBeInTheDocument();
+
+    rerender(
+      <DateEditor label="Birth" value={{ ...emptyDate(), modifier: 'ABT', calendar: 'julian' }} onChange={onChange} />,
+    );
+    expect(screen.getByRole('option', { name: 'INT' })).toBeInTheDocument();
+    expect(screen.getByRole('option', { name: 'roman' })).toBeInTheDocument();
+  });
+
+  it('keeps the original custom end calendar selectable', () => {
+    const onChange = vi.fn();
+    const { rerender } = renderUi(
+      <DateEditor
+        label="Birth"
+        value={{ ...emptyDate(), quality: 'range', endCalendar: 'roman' }}
+        onChange={onChange}
+      />,
+    );
+    expect(screen.getByRole('option', { name: 'roman' })).toBeInTheDocument();
+    rerender(
+      <DateEditor
+        label="Birth"
+        value={{ ...emptyDate(), quality: 'range', endCalendar: 'julian' }}
+        onChange={onChange}
+      />,
+    );
+    expect(screen.getByRole('option', { name: 'roman' })).toBeInTheDocument();
+  });
+
   it('hides the place input when asked and toggles the BCE era', () => {
     const onChange = vi.fn();
     renderUi(<DateEditor label="Sort date" value={emptyDate()} onChange={onChange} hidePlace />);

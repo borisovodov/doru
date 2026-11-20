@@ -69,4 +69,33 @@ describe('AddressTab', () => {
     await waitFor(() => expect(addAddress).toHaveBeenCalledTimes(1));
     expect(updateAddress).toHaveBeenCalledTimes(1);
   });
+
+  it('shows a failed save when creating an address fails', async () => {
+    const addAddress = vi.fn(async () => {
+      throw new Error('disk full');
+    });
+    const api = apiStub({ addAddress });
+
+    renderUi(
+      <AddressTab
+        entityId="new:1"
+        addresses={[]}
+        facts={[]}
+        repositories={[]}
+        submitters={[]}
+        sources={[]}
+        api={api}
+        onClose={vi.fn()}
+        onOpenSource={vi.fn()}
+        onCreated={vi.fn()}
+      />,
+    );
+
+    fireEvent.change(screen.getByPlaceholderText(nls.t('features.tree.address.city')), {
+      target: { value: 'Moscow' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: nls.t('features.tree.save') }));
+    await waitFor(() => expect(addAddress).toHaveBeenCalledTimes(1));
+    expect(await screen.findByRole('alert')).toHaveTextContent(nls.t('features.tree.address.saveFailed'));
+  });
 });
