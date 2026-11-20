@@ -72,6 +72,7 @@ export class NameRepo {
     for (const name of this.listNamesForPerson(personId)) {
       remember(name);
     }
+    const reserved = this.dates.reservationsFor('person_name', [...existingNames.keys()]);
     this.db.prepare('DELETE FROM person_name WHERE person_id = ?').run(personId);
 
     const partIds = new Set<string>();
@@ -86,7 +87,7 @@ export class NameRepo {
     };
     names.forEach(reserve);
     names.forEach((name, position) => {
-      this.writeName(personId, name, null, position, existingNames, partIds, reservedPartIds);
+      this.writeName(personId, name, null, position, existingNames, partIds, reservedPartIds, reserved);
     });
     return partIds;
   }
@@ -150,6 +151,7 @@ export class NameRepo {
     existingNames: Map<string, PersonName>,
     partIds: Set<string>,
     reservedPartIds: Set<string>,
+    reservedDates: ReadonlyMap<string, string>,
   ): void {
     this.insertName.run(
       name.id,
@@ -172,7 +174,7 @@ export class NameRepo {
       name.nameAsRecorded ?? null,
       name.givenNameUsed ?? null,
     );
-    this.dates.upsertForOwner('person_name', name.id, 'period', name.date);
+    this.dates.upsertForOwner('person_name', name.id, 'period', name.date, reservedDates);
     const existingParts = existingNames.get(name.id)?.parts;
     const parts = [...(name.parts ?? partsFromFlat(name, existingParts, reservedPartIds))];
     if (name.full !== undefined && name.full.trim() !== '' && !parts.some((part) => part.kind === 'full')) {
@@ -194,7 +196,16 @@ export class NameRepo {
       this.insertPart.run(part.id, name.id, part.kind, part.value, index);
     });
     (name.variants ?? []).forEach((variant, variantPosition) => {
-      this.writeName(personId, variant, name.id, variantPosition, existingNames, partIds, reservedPartIds);
+      this.writeName(
+        personId,
+        variant,
+        name.id,
+        variantPosition,
+        existingNames,
+        partIds,
+        reservedPartIds,
+        reservedDates,
+      );
     });
   }
 

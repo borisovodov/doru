@@ -248,6 +248,12 @@ export class SourceRepo {
   }
 
   private replaceSourceDetails(source: SourceRecord): void {
+    const eventIds = (
+      this.db.prepare('SELECT id FROM source_data_event WHERE source_id = ?').all(source.id) as unknown as Array<{
+        id: string;
+      }>
+    ).map((row) => row.id);
+    const reservedEventDates = this.dates.reservationsFor('source_data_event', eventIds);
     this.db.prepare('DELETE FROM source_text WHERE source_id = ?').run(source.id);
     this.db.prepare('DELETE FROM source_data_event WHERE source_id = ?').run(source.id);
     this.db.prepare('DELETE FROM source_repository WHERE source_id = ?').run(source.id);
@@ -264,7 +270,7 @@ export class SourceRepo {
     );
     for (const event of source.dataEvents ?? []) {
       insertEvent.run(event.id, source.id, event.tag, event.value ?? null, event.placeId ?? null);
-      this.dates.upsertForOwner('source_data_event', event.id, 'date', event.date);
+      this.dates.upsertForOwner('source_data_event', event.id, 'date', event.date, reservedEventDates);
     }
     const insertRepository = this.db.prepare(
       'INSERT INTO source_repository (id, source_id, repository_id) VALUES (?, ?, ?)',

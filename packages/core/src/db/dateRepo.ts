@@ -73,6 +73,7 @@ export class DateRepo {
     ownerType: DateOwnerType,
     ownerId: string,
     dates: Partial<Record<DateRole, DateValue | undefined>>,
+    reserved?: ReadonlyMap<string, string>,
   ): void {
     const existing = this.db
       .prepare('SELECT role, id FROM date WHERE owner_type = ? AND owner_id = ?')
@@ -84,7 +85,9 @@ export class DateRepo {
         continue;
       }
       kept.add(role);
-      this.write(idByRole.get(role) ?? this.freeId(date.id), ownerType, ownerId, role as DateRole, date);
+      const id =
+        idByRole.get(role) ?? this.freeId(date.id, dateOwnerKey(ownerType, ownerId, role as DateRole), reserved);
+      this.write(id, ownerType, ownerId, role as DateRole, date);
     }
     for (const [role, id] of idByRole) {
       if (!kept.has(role)) {
@@ -99,6 +102,7 @@ export class DateRepo {
     ownerId: string,
     role: DateRole,
     date: DateValue | undefined,
+    reserved?: ReadonlyMap<string, string>,
   ): string | undefined {
     const existing = this.db
       .prepare('SELECT id FROM date WHERE owner_type = ? AND owner_id = ? AND role = ?')
@@ -109,9 +113,34 @@ export class DateRepo {
       }
       return undefined;
     }
-    const id = existing?.id ?? this.freeId(date.id);
+    const id = existing?.id ?? this.freeId(date.id, dateOwnerKey(ownerType, ownerId, role), reserved);
     this.write(id, ownerType, ownerId, role, date);
     return id;
+  }
+
+  /**
+   * Date ids claimed by surviving owner rows, keyed by id and owner role.
+   * Repositories running a delete-and-reinsert pass this to `upsertForOwner`
+   * so an existing owner keeps its date id and a copied date gets a new one.
+   */
+  reservationsFor(ownerType: DateOwnerType, ownerIds: string[]): Map<string, string> {
+    const reservations = new Map<string, string>();
+    if (ownerIds.length === 0) {
+      return reservations;
+    }
+    // Stay below SQLite's bound-parameter limit for large listings.
+    const chunkSize = 500;
+    for (let start = 0; start < ownerIds.length; start += chunkSize) {
+      const chunk = ownerIds.slice(start, start + chunkSize);
+      const placeholders = chunk.map(() => '?').join(', ');
+      const rows = this.db
+        .prepare(`SELECT id, owner_id, role FROM date WHERE owner_type = ? AND owner_id IN (${placeholders})`)
+        .all(ownerType, ...chunk) as unknown as Array<{ id: string; owner_id: string; role: string }>;
+      for (const row of rows) {
+        reservations.set(row.id, dateOwnerKey(ownerType, row.owner_id, row.role as DateRole));
+      }
+    }
+    return reservations;
   }
 
   get(id: string): DateValue | undefined {
@@ -173,9 +202,15 @@ export class DateRepo {
   }
 
   /** A restored date keeps its captured id when that id is still free. */
-  private freeId(preferred: string | undefined): string {
-    if (preferred !== undefined && this.db.prepare('SELECT 1 FROM date WHERE id = ?').get(preferred) === undefined) {
-      return preferred;
+  private freeId(preferred: string | undefined, ownerKey: string, reserved?: ReadonlyMap<string, string>): string {
+    if (preferred !== undefined) {
+      const reservedOwner = reserved?.get(preferred);
+      if (
+        (reservedOwner === undefined || reservedOwner === ownerKey) &&
+        this.db.prepare('SELECT 1 FROM date WHERE id = ?').get(preferred) === undefined
+      ) {
+        return preferred;
+      }
     }
     return crypto.randomUUID();
   }
@@ -206,6 +241,10 @@ const upsertSql = `INSERT INTO date (id, owner_type, owner_id, role, quality, mo
     time_hour = excluded.time_hour, time_minute = excluded.time_minute,
     time_second = excluded.time_second, time_fraction = excluded.time_fraction,
     utc = excluded.utc`;
+
+function dateOwnerKey(ownerType: DateOwnerType, ownerId: string, role: DateRole): string {
+  return `${ownerType}\u0000${ownerId}\u0000${role}`;
+}
 
 function dateParams(
   id: string,

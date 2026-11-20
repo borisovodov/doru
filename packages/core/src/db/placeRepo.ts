@@ -145,6 +145,24 @@ export class PlaceRepo {
   }
 
   private replaceDetails(place: PlaceRecord): void {
+    const nameIds = (
+      this.db.prepare('SELECT id FROM place_name WHERE place_id = ?').all(place.id) as unknown as Array<{ id: string }>
+    ).map((row) => row.id);
+    const hierarchyIds = (
+      this.db.prepare('SELECT id FROM place_hierarchy WHERE child_id = ?').all(place.id) as unknown as Array<{
+        id: string;
+      }>
+    ).map((row) => row.id);
+    const postalIds = (
+      this.db.prepare('SELECT id FROM place_postal_code WHERE place_id = ?').all(place.id) as unknown as Array<{
+        id: string;
+      }>
+    ).map((row) => row.id);
+    const reservedDates = new Map([
+      ...this.dates.reservationsFor('place_name', nameIds),
+      ...this.dates.reservationsFor('place_hierarchy', hierarchyIds),
+      ...this.dates.reservationsFor('place_postal_code', postalIds),
+    ]);
     this.db.prepare('DELETE FROM place_name WHERE place_id = ?').run(place.id);
     this.db.prepare('DELETE FROM place_hierarchy WHERE child_id = ?').run(place.id);
     this.db.prepare('DELETE FROM place_postal_code WHERE place_id = ?').run(place.id);
@@ -162,19 +180,19 @@ export class PlaceRepo {
         name.abbreviation ?? null,
         name.abbreviationType ?? null,
       );
-      this.dates.upsertForOwner('place_name', name.id, 'date', name.date);
+      this.dates.upsertForOwner('place_name', name.id, 'date', name.date, reservedDates);
     });
     const insertHierarchy = this.db.prepare(
       'INSERT INTO place_hierarchy (id, parent_id, child_id, type) VALUES (?, ?, ?, ?)',
     );
     for (const parent of place.hierarchy ?? []) {
       insertHierarchy.run(parent.id, parent.parentId, place.id, parent.type ?? null);
-      this.dates.upsertForOwner('place_hierarchy', parent.id, 'date', parent.date);
+      this.dates.upsertForOwner('place_hierarchy', parent.id, 'date', parent.date, reservedDates);
     }
     const insertPostal = this.db.prepare('INSERT INTO place_postal_code (id, place_id, code) VALUES (?, ?, ?)');
     for (const postal of place.postalCodes ?? []) {
       insertPostal.run(postal.id, place.id, postal.code);
-      this.dates.upsertForOwner('place_postal_code', postal.id, 'date', postal.date);
+      this.dates.upsertForOwner('place_postal_code', postal.id, 'date', postal.date, reservedDates);
     }
   }
 

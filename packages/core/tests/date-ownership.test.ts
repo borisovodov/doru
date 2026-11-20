@@ -91,4 +91,106 @@ describe('date ownership', () => {
       cleanupRepo(fixture);
     }
   });
+
+  it('keeps a surviving name date id when a copy is written first', () => {
+    const fixture = makeRepo();
+    try {
+      const person: PersonRecord = {
+        id: 'P1',
+        names: [{ id: 'N1', given: 'Ivan', date: exact(1900) }],
+        sex: 'M',
+        facts: [],
+      };
+      fixture.repo.insertPerson(person);
+      const original = fixture.repo.getPerson('P1')!.names[0]!;
+      const originalDateId = original.date!.id;
+      const copy = { id: 'N2', given: 'Copy', date: original.date };
+
+      fixture.repo.updatePerson({ ...person, names: [copy, original] });
+
+      const names = new Map(fixture.repo.getPerson('P1')!.names.map((name) => [name.id, name]));
+      expect(names.get('N1')?.date?.id).toBe(originalDateId);
+      expect(names.get('N2')?.date?.id).toBeDefined();
+      expect(names.get('N2')?.date?.id).not.toBe(originalDateId);
+    } finally {
+      cleanupRepo(fixture);
+    }
+  });
+
+  it('keeps a surviving family link date id when a copy is written first', () => {
+    const fixture = makeRepo();
+    try {
+      fixture.repo.insertPerson({ id: 'P1', names: [], sex: 'U', facts: [] });
+      fixture.repo.insertPerson({ id: 'P2', names: [], sex: 'U', facts: [] });
+      fixture.repo.insertFamily({
+        id: 'FAM1',
+        partners: ['P1'],
+        children: [],
+        partnerLinks: [{ id: 'L1', personId: 'P1', date: exact(1901) }],
+      });
+      const family = fixture.repo.getFamily('FAM1')!;
+      const original = family.partnerLinks![0]!;
+      const originalDateId = original.date!.id;
+      const copy = { ...original, id: 'L2', personId: 'P2' };
+
+      fixture.repo.updateFamily({
+        ...family,
+        partners: ['P2', 'P1'],
+        partnerLinks: [copy, original],
+      });
+
+      const links = new Map((fixture.repo.getFamily('FAM1')!.partnerLinks ?? []).map((link) => [link.id, link]));
+      expect(links.get('L1')?.date?.id).toBe(originalDateId);
+      expect(links.get('L2')?.date?.id).toBeDefined();
+      expect(links.get('L2')?.date?.id).not.toBe(originalDateId);
+    } finally {
+      cleanupRepo(fixture);
+    }
+  });
+
+  it('keeps a surviving place name date id when a copy is written first', () => {
+    const fixture = makeRepo();
+    try {
+      fixture.repo.insertPlace({
+        id: 'PL1',
+        names: [{ id: 'PN1', kind: 'official', position: 0, value: 'One', date: exact(1902) }],
+      });
+      const place = fixture.repo.getPlace('PL1')!;
+      const original = place.names[0]!;
+      const originalDateId = original.date!.id;
+      const copy = { ...original, id: 'PN2', value: 'Copy' };
+
+      fixture.repo.updatePlace({ ...place, names: [copy, original] });
+
+      const names = new Map(fixture.repo.getPlace('PL1')!.names.map((name) => [name.id, name]));
+      expect(names.get('PN1')?.date?.id).toBe(originalDateId);
+      expect(names.get('PN2')?.date?.id).toBeDefined();
+      expect(names.get('PN2')?.date?.id).not.toBe(originalDateId);
+    } finally {
+      cleanupRepo(fixture);
+    }
+  });
+
+  it('keeps a surviving source event date id when a copy is written first', () => {
+    const fixture = makeRepo();
+    try {
+      fixture.repo.insertSource({
+        id: 'S1',
+        dataEvents: [{ id: 'E1', tag: 'EVEN', date: exact(1903) }],
+      });
+      const source = fixture.repo.getSource('S1')!;
+      const original = source.dataEvents![0]!;
+      const originalDateId = original.date!.id;
+      const copy = { ...original, id: 'E2' };
+
+      fixture.repo.updateSource({ ...source, dataEvents: [copy, original] });
+
+      const events = new Map(fixture.repo.getSource('S1')!.dataEvents!.map((event) => [event.id, event]));
+      expect(events.get('E1')?.date?.id).toBe(originalDateId);
+      expect(events.get('E2')?.date?.id).toBeDefined();
+      expect(events.get('E2')?.date?.id).not.toBe(originalDateId);
+    } finally {
+      cleanupRepo(fixture);
+    }
+  });
 });
