@@ -44,12 +44,11 @@ export const DORU_APPLICATION_ID = 0x444f5255;
 /**
  * Bumped whenever the schema changes. There are no migrations before 1.0.0:
  * a newer version may simply not understand files written by older ones
- * (the store refuses to open them with a loud error). Version 1 was the
- * first pre-1.0 baseline; version 2 added the missing foreign-key indexes;
- * version 3 made every date row owned by its entity and role; version 4
- * renamed the `change` table to `change_log`.
+ * (the store refuses to open them with a loud error). This schema uses
+ * version 7, above every version written by an earlier build (the old model
+ * reached 6), so the open guard cannot mistake an old file for this one.
  */
-export const SCHEMA_VERSION = 4;
+export const SCHEMA_VERSION = 7;
 
 export const SCHEMA_SQL = `
 CREATE TABLE IF NOT EXISTS person (
