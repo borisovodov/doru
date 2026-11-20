@@ -292,7 +292,7 @@ export class TreeService {
       } else {
         // The entry can never become safe again: drop it and report the
         // refusal so the caller can explain it (or offer a fresh action).
-        this.queue.discardRedo();
+        this.queue.discardRedo(pending);
         return { ...this.historyState(), redoBlocked: true };
       }
     }
@@ -561,6 +561,17 @@ export class TreeService {
     return this.applyAfterCommit(() => {
       this.assertFamilyAcyclic(family);
       return addFamilyOp(family, (ctx) => {
+        const members = new Set([
+          ...family.partners,
+          ...family.children,
+          ...(family.partnerLinks ?? []).map((link) => link.personId),
+          ...(family.childLinks ?? []).map((link) => link.childId),
+        ]);
+        for (const personId of members) {
+          if (ctx.repo.getPerson(personId) === undefined) {
+            return false;
+          }
+        }
         const graph = [...ctx.repo.listFamilies().filter((entry) => entry.id !== family.id), family];
         return !this.familyHasCycle(family, graph);
       });
@@ -637,33 +648,11 @@ export class TreeService {
       const removed = this.removedLinkAttachments(current, candidate);
       const oldPartners = this.partnerIds(current);
       const nextPartners = this.partnerIds(candidate);
-      const adoptionUpdates: Array<{ before: FactRecord; after: FactRecord }> = [];
-      if (JSON.stringify(oldPartners) !== JSON.stringify(nextPartners)) {
-        for (const fact of this.repo.listFactsLinkedToFamily(current.id)) {
-          const state = { changed: false };
-          const familyLinks = (fact.familyLinks ?? []).map((link) => {
-            if (link.familyId !== current.id || link.adoptedBy === undefined || link.adoptedBy === 'BOTH') {
-              return link;
-            }
-            const personId = oldPartners[link.adoptedBy === 'HUSB' ? 0 : 1];
-            if (personId === undefined) {
-              return link;
-            }
-            const nextIndex = nextPartners.indexOf(personId);
-            const adoptedBy: 'HUSB' | 'WIFE' | undefined =
-              nextIndex < 0 ? undefined : nextIndex === 0 ? 'HUSB' : 'WIFE';
-            if (adoptedBy === link.adoptedBy) {
-              return link;
-            }
-            state.changed = true;
-            return { ...link, adoptedBy };
-          });
-          if (state.changed) {
-            adoptionUpdates.push({ before: fact, after: { ...fact, familyLinks } });
-          }
-        }
-      }
-      return updateFamilyOp(current, candidate, removed, adoptionUpdates);
+      const partnerRemap =
+        JSON.stringify(oldPartners) === JSON.stringify(nextPartners)
+          ? undefined
+          : { from: oldPartners, to: nextPartners };
+      return updateFamilyOp(current, candidate, removed, partnerRemap);
     });
   }
 
@@ -963,7 +952,6 @@ export class TreeService {
         'objectType',
         'description',
         'keywords',
-        'files',
         'links',
         'targetType',
         'targetId',
@@ -972,19 +960,43 @@ export class TreeService {
           (merged as unknown as Record<string, unknown>)[key] = after[key];
         }
       }
-      const pathChanged = before.path !== after.path;
-      if (pathChanged && after.files === undefined) {
-        delete merged.files;
+      if (JSON.stringify(after.files) !== JSON.stringify(before.files)) {
+        if (after.files === undefined) {
+          delete merged.files;
+        } else {
+          const beforeFiles = new Map((before.files ?? []).map((file) => [file.id, file]));
+          const afterIds = new Set(after.files.map((file) => file.id));
+          const currentFiles = new Map((current.files ?? []).map((file) => [file.id, file]));
+          const files: NonNullable<MediaRecord['files']> = [];
+          for (const file of after.files) {
+            const previous = beforeFiles.get(file.id);
+            if (previous !== undefined && JSON.stringify(previous) === JSON.stringify(file)) {
+              // Unchanged in this edit: keep a concurrent metadata change.
+              files.push(currentFiles.get(file.id) ?? file);
+            } else {
+              files.push(file);
+            }
+          }
+          for (const file of current.files ?? []) {
+            if (!beforeFiles.has(file.id) && !afterIds.has(file.id)) {
+              files.push(file);
+            }
+          }
+          merged.files = files.length > 0 ? files : undefined;
+        }
       }
+      const pathChanged = before.path !== after.path;
       const pathMatch =
         merged.path !== undefined ? (current.files ?? []).find((file) => file.path === merged.path) : undefined;
       const writtenFiles =
-        merged.files ??
-        (pathChanged && merged.path !== undefined
-          ? [{ id: pathMatch?.id ?? crypto.randomUUID(), path: merged.path }]
-          : pathMatch !== undefined
-            ? [pathMatch]
-            : []);
+        after.files !== undefined
+          ? (merged.files ?? [])
+          : (merged.files ??
+            (pathChanged && merged.path !== undefined
+              ? [{ id: pathMatch?.id ?? crypto.randomUUID(), path: merged.path }]
+              : pathMatch !== undefined
+                ? [pathMatch]
+                : []));
       const remaining = new Set(writtenFiles.map((file) => file.id));
       const removedFiles = (current.files ?? []).filter((file) => !remaining.has(file.id));
       const fileAttachments = removedFiles.map((file) => ({
@@ -1563,11 +1575,38 @@ export class TreeService {
               emitted.set(id, (emitted.get(id) ?? 0) + 1);
             }
           };
-          for (const id of draft) {
-            emit(id);
-          }
-          for (const id of storedPlaces) {
-            emit(id);
+          const draftBaselineOrder = draft.filter((id) => baseline.includes(id));
+          const baselineKeptOrder = baseline.filter((id) => draft.includes(id));
+          const explicitReorder = JSON.stringify(draftBaselineOrder) !== JSON.stringify(baselineKeptOrder);
+          const appendOnly = draft.every((id, index) =>
+            baseline.includes(id) ? true : !draft.slice(index + 1).some((entry) => baseline.includes(entry)),
+          );
+          if (explicitReorder || !appendOnly) {
+            for (const id of draft) {
+              emit(id);
+            }
+            for (const id of storedPlaces) {
+              emit(id);
+            }
+          } else {
+            // Append-only (or removal-only) drafts keep the live order of the
+            // surviving entries, then add the draft's new occurrences and
+            // finally any concurrent additions.
+            for (const id of storedPlaces) {
+              if (baseline.includes(id)) {
+                emit(id);
+              }
+            }
+            for (const id of draft) {
+              if (!baseline.includes(id)) {
+                emit(id);
+              }
+            }
+            for (const id of storedPlaces) {
+              if (!baseline.includes(id)) {
+                emit(id);
+              }
+            }
           }
           merged[key] = mergedPlaces.length > 0 ? mergedPlaces : undefined;
           continue;
@@ -1652,8 +1691,9 @@ export class TreeService {
     const beforeOrder = before.names.map((name) => name.id).filter((id) => afterNameIds.has(id));
     const draftOrder = after.names.map((name) => name.id).filter((id) => previousNames.has(id));
     if (draftOrder.length === beforeOrder.length && draftOrder.every((id, index) => id === beforeOrder[index])) {
-      // The draft kept the original order; adopt a concurrent reorder instead
-      // of writing the stale sequence back.
+      // The draft kept the original relative order; adopt a concurrent
+      // reorder of existing names, but keep inserted names at the positions
+      // the draft requested.
       const mergedById = new Map(names.map((name) => [name.id, name]));
       const ordered: PersonRecord['names'] = [];
       for (const name of current.names) {
@@ -1663,12 +1703,33 @@ export class TreeService {
           mergedById.delete(name.id);
         }
       }
-      for (const name of names) {
-        const merged = mergedById.get(name.id);
-        if (merged !== undefined) {
-          ordered.push(merged);
-          mergedById.delete(name.id);
+      for (const name of after.names) {
+        if (previousNames.has(name.id)) {
+          continue;
         }
+        const merged = mergedById.get(name.id);
+        if (merged === undefined) {
+          continue;
+        }
+        const anchorIndex = after.names
+          .slice(after.names.indexOf(name) + 1)
+          .findIndex((entry) => previousNames.has(entry.id) && ordered.some((row) => row.id === entry.id));
+        if (anchorIndex === -1) {
+          ordered.push(merged);
+        } else {
+          const anchor = after.names[after.names.indexOf(name) + 1 + anchorIndex];
+          if (anchor !== undefined) {
+            ordered.splice(
+              ordered.findIndex((row) => row.id === anchor.id),
+              0,
+              merged,
+            );
+          }
+        }
+        mergedById.delete(name.id);
+      }
+      for (const name of mergedById.values()) {
+        ordered.push(name);
       }
       names = ordered;
     }

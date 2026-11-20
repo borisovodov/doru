@@ -90,6 +90,10 @@ export function deletePlaceOp(
 ): Op {
   let baselinePlace = place;
   let baselineFacts = facts;
+  let baselineStatuses = new Set<string>();
+  let baselineEvents = new Set<string>();
+  let baselineMedia = new Set<string>();
+  let appliedRemovals: Array<{ factId: string; primary: boolean; positions: number[] }> = [];
   let baselineHierarchyLinks = [
     ...(place.hierarchy ?? []),
     ...(consumers.childPlaces ?? []).flatMap((child) =>
@@ -103,8 +107,26 @@ export function deletePlaceOp(
     change: { targetType: 'place', targetId: place.id, kind: 'changed' },
     snapshots: [attachments, ...nestedAttachments.map((nested) => nested.attachments)],
     apply(ctx) {
+      appliedRemovals = [];
+      const positionsByFact = new Map<string, number[]>();
+      for (const row of ctx.repo.listFactPlaceRows(place.id)) {
+        const positions = positionsByFact.get(row.factId) ?? [];
+        positions.push(row.position);
+        positionsByFact.set(row.factId, positions);
+      }
       for (const link of facts) {
-        ctx.repo.detachFactPlace(link.before.id, place.id);
+        const current = ctx.repo.getFact(link.before.id);
+        if (current === undefined) {
+          continue;
+        }
+        const primary = current.placeId === place.id;
+        const positions = positionsByFact.get(link.before.id) ?? [];
+        if (primary || positions.length > 0) {
+          appliedRemovals.push({ factId: link.before.id, primary, positions });
+        }
+        if (primary) {
+          ctx.repo.detachFactPlace(link.before.id, place.id);
+        }
       }
       ctx.repo.deletePlace(place.id);
     },
@@ -170,11 +192,7 @@ export function deletePlaceOp(
           return false;
         }
       }
-      const capturedStatuses = new Set(
-        (consumers.families ?? []).flatMap((family) =>
-          (family.marriageStatuses ?? []).filter((status) => status.placeId === place.id).map((status) => status.id),
-        ),
-      );
+      const capturedStatuses = baselineStatuses;
       const currentStatuses = new Set(
         ctx.repo
           .listFamilies()
@@ -188,11 +206,7 @@ export function deletePlaceOp(
       ) {
         return false;
       }
-      const capturedEvents = new Set(
-        (consumers.sources ?? []).flatMap((source) =>
-          (source.dataEvents ?? []).filter((event) => event.placeId === place.id).map((event) => event.id),
-        ),
-      );
+      const capturedEvents = baselineEvents;
       const currentEvents = new Set(
         ctx.repo
           .listSources()
@@ -209,9 +223,7 @@ export function deletePlaceOp(
       ) {
         return false;
       }
-      const capturedMedia = new Set(
-        (consumers.media ?? []).filter((entry) => entry.placeId === place.id).map((entry) => entry.id),
-      );
+      const capturedMedia = baselineMedia;
       const currentMedia = new Set(
         ctx.repo
           .listAllMedia()
@@ -255,22 +267,26 @@ export function deletePlaceOp(
           }
         }
       }
-      for (const link of [...facts].reverse()) {
-        // Surviving facts may have been edited; restore only the place
-        // references the delete removed, and only when still unset.
-        const current = ctx.repo.getFact(link.before.id);
+      for (const removal of [...appliedRemovals].reverse()) {
+        // Restore only what the latest delete removed, and only when the
+        // fact still has no such reference.
+        const current = ctx.repo.getFact(removal.factId);
         if (current === undefined) {
           continue;
         }
-        if (link.before.placeId === place.id && current.placeId === undefined) {
-          ctx.repo.setFactPlaceId(link.before.id, place.id);
+        if (removal.primary && current.placeId === undefined) {
+          ctx.repo.setFactPlaceId(removal.factId, place.id);
         }
-        let occurrence = 0;
-        for (const [index, placeId] of (link.before.additionalPlaceIds ?? []).entries()) {
-          if (placeId === place.id && !(current.additionalPlaceIds ?? []).includes(placeId)) {
-            const position = link.positions?.[occurrence] ?? index;
-            occurrence += 1;
-            ctx.repo.insertFactPlace(link.before.id, placeId, position);
+        const livePositions = new Set(
+          ctx.repo
+            .listFactPlaceRows(place.id)
+            .filter((row) => row.factId === removal.factId)
+            .map((row) => row.position),
+        );
+        for (const position of removal.positions) {
+          if (!livePositions.has(position)) {
+            ctx.repo.insertFactPlace(removal.factId, place.id, position);
+            livePositions.add(position);
           }
         }
       }
@@ -288,6 +304,36 @@ export function deletePlaceOp(
           ? []
           : [{ before: fact, after: entry.after, positions: livePositions.get(fact.id) ?? [] }];
       });
+      baselineStatuses = new Set(
+        ctx.repo
+          .listFamilies()
+          .flatMap((family) =>
+            (family.marriageStatuses ?? []).filter((status) => status.placeId === place.id).map((status) => status.id),
+          ),
+      );
+      baselineEvents = new Set(
+        ctx.repo
+          .listSources()
+          .flatMap((source) =>
+            (source.dataEvents ?? []).filter((event) => event.placeId === place.id).map((event) => event.id),
+          ),
+      );
+      baselineMedia = new Set(
+        ctx.repo
+          .listAllMedia()
+          .filter((entry) => entry.placeId === place.id)
+          .map((entry) => entry.id),
+      );
+      const restoredPlace = ctx.repo.getPlace(place.id);
+      baselineHierarchyLinks =
+        restoredPlace === undefined
+          ? []
+          : [
+              ...(restoredPlace.hierarchy ?? []),
+              ...ctx.repo
+                .listPlaces()
+                .flatMap((entry) => (entry.hierarchy ?? []).filter((link) => link.parentId === place.id)),
+            ];
       ctx.repo.restoreAttachments(attachments);
       const restoredNames = new Set(ctx.repo.getPlace(place.id)?.names.map((name) => name.id) ?? []);
       const restoredHierarchy = new Set([

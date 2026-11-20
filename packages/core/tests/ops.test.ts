@@ -20,6 +20,37 @@ const emptyPerson = (id: string, sex: PersonRecord['sex'] = 'U'): PersonRecord =
 });
 
 describe('OpQueue', () => {
+  it('drops redo entries that depend on a blocked replay', () => {
+    const fixture = makeRepo();
+    try {
+      const queue = new OpQueue();
+      const base = { timestamp: '', kind: 'test' };
+      const creates = {
+        ...base,
+        id: 'a',
+        change: { targetType: 'family', targetId: 'F1', kind: 'created' as const },
+        apply: () => {},
+        inverse: () => {},
+        redoSafe: () => false,
+      };
+      const dependent = {
+        ...base,
+        id: 'b',
+        change: { targetType: 'fact', targetId: 'G1', kind: 'created' as const },
+        dependsOn: ['F1'],
+        apply: () => {},
+        inverse: () => {},
+      };
+      queue.apply(creates, { repo: fixture.repo });
+      queue.apply(dependent, { repo: fixture.repo });
+      queue.undo({ repo: fixture.repo });
+      queue.undo({ repo: fixture.repo });
+      expect(queue.redo({ repo: fixture.repo })?.blocked?.id).toBe('a');
+      expect(queue.canRedo()).toBe(false);
+    } finally {
+      cleanupRepo(fixture);
+    }
+  });
   it('applies ops and supports undo/redo', () => {
     const fixture = makeRepo();
     try {

@@ -25,32 +25,37 @@ export function DateEditor({
   const set = (patch: Partial<DateDraft>) => onChange({ ...value, ...patch });
   // Keep the date's own custom spellings selectable while editing: changing
   // ABT back to none must not hide a modifier the record imported with.
-  const [original] = useState(() => ({
-    modifier: value.modifier,
-    calendar: value.calendar,
-    endCalendar: value.endCalendar,
+  const [knownCustom, setKnownCustom] = useState(() => ({
+    modifiers: value.modifier !== '' && !['ABT', 'CAL', 'EST'].includes(value.modifier) ? [value.modifier] : [],
+    calendars:
+      value.calendar !== '' && !(CALENDARS as readonly string[]).includes(value.calendar) ? [value.calendar] : [],
+    endCalendars:
+      value.endCalendar !== '' && !(CALENDARS as readonly string[]).includes(value.endCalendar)
+        ? [value.endCalendar]
+        : [],
   }));
-  const customModifiers = [
-    ...new Set(
-      [value.modifier, original.modifier].filter(
-        (modifier) => modifier !== '' && !['ABT', 'CAL', 'EST'].includes(modifier),
-      ),
-    ),
-  ];
-  const customCalendars = [
-    ...new Set(
-      [value.calendar, original.calendar].filter(
-        (calendar) => calendar !== '' && !(CALENDARS as readonly string[]).includes(calendar),
-      ),
-    ),
-  ];
-  const customEndCalendars = [
-    ...new Set(
-      [value.endCalendar, original.endCalendar].filter(
-        (calendar) => calendar !== '' && !(CALENDARS as readonly string[]).includes(calendar),
-      ),
-    ),
-  ];
+  const modifierAdded =
+    value.modifier !== '' &&
+    !['ABT', 'CAL', 'EST'].includes(value.modifier) &&
+    !knownCustom.modifiers.includes(value.modifier);
+  const calendarAdded =
+    value.calendar !== '' &&
+    !(CALENDARS as readonly string[]).includes(value.calendar) &&
+    !knownCustom.calendars.includes(value.calendar);
+  const endCalendarAdded =
+    value.endCalendar !== '' &&
+    !(CALENDARS as readonly string[]).includes(value.endCalendar) &&
+    !knownCustom.endCalendars.includes(value.endCalendar);
+  if (modifierAdded || calendarAdded || endCalendarAdded) {
+    setKnownCustom({
+      modifiers: modifierAdded ? [...knownCustom.modifiers, value.modifier] : knownCustom.modifiers,
+      calendars: calendarAdded ? [...knownCustom.calendars, value.calendar] : knownCustom.calendars,
+      endCalendars: endCalendarAdded ? [...knownCustom.endCalendars, value.endCalendar] : knownCustom.endCalendars,
+    });
+  }
+  const customModifiers = knownCustom.modifiers;
+  const customCalendars = knownCustom.calendars;
+  const customEndCalendars = knownCustom.endCalendars;
 
   return (
     <div className={styles['dateEditor']}>

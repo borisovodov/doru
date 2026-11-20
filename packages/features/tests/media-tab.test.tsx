@@ -183,6 +183,40 @@ describe('MediaTab', () => {
     expect(screen.getByDisplayValue('Z')).toBeInTheDocument();
   });
 
+  it('keeps a reversal across queued saves', async () => {
+    const first = deferred();
+    const second = deferred();
+    const updateMedia = vi
+      .fn()
+      .mockImplementationOnce(async () => first.promise)
+      .mockImplementationOnce(async () => second.promise);
+    const api = stubApi<MediaAdminApi>({
+      updateMedia,
+      getMediaFor: async () => [],
+      getAllMedia: async () => [],
+    });
+    renderUi(
+      <MediaTab
+        entityId="M1"
+        media={[{ id: 'M1', title: 'A', absolutePath: '', files: [] }]}
+        api={api}
+        attachmentsApi={attachmentsStub()}
+        sources={[]}
+        targetData={targetData}
+        onClose={vi.fn()}
+      />,
+    );
+    fireEvent.change(screen.getByDisplayValue('A'), { target: { value: 'B' } });
+    fireEvent.click(screen.getByRole('button', { name: nls.t('features.tree.save') }));
+    await waitFor(() => expect(updateMedia).toHaveBeenCalledTimes(1));
+    fireEvent.change(screen.getByDisplayValue('B'), { target: { value: 'A' } });
+    fireEvent.click(screen.getByRole('button', { name: nls.t('features.tree.save') }));
+    await act(async () => first.resolve());
+    await waitFor(() => expect(updateMedia).toHaveBeenCalledTimes(2));
+    expect(updateMedia.mock.calls[1]?.[1]).toMatchObject({ title: 'A' });
+    await act(async () => second.resolve());
+  });
+
   it('opens a source from the media-link sources panel', async () => {
     const openSource = vi.fn();
     const api = stubApi<MediaAdminApi>({

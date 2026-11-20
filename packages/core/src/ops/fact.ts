@@ -9,6 +9,7 @@ export function addFactOp(fact: FactRecord): Op {
     kind: 'fact.add',
     timestamp: new Date().toISOString(),
     change: { targetType: 'fact', targetId: fact.id, kind: 'created' },
+    dependsOn: [fact.personId, fact.familyId].filter((id): id is string => id !== undefined),
     apply(ctx) {
       ctx.repo.insertFact(fact);
     },

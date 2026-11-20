@@ -243,6 +243,7 @@ export function reparentOp(
     kind: 'person.reparent',
     timestamp: new Date().toISOString(),
     change: { targetType: 'person', targetId: personId, kind: 'changed' },
+    snapshots: linkAttachments.map((link) => link.attachments),
     apply(ctx) {
       for (const link of familyLinks) {
         ctx.repo.updateFamily(link.after);

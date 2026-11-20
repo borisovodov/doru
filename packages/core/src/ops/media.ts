@@ -9,6 +9,8 @@ export function addMediaOp(media: MediaRecord): Op {
     kind: 'media.add',
     timestamp: new Date().toISOString(),
     change: { targetType: 'media', targetId: media.id, kind: 'created' },
+    dependsOn:
+      media.links?.map((link) => link.targetId) ?? [media.targetId].filter((id): id is string => id !== undefined),
     apply(ctx) {
       ctx.repo.insertMedia(media);
     },
@@ -32,10 +34,10 @@ export function updateMediaOp(before: MediaRecord, after: MediaRecord, fileAttac
     },
     inverse(ctx) {
       ctx.repo.updateMedia(before);
-      baseline = ctx.repo.getMedia(before.id) ?? before;
       for (const nested of fileAttachments) {
         ctx.repo.restoreAttachments(nested.attachments);
       }
+      baseline = ctx.repo.getMedia(before.id) ?? before;
       fileBaseline = fileAttachments
         .filter((nested) => attachmentTargetExists(ctx, nested.targetType, nested.targetId))
         .map((nested) => ({

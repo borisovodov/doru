@@ -715,6 +715,7 @@ describe('TreeService attachments', () => {
   it('links and unlinks record contributors with undo', () => {
     const { fixture, service } = makeService();
     try {
+      service.addPerson({ id: 'P1', names: [], sex: 'U', facts: [] });
       service.addSubmitter(submitter());
       service.addRecordSubmitter('SU1', 'person', 'P1');
       expect(fixture.repo.listRecordSubmittersFor('person', 'P1').map((entry) => entry.submitterId)).toEqual(['SU1']);

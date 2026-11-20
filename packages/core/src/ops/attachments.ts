@@ -713,6 +713,7 @@ export function deleteRepositoryOp(
   let baselineSources = consumers.sourceRepositories ?? [];
   let baselineTodos = consumers.todos ?? [];
   let baselineTitles = consumers.titles ?? [];
+  let baselineAttachments = attachments;
   return {
     ...op(
       crypto.randomUUID(),
@@ -736,6 +737,7 @@ export function deleteRepositoryOp(
         baselineSources = ctx.repo.listSourceRepositoriesFor(repository.id);
         baselineTodos = ctx.repo.listTodos().filter((todo) => todo.repositoryId === repository.id);
         baselineTitles = ctx.repo.listTitles().filter((title) => title.repositoryId === repository.id);
+        baselineAttachments = ctx.repo.listAttachmentsFor('repository', repository.id);
       },
     ),
     redoSafe(ctx) {
@@ -743,7 +745,7 @@ export function deleteRepositoryOp(
       if (current === undefined || !sameRecord(current, repository)) {
         return false;
       }
-      if (!attachmentsMatch(ctx, 'repository', repository.id, attachments)) {
+      if (!attachmentsMatch(ctx, 'repository', repository.id, baselineAttachments)) {
         return false;
       }
       const capturedSources = baselineSources.map((link) => JSON.stringify(link)).sort();
@@ -862,13 +864,14 @@ export function addRecordSubmitterOp(
   kind: RecordSubmitterLink['kind'] = 'contributor',
 ): Op {
   const id = crypto.randomUUID();
-  return op(
+  const created = op(
     id,
     'record_submitter.add',
     (ctx) => ctx.repo.insertRecordSubmitter(id, submitterId, targetType, targetId, kind),
     (ctx) => ctx.repo.deleteRecordSubmitter(id),
     { targetType, targetId, kind: 'changed' },
   );
+  return { ...created, dependsOn: [targetId] };
 }
 
 export function deleteRecordSubmitterOp(
@@ -882,7 +885,7 @@ export function deleteRecordSubmitterOp(
     crypto.randomUUID(),
     'record_submitter.delete',
     (ctx) => ctx.repo.deleteRecordSubmitter(id),
-    (ctx) => ctx.repo.insertRecordSubmitter(id, submitterId, targetType, targetId, kind),
+    (ctx) => restoreRecordSubmitter(ctx, { id, submitterId, targetType, targetId, kind }),
     { targetType, targetId, kind: 'changed' },
   );
 }

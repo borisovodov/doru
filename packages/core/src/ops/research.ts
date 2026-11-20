@@ -25,13 +25,18 @@ function op(
 }
 
 export function addAssociationOp(association: AssociationRecord): Op {
-  return op(
-    crypto.randomUUID(),
-    'association.add',
-    (ctx) => ctx.repo.insertAssociation(association),
-    (ctx) => ctx.repo.deleteAssociation(association.id),
-    { targetType: 'association', targetId: association.id, kind: 'created' },
-  );
+  return {
+    ...op(
+      crypto.randomUUID(),
+      'association.add',
+      (ctx) => ctx.repo.insertAssociation(association),
+      (ctx) => ctx.repo.deleteAssociation(association.id),
+      { targetType: 'association', targetId: association.id, kind: 'created' },
+    ),
+    dependsOn: [association.personId, association.familyId, association.otherPersonId].filter(
+      (id): id is string => id !== undefined,
+    ),
+  };
 }
 
 export function updateAssociationOp(before: AssociationRecord, after: AssociationRecord): Op {
@@ -202,6 +207,7 @@ export function deleteTitleOp(
   consumers: TitleConsumers = {},
 ): Op {
   let baseline = title;
+  let baselineSourceIds = (consumers.sources ?? []).map((source) => source.id);
   return op(
     crypto.randomUUID(),
     'title.delete',
@@ -213,6 +219,7 @@ export function deleteTitleOp(
       for (const source of consumers.sources ?? []) {
         ctx.repo.setSourceTitle(source.id, source.titleId);
       }
+      baselineSourceIds = ctx.repo.listSourcesForTitle(title.id).map((source) => source.id);
     },
     { targetType: 'title', targetId: title.id, kind: 'changed' },
     (ctx) => {
@@ -223,7 +230,7 @@ export function deleteTitleOp(
       ) {
         return false;
       }
-      const captured = (consumers.sources ?? []).map((source) => source.id).sort();
+      const captured = [...baselineSourceIds].sort();
       const live = ctx.repo
         .listSourcesForTitle(title.id)
         .map((source) => source.id)

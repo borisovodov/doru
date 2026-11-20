@@ -504,13 +504,14 @@ describe('redo guards for nested attachment targets', () => {
       });
       const before = repo.getFamily('F1')!;
       service.updateFamily(before, { ...before, partners: ['B', 'A'] });
-      service.undo();
+      // Another writer points the marker at B (now HUSB) before the undo.
       repo.updateFact({
         ...repo.getFact('ADOP1')!,
-        familyLinks: [{ id: 'FF1', familyId: 'F1', adoptedBy: 'WIFE', position: 0 }],
+        familyLinks: [{ id: 'FF1', familyId: 'F1', adoptedBy: 'HUSB', position: 0 }],
       });
-      expect(service.redo().redoBlocked).toBe(true);
+      service.undo();
       expect(repo.getFamily('F1')?.partners).toEqual(['A', 'B']);
+      expect(repo.getFact('ADOP1')?.familyLinks?.[0]?.adoptedBy).toBe('WIFE');
     } finally {
       cleanupRepo(fixture);
     }
@@ -526,6 +527,7 @@ describe('redo guards for nested attachment targets', () => {
       service.updateMedia(before, { ...before, files: [] });
       service.undo();
       repo.insertCitation({ id: 'C1', sourceId: 'S1', targetType: 'media_file', targetId: 'MF1' });
+      expect(repo.listAttachmentsFor('media_file', 'MF1').citations).toHaveLength(1);
       expect(service.redo().redoBlocked).toBe(true);
     } finally {
       cleanupRepo(fixture);
@@ -621,6 +623,154 @@ describe('redo guards for nested attachment targets', () => {
       expect(repo.listAttachmentsFor('fact', 'F1').citations).toEqual([]);
       expect(service.redo().redoBlocked).toBeUndefined();
       expect(repo.getPerson('P1')).toBeUndefined();
+    } finally {
+      cleanupRepo(fixture);
+    }
+  });
+
+  it('restores only the place references the latest delete removed', () => {
+    const { fixture, service } = makeService();
+    const { repo } = fixture;
+    try {
+      service.addPerson(person('P1'));
+      service.addPlace({ id: 'P1P', names: [{ id: 'PN1', kind: 'official', position: 0, value: 'A' }] });
+      service.addPlace({ id: 'P2P', names: [{ id: 'PN2', kind: 'official', position: 0, value: 'B' }] });
+      service.addFact({ id: 'F1', personId: 'P1', tag: 'BIRT', placeId: 'P1P' });
+      service.deletePlace(repo.getPlace('P1P')!);
+      repo.updateFact({ ...repo.getFact('F1')!, placeId: 'P2P' });
+      service.undo();
+      expect(repo.getFact('F1')?.placeId).toBe('P2P');
+      expect(service.redo().redoBlocked).toBeUndefined();
+      repo.updateFact({ ...repo.getFact('F1')!, placeId: undefined });
+      service.undo();
+      expect(repo.getFact('F1')?.placeId).toBeUndefined();
+    } finally {
+      cleanupRepo(fixture);
+    }
+  });
+
+  it('allows title redo after a source moved to another title before undo', () => {
+    const { fixture, service } = makeService();
+    const { repo } = fixture;
+    try {
+      service.addTitle({ id: 'T1', name: 'Register' });
+      service.addTitle({ id: 'T2', name: 'Other' });
+      service.addSource({ id: 'S1', title: 'Book', titleId: 'T1' });
+      service.deleteTitle(repo.getTitle('T1')!);
+      repo.updateSource({ ...repo.getSource('S1')!, titleId: 'T2' });
+      service.undo();
+      expect(repo.getSource('S1')?.titleId).toBe('T2');
+      expect(service.redo().redoBlocked).toBeUndefined();
+      expect(repo.getTitle('T1')).toBeUndefined();
+    } finally {
+      cleanupRepo(fixture);
+    }
+  });
+
+  it('allows place redo after a media record moved to another place before undo', () => {
+    const { fixture, service } = makeService();
+    const { repo } = fixture;
+    try {
+      service.addPlace({ id: 'PL1', names: [{ id: 'PN1', kind: 'official', position: 0, value: 'A' }] });
+      service.addPlace({ id: 'PL2', names: [{ id: 'PN2', kind: 'official', position: 0, value: 'B' }] });
+      service.addMedia({ id: 'M1', title: 'Photo', placeId: 'PL1' });
+      service.deletePlace(repo.getPlace('PL1')!);
+      repo.updateMedia({ ...repo.getMedia('M1')!, placeId: 'PL2' });
+      service.undo();
+      expect(repo.getMedia('M1')?.placeId).toBe('PL2');
+      expect(service.redo().redoBlocked).toBeUndefined();
+      expect(repo.getPlace('PL1')).toBeUndefined();
+    } finally {
+      cleanupRepo(fixture);
+    }
+  });
+
+  it('rejects family redo when a saved member is missing', () => {
+    const { fixture, service } = makeService();
+    const { repo } = fixture;
+    try {
+      service.addPerson(person('A'));
+      service.addPerson(person('B'));
+      service.addFamily(family('F1', { partners: ['A'], children: ['B'] }));
+      service.undo();
+      repo.deletePerson('B');
+      expect(service.redo().redoBlocked).toBe(true);
+      expect(repo.getFamily('F1')).toBeUndefined();
+    } finally {
+      cleanupRepo(fixture);
+    }
+  });
+
+  it('blocks family redo when a removed link gained evidence after undo', () => {
+    const { fixture, service } = makeService();
+    const { repo } = fixture;
+    try {
+      service.addPerson(person('A'));
+      service.addPerson(person('B'));
+      service.addFamily(family('F1', { partners: ['A'], children: ['B'] }));
+      const before = repo.getFamily('F1')!;
+      const link = before.childLinks![0]!;
+      service.updateFamily(before, { ...before, children: [], childLinks: [] });
+      service.undo();
+      repo.insertIdentifier({
+        id: 'ID1',
+        targetType: 'family_child',
+        targetId: link.id,
+        namespace: 'refn',
+        value: 'x',
+      });
+      expect(service.redo().redoBlocked).toBe(true);
+      expect(repo.getFamily('F1')?.childLinks?.map((entry) => entry.id)).toEqual([link.id]);
+    } finally {
+      cleanupRepo(fixture);
+    }
+  });
+
+  it('remaps an adoption link added after the reorder was undone', () => {
+    const { fixture, service } = makeService();
+    const { repo } = fixture;
+    try {
+      service.addPerson(person('A'));
+      service.addPerson(person('B'));
+      service.addPerson(person('C'));
+      service.addFamily(family('F1', { partners: ['A', 'B'], children: ['C'] }));
+      const before = repo.getFamily('F1')!;
+      service.updateFamily(before, { ...before, partners: ['B', 'A'] });
+      service.undo();
+      repo.insertFact({
+        id: 'ADOP1',
+        personId: 'C',
+        tag: 'ADOP',
+        familyLinks: [{ id: 'FF1', familyId: 'F1', adoptedBy: 'HUSB', position: 0 }],
+      });
+      expect(service.redo().redoBlocked).toBeUndefined();
+      expect(repo.getFamily('F1')?.partners).toEqual(['B', 'A']);
+      expect(repo.getFact('ADOP1')?.familyLinks?.[0]?.adoptedBy).toBe('WIFE');
+    } finally {
+      cleanupRepo(fixture);
+    }
+  });
+
+  it('allows place redo after a source event moved to another place before undo', () => {
+    const { fixture, service } = makeService();
+    const { repo } = fixture;
+    try {
+      service.addPlace({ id: 'P1P', names: [{ id: 'PN1', kind: 'official', position: 0, value: 'A' }] });
+      service.addPlace({ id: 'P2P', names: [{ id: 'PN2', kind: 'official', position: 0, value: 'B' }] });
+      service.addSource({
+        id: 'S1',
+        title: 'Book',
+        dataEvents: [{ id: 'E1', tag: 'DATA', placeId: 'P1P' }],
+      });
+      service.deletePlace(repo.getPlace('P1P')!);
+      repo.updateSource({
+        ...repo.getSource('S1')!,
+        dataEvents: [{ id: 'E1', tag: 'DATA', placeId: 'P2P' }],
+      });
+      service.undo();
+      expect(repo.getSource('S1')?.dataEvents?.[0]?.placeId).toBe('P2P');
+      expect(service.redo().redoBlocked).toBeUndefined();
+      expect(repo.getPlace('P1P')).toBeUndefined();
     } finally {
       cleanupRepo(fixture);
     }

@@ -30,8 +30,9 @@ export function updateFamilyOp(
   before: FamilyRecord,
   after: FamilyRecord,
   removedLinkAttachments: FamilyLinkAttachments[] = [],
-  adoptionUpdates: Array<{ before: FactRecord; after: FactRecord }> = [],
+  partnerRemap?: { from: string[]; to: string[] },
 ): Op {
+  let baselineLinks = removedLinkAttachments;
   return {
     id: crypto.randomUUID(),
     kind: 'family.update',
@@ -40,31 +41,21 @@ export function updateFamilyOp(
     snapshots: removedLinkAttachments.map((link) => link.attachments),
     apply(ctx) {
       ctx.repo.updateFamily(after);
-      applyAdoptionUpdates(ctx, adoptionUpdates, 'after');
+      if (partnerRemap !== undefined) {
+        remapAdoptionFacts(ctx, before.id, partnerRemap.from, partnerRemap.to);
+      }
     },
     redoSafe(ctx) {
       const current = ctx.repo.getFamily(before.id);
       if (current === undefined || !sameRecord(current, before)) {
         return false;
       }
-      // The partner reorder and its adoption remap are one edit: if another
-      // writer moved the marker, replaying the order would leave it on the
-      // wrong parent.
-      for (const update of adoptionUpdates) {
-        const fact = ctx.repo.getFact(update.after.id);
-        if (fact === undefined) {
+      for (const link of baselineLinks) {
+        if (
+          attachmentTargetExists(ctx, link.targetType, link.targetId) &&
+          !attachmentsMatch(ctx, link.targetType, link.targetId, link.attachments)
+        ) {
           return false;
-        }
-        for (const desired of update.after.familyLinks ?? []) {
-          const expected = (update.before.familyLinks ?? []).find((link) => link.id === desired.id);
-          const live = (fact.familyLinks ?? []).find((link) => link.id === desired.id);
-          if (expected === undefined) {
-            if (live !== undefined) {
-              return false;
-            }
-          } else if (live === undefined || live.adoptedBy !== expected.adoptedBy) {
-            return false;
-          }
         }
       }
       const graph = [...ctx.repo.listFamilies().filter((entry) => entry.id !== after.id), after];
@@ -72,10 +63,18 @@ export function updateFamilyOp(
     },
     inverse(ctx) {
       ctx.repo.updateFamily(before);
-      applyAdoptionUpdates(ctx, adoptionUpdates, 'before');
+      if (partnerRemap !== undefined) {
+        remapAdoptionFacts(ctx, before.id, partnerRemap.to, partnerRemap.from);
+      }
       for (const link of removedLinkAttachments) {
         ctx.repo.restoreAttachments(link.attachments);
       }
+      baselineLinks = removedLinkAttachments
+        .filter((link) => attachmentTargetExists(ctx, link.targetType, link.targetId))
+        .map((link) => ({
+          ...link,
+          attachments: ctx.repo.listAttachmentsFor(link.targetType, link.targetId),
+        }));
     },
   };
 }
@@ -263,26 +262,49 @@ export function deleteFamilyOp(
   };
 }
 
-function applyAdoptionUpdates(
+function remapAdoptionFacts(
   ctx: MutationContext,
-  updates: Array<{ before: FactRecord; after: FactRecord }>,
-  direction: 'before' | 'after',
+  familyId: string,
+  fromPartners: string[],
+  toPartners: string[],
 ): void {
-  for (const update of updates) {
-    const current = ctx.repo.getFact(update.after.id);
-    if (current === undefined) {
-      continue;
+  const adoptersFor = (adoptedBy: NonNullable<FactRecord['familyLinks']>[number]['adoptedBy']): string[] => {
+    if (adoptedBy === 'BOTH') {
+      return fromPartners.slice(0, 2);
     }
-    const expected = direction === 'after' ? update.before : update.after;
-    const desired = direction === 'after' ? update.after : update.before;
-    const familyLinks = (current.familyLinks ?? []).map((link) => {
-      const expectedLink = (expected.familyLinks ?? []).find((entry) => entry.id === link.id);
-      const desiredLink = (desired.familyLinks ?? []).find((entry) => entry.id === link.id);
-      return expectedLink !== undefined && desiredLink !== undefined && link.adoptedBy === expectedLink.adoptedBy
-        ? { ...link, adoptedBy: desiredLink.adoptedBy }
-        : link;
+    const index = adoptedBy === 'HUSB' ? 0 : 1;
+    const personId = fromPartners[index];
+    return personId === undefined ? [] : [personId];
+  };
+  const markerFor = (personIds: string[]): 'HUSB' | 'WIFE' | 'BOTH' | undefined => {
+    const slots = new Set<'HUSB' | 'WIFE'>();
+    for (const personId of personIds) {
+      const index = toPartners.indexOf(personId);
+      if (index === 0) {
+        slots.add('HUSB');
+      } else if (index === 1) {
+        slots.add('WIFE');
+      }
+    }
+    if (slots.size >= 2) {
+      return 'BOTH';
+    }
+    return slots.values().next().value;
+  };
+  for (const fact of ctx.repo.listFactsLinkedToFamily(familyId)) {
+    const familyLinks = (fact.familyLinks ?? []).map((link) => {
+      if (link.familyId !== familyId || link.adoptedBy === undefined) {
+        return link;
+      }
+      const adoptedBy = markerFor(adoptersFor(link.adoptedBy));
+      if (adoptedBy === link.adoptedBy) {
+        return link;
+      }
+      return { ...link, adoptedBy };
     });
-    ctx.repo.updateFact({ ...current, familyLinks });
+    if (familyLinks.some((link, index) => link !== (fact.familyLinks ?? [])[index])) {
+      ctx.repo.updateFact({ ...fact, familyLinks });
+    }
   }
 }
 

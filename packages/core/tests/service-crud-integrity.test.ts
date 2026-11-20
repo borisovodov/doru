@@ -1507,6 +1507,48 @@ describe('TreeService CRUD integrity', () => {
     }
   });
 
+  it('keeps inserted names at their requested position', () => {
+    const { fixture, service } = makeService();
+    const { repo } = fixture;
+    try {
+      service.addPerson({
+        id: 'P1',
+        sex: 'U',
+        names: [
+          { id: 'N1', given: 'Anna' },
+          { id: 'N2', given: 'Maria' },
+        ],
+        facts: [],
+      });
+      const before = repo.getPerson('P1')!;
+      service.updatePerson(before, { ...before, names: [{ id: 'N3', given: 'New' }, ...before.names] });
+      expect(repo.getPerson('P1')?.names.map((name) => name.id)).toEqual(['N3', 'N1', 'N2']);
+    } finally {
+      cleanupRepo(fixture);
+    }
+  });
+
+  it('keeps a concurrent additional-place reorder when the draft appends', () => {
+    const { fixture, service } = makeService();
+    const { repo } = fixture;
+    try {
+      service.addPerson({ id: 'P1', names: [], sex: 'U', facts: [] });
+      for (const id of ['A', 'B', 'C']) {
+        service.addPlace({ id, names: [{ id: `PN-${id}`, kind: 'official', position: 0, value: id }] });
+      }
+      service.addFact({ id: 'F1', personId: 'P1', tag: 'BIRT', additionalPlaceIds: ['A', 'B'] });
+      const before = repo.getPerson('P1')!;
+      repo.updateFact({ ...before.facts[0]!, additionalPlaceIds: ['B', 'A'] });
+      service.updatePerson(before, {
+        ...before,
+        facts: [{ ...before.facts[0]!, additionalPlaceIds: ['A', 'B', 'C'] }],
+      });
+      expect(repo.getPerson('P1')?.facts[0]?.additionalPlaceIds).toEqual(['B', 'A', 'C']);
+    } finally {
+      cleanupRepo(fixture);
+    }
+  });
+
   it('reactivates a newly selected disproven child link', () => {
     const { fixture, service } = makeService();
     const { repo } = fixture;

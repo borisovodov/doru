@@ -120,10 +120,8 @@ function RepositoryTabBody({
   const [lastSaved, setLastSaved] = useState<RepositoryRecord | undefined>(record);
   const [name, setName] = useState(base.name);
   const [linkedAddressId, setLinkedAddressId] = useState<string | undefined>(base.addressId);
-  const { address, setAddress, addressBefore, addressSaveFailed, saveAddress, unlinkAddress } = useRegistryAddress(
-    api,
-    linkedAddressId,
-  );
+  const { address, setAddress, addressBefore, addressSaveFailed, saveAddress, unlinkAddress, clearAddressSaveFailure } =
+    useRegistryAddress(api, linkedAddressId);
   const addressText = addressBefore !== undefined ? addressLabel(addressBefore) : '';
   const targetId = (lastSaved ?? record)?.id;
   const {
@@ -165,6 +163,7 @@ function RepositoryTabBody({
     } else {
       await api.updateRepository(lastSaved ?? base, next);
     }
+    clearAddressSaveFailure();
     setLastSaved(next);
   };
 

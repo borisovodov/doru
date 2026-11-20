@@ -39,6 +39,8 @@ export interface Op {
   redoSafe?(ctx: MutationContext): boolean;
   /** Snapshot trees that a successful apply should bind to its removal set. */
   snapshots?: AttachmentsSnapshot[];
+  /** Entity ids this op cannot replay without (dropped redo cascades to them). */
+  dependsOn?: string[];
 }
 
 /** Attaches a redo-safety check to an op without repeating its shape. */
@@ -81,7 +83,7 @@ export class OpQueue {
       return undefined;
     }
     if (op.redoSafe !== undefined && !op.redoSafe(ctx)) {
-      this.redoStack.pop();
+      this.discardRedo(op);
       return { blocked: op };
     }
     op.apply(ctx);
@@ -111,9 +113,33 @@ export class OpQueue {
     return op;
   }
 
-  /** Drops the top redo entry when replaying it would discard newer data. */
-  discardRedo(): Op | undefined {
-    return this.redoStack.pop();
+  /**
+   * Drops the top redo entry when replaying it would discard newer data,
+   * together with entries that depend on the entity it would have created.
+   */
+  discardRedo(blocked?: Op): Op | undefined {
+    const dropped = this.redoStack.pop();
+    const created = blocked?.change?.targetId;
+    if (created === undefined) {
+      return dropped;
+    }
+    const unavailable = new Set([created]);
+    let changed = true;
+    while (changed) {
+      changed = false;
+      for (let index = this.redoStack.length - 1; index >= 0; index -= 1) {
+        const candidate = this.redoStack[index] as Op;
+        if (candidate.dependsOn?.some((id) => unavailable.has(id)) !== true) {
+          continue;
+        }
+        this.redoStack.splice(index, 1);
+        changed = true;
+        if (candidate.change?.kind === 'created') {
+          unavailable.add(candidate.change.targetId);
+        }
+      }
+    }
+    return dropped;
   }
 
   /** Drops the top undo entry when its inverse can no longer apply. */

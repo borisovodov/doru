@@ -104,6 +104,30 @@ describe('media repo edge cases', () => {
     }
   });
 
+  it('preserves a concurrently added media file when one file is renamed', () => {
+    const fixture = makeRepo();
+    try {
+      const { repo } = fixture;
+      repo.insertMedia({ id: 'M1', title: 'Photo', files: [{ id: 'F1', path: 'media/a.jpg' }] });
+      const before = repo.getMedia('M1')!;
+      repo.updateMedia({
+        ...before,
+        files: [...before.files!, { id: 'F2', path: 'media/b.jpg' }],
+      });
+      const service = new TreeService(repo, new OpQueue());
+      service.updateMedia(before, {
+        ...before,
+        files: [{ ...before.files![0]!, title: 'Renamed' }],
+      });
+      expect(repo.getMedia('M1')?.files).toEqual([
+        expect.objectContaining({ id: 'F1', title: 'Renamed' }),
+        expect.objectContaining({ id: 'F2' }),
+      ]);
+    } finally {
+      cleanupRepo(fixture);
+    }
+  });
+
   it('keeps a shared media record while any link remains and removes it with the last', () => {
     const fixture = makeRepo();
     try {

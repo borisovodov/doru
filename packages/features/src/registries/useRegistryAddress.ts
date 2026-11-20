@@ -45,6 +45,7 @@ export function useRegistryAddress(api: RegistriesEditorApi, addressId: string |
       setAddressBefore(undefined);
       setAddressLoaded(true);
     }
+    setAddressSaveFailed(false);
     return () => {
       cancelled = true;
     };
@@ -69,8 +70,9 @@ export function useRegistryAddress(api: RegistriesEditorApi, addressId: string |
         // the same doomed update forever. A failed diagnostic lookup must not
         // replace the original save error.
         try {
-          if ((await api.getAddress(addressBefore.id)) === undefined) {
-            setAddressBefore(undefined);
+          const checkedId = addressBefore.id;
+          if ((await api.getAddress(checkedId)) === undefined) {
+            setAddressBefore((current) => (current?.id === checkedId ? undefined : current));
           }
         } catch {
           // The diagnostic is best effort; keep the stale baseline.
@@ -98,5 +100,16 @@ export function useRegistryAddress(api: RegistriesEditorApi, addressId: string |
     setAddressLoaded(true);
   };
 
-  return { address, setAddress, addressLoaded, addressBefore, addressSaveFailed, saveAddress, unlinkAddress };
+  const clearAddressSaveFailure = () => setAddressSaveFailed(false);
+
+  return {
+    address,
+    setAddress,
+    addressLoaded,
+    addressBefore,
+    addressSaveFailed,
+    saveAddress,
+    unlinkAddress,
+    clearAddressSaveFailure,
+  };
 }

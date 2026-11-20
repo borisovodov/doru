@@ -146,6 +146,8 @@ function SourceTabBody({
   const draftRef = useRef(draft);
   const baselineRef = useRef(record);
   const submittedRef = useRef<SourceDraft | undefined>(undefined);
+  const refreshBaselineRef = useRef<SourceDraft | undefined>(undefined);
+  const submissionOriginRef = useRef<SourceDraft | undefined>(undefined);
   const savingRef = useRef(false);
   const setDraft = (next: SourceDraft) => {
     draftRef.current = next;
@@ -186,6 +188,8 @@ function SourceTabBody({
       // draft after Save started, merge against the submitted values so the
       // newer edit survives even when it restores the old value.
       submittedRef.current = undefined;
+      refreshBaselineRef.current = undefined;
+      submissionOriginRef.current = undefined;
       setDraft(
         JSON.stringify(draftRef.current) === JSON.stringify(submitted)
           ? sourceToDraft(record)
@@ -202,27 +206,34 @@ function SourceTabBody({
       if (previous === undefined) {
         setDraft(draft);
       } else {
-        const previousDraft = sourceToDraft(previous);
+        const previousDraft = submissionOriginRef.current ?? sourceToDraft(previous);
+        const baseline = refreshBaselineRef.current ?? submitted;
+        const nextBaseline: SourceDraft = { ...baseline };
         const merged: SourceDraft = { ...draft };
         const changedInSubmission = (key: keyof SourceDraft): boolean =>
           JSON.stringify(submitted[key]) !== JSON.stringify(previousDraft[key]);
-        const editedSinceSubmission = (key: keyof SourceDraft): boolean =>
-          JSON.stringify(draft[key]) !== JSON.stringify(submitted[key]);
+        const editedSinceBaseline = (key: keyof SourceDraft): boolean =>
+          JSON.stringify(draft[key]) !== JSON.stringify(baseline[key]);
         for (const key of Object.keys(refreshed) as Array<keyof SourceDraft>) {
           if (key === 'id' || Array.isArray(refreshed[key])) {
             continue;
           }
-          if (!changedInSubmission(key) && !editedSinceSubmission(key)) {
+          if (!changedInSubmission(key) && !editedSinceBaseline(key)) {
             (merged as unknown as Record<string, unknown>)[key] = refreshed[key];
+            (nextBaseline as unknown as Record<string, unknown>)[key] = refreshed[key];
           }
         }
         for (const key of ['texts', 'dataEvents', 'repositories', 'templateFields'] as const) {
-          if (!changedInSubmission(key) && !editedSinceSubmission(key)) {
+          if (!changedInSubmission(key) && !editedSinceBaseline(key)) {
             (merged as unknown as Record<string, unknown>)[key] = refreshed[key];
-          } else if (editedSinceSubmission(key)) {
-            (merged as unknown as Record<string, unknown>)[key] = mergeSourceDraft(draft, submitted, refreshed)[key];
+            (nextBaseline as unknown as Record<string, unknown>)[key] = refreshed[key];
+          } else {
+            (merged as unknown as Record<string, unknown>)[key] = mergeSourceDraft(draft, previousDraft, refreshed)[
+              key
+            ];
           }
         }
+        refreshBaselineRef.current = nextBaseline;
         setDraft(merged);
       }
     } else if (previous !== undefined) {
@@ -257,6 +268,9 @@ function SourceTabBody({
       const next = sourceDraftToRecord(draftRef.current, record ?? lastSaved ?? baselineRef.current);
       const submission = sourceToDraft(next);
       submittedRef.current = submission;
+      refreshBaselineRef.current = submission;
+      submissionOriginRef.current =
+        baselineRef.current !== undefined ? sourceToDraft(baselineRef.current) : emptySourceDraft();
       try {
         if (isNew && lastSaved === undefined) {
           await api.addSource(next);
@@ -270,6 +284,8 @@ function SourceTabBody({
       } catch (error) {
         if (submittedRef.current === submission) {
           submittedRef.current = undefined;
+          refreshBaselineRef.current = undefined;
+          submissionOriginRef.current = undefined;
         }
         throw error;
       }

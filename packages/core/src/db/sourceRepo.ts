@@ -295,7 +295,7 @@ export class SourceRepo {
     this.db.prepare('DELETE FROM citation WHERE target_type = ? AND target_id = ?').run(targetType, targetId);
     for (const row of rows) {
       if (row.date_id !== null) {
-        this.dates.delete(row.date_id);
+        this.dates.deleteIfUnused(row.date_id);
       }
     }
   }

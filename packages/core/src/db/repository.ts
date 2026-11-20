@@ -1344,10 +1344,10 @@ export class SqliteTreeRepository implements TreeRepository {
     for (const entry of links) {
       this.deleteAttachmentsForInternal('media_link', entry.link.id, visited);
     }
-    const affectedMedia = links.map((entry) => entry.media);
+    const affectedMedia = new Map(links.map((entry) => [entry.media.id, entry.media]));
     this.media.deleteLinksFor(targetType, targetId);
-    for (const media of affectedMedia) {
-      if (this.media.getMedia(media.id) === undefined) {
+    for (const media of affectedMedia.values()) {
+      if (!this.media.hasMedia(media.id)) {
         this.markRemoved('media', media.id);
         this.deleteAttachmentsForInternal('media', media.id, visited);
         for (const file of media.files ?? []) {

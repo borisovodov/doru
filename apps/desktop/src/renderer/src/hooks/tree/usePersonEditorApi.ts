@@ -314,7 +314,9 @@ export function usePersonEditorApi(
           return;
         }
         await window.doru.attachTag(projectPath, link);
-        await refreshTree();
+        // The link is committed; a failed snapshot reload must not make the
+        // caller treat the attach as failed.
+        await refreshTree().catch(() => undefined);
       },
       detachTag: async (link) => {
         if (!projectPath) {

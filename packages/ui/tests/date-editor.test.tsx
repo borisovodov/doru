@@ -75,6 +75,14 @@ describe('DateEditor', () => {
     expect(screen.getByRole('option', { name: 'roman' })).toBeInTheDocument();
   });
 
+  it('retains custom values that arrive after the first render', () => {
+    const onChange = vi.fn();
+    const { rerender } = renderUi(<DateEditor label="Birth" value={emptyDate()} onChange={onChange} />);
+    rerender(<DateEditor label="Birth" value={{ ...emptyDate(), calendar: 'roman' }} onChange={onChange} />);
+    rerender(<DateEditor label="Birth" value={{ ...emptyDate(), calendar: 'julian' }} onChange={onChange} />);
+    expect(screen.getByRole('option', { name: 'roman' })).toBeInTheDocument();
+  });
+
   it('hides the place input when asked and toggles the BCE era', () => {
     const onChange = vi.fn();
     renderUi(<DateEditor label="Sort date" value={emptyDate()} onChange={onChange} hidePlace />);

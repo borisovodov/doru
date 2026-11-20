@@ -123,6 +123,8 @@ function MediaTabBody({
   const submissionTokenRef = useRef<object | undefined>(undefined);
   const submittedDirtyRef = useRef<MediaDirtyFields | undefined>(undefined);
   const saveChainRef = useRef<Promise<void>>(Promise.resolve());
+  const queuedRecordRef = useRef<MediaRecord>(record);
+  const pendingSavesRef = useRef(0);
   const metadataRef = useRef({
     title,
     date,
@@ -271,19 +273,14 @@ function MediaTabBody({
     baselineRef.current = refreshed;
   };
 
-  const performSave = async (submission: MediaDraftSnapshot, base: MediaRecord): Promise<void> => {
+  const performSave = async (
+    submission: MediaDraftSnapshot,
+    base: MediaRecord,
+    baseDraft: MediaDraftSnapshot,
+  ): Promise<void> => {
     const token = {};
     submissionTokenRef.current = token;
     submittedRef.current = submission;
-    const baseDraft = {
-      title: base.title ?? '',
-      date: toDateDraft(base.date),
-      place: base.place ?? '',
-      placeId: base.placeId ?? '',
-      objectType: base.objectType ?? '',
-      description: base.description ?? '',
-      keywords: base.keywords ?? '',
-    };
     const dirty: MediaDirtyFields = {
       title: submission.title.trim() !== baseDraft.title,
       date: !mediaDateDraftEqual(submission.date, base.date),
@@ -296,23 +293,23 @@ function MediaTabBody({
     // Use the latest saved state even while the refreshed prop is pending.
     const current = savedRef.current;
     const next: MediaRecord = { ...current };
-    if (submission.title.trim() !== (base.title ?? '')) {
+    if (submission.title.trim() !== baseDraft.title) {
       next.title = submission.title.trim() || undefined;
     }
     if (!mediaDateDraftEqual(submission.date, base.date)) {
       next.date = fromDateDraft(submission.date, current.date);
     }
-    if (submission.place.trim() !== (base.place ?? '') || submission.placeId !== (base.placeId ?? '')) {
+    if (submission.place.trim() !== baseDraft.place || submission.placeId !== baseDraft.placeId) {
       next.place = submission.place.trim() || undefined;
       next.placeId = submission.placeId || undefined;
     }
-    if (submission.objectType.trim() !== (base.objectType ?? '')) {
+    if (submission.objectType.trim() !== baseDraft.objectType) {
       next.objectType = submission.objectType.trim() || undefined;
     }
-    if (submission.description.trim() !== (base.description ?? '')) {
+    if (submission.description.trim() !== baseDraft.description) {
       next.description = submission.description.trim() || undefined;
     }
-    if (submission.keywords.trim() !== (base.keywords ?? '')) {
+    if (submission.keywords.trim() !== baseDraft.keywords) {
       next.keywords = submission.keywords.trim() || undefined;
     }
     const recordBeforeSave = recordRef.current;
@@ -329,6 +326,7 @@ function MediaTabBody({
         if (submittedRef.current === submission) {
           submittedRef.current = undefined;
           submittedDirtyRef.current = undefined;
+          queuedRecordRef.current = savedRef.current;
         }
       }
       throw error;
@@ -349,9 +347,9 @@ function MediaTabBody({
   };
 
   const save = (): Promise<void> => {
-    // Capture the click-time draft and baseline, then queue behind earlier
-    // writes so overlapping saves cannot race over the same draft.
-    const submission = {
+    // Capture the click-time draft. Queued saves compare against the previous
+    // submission, so a reversal (B then A) is not compared with stale A.
+    const submission: MediaDraftSnapshot = {
       title,
       date,
       place,
@@ -360,8 +358,46 @@ function MediaTabBody({
       description,
       keywords,
     };
-    const base = baselineRef.current;
-    const task: Promise<void> = saveChainRef.current.then(() => performSave(submission, base));
+    if (pendingSavesRef.current === 0) {
+      queuedRecordRef.current = savedRef.current;
+    }
+    const base = queuedRecordRef.current;
+    const baseDraft: MediaDraftSnapshot = {
+      title: base.title ?? '',
+      date: toDateDraft(base.date),
+      place: base.place ?? '',
+      placeId: base.placeId ?? '',
+      objectType: base.objectType ?? '',
+      description: base.description ?? '',
+      keywords: base.keywords ?? '',
+    };
+    const desired: MediaRecord = { ...base };
+    if (submission.title.trim() !== baseDraft.title) {
+      desired.title = submission.title.trim() || undefined;
+    }
+    if (!mediaDateDraftEqual(submission.date, base.date)) {
+      desired.date = fromDateDraft(submission.date, base.date);
+    }
+    if (submission.place.trim() !== baseDraft.place || submission.placeId !== baseDraft.placeId) {
+      desired.place = submission.place.trim() || undefined;
+      desired.placeId = submission.placeId || undefined;
+    }
+    if (submission.objectType.trim() !== baseDraft.objectType) {
+      desired.objectType = submission.objectType.trim() || undefined;
+    }
+    if (submission.description.trim() !== baseDraft.description) {
+      desired.description = submission.description.trim() || undefined;
+    }
+    if (submission.keywords.trim() !== baseDraft.keywords) {
+      desired.keywords = submission.keywords.trim() || undefined;
+    }
+    queuedRecordRef.current = desired;
+    pendingSavesRef.current += 1;
+    const task: Promise<void> = saveChainRef.current
+      .then(() => performSave(submission, base, baseDraft))
+      .finally(() => {
+        pendingSavesRef.current -= 1;
+      });
     saveChainRef.current = task.catch(() => undefined);
     return saveChainRef.current;
   };

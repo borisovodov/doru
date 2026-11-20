@@ -58,19 +58,32 @@ async function prepareGedcomMedia(
       if (original === '' || paths.has(original)) {
         return;
       }
-      // A GEDCOM from another person may name any readable file: only payloads
-      // whose canonical path stays beside the source file may be imported.
-      const candidate = resolve(dirname(sourcePath), original);
-      const safe = await resolveImportFile(dirname(sourcePath), candidate);
-      if (safe !== null && (await fs.exists(safe)) && (await stat(safe)).isFile()) {
-        const contents = await fs.readBinary(safe);
+      let contents: Uint8Array | undefined;
+      try {
+        // A GEDCOM from another person may name any readable file: only
+        // payloads whose canonical path stays beside the source file may be
+        // imported.
+        const candidate = resolve(dirname(sourcePath), original);
+        const safe = await resolveImportFile(dirname(sourcePath), candidate);
+        if (safe === null) {
+          log.warn('gedcom import: skipped media outside the source folder', original);
+          return;
+        }
+        if (!(await fs.exists(safe)) || !(await stat(safe)).isFile()) {
+          return;
+        }
+        contents = await fs.readBinary(safe);
         if ((await resolveImportFile(dirname(sourcePath), candidate)) !== safe) {
           return;
         }
-        await store(contents, original);
-      } else if (safe === null) {
-        log.warn('gedcom import: skipped media outside the source folder', original);
+      } catch (error) {
+        // Unreadable payloads stay external and hidden; they must not abort
+        // the whole import.
+        log.warn('gedcom import: could not read media payload', original, error);
+        return;
       }
+      // Project-write failures are not per-payload and must propagate.
+      await store(contents, original);
     };
     for (const file of record.files) {
       await storeReachable(file.payload);

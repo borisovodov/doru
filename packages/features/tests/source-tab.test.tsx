@@ -235,6 +235,66 @@ describe('SourceTab', () => {
     resolveSave();
   });
 
+  it('lets successive refreshes advance untouched fields while a save is pending', async () => {
+    let resolveSave!: () => void;
+    const updateSource = vi.fn(
+      async () =>
+        new Promise<void>((resolve) => {
+          resolveSave = resolve;
+        }),
+    );
+    const api = stubApi<SourceEditorApi>({
+      updateSource,
+      getRepositories: async () => [],
+      getTitles: async () => [],
+      getNotes: async () => [],
+      getAllNotes: async () => [],
+      getCitations: async () => [],
+      getTags: async () => [],
+      getTagLinks: async () => [],
+      getIdentifiers: async () => [],
+      getContacts: async () => [],
+      getRestrictions: async () => [],
+      getChanges: async () => [],
+      getSubmitters: async () => [],
+      getRecordSubmitters: async () => [],
+      getMediaFor: async () => [],
+      getAllMedia: async () => [],
+      getTodosFor: async () => [],
+    });
+    const mediaApi = stubApi<MediaTargetApi>({ getMediaFor: async () => [], getAllMedia: async () => [] });
+    const renderSource = (author: string) => (
+      <SourceTab
+        entityId="S1"
+        sources={[{ id: 'S1', title: 'Old', author }]}
+        api={api}
+        persons={[]}
+        families={[]}
+        facts={[]}
+        places={[]}
+        citations={[]}
+        notes={[]}
+        media={[]}
+        mediaApi={mediaApi}
+        onOpenPerson={vi.fn()}
+        onOpenMedia={vi.fn()}
+        onOpenSource={vi.fn()}
+        onClose={vi.fn()}
+        onCreated={vi.fn()}
+      />
+    );
+    const view = renderUi(renderSource('A'));
+    fireEvent.change(screen.getByDisplayValue('Old'), { target: { value: 'New' } });
+    fireEvent.click(screen.getByRole('button', { name: nls.t('features.tree.save') }));
+    await waitFor(() => expect(updateSource).toHaveBeenCalledTimes(1));
+
+    view.rerender(renderSource('B'));
+    expect(screen.getByDisplayValue('B')).toBeInTheDocument();
+    view.rerender(renderSource('C'));
+    expect(screen.getByDisplayValue('C')).toBeInTheDocument();
+    resolveSave();
+  });
+
   it('shows a missing-source message for an unknown id', () => {
     renderTab({ entityId: 'missing' });
     expect(screen.getByText(nls.t('features.sources.notFound'))).toBeInTheDocument();

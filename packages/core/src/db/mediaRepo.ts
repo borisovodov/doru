@@ -110,6 +110,10 @@ export class MediaRepo {
     return this.transactions.run(() => this.deleteMediaRow(id));
   }
 
+  hasMedia(id: string): boolean {
+    return this.db.prepare('SELECT 1 FROM media WHERE id = ?').get(id) !== undefined;
+  }
+
   getMedia(id: string): MediaRecord | undefined {
     const row = this.db.prepare(`SELECT ${MEDIA_COLUMNS} FROM media WHERE id = ?`).get(id) as MediaRow | undefined;
     return row ? this.hydrate(row) : undefined;
@@ -264,7 +268,7 @@ export class MediaRepo {
 
   private deleteStaleDate(oldId: string | null, keptId: string | null): void {
     if (oldId !== null && oldId !== keptId) {
-      this.dates.delete(oldId);
+      this.dates.deleteIfUnused(oldId);
     }
   }
 
