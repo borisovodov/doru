@@ -6,7 +6,7 @@
  * the TodoRecord / TodoStructure JSDoc.
  */
 
-import { dispatch, reqPtr, reqText } from './context';
+import { addExtension, dispatch, parseExtension, reqPtr, reqText } from './context';
 import type { Ctx } from './context';
 import { fail } from '../errors';
 import type { RawNode } from './lines';
@@ -61,6 +61,9 @@ export function parseTodoRecord(node: RawNode, ctx: Ctx): TodoRecord {
         // My Family Tree `_TASK`: the creation date in the vendor's
         // encoded form (see TodoRecord.createdDate).
         out.createdDate = reqText(child);
+        if (child.children.length > 0) {
+          out.createdDateExtensions = child.children.map((grandchild) => parseExtension(grandchild, ctx));
+        }
       },
       _TRDT: (child) => {
         // My Family Tree `_TASK`: the reminder date — the same slot
@@ -83,6 +86,25 @@ export function parseTodoRecord(node: RawNode, ctx: Ctx): TodoRecord {
         // My Family Tree `_TASK`: the unique identifier (see
         // TodoRecord.uids).
         (out.uids ??= []).push(reqText(child));
+      },
+      REPO: (child) => {
+        // GEDCOM-L E1 / record form: the repository the task belongs to
+        // (see TodoRecord.repository). Bare identifiers that resolve are
+        // pointer spellings; genuine text stays an extension.
+        const bare =
+          child.value.kind === 'text' &&
+          /^[A-Za-z0-9_]+$/.test(child.value.text) &&
+          ctx.xrefs.has(`@${child.value.text}@`);
+        if (child.value.kind !== 'pointer' && !bare) {
+          addExtension(out, child, ctx);
+          return;
+        }
+        if (out.repository === undefined) {
+          out.repository = reqPtr(child, ctx);
+          if (child.children.length > 0) {
+            out.repositoryExtensions = child.children.map((grandchild) => parseExtension(grandchild, ctx));
+          }
+        }
       },
       CHAN: (child) => {
         // My Family Tree `_TASK`: the change stamp (see
@@ -155,10 +177,23 @@ export function parseTodoStructure(node: RawNode, ctx: Ctx): TodoStructure {
         // TodoStructure.reminderDate).
         out.reminderDate = parseDateStructure(child, ctx);
       },
+      _TCDT: (child) => {
+        // The structure form of the record's creation date (see
+        // TodoStructure.createdDate).
+        out.createdDate = reqText(child);
+        if (child.children.length > 0) {
+          out.createdDateExtensions = child.children.map((grandchild) => parseExtension(grandchild, ctx));
+        }
+      },
       REPO: (child) => {
         // GEDCOM-L E1: a pointer to a repository record (see
         // TodoStructure.repository).
-        out.repository = reqPtr(child, ctx);
+        if (out.repository === undefined) {
+          out.repository = reqPtr(child, ctx);
+          if (child.children.length > 0) {
+            out.repositoryExtensions = child.children.map((grandchild) => parseExtension(grandchild, ctx));
+          }
+        }
       },
       _UID: (child) => {
         // GEDCOM-L E1: unique identifiers of the task (see
@@ -170,7 +205,7 @@ export function parseTodoStructure(node: RawNode, ctx: Ctx): TodoStructure {
       },
     },
     ctx,
-    ['DESC', '_CAT', '_LOCL', 'PRTY', '_PRTY', 'TYPE', 'STAT', 'DATE', 'DATA', '_CDATE', '_RDATE', 'REPO'],
+    ['DESC', '_CAT', '_LOCL', 'PRTY', '_PRTY', 'TYPE', 'STAT', 'DATE', 'DATA', '_CDATE', '_RDATE', '_TCDT'],
   );
   return out;
 }

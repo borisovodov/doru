@@ -64,20 +64,42 @@ export class NameRepo {
    * are deleted. Callers may pass flat name pieces (`given`, `surname`, …) —
    * they become parts — or explicit `parts`.
    */
-  replaceNamesForPerson(personId: string, names: PersonName[]): void {
+  replaceNamesForPerson(personId: string, names: PersonName[]): Set<string> {
+    const existingNames = new Map<string, PersonName>();
+    const remember = (name: PersonName): void => {
+      existingNames.set(name.id, name);
+      for (const variant of name.variants ?? []) {
+        remember(variant);
+      }
+    };
+    for (const name of this.listNamesForPerson(personId)) {
+      remember(name);
+    }
     const oldDateIds = new Set(this.dateIdsOfPerson(personId));
     this.db.prepare('DELETE FROM person_name_fts WHERE person_id = ?').run(personId);
     this.db.prepare('DELETE FROM person_name WHERE person_id = ?').run(personId);
 
     const newDateIds = new Set<string>();
+    const partIds = new Set<string>();
+    const reservedPartIds = new Set<string>();
+    const reserve = (name: PersonName): void => {
+      for (const part of name.parts ?? []) {
+        reservedPartIds.add(part.id);
+      }
+      for (const variant of name.variants ?? []) {
+        reserve(variant);
+      }
+    };
+    names.forEach(reserve);
     names.forEach((name, position) => {
-      this.writeName(personId, name, null, position, newDateIds);
+      this.writeName(personId, name, null, position, newDateIds, existingNames, partIds, reservedPartIds);
     });
     for (const stale of oldDateIds) {
       if (!newDateIds.has(stale)) {
         this.dates.delete(stale);
       }
     }
+    return partIds;
   }
 
   /** Removes the person's FTS rows before the person row itself is deleted. */
@@ -148,6 +170,9 @@ export class NameRepo {
     variantOfId: string | null,
     position: number,
     dateIds: Set<string>,
+    existingNames: Map<string, PersonName>,
+    partIds: Set<string>,
+    reservedPartIds: Set<string>,
   ): void {
     const dateId = name.date ? this.dates.upsert(name.date) : null;
     if (dateId !== null) {
@@ -175,13 +200,24 @@ export class NameRepo {
       name.nameAsRecorded ?? null,
       name.givenNameUsed ?? null,
     );
-    const parts = [...(name.parts ?? partsFromFlat(name))];
+    const existingParts = existingNames.get(name.id)?.parts;
+    const parts = [...(name.parts ?? partsFromFlat(name, existingParts, reservedPartIds))];
     if (name.full !== undefined && name.full.trim() !== '' && !parts.some((part) => part.kind === 'full')) {
       // The verbatim display form is authoritative: keep it alongside the
       // pieces even when the caller supplied explicit parts.
-      parts.push({ id: crypto.randomUUID(), kind: 'full', value: name.full.trim(), position: parts.length });
+      const existingFull = existingParts?.find(
+        (part) => part.kind === 'full' && !parts.some((entry) => entry.id === part.id) && !reservedPartIds.has(part.id),
+      );
+      const fullId = existingFull?.id ?? freshPartId(reservedPartIds);
+      parts.push({
+        id: fullId,
+        kind: 'full',
+        value: name.full.trim(),
+        position: parts.length,
+      });
     }
     parts.forEach((part, index) => {
+      partIds.add(part.id);
       this.insertPart.run(part.id, name.id, part.kind, part.value, index);
     });
     const searchable = parts
@@ -193,7 +229,7 @@ export class NameRepo {
       this.insertFts.run(personId, searchable);
     }
     (name.variants ?? []).forEach((variant, variantPosition) => {
-      this.writeName(personId, variant, name.id, variantPosition, dateIds);
+      this.writeName(personId, variant, name.id, variantPosition, dateIds, existingNames, partIds, reservedPartIds);
     });
   }
 
@@ -280,13 +316,21 @@ export function flatFromParts(
   };
 }
 
+function freshPartId(reservedIds?: Set<string>): string {
+  let id = crypto.randomUUID();
+  while (reservedIds?.has(id) === true) {
+    id = crypto.randomUUID();
+  }
+  return id;
+}
+
 /**
  * Turns the flat name pieces into part rows: one part per piece, in display
  * order, plus a 'full' part carrying the verbatim display form whenever it
  * is set. The 'full' part is kept even when it equals the pieces joined —
  * the stored form is authoritative for round-trips.
  */
-export function partsFromFlat(name: PersonName): NamePart[] {
+export function partsFromFlat(name: PersonName, existingParts?: NamePart[], reservedIds?: Set<string>): NamePart[] {
   const pieces: Array<[NamePart['kind'], string | undefined]> = [
     ['prefix', name.prefix],
     ['given', name.given],
@@ -296,13 +340,28 @@ export function partsFromFlat(name: PersonName): NamePart[] {
     ['suffix', name.suffix],
   ];
   const parts: NamePart[] = [];
+  const usedIds = new Set<string>();
+  const partId = (kind: NamePart['kind']): string => {
+    // The flat field was always supplied by the first unused part of that
+    // kind, so an edit keeps that part's id even when the value now matches a
+    // later part. Explicit `parts` callers pick a different part themselves.
+    const candidates = (existingParts ?? []).filter(
+      (part) => part.kind === kind && !usedIds.has(part.id) && !reservedIds?.has(part.id),
+    );
+    const existing = candidates[0];
+    const id = existing?.id ?? freshPartId(reservedIds);
+    usedIds.add(id);
+    return id;
+  };
   pieces.forEach(([kind, value]) => {
     if (value !== undefined && value !== '') {
-      parts.push({ id: crypto.randomUUID(), kind, value, position: parts.length });
+      const position = parts.length;
+      parts.push({ id: partId(kind), kind, value, position });
     }
   });
   if (name.full !== undefined && name.full.trim() !== '') {
-    parts.push({ id: crypto.randomUUID(), kind: 'full', value: name.full.trim(), position: parts.length });
+    const position = parts.length;
+    parts.push({ id: partId('full'), kind: 'full', value: name.full.trim(), position });
   }
   return parts;
 }

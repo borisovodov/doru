@@ -24,6 +24,51 @@ describe('buildGedcomDataset', () => {
     }
   });
 
+  it('keeps an adoption phrase when no adopting parent is selected', () => {
+    const fixture = makeRepo();
+    try {
+      const { repo } = fixture;
+      repo.insertPerson({ id: 'P1', names: [], sex: 'U', facts: [] });
+      repo.insertFamily({ id: 'F1', partners: [], children: ['P1'] });
+      repo.updatePerson({
+        id: 'P1',
+        names: [],
+        sex: 'U',
+        facts: [
+          {
+            id: 'ADOP1',
+            personId: 'P1',
+            tag: 'ADOP',
+            familyLinks: [{ id: 'FF1', familyId: 'F1', phrase: 'raised together', position: 0 }],
+          },
+        ],
+      });
+      const text = serializeGedcom70(buildGedcomDataset(repo));
+      expect(text.ok).toBe(true);
+      if (!text.ok) {
+        return;
+      }
+      expect(text.value).toContain('raised together');
+    } finally {
+      cleanupRepo(fixture);
+    }
+  });
+
+  it('skips media links whose media has no files', () => {
+    const fixture = makeRepo();
+    try {
+      const { repo } = fixture;
+      repo.insertPerson({ id: 'P1', names: [], sex: 'U', facts: [] });
+      repo.insertMedia({ id: 'M1', title: 'Fileless', targetType: 'person', targetId: 'P1' });
+
+      const dataset = buildGedcomDataset(repo);
+      expect(dataset.records.some((record) => record.tag === 'OBJE')).toBe(false);
+      expect(serializeGedcom70(dataset).ok).toBe(true);
+    } finally {
+      cleanupRepo(fixture);
+    }
+  });
+
   it('exports an app-created shared note as an SNOTE record', () => {
     const fixture = makeRepo();
     try {

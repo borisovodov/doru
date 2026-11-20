@@ -26,6 +26,7 @@ export interface ChildLinkDraft {
   pedigree: string; // '' = unspecified
   pedigreePhrase: string;
   status: string; // '' = unspecified
+  statusPhrase: string;
   fatherRelation: string;
   motherRelation: string;
   preferred: boolean;
@@ -79,6 +80,7 @@ export function emptyChildLinkDraft(childId = ''): ChildLinkDraft {
     pedigree: '',
     pedigreePhrase: '',
     status: '',
+    statusPhrase: '',
     fatherRelation: '',
     motherRelation: '',
     preferred: false,
@@ -151,6 +153,7 @@ export function familyToDraft(family: FamilyRecord): FamilyDraft {
       pedigree: link.pedigree ?? '',
       pedigreePhrase: link.pedigreePhrase ?? '',
       status: link.status ?? '',
+      statusPhrase: link.statusPhrase ?? '',
       fatherRelation: link.fatherRelation ?? '',
       motherRelation: link.motherRelation ?? '',
       preferred: link.preferred === true,
@@ -160,11 +163,13 @@ export function familyToDraft(family: FamilyRecord): FamilyDraft {
 }
 
 /** Builds the family record for a save; empty slots (no person) are dropped. */
-export function familyDraftToRecord(draft: FamilyDraft): FamilyRecord {
+export function familyDraftToRecord(draft: FamilyDraft, existing?: FamilyRecord): FamilyRecord {
+  const existingPartners = new Map((existing?.partnerLinks ?? []).map((link) => [link.id, link]));
+  const existingStatuses = new Map((existing?.marriageStatuses ?? []).map((status) => [status.id, status]));
   const partnerLinks: FamilyPartnerLink[] = draft.partnerLinks
     .filter((link) => link.personId !== '')
     .map((link) => {
-      const date = fromDateDraft(link.date);
+      const date = fromDateDraft(link.date, existingPartners.get(link.id)?.date);
       return {
         id: link.id,
         personId: link.personId,
@@ -184,6 +189,7 @@ export function familyDraftToRecord(draft: FamilyDraft): FamilyRecord {
       pedigree: link.pedigree.trim() || undefined,
       pedigreePhrase: link.pedigreePhrase.trim() || undefined,
       status: link.status.trim() || undefined,
+      statusPhrase: link.statusPhrase.trim() || undefined,
       fatherRelation: link.fatherRelation.trim() || undefined,
       motherRelation: link.motherRelation.trim() || undefined,
       ...(link.preferred ? { preferred: true } : {}),
@@ -193,7 +199,7 @@ export function familyDraftToRecord(draft: FamilyDraft): FamilyRecord {
   const marriageStatuses = draft.marriageStatuses
     .filter((status) => status.status.trim() !== '')
     .map((status) => {
-      const date = fromDateDraft(status.date);
+      const date = fromDateDraft(status.date, existingStatuses.get(status.id)?.date);
       return {
         id: status.id,
         status: status.status.trim(),
@@ -269,6 +275,7 @@ export function familyDraftMatches(draft: FamilyDraft, family: FamilyRecord): bo
         link.pedigree === entry.pedigree &&
         link.pedigreePhrase === entry.pedigreePhrase &&
         link.status === entry.status &&
+        link.statusPhrase === entry.statusPhrase &&
         link.fatherRelation === entry.fatherRelation &&
         link.motherRelation === entry.motherRelation &&
         link.preferred === entry.preferred &&

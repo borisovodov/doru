@@ -39,7 +39,7 @@ export function SidebarMedia({
           item.targetType === 'person' && item.targetId !== undefined
             ? displayName(personById.get(item.targetId))
             : undefined;
-        const image = isImagePath(item.path);
+        const image = item.absolutePath !== '' && isImagePath(item.path);
         return (
           <li key={item.id}>
             <EntityRow
@@ -53,7 +53,7 @@ export function SidebarMedia({
                     },
                   }
                 : { icon: <FileImage size={15} aria-hidden="true" /> })}
-              title={item.title ?? fileName(item.path ?? '')}
+              title={item.title ?? (fileName(item.path ?? '') || item.id)}
               subtitle={owner ?? null}
               onClick={() => onOpenMedia(item.id)}
             />

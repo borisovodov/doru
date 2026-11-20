@@ -1,3 +1,4 @@
+import { nls } from '../../nls';
 import type {
   AddressRecord,
   AssociationRecord,
@@ -50,6 +51,11 @@ export function taskTargetOptions(type: string, data: TaskTargetData): TaskTarge
   switch (type) {
     case 'person':
       return data.persons.map((person) => ({ id: person.id, label: displayName(person) }));
+    case 'person_sex':
+      return data.persons.map((person) => ({
+        id: person.id,
+        label: `${displayName(person)} · ${nls.t('features.tasks.target.person_sex')}`,
+      }));
     case 'family':
       return data.families.map((family) => ({ id: family.id, label: familyLabel(family, personById) }));
     case 'family_partner':
@@ -113,6 +119,15 @@ export function taskTargetOptions(type: string, data: TaskTargetData): TaskTarge
           label: `${mediaLabel(media)} · ${file.title ?? file.path}`,
         })),
       );
+    case 'media_link': {
+      const labelFor = createTaskTargetLabeler(data, false);
+      return data.media.flatMap((media) =>
+        (media.links ?? []).map((link) => ({
+          id: link.id,
+          label: `${mediaLabel(media)} · ${labelFor(link.targetType, link.targetId)}`,
+        })),
+      );
+    }
     case 'place':
       return data.places.map((place) => ({ id: place.id, label: placeName(place) }));
     case 'place_name':
@@ -176,7 +191,29 @@ export function taskTargetOptions(type: string, data: TaskTargetData): TaskTarge
 
 /** A human-readable label for a target id, falling back to the raw pair. */
 export function taskTargetLabel(type: string, id: string, data: TaskTargetData): string {
-  return taskTargetOptions(type, data).find((option) => option.id === id)?.label ?? `${type}:${id}`;
+  return createTaskTargetLabeler(data)(type, id);
+}
+
+/**
+ * A label lookup that builds each target type's options at most once. Use it
+ * for lists with many references instead of calling taskTargetLabel per row.
+ */
+export function createTaskTargetLabeler(
+  data: TaskTargetData,
+  resolveMediaLinks = true,
+): (type: string, id: string) => string {
+  const byType = new Map<string, Map<string, string>>();
+  return (type, id) => {
+    if (type === 'media_link' && !resolveMediaLinks) {
+      return `media_link:${id}`;
+    }
+    let byId = byType.get(type);
+    if (byId === undefined) {
+      byId = new Map(taskTargetOptions(type, data).map((option) => [option.id, option.label]));
+      byType.set(type, byId);
+    }
+    return byId.get(id) ?? `${type}:${id}`;
+  };
 }
 
 function nameOptions(person: PersonRecord): TaskTargetOption[] {

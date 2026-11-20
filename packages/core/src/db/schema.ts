@@ -53,16 +53,23 @@ export const DORU_APPLICATION_ID = 0x444f5255;
  * `date.sort_year` column and the unused `place_name_fts` index; version 3
  * added the GEDCOM substructures that the domain model was still dropping
  * (person addresses, family metadata, dated place names, fact periods and
- * extra places, source/citation details). The pre-release scaffolds that
- * preceded them are not counted.
+ * extra places, source/citation details); version 4 added
+ * `fact.primary_flag` for the AGES! `_PRI` marker, kept apart from the
+ * Family Historian `_FLGS` flags in `fact_flag`; version 5 added
+ * `person.death_status`, `family_child.status_phrase`,
+ * `record_submitter.kind` and the `fact_family` event-family link; version 6
+ * added the historical media record and file metadata while leaving derived
+ * file facts (MIME, size, dimensions, EXIF) out of the database. The
+ * pre-release scaffolds that preceded them are not counted.
  */
-export const SCHEMA_VERSION = 3;
+export const SCHEMA_VERSION = 6;
 
 export const SCHEMA_SQL = `
 CREATE TABLE IF NOT EXISTS person (
   id TEXT PRIMARY KEY,
   xref TEXT,
   sex TEXT,
+  death_status TEXT,    -- alive | dead
   address_id TEXT REFERENCES address(id) ON DELETE SET NULL
 );
 
@@ -130,6 +137,7 @@ CREATE TABLE IF NOT EXISTS family_child (
   pedigree TEXT,          -- birth | adopted | foster | sealing | other
   pedigree_phrase TEXT,
   status TEXT,            -- challenged | disproven | proven
+  status_phrase TEXT,
   father_relation TEXT,   -- birth | adopted | guardian | foster | step | ...
   mother_relation TEXT,
   preferred INTEGER NOT NULL DEFAULT 0,
@@ -148,6 +156,9 @@ CREATE TABLE IF NOT EXISTS family_marriage_status (
   position INTEGER NOT NULL
 );
 
+-- Free-text vendor witnesses (_WITN/_GODT), names rather than person
+-- pointers. Deliberately not an attachment target: evidence belongs on a
+-- standard ASSO association row, not on a text witness.
 CREATE TABLE IF NOT EXISTS family_witness (
   id TEXT PRIMARY KEY,
   family_id TEXT NOT NULL REFERENCES family(id) ON DELETE CASCADE,
@@ -175,6 +186,7 @@ CREATE TABLE IF NOT EXISTS fact (
   type TEXT,
   value TEXT,
   negation INTEGER NOT NULL DEFAULT 0,   -- non-events (GEDCOM NO)
+  primary_flag INTEGER NOT NULL DEFAULT 0, -- AGES! _PRI (not an FH _FLGS flag)
   date_id TEXT REFERENCES date(id) ON DELETE SET NULL,
   end_date_id TEXT REFERENCES date(id) ON DELETE SET NULL,
   sort_date_id TEXT REFERENCES date(id) ON DELETE SET NULL,
@@ -196,6 +208,17 @@ CREATE TABLE IF NOT EXISTS fact (
   map_latitude REAL,
   map_longitude REAL,
   CHECK ((person_id IS NULL) + (family_id IS NULL) = 1)
+);
+
+-- The family an event belongs to (GEDCOM event-level FAMC: ADOP, BIRT, CHR),
+-- with the "which parent adopted" marker for ADOP.
+CREATE TABLE IF NOT EXISTS fact_family (
+  id TEXT PRIMARY KEY,
+  fact_id TEXT NOT NULL REFERENCES fact(id) ON DELETE CASCADE,
+  family_id TEXT NOT NULL REFERENCES family(id) ON DELETE CASCADE,
+  adopted_by TEXT,       -- HUSB | WIFE | BOTH (ADOP only)
+  phrase TEXT,
+  position INTEGER NOT NULL
 );
 
 -- Additional places of a fact (the Family Historian _PLAC list).
@@ -378,13 +401,22 @@ CREATE TABLE IF NOT EXISTS citation_template_field (
 );
 
 -- Media: records with file rows and links. File bytes live in the media/
--- folder next to the .doru file, never in the database; only the path and
--- the title are stored (MIME, size, dimensions come from the file).
+-- folder next to the .doru file, never in the database. Historical GEDCOM
+-- metadata (date, place, object type, description, keywords) is stored on
+-- the media row; medium, content type and transcription text live on the
+-- file rows, and translated files in media_file_translation. MIME, size and
+-- dimensions are derived from the file itself.
 
 CREATE TABLE IF NOT EXISTS media (
   id TEXT PRIMARY KEY,
   xref TEXT,
-  title TEXT
+  title TEXT,
+  date_id TEXT REFERENCES date(id) ON DELETE SET NULL,
+  place_id TEXT REFERENCES place(id) ON DELETE SET NULL,
+  place_text TEXT,
+  object_type TEXT,       -- _TYPE: Photo | Sound | Video | Document ...
+  description TEXT,       -- _DSCR
+  keywords TEXT           -- _KEYS
 );
 
 CREATE TABLE IF NOT EXISTS media_file (
@@ -392,6 +424,17 @@ CREATE TABLE IF NOT EXISTS media_file (
   media_id TEXT NOT NULL REFERENCES media(id) ON DELETE CASCADE,
   path TEXT NOT NULL,
   title TEXT,
+  medium TEXT,            -- FORM.MEDI
+  content_type TEXT,      -- _CTYP
+  text TEXT,              -- _TEXT transcription
+  position INTEGER NOT NULL
+);
+
+-- TRAN: the same media content in another digital format.
+CREATE TABLE IF NOT EXISTS media_file_translation (
+  id TEXT PRIMARY KEY,
+  media_file_id TEXT NOT NULL REFERENCES media_file(id) ON DELETE CASCADE,
+  path TEXT NOT NULL,
   position INTEGER NOT NULL
 );
 
@@ -437,7 +480,8 @@ CREATE TABLE IF NOT EXISTS record_submitter (
   id TEXT PRIMARY KEY,
   submitter_id TEXT NOT NULL REFERENCES submitter(id) ON DELETE CASCADE,
   target_type TEXT NOT NULL,
-  target_id TEXT NOT NULL
+  target_id TEXT NOT NULL,
+  kind TEXT NOT NULL DEFAULT 'contributor' -- contributor | ancestor_interest | descendant_interest
 );
 
 CREATE TABLE IF NOT EXISTS address (
@@ -592,6 +636,8 @@ CREATE INDEX IF NOT EXISTS idx_family_partner_family ON family_partner(family_id
 CREATE INDEX IF NOT EXISTS idx_family_partner_person ON family_partner(person_id);
 CREATE INDEX IF NOT EXISTS idx_family_child_family ON family_child(family_id, position);
 CREATE INDEX IF NOT EXISTS idx_family_child_child ON family_child(child_id);
+CREATE INDEX IF NOT EXISTS idx_fact_family_fact ON fact_family(fact_id, position);
+CREATE INDEX IF NOT EXISTS idx_fact_family_family ON fact_family(family_id);
 CREATE INDEX IF NOT EXISTS idx_fact_person ON fact(person_id);
 CREATE INDEX IF NOT EXISTS idx_fact_family ON fact(family_id);
 CREATE INDEX IF NOT EXISTS idx_fact_date ON fact(date_id);
@@ -621,6 +667,7 @@ CREATE INDEX IF NOT EXISTS idx_citation_target ON citation(target_type, target_i
 CREATE INDEX IF NOT EXISTS idx_citation_text_citation ON citation_text(citation_id);
 CREATE INDEX IF NOT EXISTS idx_citation_template_field_citation ON citation_template_field(citation_id);
 CREATE INDEX IF NOT EXISTS idx_media_file_media ON media_file(media_id, position);
+CREATE INDEX IF NOT EXISTS idx_media_file_translation_file ON media_file_translation(media_file_id, position);
 CREATE INDEX IF NOT EXISTS idx_media_link_media ON media_link(media_id);
 CREATE INDEX IF NOT EXISTS idx_media_link_target ON media_link(target_type, target_id);
 CREATE INDEX IF NOT EXISTS idx_submitter_language ON submitter_language(submitter_id);
@@ -638,4 +685,23 @@ CREATE INDEX IF NOT EXISTS idx_association_other ON association(other_person_id)
 CREATE INDEX IF NOT EXISTS idx_person_alias_person ON person_alias(person_id);
 CREATE INDEX IF NOT EXISTS idx_person_alias_alias ON person_alias(alias_id);
 CREATE INDEX IF NOT EXISTS idx_todo_target ON todo(target_type, target_id);
+CREATE INDEX IF NOT EXISTS idx_person_name_date ON person_name(date_id);
+CREATE INDEX IF NOT EXISTS idx_family_partner_date ON family_partner(date_id);
+CREATE INDEX IF NOT EXISTS idx_family_status_date ON family_marriage_status(date_id);
+CREATE INDEX IF NOT EXISTS idx_fact_end_date ON fact(end_date_id);
+CREATE INDEX IF NOT EXISTS idx_place_postal_date ON place_postal_code(date_id);
+CREATE INDEX IF NOT EXISTS idx_place_name_date ON place_name(date_id);
+CREATE INDEX IF NOT EXISTS idx_place_hierarchy_date ON place_hierarchy(date_id);
+CREATE INDEX IF NOT EXISTS idx_source_pub_date ON source(pub_date_id);
+CREATE INDEX IF NOT EXISTS idx_source_event_date ON source_data_event(date_id);
+CREATE INDEX IF NOT EXISTS idx_citation_date ON citation(date_id);
+CREATE INDEX IF NOT EXISTS idx_media_date ON media(date_id);
+CREATE INDEX IF NOT EXISTS idx_change_date ON change(date_id);
+CREATE INDEX IF NOT EXISTS idx_tag_link_date ON tag_link(date_id);
+CREATE INDEX IF NOT EXISTS idx_todo_created_date ON todo(created_date_id);
+CREATE INDEX IF NOT EXISTS idx_todo_scheduled_date ON todo(scheduled_date_id);
+CREATE INDEX IF NOT EXISTS idx_todo_reminder_date ON todo(reminder_date_id);
+CREATE INDEX IF NOT EXISTS idx_todo_closed_date ON todo(closed_date_id);
+CREATE INDEX IF NOT EXISTS idx_association_start_date ON association(period_start_id);
+CREATE INDEX IF NOT EXISTS idx_association_end_date ON association(period_end_id);
 `;

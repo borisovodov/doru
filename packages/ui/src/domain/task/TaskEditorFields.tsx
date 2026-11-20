@@ -1,3 +1,4 @@
+import { useId } from 'react';
 import { TARGET_TYPES } from '@doru/core/model';
 import { nls } from '../../nls';
 import { Field } from '../../atoms/field/Field';
@@ -24,9 +25,22 @@ export function TaskEditorFields({
   data: TaskTargetData;
   onChange: (update: Partial<TodoDraft>) => void;
 }) {
+  const listId = useId();
+  const categoryListId = `${listId}-categories`;
+  const localityListId = `${listId}-localities`;
   const knownTarget = (TARGET_TYPES as readonly string[]).includes(edit.targetType);
   const targetOptions = taskTargetOptions(edit.targetType, data);
   const knownTargetId = targetOptions.some((option) => option.id === edit.targetId);
+  const categories = [
+    ...new Set(
+      data.todos.map((todo) => todo.category).filter((value): value is string => value !== undefined && value !== ''),
+    ),
+  ];
+  const localities = [
+    ...new Set(
+      data.todos.map((todo) => todo.locality).filter((value): value is string => value !== undefined && value !== ''),
+    ),
+  ];
 
   return (
     <>
@@ -40,7 +54,7 @@ export function TaskEditorFields({
       <FieldGrid columns={2}>
         <Field label={nls.t('features.tasks.category')}>
           <Input
-            list="doru-task-categories"
+            list={categoryListId}
             placeholder={nls.t('features.tasks.category')}
             value={edit.category}
             onChange={(event) => onChange({ category: event.target.value })}
@@ -48,7 +62,7 @@ export function TaskEditorFields({
         </Field>
         <Field label={nls.t('features.tasks.locality')}>
           <Input
-            list="doru-task-localities"
+            list={localityListId}
             placeholder={nls.t('features.tasks.locality')}
             value={edit.locality}
             onChange={(event) => onChange({ locality: event.target.value })}
@@ -60,6 +74,9 @@ export function TaskEditorFields({
             <option value="low">{nls.t('features.tasks.priorityLow')}</option>
             <option value="medium">{nls.t('features.tasks.priorityMedium')}</option>
             <option value="high">{nls.t('features.tasks.priorityHigh')}</option>
+            {!['', 'low', 'medium', 'high'].includes(edit.priority) && (
+              <option value={edit.priority}>{edit.priority}</option>
+            )}
           </Select>
         </Field>
         <Field label={nls.t('features.tasks.status')}>
@@ -67,6 +84,7 @@ export function TaskEditorFields({
             <option value="">{nls.t('features.tasks.statusOpen')}</option>
             <option value="in-progress">{nls.t('features.tasks.statusInProgress')}</option>
             <option value="closed">{nls.t('features.tasks.statusClosed')}</option>
+            {!['', 'in-progress', 'closed'].includes(edit.status) && <option value={edit.status}>{edit.status}</option>}
           </Select>
         </Field>
         <Field label={nls.t('features.tasks.repository')}>
@@ -140,6 +158,16 @@ export function TaskEditorFields({
         onChange={(value) => onChange({ closed: value })}
         hidePlace
       />
+      <datalist id={categoryListId}>
+        {categories.map((category) => (
+          <option key={category} value={category} />
+        ))}
+      </datalist>
+      <datalist id={localityListId}>
+        {localities.map((locality) => (
+          <option key={locality} value={locality} />
+        ))}
+      </datalist>
     </>
   );
 }

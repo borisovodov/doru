@@ -114,3 +114,8 @@
   border: none;
   background: var(--doru-border);
 }
+
+.metadataText {
+  color: var(--doru-fg-muted);
+  font-size: var(--doru-font-size-xs);
+}

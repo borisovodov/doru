@@ -17,6 +17,7 @@ import {
   PLACE_NAME_KINDS,
   emptyPlaceNameDraft,
   placeDraftName,
+  withPlaceNamePositions,
   type HierarchyDraft,
   type PlaceDraft,
   type PlaceNameDraft,
@@ -51,8 +52,14 @@ export function PlaceEditor({
 
   const patchName = (index: number, values: Partial<PlaceNameDraft>) =>
     set({ names: draft.names.map((name, i) => (i === index ? { ...name, ...values } : name)) });
-  const addName = () => set({ names: [...draft.names, emptyPlaceNameDraft(draft.names.length)] });
-  const removeName = (index: number) => set({ names: draft.names.filter((_, i) => i !== index) });
+  const addName = () =>
+    set({
+      names: withPlaceNamePositions([...draft.names, emptyPlaceNameDraft(draft.names.length)]),
+    });
+  const removeName = (index: number) =>
+    set({ names: withPlaceNamePositions(draft.names.filter((_, i) => i !== index)) });
+  const moveName = (index: number, to: number) =>
+    set({ names: withPlaceNamePositions(moveItem(draft.names, index, to)) });
 
   const patchPostal = (index: number, values: Partial<PostalCodeDraft>) =>
     set({ postalCodes: draft.postalCodes.map((postal, i) => (i === index ? { ...postal, ...values } : postal)) });
@@ -125,6 +132,9 @@ export function PlaceEditor({
                   {nls.t(`features.tree.place.names.kind.${kind}`)}
                 </option>
               ))}
+              {!(PLACE_NAME_KINDS as readonly string[]).includes(name.kind) && name.kind !== '' && (
+                <option value={name.kind}>{name.kind}</option>
+              )}
             </Select>
             <Input
               placeholder={nls.t('features.tree.names.language')}
@@ -147,8 +157,8 @@ export function PlaceEditor({
               downLabel={nls.t('features.tree.reorder.down')}
               canMoveUp={index > 0}
               canMoveDown={index < draft.names.length - 1}
-              onMoveUp={() => set({ names: moveItem(draft.names, index, index - 1) })}
-              onMoveDown={() => set({ names: moveItem(draft.names, index, index + 1) })}
+              onMoveUp={() => moveName(index, index - 1)}
+              onMoveDown={() => moveName(index, index + 1)}
             />
             {renderNameAttachments !== undefined && saved && (
               <IconButton
@@ -296,6 +306,9 @@ export function PlaceEditor({
                     {nls.t(`features.tree.place.hierarchy.type.${type}`)}
                   </option>
                 ))}
+                {!(HIERARCHY_TYPES as readonly string[]).includes(link.type) && link.type !== '' && (
+                  <option value={link.type}>{link.type}</option>
+                )}
               </Select>
               <DateEditor
                 label={nls.t('features.tree.names.date')}

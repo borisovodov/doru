@@ -8,7 +8,7 @@
  */
 
 import { EVENT_ATTRIBUTE_ENUM_VALUES, QUALITY_ENUM_VALUES } from '../enumerations';
-import type { EventAttributeEnum } from '../enumerations';
+import type { EventAttributeEnum, QualityEnum } from '../enumerations';
 import { fail } from '../errors';
 import type {
   EvidenceTemplate,
@@ -26,6 +26,7 @@ import type {
   SourceText,
   WebTagStructure,
 } from '../structures';
+import { parseExtension } from './context';
 import type { Ctx } from './context';
 import {
   addExtension,
@@ -38,7 +39,6 @@ import {
   reqText,
 } from './context';
 import type { RawNode } from './lines';
-import { parseEnum } from './types';
 import { parseTagLink } from './evidence';
 import { parsePlaceStructure } from './names-places';
 import {
@@ -620,13 +620,26 @@ export function parseSourceRecord(node: RawNode, ctx: Ctx): SourceRecord {
     // sourceType and are written back as `_TYPE`.
     rec.sourceType = reqText(child);
   };
-  handlers['QUAY'] = (child) => {
-    // Heredis: the quality assessment of the whole source, written
-    // with the standard QUAY tag at record level (the webtrees
-    // per-vendor custom-tag registry, Heredis.php; see
-    // SourceRecord.certainty for the export rule).
-    rec.certainty = parseEnum(reqText(child), QUALITY_ENUM_VALUES, child.position);
+  const certainty = (child: RawNode): void => {
+    // Heredis: the quality assessment of the whole source. Input files use
+    // the standard QUAY spelling; exports write the extension-safe _QUAY
+    // (see SourceRecord.certainty).
+    if (child.value.kind !== 'text') {
+      // A pointer-shaped payload keeps its kind through the extension path.
+      addExtension(rec, { ...child, tag: '_QUAY' }, ctx);
+      return;
+    }
+    const value = child.value.text.trim();
+    if (!(value in QUALITY_ENUM_VALUES) && !value.startsWith('_')) {
+      // An unrecognized certainty spelling stays a generic extension.
+      addExtension(rec, { ...child, tag: '_QUAY' }, ctx);
+      return;
+    }
+    rec.certainty = value as QualityEnum;
+    rec.certaintyExtensions = child.children.map((grandchild) => parseExtension(grandchild, ctx));
   };
+  handlers['QUAY'] = certainty;
+  handlers['_QUAY'] = certainty;
   handlers['_UPD'] = (child) => {
     // MyHeritage: the record's last-updated timestamp (the
     // registry-documented `*:_UPD` position; see

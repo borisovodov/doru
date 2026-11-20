@@ -58,7 +58,10 @@ describe('buildGedcomDataset kitchen sink', () => {
         expect(persons).toHaveLength(3);
         const ivan = persons.find((entry) => entry.names[0]?.given === 'Ivan');
         expect(ivan?.sex).toBe('M');
-        expect(ivan?.facts.find((fact) => fact.tag === 'BIRT')?.place).toBe('Moscow, Russia');
+        const birth = ivan?.facts.find((fact) => fact.tag === 'BIRT');
+        expect(birth?.place).toBe('Moscow, Russia');
+        expect(new Set(birth?.flags)).toEqual(new Set(['private', 'preferred']));
+        expect(birth?.primary).toBe(true);
         expect(ivan?.names[0]?.date?.component).toEqual(expect.objectContaining({ year: 1923 }));
         expect(ivan?.names[0]?.full).toBe('Dr. Ivan von Petrov Jr.');
         expect(ivan?.names[0]?.language).toBe('ru');

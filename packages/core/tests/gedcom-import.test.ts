@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { parse } from '@doru/gedcom';
 import { importGedcomDataset } from '../src/import/gedcom';
+import { OpQueue } from '../src/ops/op';
+import { TreeService } from '../src/service/tree';
 import { cleanupRepo, makeRepo } from './helpers';
 
 const GEDCOM = [
@@ -75,6 +77,27 @@ function parseDataset(text = GEDCOM) {
   return result.value.dataset;
 }
 
+describe('importGedcomDataset dropped counters', () => {
+  it('does not count HEAD, SCHMA or raw extension records as dropped tree records', () => {
+    const fixture = makeRepo();
+    try {
+      const text = [
+        '0 HEAD',
+        '1 GEDC',
+        '2 VERS 7.0',
+        '1 SCHMA',
+        '2 TAG _RAW https://example.org/raw',
+        '0 _RAW value',
+        '0 TRLR',
+      ].join('\n');
+      const result = importGedcomDataset(parseDataset(text), fixture.repo);
+      expect(result.droppedStructures).toBe(0);
+    } finally {
+      cleanupRepo(fixture);
+    }
+  });
+});
+
 describe('importGedcomDataset validation', () => {
   it('rolls the whole import back when the file contains a parent cycle', () => {
     const fixture = makeRepo();
@@ -108,7 +131,36 @@ describe('importGedcomDataset validation', () => {
   });
 });
 
+const MEDIA_WITHOUT_FILE = [
+  '0 HEAD',
+  '1 GEDC',
+  '2 VERS 5.5.1',
+  '1 CHAR UTF-8',
+  '0 @O1@ OBJE',
+  '1 FORM jpg',
+  '1 BLOB raw-bytes',
+  '0 @I1@ INDI',
+  '1 NAME Ivan /Petrov/',
+  '1 OBJE @O1@',
+  '0 TRLR',
+].join('\n');
+
 describe('importGedcomDataset media', () => {
+  it('skips OBJE records without a non-empty FILE instead of failing the import', () => {
+    const fixture = makeRepo();
+    try {
+      const result = importGedcomDataset(parseDataset(MEDIA_WITHOUT_FILE), fixture.repo);
+      expect(result.importedMedia).toBe(0);
+      expect(fixture.repo.listAllMedia()).toEqual([]);
+
+      const person = fixture.repo.listAllPersons()[0]!;
+      expect(person.names[0]?.given).toBe('Ivan');
+      expect(fixture.repo.listAttachmentsFor('person', person.id).mediaLinks).toEqual([]);
+    } finally {
+      cleanupRepo(fixture);
+    }
+  });
+
   it('imports OBJE records and links with the prepared project paths', () => {
     const fixture = makeRepo();
     try {
@@ -247,6 +299,203 @@ describe('importGedcomDataset', () => {
         quality: 'unknown',
         text: 'during the war',
       });
+    } finally {
+      cleanupRepo(fixture);
+    }
+  });
+
+  it('imports citations on shared notes before families reference them', () => {
+    const gedcom = [
+      '0 HEAD',
+      '1 GEDC',
+      '2 VERS 7.0',
+      '0 @N1@ SNOTE Shared note text',
+      '1 SOUR @S1@',
+      '0 @S1@ SOUR',
+      '1 TITL Parish register',
+      '0 @I1@ INDI',
+      '1 NAME Ivan /Petrov/',
+      '1 FAMC @F1@',
+      '2 NOTE @N1@',
+      '0 @F1@ FAM',
+      '1 CHIL @I1@',
+      '0 TRLR',
+    ].join('\n');
+    const result = parse(new TextEncoder().encode(gedcom));
+    if (!result.ok || result.value.kind !== 'dataset') {
+      throw new Error('fixture failed to parse');
+    }
+    const fixture = makeRepo();
+    try {
+      importGedcomDataset(result.value.dataset, fixture.repo);
+      const note = fixture.repo.listNotes().find((entry) => entry.text === 'Shared note text')!;
+      const source = fixture.repo.listSources().find((entry) => entry.title === 'Parish register')!;
+      expect(fixture.repo.listCitationRecordsFor('note', note.id).map((citation) => citation.sourceId)).toEqual([
+        source.id,
+      ]);
+      const family = fixture.repo.listFamilies()[0]!;
+      const childLink = family.childLinks?.[0];
+      expect(childLink).toBeDefined();
+      expect(
+        fixture.repo.listAttachmentsFor('family_child', childLink!.id).noteLinks.map((link) => link.note.id),
+      ).toEqual([note.id]);
+    } finally {
+      cleanupRepo(fixture);
+    }
+  });
+
+  it('keeps place-card and repository-note citations that point at a later source', () => {
+    const gedcom = [
+      '0 HEAD',
+      '1 GEDC',
+      '2 VERS 7.0',
+      '0 @PL1@ _PLAC Moscow',
+      '1 SOUR @S1@',
+      '0 @R1@ REPO',
+      '1 NAME State Archive',
+      '1 NOTE Archive note',
+      '2 SOUR @S1@',
+      '0 @S1@ SOUR',
+      '1 TITL Parish register',
+      '0 TRLR',
+    ].join('\n');
+    const result = parse(new TextEncoder().encode(gedcom));
+    if (!result.ok || result.value.kind !== 'dataset') {
+      throw new Error('fixture failed to parse');
+    }
+    const fixture = makeRepo();
+    try {
+      importGedcomDataset(result.value.dataset, fixture.repo);
+      const source = fixture.repo.listSources()[0]!;
+      const place = fixture.repo.listPlaces()[0]!;
+      expect(fixture.repo.listCitationRecordsFor('place', place.id).map((entry) => entry.sourceId)).toEqual([
+        source.id,
+      ]);
+      const repository = fixture.repo.listRepositories()[0]!;
+      const note = fixture.repo.listNotesFor('repository', repository.id)[0]!;
+      expect(fixture.repo.listCitationRecordsFor('note', note.id).map((entry) => entry.sourceId)).toEqual([source.id]);
+    } finally {
+      cleanupRepo(fixture);
+    }
+  });
+
+  it('keeps person-side FAMC details without a reciprocal CHIL row', () => {
+    const gedcom = [
+      '0 HEAD',
+      '1 GEDC',
+      '2 VERS 7.0',
+      '0 @I1@ INDI',
+      '1 NAME Child /Petrov/',
+      '1 FAMC @F1@',
+      '2 PEDI ADOPTED',
+      '2 STAT CHALLENGED',
+      '2 NOTE One-sided link note',
+      '0 @I2@ INDI',
+      '1 NAME Parent /Petrov/',
+      '0 @F1@ FAM',
+      '1 HUSB @I2@',
+      '0 TRLR',
+    ].join('\n');
+    const result = parse(new TextEncoder().encode(gedcom));
+    if (!result.ok || result.value.kind !== 'dataset') {
+      throw new Error('fixture failed to parse');
+    }
+    const fixture = makeRepo();
+    try {
+      importGedcomDataset(result.value.dataset, fixture.repo);
+      const family = fixture.repo.listFamilies()[0]!;
+      const child = fixture.repo.listAllPersons().find((person) => person.names[0]?.given === 'Child')!;
+      const link = family.childLinks?.[0];
+      expect(family.children).toEqual([child.id]);
+      expect(link).toMatchObject({ childId: child.id, pedigree: 'adopted', status: 'challenged' });
+      expect(fixture.repo.listNotesFor('family_child', link!.id).map((note) => note.text)).toEqual([
+        'One-sided link note',
+      ]);
+    } finally {
+      cleanupRepo(fixture);
+    }
+  });
+
+  it('validates todo dates against the month and leap year', () => {
+    const gedcom = [
+      '0 HEAD',
+      '1 GEDC',
+      '2 VERS 7.0',
+      '0 _TODO Invalid date',
+      '1 _TCDT 2026-02-31',
+      '0 _TODO Leap date',
+      '1 _TCDT 2024-02-29',
+      '0 _TODO Bad structured date',
+      '1 _TCDT json:{"quality":"exact","text":{"bad":true}}',
+      '0 TRLR',
+    ].join('\n');
+    const result = parse(new TextEncoder().encode(gedcom));
+    if (!result.ok || result.value.kind !== 'dataset') {
+      throw new Error('fixture failed to parse');
+    }
+    const fixture = makeRepo();
+    try {
+      importGedcomDataset(result.value.dataset, fixture.repo);
+      const invalid = fixture.repo.listTodos().find((todo) => todo.text === 'Invalid date')!;
+      const leap = fixture.repo.listTodos().find((todo) => todo.text === 'Leap date')!;
+      expect(invalid.createdDate).toMatchObject({ quality: 'unknown', text: '2026-02-31' });
+      expect(leap.createdDate).toMatchObject({
+        quality: 'exact',
+        component: { year: 2024, month: 2, day: 29 },
+      });
+      const bad = fixture.repo.listTodos().find((todo) => todo.text === 'Bad structured date')!;
+      expect(bad.createdDate).toMatchObject({
+        quality: 'unknown',
+        text: 'json:{"quality":"exact","text":{"bad":true}}',
+      });
+    } finally {
+      cleanupRepo(fixture);
+    }
+  });
+
+  it('does not treat a disproven FAMC link as ancestry', () => {
+    const gedcom = [
+      '0 HEAD',
+      '1 GEDC',
+      '2 VERS 7.0',
+      '0 @I1@ INDI',
+      '1 NAME P1 /Example/',
+      '1 FAMS @F1@',
+      '1 FAMC @F2@',
+      '2 STAT DISPROVEN',
+      '2 NOTE Disproven link',
+      '0 @I2@ INDI',
+      '1 NAME P2 /Example/',
+      '1 FAMS @F2@',
+      '1 FAMC @F1@',
+      '0 @F1@ FAM',
+      '1 HUSB @I1@',
+      '1 CHIL @I2@',
+      '0 @F2@ FAM',
+      '1 HUSB @I2@',
+      '0 TRLR',
+    ].join('\n');
+    const result = parse(new TextEncoder().encode(gedcom));
+    if (!result.ok || result.value.kind !== 'dataset') {
+      throw new Error('fixture failed to parse');
+    }
+    const fixture = makeRepo();
+    try {
+      importGedcomDataset(result.value.dataset, fixture.repo);
+      const p1 = fixture.repo.listAllPersons().find((person) => person.names[0]?.given === 'P1')!;
+      const family = fixture.repo.listFamilies().find((entry) => entry.partners.includes(p1.id))!;
+      expect(family.partners).toContain(p1.id);
+      const second = fixture.repo
+        .listFamilies()
+        .find((entry) => entry.childLinks?.some((link) => link.childId === p1.id))!;
+      const link = second.childLinks?.find((entry) => entry.childId === p1.id);
+      expect(link?.status).toBe('disproven');
+      expect(second.children).not.toContain(p1.id);
+      expect(fixture.repo.listNotesFor('family_child', link!.id).map((note) => note.text)).toEqual(['Disproven link']);
+
+      const service = new TreeService(fixture.repo, new OpQueue());
+      const parentFamily = fixture.repo.listFamilies().find((entry) => entry.partners.includes(p1.id))!;
+      expect(() => service.updateFamily(parentFamily, { ...parentFamily, preferred: true })).not.toThrow();
     } finally {
       cleanupRepo(fixture);
     }

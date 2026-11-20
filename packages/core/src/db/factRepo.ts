@@ -1,7 +1,18 @@
 import type { DatabaseSync } from 'node:sqlite';
-import type { DateValue, FactAge, FactParticipant, FactRecord } from '../model/types';
-import { signedYear } from '../model/types';
+import type { TransactionScope } from './transaction';
+import {
+  FACT_FLAGS,
+  signedYear,
+  type DateValue,
+  type FactAge,
+  type FactFamilyLink,
+  type FactFlag,
+  type FactParticipant,
+  type FactRecord,
+} from '../model/types';
 import type { DateRepo } from './dateRepo';
+
+const FACT_FLAG_SET = new Set<string>(FACT_FLAGS);
 
 interface FactRow {
   id: string;
@@ -11,6 +22,7 @@ interface FactRow {
   type: string | null;
   value: string | null;
   negation: number;
+  primary_flag: number;
   date_id: string | null;
   end_date_id: string | null;
   sort_date_id: string | null;
@@ -34,7 +46,7 @@ interface FactRow {
   rowid: number;
 }
 
-const FACT_COLUMNS = `id, person_id, family_id, tag, type, value, negation,
+const FACT_COLUMNS = `id, person_id, family_id, tag, type, value, negation, primary_flag,
   date_id, end_date_id, sort_date_id, place_id, place_text, address_id, agency,
   religious_affiliation, cause, sentence, quality, place_prefix, event_number,
   birth_length, birth_weight, cemetery, fna, description_aware, map_latitude,
@@ -50,30 +62,42 @@ export class FactRepo {
   constructor(
     private readonly db: DatabaseSync,
     private readonly dates: DateRepo,
+    private readonly transactions: TransactionScope,
   ) {}
 
   insertFact(fact: FactRecord): void {
+    this.transactions.run(() => this.insertFactRows(fact));
+  }
+
+  private insertFactRows(fact: FactRecord): void {
     this.db
       .prepare(
-        `INSERT INTO fact (id, person_id, family_id, tag, type, value, negation,
+        `INSERT INTO fact (id, person_id, family_id, tag, type, value, negation, primary_flag,
            date_id, end_date_id, sort_date_id, place_id, place_text, address_id, agency,
            religious_affiliation, cause, sentence, quality, place_prefix, event_number,
            birth_length, birth_weight, cemetery, fna, description_aware, map_latitude,
            map_longitude)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       )
       .run(fact.id, ...factValueParams(fact, this.dates));
     this.replaceSubRows(fact);
   }
 
   updateFact(fact: FactRecord): void {
+    this.transactions.run(() => this.updateFactRows(fact));
+  }
+
+  private updateFactRows(fact: FactRecord): void {
+    if (this.db.prepare('SELECT 1 FROM fact WHERE id = ?').get(fact.id) === undefined) {
+      throw new Error(`fact ${fact.id} no longer exists`);
+    }
     const old = this.db.prepare('SELECT date_id, end_date_id, sort_date_id FROM fact WHERE id = ?').get(fact.id) as
       | { date_id: string | null; end_date_id: string | null; sort_date_id: string | null }
       | undefined;
     this.db
       .prepare(
         `UPDATE fact SET person_id = ?, family_id = ?, tag = ?, type = ?, value = ?, negation = ?,
-           date_id = ?, end_date_id = ?, sort_date_id = ?, place_id = ?, place_text = ?, address_id = ?,
+           primary_flag = ?, date_id = ?, end_date_id = ?, sort_date_id = ?, place_id = ?, place_text = ?, address_id = ?,
            agency = ?, religious_affiliation = ?, cause = ?, sentence = ?, quality = ?,
            place_prefix = ?, event_number = ?, birth_length = ?, birth_weight = ?, cemetery = ?,
            fna = ?, description_aware = ?, map_latitude = ?, map_longitude = ?
@@ -91,6 +115,17 @@ export class FactRepo {
         }
       }
     }
+  }
+
+  setFactAddressId(factId: string, addressId: string | undefined): void {
+    this.db
+      .prepare('UPDATE fact SET address_id = ? WHERE id = ? AND address_id IS NULL')
+      .run(addressId ?? null, factId);
+  }
+
+  getFact(id: string): FactRecord | undefined {
+    const row = this.db.prepare(`SELECT ${FACT_COLUMNS} FROM fact WHERE id = ?`).get(id) as FactRow | undefined;
+    return row === undefined ? undefined : this.hydrate([row])[0];
   }
 
   deleteFact(id: string): boolean {
@@ -116,12 +151,141 @@ export class FactRepo {
     return this.queryFacts('family_id', familyId);
   }
 
+  /** Facts that link to a family through fact_family, without scanning the tree. */
+  listFactsLinkedToFamily(familyId: string): FactRecord[] {
+    const rows = this.db
+      .prepare(
+        `SELECT ${FACT_COLUMNS} FROM fact WHERE id IN (SELECT DISTINCT fact_id FROM fact_family WHERE family_id = ?)`,
+      )
+      .all(familyId) as unknown as FactRow[];
+    const facts: FactRecord[] = [];
+    // Hydrating in bounded batches keeps the parameter count below SQLite's
+    // limit while touching each fact exactly once.
+    for (let index = 0; index < rows.length; index += 400) {
+      facts.push(...this.hydrate(rows.slice(index, index + 400)));
+    }
+    return facts;
+  }
+
+  /** Stored positions of a place within each fact's additional places. */
+  listFactPlaceRows(placeId: string): Array<{ factId: string; position: number }> {
+    const rows = this.db
+      .prepare('SELECT fact_id, position FROM fact_place WHERE place_id = ?')
+      .all(placeId) as unknown as { fact_id: string; position: number }[];
+    return rows.map((row) => ({ factId: row.fact_id, position: row.position }));
+  }
+
+  /** Detaches one deleted place from the current fact, preserving later edits. */
+  detachFactPlace(factId: string, placeId: string): void {
+    this.transactions.run(() => {
+      this.db.prepare('UPDATE fact SET place_id = NULL WHERE id = ? AND place_id = ?').run(factId, placeId);
+      this.db.prepare('DELETE FROM fact_place WHERE fact_id = ? AND place_id = ?').run(factId, placeId);
+    });
+  }
+
+  /** Reconnects a fact to its place without rewriting other fields. */
+  setFactPlaceId(factId: string, placeId: string | undefined): void {
+    this.db.prepare('UPDATE fact SET place_id = ? WHERE id = ? AND place_id IS NULL').run(placeId ?? null, factId);
+  }
+
+  /** Re-adds one additional place row to a surviving fact. */
+  insertFactPlace(factId: string, placeId: string, position: number): void {
+    this.transactions.run(() => {
+      const occupied =
+        this.db.prepare('SELECT 1 FROM fact_place WHERE fact_id = ? AND position = ?').get(factId, position) !==
+        undefined;
+      if (occupied) {
+        this.db
+          .prepare('UPDATE fact_place SET position = position + 1 WHERE fact_id = ? AND position >= ?')
+          .run(factId, position);
+      }
+      this.db
+        .prepare('INSERT INTO fact_place (id, fact_id, place_id, position) VALUES (?, ?, ?, ?)')
+        .run(crypto.randomUUID(), factId, placeId, position);
+    });
+  }
+
+  /** Fact ids that reference an address, for targeted delete/undo snapshots. */
+  listFactIdsForAddress(addressId: string): string[] {
+    const rows = this.db.prepare('SELECT id FROM fact WHERE address_id = ? ORDER BY id').all(addressId) as unknown as {
+      id: string;
+    }[];
+    return rows.map((row) => row.id);
+  }
+
   /** Facts that happened at the given place. */
   listFactsForPlace(placeId: string): FactRecord[] {
     const rows = this.db
       .prepare(`SELECT ${FACT_COLUMNS} FROM fact WHERE place_id = ?`)
       .all(placeId) as unknown as FactRow[];
     return this.hydrate(rows);
+  }
+
+  /** Facts that list the place among their additional places. */
+  listFactsWithAdditionalPlace(placeId: string): FactRecord[] {
+    const rows = this.db
+      .prepare(`SELECT ${FACT_COLUMNS} FROM fact WHERE id IN (SELECT fact_id FROM fact_place WHERE place_id = ?)`)
+      .all(placeId) as unknown as FactRow[];
+    const facts: FactRecord[] = [];
+    for (let index = 0; index < rows.length; index += 400) {
+      facts.push(...this.hydrate(rows.slice(index, index + 400)));
+    }
+    return facts;
+  }
+
+  /** Participants that point at a person, with the fact they belong to. */
+  listParticipantsForPerson(personId: string): Array<{ factId: string; participant: FactParticipant }> {
+    const rows = this.db
+      .prepare(
+        `SELECT fact_id, id, person_id, value, role, position FROM fact_participant
+         WHERE person_id = ? ORDER BY fact_id, position`,
+      )
+      .all(personId) as unknown as {
+      fact_id: string;
+      id: string;
+      person_id: string | null;
+      value: string | null;
+      role: string | null;
+      position: number;
+    }[];
+    return rows.map((row) => ({
+      factId: row.fact_id,
+      participant: {
+        id: row.id,
+        personId: row.person_id ?? undefined,
+        value: row.value ?? undefined,
+        role: row.role ?? undefined,
+        position: row.position,
+      },
+    }));
+  }
+
+  insertParticipant(factId: string, participant: FactParticipant): void {
+    this.transactions.run(() => {
+      // Make room only when the saved position is actually occupied; a gap
+      // means the surviving rows keep their original positions.
+      const occupied =
+        this.db
+          .prepare('SELECT 1 FROM fact_participant WHERE fact_id = ? AND position = ?')
+          .get(factId, participant.position) !== undefined;
+      if (occupied) {
+        this.db
+          .prepare('UPDATE fact_participant SET position = position + 1 WHERE fact_id = ? AND position >= ?')
+          .run(factId, participant.position);
+      }
+      this.db
+        .prepare(
+          'INSERT INTO fact_participant (id, fact_id, person_id, value, role, position) VALUES (?, ?, ?, ?, ?, ?)',
+        )
+        .run(
+          participant.id,
+          factId,
+          participant.personId ?? null,
+          participant.value ?? null,
+          participant.role ?? null,
+          participant.position,
+        );
+    });
   }
 
   /** Deletes an owner's facts together with their date rows (before the owner itself goes). */
@@ -197,9 +361,10 @@ export class FactRepo {
     const participantsByFact = this.participantsForFacts(factIds);
     const flagsByFact = this.flagsForFacts(factIds);
     const placesByFact = this.additionalPlacesForFacts(factIds);
+    const familyLinksByFact = this.familyLinksForFacts(factIds);
     return rows
       .map((row) => ({
-        fact: rowToFact(row, datesById, agesByFact, participantsByFact, flagsByFact, placesByFact),
+        fact: rowToFact(row, datesById, agesByFact, participantsByFact, flagsByFact, placesByFact, familyLinksByFact),
         rowid: row.rowid,
       }))
       .sort((a, b) => {
@@ -215,6 +380,7 @@ export class FactRepo {
     this.db.prepare('DELETE FROM fact_participant WHERE fact_id = ?').run(fact.id);
     this.db.prepare('DELETE FROM fact_flag WHERE fact_id = ?').run(fact.id);
     this.db.prepare('DELETE FROM fact_place WHERE fact_id = ?').run(fact.id);
+    this.db.prepare('DELETE FROM fact_family WHERE fact_id = ?').run(fact.id);
     const insertPlace = this.db.prepare('INSERT INTO fact_place (id, fact_id, place_id, position) VALUES (?, ?, ?, ?)');
     (fact.additionalPlaceIds ?? []).forEach((placeId, position) => {
       insertPlace.run(crypto.randomUUID(), fact.id, placeId, position);
@@ -253,6 +419,23 @@ export class FactRepo {
     for (const flag of fact.flags ?? []) {
       insertFlag.run(fact.id, flag);
     }
+    const insertFamily = this.db.prepare(
+      `INSERT INTO fact_family (id, fact_id, family_id, adopted_by, phrase, position)
+       VALUES (?, ?, ?, ?, ?, ?)`,
+    );
+    for (const link of fact.familyLinks ?? []) {
+      insertFamily.run(link.id, fact.id, link.familyId, link.adoptedBy ?? null, link.phrase ?? null, link.position);
+    }
+  }
+
+  /** Adds one event-family link after the families themselves are imported. */
+  insertFactFamilyLink(factId: string, link: FactFamilyLink): void {
+    this.db
+      .prepare(
+        `INSERT INTO fact_family (id, fact_id, family_id, adopted_by, phrase, position)
+         VALUES (?, ?, ?, ?, ?, ?)`,
+      )
+      .run(link.id, factId, link.familyId, link.adoptedBy ?? null, link.phrase ?? null, link.position);
   }
 
   private additionalPlacesForFacts(factIds: string[]): Map<string, string[]> {
@@ -343,8 +526,44 @@ export class FactRepo {
     return byFact;
   }
 
-  private flagsForFacts(factIds: string[]): Map<string, string[]> {
-    const byFact = new Map<string, string[]>();
+  private familyLinksForFacts(factIds: string[]): Map<string, FactFamilyLink[]> {
+    const byFact = new Map<string, FactFamilyLink[]>();
+    if (factIds.length === 0) {
+      return byFact;
+    }
+    const placeholders = factIds.map(() => '?').join(', ');
+    const rows = this.db
+      .prepare(
+        `SELECT id, fact_id, family_id, adopted_by, phrase, position FROM fact_family
+         WHERE fact_id IN (${placeholders}) ORDER BY position`,
+      )
+      .all(...factIds) as unknown as {
+      id: string;
+      fact_id: string;
+      family_id: string;
+      adopted_by: string | null;
+      phrase: string | null;
+      position: number;
+    }[];
+    for (const row of rows) {
+      const links = byFact.get(row.fact_id) ?? [];
+      links.push({
+        id: row.id,
+        familyId: row.family_id,
+        adoptedBy:
+          row.adopted_by === 'HUSB' || row.adopted_by === 'WIFE' || row.adopted_by === 'BOTH'
+            ? row.adopted_by
+            : undefined,
+        phrase: row.phrase ?? undefined,
+        position: row.position,
+      });
+      byFact.set(row.fact_id, links);
+    }
+    return byFact;
+  }
+
+  private flagsForFacts(factIds: string[]): Map<string, FactFlag[]> {
+    const byFact = new Map<string, FactFlag[]>();
     if (factIds.length === 0) {
       return byFact;
     }
@@ -353,8 +572,11 @@ export class FactRepo {
       .prepare(`SELECT fact_id, flag FROM fact_flag WHERE fact_id IN (${placeholders}) ORDER BY flag`)
       .all(...factIds) as unknown as { fact_id: string; flag: string }[];
     for (const row of rows) {
+      if (!FACT_FLAG_SET.has(row.flag)) {
+        continue;
+      }
       const flags = byFact.get(row.fact_id) ?? [];
-      flags.push(row.flag);
+      flags.push(row.flag as FactFlag);
       byFact.set(row.fact_id, flags);
     }
     return byFact;
@@ -371,6 +593,7 @@ function factValueParams(fact: FactRecord, dates: DateRepo): Array<string | numb
     fact.type ?? null,
     fact.value ?? null,
     fact.negation ? 1 : 0,
+    fact.primary ? 1 : 0,
     fact.date ? dates.upsert(fact.date) : null,
     fact.endDate ? dates.upsert(fact.endDate) : null,
     fact.sortDate ? dates.upsert(fact.sortDate) : null,
@@ -404,13 +627,15 @@ function rowToFact(
   datesById: Map<string, DateValue>,
   agesByFact: Map<string, FactAge[]>,
   participantsByFact: Map<string, FactParticipant[]>,
-  flagsByFact: Map<string, string[]>,
+  flagsByFact: Map<string, FactFlag[]>,
   placesByFact: Map<string, string[]>,
+  familyLinksByFact: Map<string, FactFamilyLink[]>,
 ): FactRecord {
   const ages = agesByFact.get(row.id);
   const participants = participantsByFact.get(row.id);
   const flags = flagsByFact.get(row.id);
   const additionalPlaceIds = placesByFact.get(row.id);
+  const familyLinks = familyLinksByFact.get(row.id);
   return {
     id: row.id,
     personId: row.person_id ?? undefined,
@@ -419,6 +644,7 @@ function rowToFact(
     type: row.type ?? undefined,
     value: row.value ?? undefined,
     negation: row.negation === 1 ? true : undefined,
+    primary: row.primary_flag === 1 ? true : undefined,
     date: row.date_id !== null ? datesById.get(row.date_id) : undefined,
     endDate: row.end_date_id !== null ? datesById.get(row.end_date_id) : undefined,
     sortDate: row.sort_date_id !== null ? datesById.get(row.sort_date_id) : undefined,
@@ -445,5 +671,6 @@ function rowToFact(
     ages: ages !== undefined && ages.length > 0 ? ages : undefined,
     participants: participants !== undefined && participants.length > 0 ? participants : undefined,
     flags: flags !== undefined && flags.length > 0 ? flags : undefined,
+    familyLinks: familyLinks !== undefined && familyLinks.length > 0 ? familyLinks : undefined,
   };
 }

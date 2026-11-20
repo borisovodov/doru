@@ -17,6 +17,7 @@ import type {
   ProjectBinding,
   ProjectSummary,
   RecentProject,
+  RecordSubmitterLink,
   RestrictionRecord,
   RepositoryRecord,
   SourceRecord,
@@ -153,6 +154,7 @@ declare global {
         targetType: string,
         targetId: string,
       ): Promise<Array<{ tagId: string; link: TagLinkRecord }>>;
+      getAllTagLinks(projectPath: string): Promise<TagLinkRecord[]>;
       addTag(projectPath: string, tag: TagRecord): Promise<UndoRedoState>;
       updateTag(projectPath: string, before: TagRecord, after: TagRecord): Promise<UndoRedoState>;
       deleteTag(projectPath: string, tag: TagRecord): Promise<UndoRedoState>;
@@ -187,16 +189,14 @@ declare global {
       addTitle(projectPath: string, title: TitleRecord): Promise<UndoRedoState>;
       updateTitle(projectPath: string, before: TitleRecord, after: TitleRecord): Promise<UndoRedoState>;
       deleteTitle(projectPath: string, title: TitleRecord): Promise<UndoRedoState>;
-      getRecordSubmitters(
-        projectPath: string,
-        targetType: string,
-        targetId: string,
-      ): Promise<Array<{ id: string; submitterId: string; targetType: string; targetId: string }>>;
+      getRecordSubmitters(projectPath: string, targetType: string, targetId: string): Promise<RecordSubmitterLink[]>;
+      getAllRecordSubmitters(projectPath: string): Promise<RecordSubmitterLink[]>;
       addRecordSubmitter(
         projectPath: string,
         submitterId: string,
         targetType: string,
         targetId: string,
+        kind?: NonNullable<RecordSubmitterLink['kind']>,
       ): Promise<UndoRedoState>;
       deleteRecordSubmitter(
         projectPath: string,
@@ -204,6 +204,7 @@ declare global {
         submitterId: string,
         targetType: string,
         targetId: string,
+        kind?: NonNullable<RecordSubmitterLink['kind']>,
       ): Promise<UndoRedoState>;
       addAddress(projectPath: string, address: AddressRecord): Promise<UndoRedoState>;
       updateAddress(projectPath: string, before: AddressRecord, after: AddressRecord): Promise<UndoRedoState>;

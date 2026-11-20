@@ -232,6 +232,9 @@ export class AttachmentRepo {
   }
 
   updateTagLink(link: TagLinkRecord): void {
+    if (this.db.prepare('SELECT 1 FROM tag_link WHERE id = ?').get(link.id) === undefined) {
+      throw new Error(`tag_link ${link.id} no longer exists`);
+    }
     const before = this.db.prepare('SELECT date_id FROM tag_link WHERE id = ?').get(link.id) as
       | { date_id: string | null }
       | undefined;
@@ -269,10 +272,51 @@ export class AttachmentRepo {
     }));
   }
 
+  getTagLink(id: string): TagLinkRecord | undefined {
+    const row = this.db
+      .prepare('SELECT id, tag_id, target_type, target_id, date_id FROM tag_link WHERE id = ?')
+      .get(id) as
+      | { id: string; tag_id: string; target_type: string; target_id: string; date_id: string | null }
+      | undefined;
+    if (row === undefined) {
+      return undefined;
+    }
+    const datesById =
+      row.date_id === null ? new Map<string, TagLinkRecord['date']>() : this.dates.getMany([row.date_id]);
+    return {
+      id: row.id,
+      tagId: row.tag_id,
+      targetType: row.target_type,
+      targetId: row.target_id,
+      date: row.date_id !== null ? datesById.get(row.date_id) : undefined,
+    };
+  }
+
   listTagLinksByTag(tagId: string): TagLinkRecord[] {
     const rows = this.db
       .prepare('SELECT id, tag_id, target_type, target_id, date_id FROM tag_link WHERE tag_id = ? ORDER BY id')
       .all(tagId) as unknown as {
+      id: string;
+      tag_id: string;
+      target_type: string;
+      target_id: string;
+      date_id: string | null;
+    }[];
+    const datesById = this.dates.getMany(rows.map((row) => row.date_id).filter((id): id is string => id !== null));
+    return rows.map((row) => ({
+      id: row.id,
+      tagId: row.tag_id,
+      targetType: row.target_type,
+      targetId: row.target_id,
+      date: row.date_id !== null ? datesById.get(row.date_id) : undefined,
+    }));
+  }
+
+  /** Every tag link in the tree, for the global tag registry. */
+  listAllTagLinks(): TagLinkRecord[] {
+    const rows = this.db
+      .prepare('SELECT id, tag_id, target_type, target_id, date_id FROM tag_link ORDER BY id')
+      .all() as unknown as {
       id: string;
       tag_id: string;
       target_type: string;

@@ -1,5 +1,5 @@
 import type { PlaceRecord } from '@doru/core';
-import { emptyDate, fromDateDraft, toDateDraft, type DateDraft } from '@doru/ui/domain';
+import { dateDraftsEqual, emptyDate, fromDateDraft, toDateDraft, type DateDraft } from '@doru/ui/domain';
 
 /** The name kinds of a place row. Official rows carry 'official' explicitly. */
 export const PLACE_NAME_KINDS = ['official', 'translation', 'phonetic', 'romanized'] as const;
@@ -55,6 +55,11 @@ export interface PlaceDraft {
   names: PlaceNameDraft[];
   postalCodes: PostalCodeDraft[];
   hierarchy: HierarchyDraft[];
+}
+
+/** Rewrites jurisdiction positions to the list order after add/move/remove. */
+export function withPlaceNamePositions(names: PlaceNameDraft[]): PlaceNameDraft[] {
+  return names.map((name, position) => ({ ...name, position }));
 }
 
 export function emptyPlaceNameDraft(position = 0): PlaceNameDraft {
@@ -130,7 +135,10 @@ export function placeToDraft(place: PlaceRecord): PlaceDraft {
 }
 
 /** Builds the place record for a save; empty rows and links are dropped. */
-export function placeDraftToRecord(draft: PlaceDraft): PlaceRecord {
+export function placeDraftToRecord(draft: PlaceDraft, existing?: PlaceRecord): PlaceRecord {
+  const existingNames = new Map((existing?.names ?? []).map((name) => [name.id, name]));
+  const existingPostals = new Map((existing?.postalCodes ?? []).map((postal) => [postal.id, postal]));
+  const existingLinks = new Map((existing?.hierarchy ?? []).map((link) => [link.id, link]));
   return {
     id: draft.id,
     xref: draft.xref,
@@ -153,7 +161,7 @@ export function placeDraftToRecord(draft: PlaceDraft): PlaceRecord {
     names: draft.names
       .filter((name) => name.value.trim() !== '')
       .map((name) => {
-        const date = fromDateDraft(name.date);
+        const date = fromDateDraft(name.date, existingNames.get(name.id)?.date);
         return {
           id: name.id,
           kind: name.kind as PlaceRecord['names'][number]['kind'],
@@ -170,7 +178,7 @@ export function placeDraftToRecord(draft: PlaceDraft): PlaceRecord {
     postalCodes: draft.postalCodes
       .filter((postal) => postal.code.trim() !== '')
       .map((postal) => {
-        const date = fromDateDraft(postal.date);
+        const date = fromDateDraft(postal.date, existingPostals.get(postal.id)?.date);
         return {
           id: postal.id,
           code: postal.code.trim(),
@@ -180,7 +188,7 @@ export function placeDraftToRecord(draft: PlaceDraft): PlaceRecord {
     hierarchy: draft.hierarchy
       .filter((link) => link.parentId !== '')
       .map((link) => {
-        const date = fromDateDraft(link.date);
+        const date = fromDateDraft(link.date, existingLinks.get(link.id)?.date);
         return {
           id: link.id,
           parentId: link.parentId,
@@ -188,6 +196,106 @@ export function placeDraftToRecord(draft: PlaceDraft): PlaceRecord {
           ...(date !== undefined ? { date } : {}),
         };
       }),
+  };
+}
+
+function placeRowsEqual<T>(left: T, right: T): boolean {
+  return JSON.stringify(left) === JSON.stringify(right);
+}
+
+function mergePlaceRow<T extends { id: string }>(draft: T, previous: T, refreshed: T): T {
+  const merged: T = { ...draft };
+  for (const key of Object.keys(draft) as Array<keyof T>) {
+    if (key === 'date') {
+      const draftDate = (draft as unknown as { date: DateDraft }).date;
+      const previousDate = (previous as unknown as { date: DateDraft }).date;
+      if (dateDraftsEqual(draftDate, previousDate)) {
+        (merged as unknown as { date: DateDraft }).date = (refreshed as unknown as { date: DateDraft }).date;
+      }
+    } else if (JSON.stringify(draft[key]) === JSON.stringify(previous[key])) {
+      merged[key] = refreshed[key];
+    }
+  }
+  return merged;
+}
+
+function mergePlaceRows<T extends { id: string }>(
+  draftRows: T[],
+  comparisonRows: T[],
+  previousRows: T[],
+  refreshedRows: T[],
+): T[] {
+  const comparisonById = new Map(comparisonRows.map((row) => [row.id, row]));
+  const previousById = new Map(previousRows.map((row) => [row.id, row]));
+  const refreshedById = new Map(refreshedRows.map((row) => [row.id, row]));
+  const draftIds = new Set(draftRows.map((row) => row.id));
+  const merged: T[] = [];
+  for (const row of draftRows) {
+    const comparison = comparisonById.get(row.id);
+    const previous = previousById.get(row.id);
+    if (previous === undefined) {
+      const refreshed = refreshedById.get(row.id);
+      if (comparison !== undefined && placeRowsEqual(row, comparison) && refreshed !== undefined) {
+        merged.push(refreshed);
+      } else {
+        merged.push(row);
+      }
+      continue;
+    }
+    const refreshed = refreshedById.get(row.id);
+    if (comparison !== undefined && placeRowsEqual(row, comparison)) {
+      if (refreshed !== undefined) {
+        merged.push(refreshed);
+      }
+      continue;
+    }
+    if (refreshed === undefined) {
+      merged.push(row);
+      continue;
+    }
+    merged.push(mergePlaceRow(row, comparison ?? previous, refreshed));
+  }
+  for (const row of refreshedRows) {
+    if (!draftIds.has(row.id) && !previousById.has(row.id) && !comparisonById.has(row.id)) {
+      merged.push(row);
+    }
+  }
+  return merged;
+}
+
+/**
+ * Merges a refreshed stored place into a dirty draft: untouched fields take
+ * the refreshed row (keeping its date ids), while user edits and additions
+ * stay. Rows deleted externally disappear unless the user edited them.
+ */
+export function mergePlaceDraft(
+  draft: PlaceDraft,
+  previous: PlaceRecord,
+  refreshed: PlaceRecord,
+  submitted?: PlaceDraft,
+): PlaceDraft {
+  const previousDraft = placeToDraft(previous);
+  const base = submitted ?? previousDraft;
+  const next = placeToDraft(refreshed);
+  const scalar = <K extends keyof PlaceDraft>(key: K): PlaceDraft[K] =>
+    draft[key] === base[key] ? next[key] : draft[key];
+  return {
+    id: draft.id,
+    xref: scalar('xref'),
+    latitude: scalar('latitude'),
+    longitude: scalar('longitude'),
+    verified: scalar('verified'),
+    form: scalar('form'),
+    abbreviation: scalar('abbreviation'),
+    preposition: scalar('preposition'),
+    govId: scalar('govId'),
+    maidenhead: scalar('maidenhead'),
+    placeType: scalar('placeType'),
+    names: mergePlaceRows(draft.names, base.names, previousDraft.names, next.names).sort(
+      (left, right) => left.position - right.position,
+    ),
+    postalCodes: mergePlaceRows(draft.postalCodes, base.postalCodes, previousDraft.postalCodes, next.postalCodes),
+    hierarchy: mergePlaceRows(draft.hierarchy, base.hierarchy, previousDraft.hierarchy, next.hierarchy),
   };
 }
 
@@ -231,7 +339,7 @@ export function placeDraftMatches(draft: PlaceDraft, place: PlaceRecord): boolea
         name.addition === entry.addition &&
         name.abbreviation === entry.abbreviation &&
         name.abbreviationType === entry.abbreviationType &&
-        dateDraftsMatch(name.date, entry.date)
+        dateDraftsEqual(name.date, entry.date)
       );
     }) &&
     draft.postalCodes.length === other.postalCodes.length &&
@@ -240,16 +348,17 @@ export function placeDraftMatches(draft: PlaceDraft, place: PlaceRecord): boolea
       if (entry === undefined) {
         return false;
       }
-      return postal.id === entry.id && postal.code === entry.code && dateDraftsMatch(postal.date, entry.date);
+      return postal.id === entry.id && postal.code === entry.code && dateDraftsEqual(postal.date, entry.date);
     }) &&
     draft.hierarchy.length === other.hierarchy.length &&
     draft.hierarchy.every((link, index) => {
       const entry = other.hierarchy[index];
       return (
         entry !== undefined &&
+        link.id === entry.id &&
         link.parentId === entry.parentId &&
         link.type === entry.type &&
-        dateDraftsMatch(link.date, entry.date)
+        dateDraftsEqual(link.date, entry.date)
       );
     })
   );
@@ -262,18 +371,4 @@ function parseCoordinate(value: string): number | undefined {
   }
   const number = Number(trimmed);
   return Number.isFinite(number) ? number : undefined;
-}
-
-function dateDraftsMatch(a: DateDraft, b: DateDraft): boolean {
-  return (
-    a.year === b.year &&
-    a.month === b.month &&
-    a.day === b.day &&
-    a.endYear === b.endYear &&
-    a.endMonth === b.endMonth &&
-    a.endDay === b.endDay &&
-    a.text === b.text &&
-    a.quality === b.quality &&
-    a.place === b.place
-  );
 }

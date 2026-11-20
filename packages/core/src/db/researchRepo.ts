@@ -22,6 +22,9 @@ export class ResearchRepo {
   }
 
   updateTodo(todo: TodoRecord): void {
+    if (this.db.prepare('SELECT 1 FROM todo WHERE id = ?').get(todo.id) === undefined) {
+      throw new Error(`todo ${todo.id} no longer exists`);
+    }
     const before = this.db
       .prepare('SELECT created_date_id, scheduled_date_id, reminder_date_id, closed_date_id FROM todo WHERE id = ?')
       .get(todo.id) as
@@ -64,6 +67,12 @@ export class ResearchRepo {
     }
   }
 
+  setTodoRepositoryId(id: string, repositoryId: string | undefined): void {
+    this.db
+      .prepare('UPDATE todo SET repository_id = ? WHERE id = ? AND repository_id IS NULL')
+      .run(repositoryId ?? null, id);
+  }
+
   deleteTodo(id: string): boolean {
     const row = this.db
       .prepare('SELECT created_date_id, scheduled_date_id, reminder_date_id, closed_date_id FROM todo WHERE id = ?')
@@ -84,6 +93,11 @@ export class ResearchRepo {
       }
     }
     return result.changes > 0;
+  }
+
+  getTodo(id: string): TodoRecord | undefined {
+    const row = this.db.prepare(`${todoSelect} WHERE id = ?`).get(id) as TodoRow | undefined;
+    return row === undefined ? undefined : this.hydrateTodo(row);
   }
 
   listTodos(): TodoRecord[] {
@@ -156,6 +170,9 @@ export class ResearchRepo {
   }
 
   updateTitle(title: TitleRecord): void {
+    if (this.db.prepare('SELECT 1 FROM title WHERE id = ?').get(title.id) === undefined) {
+      throw new Error(`title ${title.id} no longer exists`);
+    }
     this.db
       .prepare(
         `UPDATE title SET xref = ?, name = ?, author = ?, publisher = ?, series = ?, abbreviation = ?,
@@ -164,8 +181,23 @@ export class ResearchRepo {
       .run(...titleParams(title).slice(1), title.id);
   }
 
+  setTitleRepositoryId(id: string, repositoryId: string | undefined): void {
+    this.db
+      .prepare('UPDATE title SET repository_id = ? WHERE id = ? AND repository_id IS NULL')
+      .run(repositoryId ?? null, id);
+  }
+
   deleteTitle(id: string): boolean {
     return this.db.prepare('DELETE FROM title WHERE id = ?').run(id).changes > 0;
+  }
+
+  getTitle(id: string): TitleRecord | undefined {
+    const row = this.db
+      .prepare(
+        'SELECT id, xref, name, author, publisher, series, abbreviation, repository_id, call_number, sequence FROM title WHERE id = ?',
+      )
+      .get(id) as TitleRow | undefined;
+    return row === undefined ? undefined : rowToTitle(row);
   }
 
   listTitles(): TitleRecord[] {

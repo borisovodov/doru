@@ -38,6 +38,7 @@ import {
   emitAssociation,
   emitDate,
   emitDateExact,
+  emitExtensionList,
   emitExtensions,
   emitMultimediaLink,
   emitNoteStructure,
@@ -601,18 +602,22 @@ export function emitIndividual(w: Writer, version: Version, rec: IndividualRecor
   for (const name of rec.names ?? []) {
     emitPersonalName(w, version, 1, name);
   }
-  if (rec.sex !== undefined) {
-    const value = sex(w, version, rec.sex);
-    if (value !== undefined) {
-      w.line(1, 'SEX', { value });
+  const sexCitations = rec.sexCitations ?? [];
+  const sexValue = rec.sex !== undefined ? sex(w, version, rec.sex) : undefined;
+  if (sexValue !== undefined) {
+    w.line(1, 'SEX', { value: sexValue });
+    for (const citation of sexCitations) {
+      // The vendor SEX citation shape (see IndividualRecord.sexCitations):
+      // written under SEX so the evidence stays attached to the sex fact.
+      emitSourceCitation(w, version, 2, citation);
     }
-  }
-  for (const citation of rec.sexCitations ?? []) {
-    // The citations of the SEX fact (see IndividualRecord.sexCitations)
-    // have no standard SEX position in either version: they are
-    // projected onto the record-level INDI citations, the only standard
-    // SOURCE_CITATION slot.
-    emitSourceCitation(w, version, 1, citation);
+  } else {
+    // No SEX line can be written (the value is unset or unsupported by this
+    // version). Keep the evidence at the standard record-level slot instead
+    // of emitting a bare SEX line the parser rejects.
+    for (const citation of sexCitations) {
+      emitSourceCitation(w, version, 1, citation);
+    }
   }
   for (const attribute of rec.attributes ?? []) {
     const payload = attribute.payload;
@@ -833,6 +838,9 @@ export function emitTodoRecord(
     priority?: string;
     scheduledDate?: string;
     createdDate?: string;
+    createdDateExtensions?: ExtensionStructure[];
+    repository?: string;
+    repositoryExtensions?: ExtensionStructure[];
     uids?: string[];
     changed?: ChangeDate;
     extensions?: ExtensionStructure[];
@@ -871,6 +879,15 @@ export function emitTodoRecord(
   if (rec.createdDate !== undefined) {
     // My Family Tree: the creation date (see TodoRecord.createdDate).
     w.line(1, '_TCDT', { value: rec.createdDate });
+    emitExtensionList(w, _version, 2, rec.createdDateExtensions);
+  }
+  if (rec.repository !== undefined) {
+    // GEDCOM-L E1 / record form: the repository the task belongs to
+    // (see TodoRecord.repository).
+    ptr(w, _version, 1, 'REPO', rec.repository);
+    if (!(_version === '5.5.1' && rec.repository === '@VOID@')) {
+      emitExtensionList(w, _version, 2, rec.repositoryExtensions);
+    }
   }
   for (const uid of rec.uids ?? []) {
     // My Family Tree: the unique identifier (see TodoRecord.uids).
@@ -1105,6 +1122,12 @@ export function emitTodoStructure(w: Writer, version: Version, level: number, re
   if (rec.date !== undefined) {
     emitDate(w, version, level + 1, 'DATE', rec.date);
   }
+  if (rec.createdDate !== undefined) {
+    // The structure form of the record's creation date (see
+    // TodoStructure.createdDate).
+    w.line(level + 1, '_TCDT', { value: rec.createdDate });
+    emitExtensionList(w, version, level + 2, rec.createdDateExtensions);
+  }
   for (const note of rec.notes ?? []) {
     emitNoteStructure(w, version, level + 1, note);
   }
@@ -1127,6 +1150,9 @@ export function emitTodoStructure(w: Writer, version: Version, level: number, re
     // GEDCOM-L E1: a pointer to a repository record (see
     // TodoStructure.repository).
     ptr(w, version, level + 1, 'REPO', rec.repository);
+    if (!(version === '5.5.1' && rec.repository === '@VOID@')) {
+      emitExtensionList(w, version, level + 2, rec.repositoryExtensions);
+    }
   }
   for (const uid of rec.uids ?? []) {
     // GEDCOM-L E1: unique identifiers of the task (see TodoStructure.uids).
@@ -1562,6 +1588,8 @@ export function emitSource(
     quality?: { source?: string; information?: string; evidence?: string; extensions?: ExtensionStructure[] };
     url?: string;
     confidence?: string;
+    certainty?: string;
+    certaintyExtensions?: ExtensionStructure[];
     accessDate?: string;
     updatedAt?: string;
     ancestryPointers?: string[];
@@ -1764,6 +1792,12 @@ export function emitSource(
   if (rec.confidence !== undefined) {
     // The confidence level of the source (see SourceRecord.confidence).
     w.line(1, '_CONF', { value: rec.confidence });
+  }
+  if (rec.certainty !== undefined) {
+    // Heredis writes the whole-source certainty assessment as QUAY at the
+    // record level (see SourceRecord.certainty); written back verbatim.
+    w.line(1, '_QUAY', { value: rec.certainty });
+    emitExtensionList(w, version, 2, rec.certaintyExtensions);
   }
   if (rec.accessDate !== undefined) {
     // The date the source was accessed (see SourceRecord.accessDate).

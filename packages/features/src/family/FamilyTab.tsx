@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import type { AssociationRecord, FamilyRecord, PersonRecord, SourceRecord } from '@doru/core';
 import { AttachmentsPanel, CitationAttachments, NoteAttachments, useAttachments } from '../attachments';
 import { EntityTab } from '../sidebar';
@@ -96,6 +96,10 @@ function FamilyTabBody({
   onClose: () => void;
 }) {
   const [draft, setDraft] = useState<FamilyDraft>(() => familyToDraft(record));
+  const familyAssociations = useMemo(
+    () => associations.filter((association) => association.familyId === record.id),
+    [associations, record.id],
+  );
   const {
     notes: familyNotes,
     allNotes,
@@ -125,7 +129,7 @@ function FamilyTabBody({
   }, [record]);
 
   const save = async () => {
-    await api.updateFamily(record, familyDraftToRecord(draft));
+    await api.updateFamily(record, familyDraftToRecord(draft, record));
   };
 
   const remove = async () => {
@@ -140,7 +144,7 @@ function FamilyTabBody({
         onChange={setDraft}
         persons={persons}
         families={families}
-        associations={associations}
+        associations={familyAssociations}
         sources={sources}
         api={api}
         savedLinkIds={
@@ -150,7 +154,13 @@ function FamilyTabBody({
           ])
         }
         renderStatusAttachments={(statusId) => (
-          <AttachmentsPanel targetType="family_marriage_status" targetId={statusId} api={api} sources={sources} />
+          <AttachmentsPanel
+            targetType="family_marriage_status"
+            targetId={statusId}
+            api={api}
+            sources={sources}
+            onOpenSource={onOpenSource}
+          />
         )}
         renderLinkAttachments={(kind, linkId) => (
           <AttachmentsPanel
@@ -158,10 +168,12 @@ function FamilyTabBody({
             targetId={linkId}
             api={api}
             sources={sources}
+            onOpenSource={onOpenSource}
           />
         )}
         onSave={() => void save()}
         onDelete={() => void remove()}
+        onOpenSource={onOpenSource}
       />
       <SourcesSection
         targetType="family"

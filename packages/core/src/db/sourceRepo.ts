@@ -71,6 +71,9 @@ export class SourceRepo {
   }
 
   updateSource(source: SourceRecord): void {
+    if (this.db.prepare('SELECT 1 FROM source WHERE id = ?').get(source.id) === undefined) {
+      throw new Error(`source ${source.id} no longer exists`);
+    }
     const before = this.db.prepare('SELECT pub_date_id FROM source WHERE id = ?').get(source.id) as
       | { pub_date_id: string | null }
       | undefined;
@@ -94,6 +97,13 @@ export class SourceRepo {
       this.dates.delete(before.pub_date_id);
     }
     this.replaceSourceDetails(source);
+  }
+
+  /** Reconnects a surviving source data event to its place. */
+  setDataEventPlaceId(eventId: string, placeId: string | undefined): void {
+    this.db
+      .prepare('UPDATE source_data_event SET place_id = ? WHERE id = ? AND place_id IS NULL')
+      .run(placeId ?? null, eventId);
   }
 
   deleteSource(id: string): boolean {
@@ -189,7 +199,7 @@ export class SourceRepo {
   }
 
   setSourceTitle(sourceId: string, titleId: string | undefined): void {
-    this.db.prepare('UPDATE source SET title_id = ? WHERE id = ?').run(titleId ?? null, sourceId);
+    this.db.prepare('UPDATE source SET title_id = ? WHERE id = ? AND title_id IS NULL').run(titleId ?? null, sourceId);
   }
 
   addSourceCitation(sourceId: string, targetType: string, targetId: string): void {
@@ -209,6 +219,9 @@ export class SourceRepo {
   }
 
   updateCitation(citation: CitationRecord): void {
+    if (this.db.prepare('SELECT 1 FROM citation WHERE id = ?').get(citation.id) === undefined) {
+      throw new Error(`citation ${citation.id} no longer exists`);
+    }
     const before = this.db.prepare('SELECT date_id FROM citation WHERE id = ?').get(citation.id) as
       | { date_id: string | null }
       | undefined;
@@ -282,7 +295,7 @@ export class SourceRepo {
     this.db.prepare('DELETE FROM citation WHERE target_type = ? AND target_id = ?').run(targetType, targetId);
     for (const row of rows) {
       if (row.date_id !== null) {
-        this.dates.delete(row.date_id);
+        this.dates.deleteIfUnused(row.date_id);
       }
     }
   }

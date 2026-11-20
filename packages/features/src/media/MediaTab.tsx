@@ -1,7 +1,8 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { FileImage, Image as ImageIcon, Paperclip, X } from 'lucide-react';
 import {
   isImagePath,
+  placeName,
   type MediaFile,
   type MediaLinkRecord,
   type MediaRecord,
@@ -15,16 +16,46 @@ import {
   FieldGrid,
   IconButton,
   Input,
+  MetadataText,
   ReorderButtons,
   SectionCard,
+  Select,
+  Textarea,
 } from '@doru/ui';
+import { DateEditor, dateDraftsEqual, fromDateDraft, toDateDraft } from '@doru/ui/domain';
 import { AttachmentsPanel } from '../attachments';
 import { EntityTab } from '../sidebar';
 import type { AttachmentsPanelApi } from '../attachments';
 import type { MediaAdminApi } from '../person/types';
 import { nls } from '../nls';
-import { moveItem, taskTargetLabel, type MediaWithPath, type TaskTargetData } from '@doru/ui/domain';
+import {
+  createTaskTargetLabeler,
+  moveItem,
+  type MediaFileFacts,
+  type MediaWithPath,
+  type TaskTargetData,
+} from '@doru/ui/domain';
+import styles from './MediaTab.module.css';
 import './MediaTab.css';
+
+type MediaDraftSnapshot = {
+  title: string;
+  date: ReturnType<typeof toDateDraft>;
+  place: string;
+  placeId: string;
+  objectType: string;
+  description: string;
+  keywords: string;
+};
+
+type MediaDirtyFields = {
+  title: boolean;
+  date: boolean;
+  place: boolean;
+  objectType: boolean;
+  description: boolean;
+  keywords: boolean;
+};
 
 export function MediaTab({
   entityId,
@@ -77,13 +108,304 @@ function MediaTabBody({
   onClose: () => void;
 }) {
   const [title, setTitle] = useState(record.title ?? '');
+  const [date, setDate] = useState(() => toDateDraft(record.date));
+  const [place, setPlace] = useState(record.place ?? '');
+  const [placeId, setPlaceId] = useState(record.placeId ?? '');
+  const [objectType, setObjectType] = useState(record.objectType ?? '');
+  const [description, setDescription] = useState(record.description ?? '');
+  const [keywords, setKeywords] = useState(record.keywords ?? '');
   const [expandedFileId, setExpandedFileId] = useState<string | null>(null);
+  const targetLabel = createTaskTargetLabeler(targetData);
+  const recordRef = useRef(record);
+  const baselineRef = useRef<MediaRecord>(record);
+  const savedRef = useRef<MediaRecord>(record);
+  const submittedRef = useRef<typeof metadataRef.current | undefined>(undefined);
+  const submissionTokenRef = useRef<object | undefined>(undefined);
+  const submittedDirtyRef = useRef<MediaDirtyFields | undefined>(undefined);
+  const saveChainRef = useRef<Promise<void>>(Promise.resolve());
+  const queuedRecordRef = useRef<MediaRecord>(record);
+  const pendingSavesRef = useRef(0);
+  const metadataRef = useRef({
+    title,
+    date,
+    place,
+    placeId,
+    objectType,
+    description,
+    keywords,
+  });
 
-  const save = async () => {
-    await api.updateMedia(record, { ...record, title: title.trim() || undefined });
+  useEffect(() => {
+    metadataRef.current = { title, date, place, placeId, objectType, description, keywords };
+  }, [title, date, place, placeId, objectType, description, keywords]);
+
+  useEffect(() => {
+    if (record === recordRef.current) {
+      return;
+    }
+    const previous = recordRef.current;
+    recordRef.current = record;
+    const submitted = submittedRef.current;
+    const dirty = submittedDirtyRef.current;
+    // A refresh that still carries pre-write values (or any unrelated
+    // snapshot) must not replace a draft whose write is still pending; wait
+    // until the incoming record reflects the submitted fields.
+    if (submitted !== undefined && dirty !== undefined && !mediaRecordHasSubmission(record, submitted, dirty)) {
+      return;
+    }
+    submittedRef.current = undefined;
+    submittedDirtyRef.current = undefined;
+    savedRef.current = record;
+    if (submitted === undefined && mediaMetadataMatches(metadataRef.current, previous)) {
+      baselineRef.current = record;
+      setTitle(record.title ?? '');
+      setDate(toDateDraft(record.date));
+      setPlace(record.place ?? '');
+      setPlaceId(record.placeId ?? '');
+      setObjectType(record.objectType ?? '');
+      setDescription(record.description ?? '');
+      setKeywords(record.keywords ?? '');
+      return;
+    }
+    // Keep the user's edits, but advance the baseline for every field they
+    // did not touch so a later save reads those values from the current row.
+    const draft = metadataRef.current;
+    const base =
+      submitted ??
+      ({
+        title: baselineRef.current.title ?? '',
+        date: toDateDraft(baselineRef.current.date),
+        place: baselineRef.current.place ?? '',
+        placeId: baselineRef.current.placeId ?? '',
+        objectType: baselineRef.current.objectType ?? '',
+        description: baselineRef.current.description ?? '',
+        keywords: baselineRef.current.keywords ?? '',
+      } as const);
+    const refreshed: MediaRecord = { ...record };
+    if (draft.title.trim() === base.title.trim()) {
+      refreshed.title = record.title;
+      setTitle(record.title ?? '');
+    }
+    if (mediaDateDraftPairEqual(draft.date, base.date, baselineRef.current.date)) {
+      refreshed.date = record.date;
+      setDate(toDateDraft(record.date));
+    }
+    if (draft.place.trim() === base.place.trim() && draft.placeId === base.placeId) {
+      refreshed.place = record.place;
+      refreshed.placeId = record.placeId;
+      setPlace(record.place ?? '');
+      setPlaceId(record.placeId ?? '');
+    }
+    if (draft.objectType.trim() === base.objectType.trim()) {
+      refreshed.objectType = record.objectType;
+      setObjectType(record.objectType ?? '');
+    }
+    if (draft.description.trim() === base.description.trim()) {
+      refreshed.description = record.description;
+      setDescription(record.description ?? '');
+    }
+    if (draft.keywords.trim() === base.keywords.trim()) {
+      refreshed.keywords = record.keywords;
+      setKeywords(record.keywords ?? '');
+    }
+    baselineRef.current = refreshed;
+  }, [record]);
+
+  /**
+   * Merges a refresh that arrived while a write was pending. Fields this
+   * submission did not touch adopt the refreshed values; edited fields keep
+   * the draft (or the just-written value after a successful save) so a retry
+   * still sends the user's change.
+   */
+  const reconcileAfterRefresh = (
+    latest: MediaRecord,
+    base: MediaRecord,
+    dirty: MediaDirtyFields,
+    submitted: MediaDraftSnapshot,
+    next?: MediaRecord,
+  ): void => {
+    const refreshed: MediaRecord = { ...latest };
+    const draft = metadataRef.current;
+    if (!dirty.title) {
+      if (draft.title === submitted.title) {
+        setTitle(latest.title ?? '');
+      }
+    } else {
+      refreshed.title = (next ?? base).title;
+    }
+    if (!dirty.date) {
+      if (JSON.stringify(draft.date) === JSON.stringify(submitted.date)) {
+        setDate(toDateDraft(latest.date));
+      }
+    } else {
+      refreshed.date = (next ?? base).date;
+    }
+    if (!dirty.place) {
+      if (draft.place === submitted.place && draft.placeId === submitted.placeId) {
+        setPlace(latest.place ?? '');
+        setPlaceId(latest.placeId ?? '');
+      }
+    } else {
+      refreshed.place = (next ?? base).place;
+      refreshed.placeId = (next ?? base).placeId;
+    }
+    if (!dirty.objectType) {
+      if (draft.objectType === submitted.objectType) {
+        setObjectType(latest.objectType ?? '');
+      }
+    } else {
+      refreshed.objectType = (next ?? base).objectType;
+    }
+    if (!dirty.description) {
+      if (draft.description === submitted.description) {
+        setDescription(latest.description ?? '');
+      }
+    } else {
+      refreshed.description = (next ?? base).description;
+    }
+    if (!dirty.keywords) {
+      if (draft.keywords === submitted.keywords) {
+        setKeywords(latest.keywords ?? '');
+      }
+    } else {
+      refreshed.keywords = (next ?? base).keywords;
+    }
+    baselineRef.current = refreshed;
+  };
+
+  const performSave = async (
+    submission: MediaDraftSnapshot,
+    base: MediaRecord,
+    baseDraft: MediaDraftSnapshot,
+  ): Promise<void> => {
+    const token = {};
+    submissionTokenRef.current = token;
+    submittedRef.current = submission;
+    const dirty: MediaDirtyFields = {
+      title: submission.title.trim() !== baseDraft.title,
+      date: !mediaDateDraftEqual(submission.date, base.date),
+      place: submission.place.trim() !== baseDraft.place || submission.placeId !== baseDraft.placeId,
+      objectType: submission.objectType.trim() !== baseDraft.objectType,
+      description: submission.description.trim() !== baseDraft.description,
+      keywords: submission.keywords.trim() !== baseDraft.keywords,
+    };
+    submittedDirtyRef.current = dirty;
+    // Use the latest saved state even while the refreshed prop is pending.
+    const current = savedRef.current;
+    const next: MediaRecord = { ...current };
+    if (submission.title.trim() !== baseDraft.title) {
+      next.title = submission.title.trim() || undefined;
+    }
+    if (!mediaDateDraftEqual(submission.date, base.date)) {
+      next.date = fromDateDraft(submission.date, current.date);
+    }
+    if (submission.place.trim() !== baseDraft.place || submission.placeId !== baseDraft.placeId) {
+      next.place = submission.place.trim() || undefined;
+      next.placeId = submission.placeId || undefined;
+    }
+    if (submission.objectType.trim() !== baseDraft.objectType) {
+      next.objectType = submission.objectType.trim() || undefined;
+    }
+    if (submission.description.trim() !== baseDraft.description) {
+      next.description = submission.description.trim() || undefined;
+    }
+    if (submission.keywords.trim() !== baseDraft.keywords) {
+      next.keywords = submission.keywords.trim() || undefined;
+    }
+    const recordBeforeSave = recordRef.current;
+    try {
+      await api.updateMedia(current, next);
+    } catch (error) {
+      if (submissionTokenRef.current === token) {
+        if (recordRef.current !== recordBeforeSave) {
+          // A refresh arrived while the write was pending; retry from the
+          // latest stored record so files added meanwhile are not dropped.
+          savedRef.current = recordRef.current;
+          reconcileAfterRefresh(recordRef.current, base, dirty, submission);
+        }
+        if (submittedRef.current === submission) {
+          submittedRef.current = undefined;
+          submittedDirtyRef.current = undefined;
+          queuedRecordRef.current = savedRef.current;
+        }
+      }
+      throw error;
+    }
+    // The write settled: retire only this save's submission gate, so an
+    // older completion cannot clear a newer overlapping save.
+    if (submissionTokenRef.current === token) {
+      submittedRef.current = undefined;
+      submittedDirtyRef.current = undefined;
+      if (recordRef.current === recordBeforeSave) {
+        baselineRef.current = next;
+        savedRef.current = next;
+      } else {
+        savedRef.current = recordRef.current;
+        reconcileAfterRefresh(recordRef.current, base, dirty, submission, next);
+      }
+    }
+  };
+
+  const save = (): Promise<void> => {
+    // Capture the click-time draft. Queued saves compare against the previous
+    // submission, so a reversal (B then A) is not compared with stale A.
+    const submission: MediaDraftSnapshot = {
+      title,
+      date,
+      place,
+      placeId,
+      objectType,
+      description,
+      keywords,
+    };
+    if (pendingSavesRef.current === 0) {
+      queuedRecordRef.current = savedRef.current;
+    }
+    const base = queuedRecordRef.current;
+    const baseDraft: MediaDraftSnapshot = {
+      title: base.title ?? '',
+      date: toDateDraft(base.date),
+      place: base.place ?? '',
+      placeId: base.placeId ?? '',
+      objectType: base.objectType ?? '',
+      description: base.description ?? '',
+      keywords: base.keywords ?? '',
+    };
+    const desired: MediaRecord = { ...base };
+    if (submission.title.trim() !== baseDraft.title) {
+      desired.title = submission.title.trim() || undefined;
+    }
+    if (!mediaDateDraftEqual(submission.date, base.date)) {
+      desired.date = fromDateDraft(submission.date, base.date);
+    }
+    if (submission.place.trim() !== baseDraft.place || submission.placeId !== baseDraft.placeId) {
+      desired.place = submission.place.trim() || undefined;
+      desired.placeId = submission.placeId || undefined;
+    }
+    if (submission.objectType.trim() !== baseDraft.objectType) {
+      desired.objectType = submission.objectType.trim() || undefined;
+    }
+    if (submission.description.trim() !== baseDraft.description) {
+      desired.description = submission.description.trim() || undefined;
+    }
+    if (submission.keywords.trim() !== baseDraft.keywords) {
+      desired.keywords = submission.keywords.trim() || undefined;
+    }
+    queuedRecordRef.current = desired;
+    pendingSavesRef.current += 1;
+    const task: Promise<void> = saveChainRef.current
+      .then(() => performSave(submission, base, baseDraft))
+      .finally(() => {
+        pendingSavesRef.current -= 1;
+      });
+    saveChainRef.current = task.catch(() => undefined);
+    return saveChainRef.current;
   };
 
   const remove = async () => {
+    if (!window.confirm(nls.t('features.tree.media.deleteConfirm'))) {
+      return;
+    }
     await api.deleteMedia(record);
     onClose();
   };
@@ -93,6 +415,9 @@ function MediaTabBody({
   };
 
   const removeFile = async (file: MediaFile) => {
+    if (!window.confirm(nls.t('features.tree.media.removeFileConfirm'))) {
+      return;
+    }
     await api.removeMediaFile(record, file);
   };
 
@@ -114,12 +439,12 @@ function MediaTabBody({
     await api.updateMedia(record, after);
   };
 
-  const first = record.files?.[0];
+  const first = record.files?.find((file) => file.absolutePath !== '');
   return (
     <EntityTab>
       <EntityViewCard
         media={
-          first !== undefined && isImagePath(first.path) ? (
+          first !== undefined && first.absolutePath !== '' && isImagePath(first.path) ? (
             <img
               className="media-tab-preview"
               src={`doru-media://local/?path=${encodeURIComponent(first.absolutePath)}`}
@@ -147,6 +472,51 @@ function MediaTabBody({
         <Field label={nls.t('features.tree.media.titleField')}>
           <Input value={title} onChange={(event) => setTitle(event.target.value)} />
         </Field>
+        <DateEditor label={nls.t('features.tree.media.date')} value={date} onChange={setDate} hidePlace />
+        <FieldGrid columns={2}>
+          <Field label={nls.t('features.tree.media.place')}>
+            <Select
+              value={placeId}
+              onChange={(event) => {
+                const value = event.target.value;
+                setPlaceId(value);
+                const selected = targetData.places.find((entry) => entry.id === value);
+                if (selected !== undefined) {
+                  setPlace(placeName(selected));
+                }
+              }}
+            >
+              <option value="">{nls.t('features.tasks.none')}</option>
+              {targetData.places.map((entry) => (
+                <option key={entry.id} value={entry.id}>
+                  {placeName(entry)}
+                </option>
+              ))}
+            </Select>
+          </Field>
+          <Field label={nls.t('features.tree.media.placeText')}>
+            <Input
+              value={place}
+              onChange={(event) => {
+                setPlace(event.target.value);
+                if (placeId !== '') {
+                  setPlaceId('');
+                }
+              }}
+            />
+          </Field>
+        </FieldGrid>
+        <FieldGrid columns={2}>
+          <Field label={nls.t('features.tree.media.objectType')}>
+            <Input value={objectType} onChange={(event) => setObjectType(event.target.value)} />
+          </Field>
+          <Field label={nls.t('features.tree.media.keywords')}>
+            <Input value={keywords} onChange={(event) => setKeywords(event.target.value)} />
+          </Field>
+        </FieldGrid>
+        <Field label={nls.t('features.tree.media.description')}>
+          <Textarea rows={3} value={description} onChange={(event) => setDescription(event.target.value)} />
+        </Field>
       </SectionCard>
 
       <SectionCard title={nls.t('features.tree.media.files')}>
@@ -154,7 +524,7 @@ function MediaTabBody({
           {(record.files ?? []).map((file, index) => (
             <li key={file.id} className="media-file-item">
               <div className="media-file-row">
-                {isImagePath(file.path) ? (
+                {file.absolutePath !== '' && isImagePath(file.path) ? (
                   <img
                     className="media-file-thumb"
                     src={`doru-media://local/?path=${encodeURIComponent(file.absolutePath)}`}
@@ -163,7 +533,10 @@ function MediaTabBody({
                 ) : (
                   <ImageIcon size={18} aria-hidden="true" />
                 )}
-                <span className="media-file-path">{file.path}</span>
+                <div className={styles['fileMeta']}>
+                  <span className="media-file-path">{file.path}</span>
+                  <MetadataText className={styles['fileFacts']}>{factsLabel(file.facts)}</MetadataText>
+                </div>
                 <Input
                   aria-label={nls.t('features.tree.media.fileTitle')}
                   placeholder={nls.t('features.tree.media.fileTitle')}
@@ -192,7 +565,13 @@ function MediaTabBody({
                 </Button>
               </div>
               {expandedFileId === file.id && (
-                <AttachmentsPanel targetType="media_file" targetId={file.id} api={attachmentsApi} sources={sources} />
+                <AttachmentsPanel
+                  targetType="media_file"
+                  targetId={file.id}
+                  api={attachmentsApi}
+                  sources={sources}
+                  onOpenSource={(sourceId) => api.openSource?.(sourceId)}
+                />
               )}
             </li>
           ))}
@@ -208,13 +587,19 @@ function MediaTabBody({
             <MediaLinkRow
               key={link.id}
               link={link}
-              targetLabel={taskTargetLabel(link.targetType, link.targetId, targetData)}
+              targetLabel={targetLabel(link.targetType, link.targetId)}
               canDetach={(record.links?.length ?? 0) > 1}
+              attachmentsApi={attachmentsApi}
+              sources={sources}
+              onOpenSource={(sourceId) => api.openSource?.(sourceId)}
               onSave={(after) => api.updateMediaLink(link, after)}
               onDetach={async () => {
                 if ((record.links?.length ?? 0) > 1) {
                   await api.detachMedia(link);
                 } else {
+                  if (!window.confirm(nls.t('features.tree.media.deleteConfirm'))) {
+                    return;
+                  }
                   await api.deleteMedia(record);
                   onClose();
                 }
@@ -224,7 +609,13 @@ function MediaTabBody({
         </ul>
       </SectionCard>
 
-      <AttachmentsPanel targetType="media" targetId={record.id} api={attachmentsApi} sources={sources} />
+      <AttachmentsPanel
+        targetType="media"
+        targetId={record.id}
+        api={attachmentsApi}
+        sources={sources}
+        onOpenSource={(sourceId) => api.openSource?.(sourceId)}
+      />
     </EntityTab>
   );
 }
@@ -233,16 +624,23 @@ function MediaLinkRow({
   link,
   targetLabel,
   canDetach,
+  attachmentsApi,
+  sources,
+  onOpenSource,
   onSave,
   onDetach,
 }: {
   link: MediaLinkRecord;
   targetLabel: string;
   canDetach: boolean;
+  attachmentsApi: AttachmentsPanelApi;
+  sources: SourceRecord[];
+  onOpenSource: (sourceId: string) => void;
   onSave: (link: MediaLinkRecord) => Promise<void>;
   onDetach: () => Promise<void>;
 }) {
   const [draft, setDraft] = useState<MediaLinkRecord>(link);
+  const [showSources, setShowSources] = useState(false);
   const set = (patch: Partial<MediaLinkRecord>) => setDraft({ ...draft, ...patch });
 
   return (
@@ -316,7 +714,123 @@ function MediaLinkRow({
         <Button variant="secondary" size="sm" onClick={() => void onDetach()}>
           {canDetach ? nls.t('features.tree.media.detach') : nls.t('features.tree.fact.delete')}
         </Button>
+        <IconButton
+          size="sm"
+          label={nls.t('features.tree.media.linkSources')}
+          icon={<Paperclip size={13} aria-hidden="true" />}
+          onClick={() => setShowSources(!showSources)}
+        />
       </div>
+      {showSources && (
+        <AttachmentsPanel
+          targetType="media_link"
+          targetId={link.id}
+          api={attachmentsApi}
+          sources={sources}
+          onOpenSource={onOpenSource}
+          sections={['sources']}
+        />
+      )}
     </li>
   );
+}
+
+/** True when the stored record already contains every submitted (dirty) field. */
+function mediaRecordHasSubmission(
+  record: MediaWithPath,
+  values: {
+    title: string;
+    date: ReturnType<typeof toDateDraft>;
+    place: string;
+    placeId: string;
+    objectType: string;
+    description: string;
+    keywords: string;
+  },
+  dirty: {
+    title: boolean;
+    date: boolean;
+    place: boolean;
+    objectType: boolean;
+    description: boolean;
+    keywords: boolean;
+  },
+): boolean {
+  return (
+    (!dirty.title || values.title.trim() === (record.title ?? '')) &&
+    (!dirty.date || dateDraftsEqual(toDateDraft(fromDateDraft(values.date, record.date)), toDateDraft(record.date))) &&
+    (!dirty.place || (values.place.trim() === (record.place ?? '') && values.placeId === (record.placeId ?? ''))) &&
+    (!dirty.objectType || values.objectType.trim() === (record.objectType ?? '')) &&
+    (!dirty.description || values.description.trim() === (record.description ?? '')) &&
+    (!dirty.keywords || values.keywords.trim() === (record.keywords ?? ''))
+  );
+}
+
+/** Compares drafts by the date they save, not by their raw typed text. */
+function mediaDateDraftEqual(
+  draft: ReturnType<typeof toDateDraft>,
+  base?: Parameters<typeof fromDateDraft>[1],
+): boolean {
+  return dateDraftsEqual(toDateDraft(fromDateDraft(draft, base)), toDateDraft(base));
+}
+
+function mediaDateDraftPairEqual(
+  draft: ReturnType<typeof toDateDraft>,
+  baseDraft: ReturnType<typeof toDateDraft>,
+  base?: Parameters<typeof fromDateDraft>[1],
+): boolean {
+  return dateDraftsEqual(toDateDraft(fromDateDraft(draft, base)), toDateDraft(fromDateDraft(baseDraft, base)));
+}
+
+/** True when the metadata draft still equals the stored media record. */
+function mediaMetadataMatches(
+  values: {
+    title: string;
+    date: ReturnType<typeof toDateDraft>;
+    place: string;
+    placeId: string;
+    objectType: string;
+    description: string;
+    keywords: string;
+  },
+  record: MediaWithPath,
+): boolean {
+  return (
+    values.title.trim() === (record.title ?? '') &&
+    mediaDateDraftEqual(values.date, record.date) &&
+    values.place.trim() === (record.place ?? '') &&
+    values.placeId === (record.placeId ?? '') &&
+    values.objectType.trim() === (record.objectType ?? '') &&
+    values.description.trim() === (record.description ?? '') &&
+    values.keywords.trim() === (record.keywords ?? '')
+  );
+}
+
+function factsLabel(facts: MediaFileFacts | undefined): string {
+  if (facts === undefined) {
+    return nls.t('features.tree.media.facts.unknown');
+  }
+  const parts = [`${nls.t('features.tree.media.facts.format')}: ${facts.mime}`];
+  if (facts.size !== undefined) {
+    parts.push(`${nls.t('features.tree.media.facts.size')}: ${formatBytes(facts.size)}`);
+  }
+  if (facts.width !== undefined && facts.height !== undefined) {
+    parts.push(`${nls.t('features.tree.media.facts.dimensions')}: ${facts.width} × ${facts.height}`);
+  }
+  return parts.join(' · ');
+}
+
+function formatBytes(size: number): string {
+  const integer = new Intl.NumberFormat(nls.locale).format(size);
+  if (size < 1024) {
+    return nls.t('features.tree.media.bytes.b', integer);
+  }
+  const value = new Intl.NumberFormat(nls.locale, {
+    minimumFractionDigits: 1,
+    maximumFractionDigits: 1,
+  });
+  if (size < 1024 * 1024) {
+    return nls.t('features.tree.media.bytes.kb', value.format(size / 1024));
+  }
+  return nls.t('features.tree.media.bytes.mb', value.format(size / (1024 * 1024)));
 }

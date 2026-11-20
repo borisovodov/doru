@@ -92,6 +92,39 @@ function todos(dataset: GedcomDataset): TodoRecord[] {
 }
 
 describe('Legacy data tags on 5.5.1 input', () => {
+  test('keeps non-pointer REPO text on a todo as an extension', () => {
+    const dataset = parseOk551(
+      [
+        '0 HEAD',
+        '1 GEDC',
+        '2 VERS 5.5.1',
+        '1 CHAR UTF-8',
+        '0 _TODO Find the register',
+        '1 REPO City Archive',
+        '0 TRLR',
+      ].join('\n'),
+    );
+    const [todo] = todos(dataset);
+    expect(todo?.repository).toBeUndefined();
+    expect(todo?.extensions?.[0]).toMatchObject({ tag: 'REPO', payload: 'City Archive' });
+  });
+  test('resolves a bare repository identifier on a todo', () => {
+    const dataset = parseOk551(
+      [
+        '0 HEAD',
+        '1 GEDC',
+        '2 VERS 5.5.1',
+        '1 CHAR UTF-8',
+        '0 @R1@ REPO',
+        '1 NAME City Archive',
+        '0 _TODO Find the register',
+        '1 REPO R1',
+        '0 TRLR',
+      ].join('\n'),
+    );
+    expect(todos(dataset)[0]?.repository).toBe('@R1@');
+  });
+
   test('types _STAT under CHIL, the tag marks, _SOUND and _TODO', () => {
     const dataset = parseOk551(SAMPLE551);
 

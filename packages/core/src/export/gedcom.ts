@@ -1,3 +1,4 @@
+import { ADOPTION_PHRASE_TAG } from '../gedcomPhraseMarker';
 import type {
   Calendar,
   ChangeDate,
@@ -8,6 +9,7 @@ import type {
   DateStructure,
   DateValue as GedcomDateValue,
   EventDetail,
+  FactFlag as GedcomFactFlag,
   ChildFamilyLink,
   FamilyAttributeStructure,
   FamilyEventStructure,
@@ -45,6 +47,7 @@ import type {
   AssociationRecord,
   DateComponent,
   DateValue,
+  FactFlag,
   FactRecord,
   FamilyRecord,
   MediaLinkRecord,
@@ -65,6 +68,14 @@ import type {
  * documented inline. The exported header always declares GEDCOM 7.0; the
  * serializers decide the wire form from there.
  */
+
+/** The lowercase core fact flags mapped to the GEDCOM `_FLGS` vocabulary. */
+const CORE_TO_GEDCOM_FACT_FLAG: Readonly<Record<FactFlag, GedcomFactFlag>> = {
+  private: 'PRIVATE',
+  preferred: 'PREFERRED',
+  tentative: 'TENTATIVE',
+  rejected: 'REJECTED',
+};
 
 const INDIVIDUAL_EVENT_TAGS = new Set([
   'ADOP',
@@ -208,13 +219,12 @@ function buildPerson(person: PersonRecord, repo: TreeRepository, xrefs: Xrefs): 
   const nonEvents: NonEventStructure[] = [];
   for (const fact of person.facts) {
     if (fact.negation === true) {
+      const citations = withCitationList(repo, 'fact', fact.id, xrefs);
       nonEvents.push({
         tag: 'NO',
         payload: fact.tag as NonEventStructure['payload'],
         ...(fact.date !== undefined ? { date: buildDatePeriod(fact.date) } : {}),
-        ...(withCitationList(repo, 'fact', fact.id, xrefs).citations.length > 0
-          ? withCitationList(repo, 'fact', fact.id, xrefs)
-          : {}),
+        ...(citations.citations.length > 0 ? citations : {}),
         ...withNoteList(repo, 'fact', fact.id, xrefs),
       });
       continue;
@@ -236,10 +246,19 @@ function buildPerson(person: PersonRecord, repo: TreeRepository, xrefs: Xrefs): 
     .listRestrictionsFor('person', person.id)
     .map((entry) => entry.level.toUpperCase()) as ListEnum<RestrictionEnum>;
   const changes = withChanges(repo, 'person', person.id);
+  const submitterLinks = repo.listRecordSubmittersFor('person', person.id);
+  const ancestorInterests = submitterLinks
+    .filter((link) => link.kind === 'ancestor_interest')
+    .map((link) => xrefs.of(link.submitterId));
+  const descendantInterests = submitterLinks
+    .filter((link) => link.kind === 'descendant_interest')
+    .map((link) => xrefs.of(link.submitterId));
+  const sexCitations = withCitationList(repo, 'person_sex', person.id, xrefs).citations;
   return {
     tag: 'INDI',
     xref: xrefs.of(person.id),
     sex: person.sex,
+    ...(person.deathStatus === 'dead' ? { deceased: true } : person.deathStatus === 'alive' ? { deceased: false } : {}),
     names: person.names.map((name) => buildName(name, repo, xrefs)),
     ...(events.length > 0 ? { events } : {}),
     ...(attributes.length > 0 ? { attributes } : {}),
@@ -252,11 +271,14 @@ function buildPerson(person: PersonRecord, repo: TreeRepository, xrefs: Xrefs): 
     ...contacts,
     ...(addressRecord !== undefined ? { address: buildAddress(addressRecord, repo, xrefs) } : {}),
     ...withCitationList(repo, 'person', person.id, xrefs),
+    ...(sexCitations.length > 0 ? { sexCitations } : {}),
     ...withNoteList(repo, 'person', person.id, xrefs),
     ...withMediaLinks(repo, 'person', person.id, xrefs),
     ...withSubmitterLinks(repo, 'person', person.id, xrefs),
+    ...(ancestorInterests.length > 0 ? { ancestorInterests } : {}),
+    ...(descendantInterests.length > 0 ? { descendantInterests } : {}),
     ...withTagLinks(repo, 'person', person.id, xrefs),
-    ...withTodoStructures(repo, 'person', person.id),
+    ...withTodoStructures(repo, 'person', person.id, xrefs),
     ...withAssociations(repo, person.id, xrefs),
     ...withAliases(repo, person.id, xrefs),
     ...withChildFamilies(repo, person.id, xrefs),
@@ -277,8 +299,63 @@ type MappedFamilyFact =
  * extensions, custom kinds) become a generic EVEN whose TYPE carries the
  * original tag — a documented lossy projection.
  */
+function eventFamilyFields(
+  fact: FactRecord,
+  xrefs: Xrefs,
+  singlePartner: boolean,
+): {
+  adoptionFamily?: {
+    tag: 'FAMC';
+    family: string;
+    adoption?: { tag: 'ADOP'; payload: string; phrase?: string };
+  };
+  familyChild?: string;
+} {
+  const link = fact.familyLinks?.[0];
+  if (link === undefined) {
+    return {};
+  }
+  if (fact.tag === 'ADOP') {
+    // A family with one partner exports that person in the HUSB slot even
+    // when the stored marker names WIFE; the marker must name a real slot.
+    const adoptedBy = link.adoptedBy === undefined ? undefined : singlePartner ? 'HUSB' : link.adoptedBy;
+    return {
+      adoptionFamily: {
+        tag: 'FAMC',
+        family: xrefs.of(link.familyId),
+        ...(adoptedBy !== undefined
+          ? {
+              adoption: {
+                tag: 'ADOP' as const,
+                payload: adoptedBy,
+                ...(link.phrase !== undefined ? { phrase: link.phrase } : {}),
+              },
+            }
+          : {}),
+      },
+    };
+  }
+  if (fact.tag === 'BIRT' || fact.tag === 'CHR') {
+    return { familyChild: xrefs.of(link.familyId) };
+  }
+  return {};
+}
+
 function buildPersonFact(fact: FactRecord, repo: TreeRepository, xrefs: Xrefs): MappedPersonFact {
-  const detail = buildDetail(fact, repo, xrefs);
+  let detail = buildDetail(fact, repo, xrefs);
+  const adoptionLink = fact.tag === 'ADOP' ? fact.familyLinks?.[0] : undefined;
+  if (adoptionLink?.adoptedBy === undefined && adoptionLink?.phrase !== undefined) {
+    detail = {
+      ...(detail ?? {}),
+      extensions: [
+        ...(detail?.extensions ?? []),
+        { tag: ADOPTION_PHRASE_TAG, payload: adoptionLink.phrase, children: [] },
+      ],
+    } as typeof detail;
+  }
+  const singlePartner =
+    adoptionLink !== undefined && (repo.getFamily(adoptionLink.familyId)?.partners.length ?? 0) <= 1;
+  const familyFields = eventFamilyFields(fact, xrefs, singlePartner);
   if (fact.tag === 'EVEN' || (!INDIVIDUAL_EVENT_TAGS.has(fact.tag) && !INDIVIDUAL_ATTRIBUTE_TAGS.has(fact.tag))) {
     return {
       kind: 'event',
@@ -307,6 +384,7 @@ function buildPersonFact(fact: FactRecord, repo: TreeRepository, xrefs: Xrefs): 
       tag: fact.tag as IndividualEventStructure['tag'],
       ...(fact.value !== undefined ? { payload: fact.value } : {}),
       ...(fact.type !== undefined ? { type: fact.type } : {}),
+      ...familyFields,
       ...(detail !== undefined ? { detail } : {}),
     } as IndividualEventStructure,
   };
@@ -447,17 +525,19 @@ function buildFamily(family: FamilyRecord, repo: TreeRepository, xrefs: Xrefs): 
     ...(link.motherRelation !== undefined ? { motherRelation: link.motherRelation } : {}),
     ...(link.preferred === true ? { preferred: true } : {}),
     ...(link.multiplicity !== undefined ? { multiplicity: link.multiplicity } : {}),
-    ...withNoteList(repo, 'family_child', link.id, xrefs),
   }));
   const events: FamilyEventStructure[] = [];
   const attributes: FamilyAttributeStructure[] = [];
   const nonEvents: NonEventStructure[] = [];
   for (const fact of repo.listFactsForFamily(family.id)) {
     if (fact.negation === true) {
+      const citations = withCitationList(repo, 'fact', fact.id, xrefs);
       nonEvents.push({
         tag: 'NO',
         payload: fact.tag as NonEventStructure['payload'],
         ...(fact.date !== undefined ? { date: buildDatePeriod(fact.date) } : {}),
+        ...(citations.citations.length > 0 ? citations : {}),
+        ...withNoteList(repo, 'fact', fact.id, xrefs),
       });
       continue;
     }
@@ -508,7 +588,7 @@ function buildFamily(family: FamilyRecord, repo: TreeRepository, xrefs: Xrefs): 
     ...withMediaLinks(repo, 'family', family.id, xrefs),
     ...withSubmitterLinks(repo, 'family', family.id, xrefs),
     ...withTagLinks(repo, 'family', family.id, xrefs),
-    ...withTodoStructures(repo, 'family', family.id),
+    ...withTodoStructures(repo, 'family', family.id, xrefs),
     ...withFamilyAssociations(repo, family.id, xrefs),
   };
 }
@@ -517,17 +597,16 @@ function buildFamilyFact(fact: FactRecord, repo: TreeRepository, xrefs: Xrefs): 
   const detail = buildDetail(fact, repo, xrefs);
   const husbandAge = fact.ages?.find((age) => age.role === 'HUSB');
   const wifeAge = fact.ages?.find((age) => age.role === 'WIFE');
-  // FamilyEventDetail nests the shared EventDetail and the per-partner ages.
-  const familyDetail =
+  // FamilyEventDetail nests the shared EventDetail and the per-partner ages;
+  // the emitter reads flags, primary, witnesses and godparents from detail.detail.
+  const familyDetail: import('@doru/gedcom').FamilyEventDetail | undefined =
     detail !== undefined || husbandAge !== undefined || wifeAge !== undefined
       ? {
-          detail: {
-            ...(detail !== undefined ? detail : {}),
-            ...(husbandAge !== undefined ? { husband: { age: buildAge(husbandAge) } } : {}),
-            ...(wifeAge !== undefined ? { wife: { age: buildAge(wifeAge) } } : {}),
-          },
+          ...(detail !== undefined ? { detail } : {}),
+          ...(husbandAge !== undefined ? { husband: { age: buildAge(husbandAge) } } : {}),
+          ...(wifeAge !== undefined ? { wife: { age: buildAge(wifeAge) } } : {}),
         }
-      : {};
+      : undefined;
   if (fact.tag === 'EVEN' || (!FAMILY_EVENT_TAGS.has(fact.tag) && !FAMILY_ATTRIBUTE_TAGS.has(fact.tag))) {
     return {
       kind: 'event',
@@ -535,7 +614,7 @@ function buildFamilyFact(fact: FactRecord, repo: TreeRepository, xrefs: Xrefs): 
         tag: 'EVEN',
         payload: fact.value ?? '',
         type: fact.type ?? fact.tag,
-        ...familyDetail,
+        ...(familyDetail !== undefined ? { detail: familyDetail } : {}),
       } as FamilyEventStructure,
     };
   }
@@ -546,7 +625,7 @@ function buildFamilyFact(fact: FactRecord, repo: TreeRepository, xrefs: Xrefs): 
         tag: fact.tag as FamilyAttributeStructure['tag'],
         payload: fact.value ?? '',
         ...(fact.type !== undefined ? { type: fact.type } : {}),
-        ...familyDetail,
+        ...(familyDetail !== undefined ? { detail: familyDetail } : {}),
       } as FamilyAttributeStructure,
     };
   }
@@ -556,7 +635,7 @@ function buildFamilyFact(fact: FactRecord, repo: TreeRepository, xrefs: Xrefs): 
       tag: fact.tag as FamilyEventStructure['tag'],
       ...(fact.value !== undefined ? { payload: fact.value } : {}),
       ...(fact.type !== undefined ? { type: fact.type } : {}),
-      ...familyDetail,
+      ...(familyDetail !== undefined ? { detail: familyDetail } : {}),
     } as FamilyEventStructure,
   };
 }
@@ -659,6 +738,7 @@ function buildTodoRecord(todo: TodoRecord, repo: TreeRepository, xrefs: Xrefs): 
     .listIdentifiersFor('todo', todo.id)
     .filter((identifier) => identifier.namespace === 'uid')
     .map((identifier) => identifier.value);
+  const createdDate = formatTodoDate(todo.createdDate);
   return {
     tag: '_TODO',
     payload: todo.text,
@@ -666,10 +746,66 @@ function buildTodoRecord(todo: TodoRecord, repo: TreeRepository, xrefs: Xrefs): 
     ...(todo.locality !== undefined ? { locality: todo.locality } : {}),
     ...(todo.priority !== undefined ? { priority: todo.priority } : {}),
     ...(todo.status !== undefined ? { status: todo.status } : {}),
+    ...(createdDate !== undefined ? { createdDate } : {}),
+    ...(todo.repositoryId !== undefined ? { repository: xrefs.of(todo.repositoryId) } : {}),
     ...(uids.length > 0 ? { uids } : {}),
     ...withNoteList(repo, 'todo', todo.id, xrefs),
     ...withChanges(repo, 'todo', todo.id),
   };
+}
+
+/** The vendor `_TCDT` slot is free text: keep a simple ISO-ish date. */
+function formatTodoDate(date: DateValue | undefined): string | undefined {
+  if (date === undefined) {
+    return undefined;
+  }
+  const component = date.component;
+  const iso = (value: NonNullable<typeof component>): string => {
+    const year = String(value.year).padStart(4, '0');
+    if (value.month === undefined) {
+      return year;
+    }
+    const month = String(value.month).padStart(2, '0');
+    if (value.day === undefined) {
+      return `${year}-${month}`;
+    }
+    return `${year}-${month}-${String(value.day).padStart(2, '0')}`;
+  };
+  const complexComponent = (value: NonNullable<typeof component>): boolean =>
+    value.calendar !== undefined ||
+    value.epoch !== undefined ||
+    (value.month !== undefined && typeof value.month !== 'number');
+  // The compact `YYYY[-MM[-DD]]` form drops any part it cannot render, so
+  // every partial shape (a day without a month, a month without a year)
+  // needs the structured JSON branch.
+  const partial = (value: NonNullable<typeof component>): boolean =>
+    value.year === undefined
+      ? value.month !== undefined || value.day !== undefined
+      : value.month === undefined && value.day !== undefined;
+  if (
+    (component !== undefined && (complexComponent(component) || partial(component))) ||
+    (date.end !== undefined && (complexComponent(date.end) || partial(date.end))) ||
+    (date.text !== undefined && date.quality !== 'unknown' && component === undefined && date.end === undefined) ||
+    (component?.year !== undefined && (component.year < 0 || component.year > 9999)) ||
+    (date.end?.year !== undefined && (date.end.year < 0 || date.end.year > 9999)) ||
+    date.time !== undefined ||
+    date.modifier !== undefined ||
+    (date.text !== undefined && date.text !== date.text.trimEnd())
+  ) {
+    const { id: _id, ...structured } = date;
+    return `json:${JSON.stringify(structured)}`;
+  }
+  const start = component?.year !== undefined ? iso(component) : '';
+  const end = date.end?.year !== undefined ? iso(date.end) : '';
+  if (start === '' && end === '') {
+    if (date.text === undefined) {
+      return undefined;
+    }
+    return date.quality === 'unknown' ? `unknown:|${date.text}` : date.text;
+  }
+  const quality = date.quality === 'exact' ? '' : `${date.quality}:`;
+  const range = end !== '' ? `..${end}` : '';
+  return `${quality}${start}${range}${date.text !== undefined ? `|${date.text}` : ''}`;
 }
 
 function buildTagRecord(tag: TagRecord, xrefs: Xrefs): GedcomRecord {
@@ -774,10 +910,16 @@ function withChildFamilies(
           }
         : {}),
       ...(link.status !== undefined
-        ? { status: { payload: link.status.toUpperCase() as import('@doru/gedcom').FamilyChildStatusEnum } }
+        ? {
+            status: {
+              payload: link.status.toUpperCase() as import('@doru/gedcom').FamilyChildStatusEnum,
+              ...(link.statusPhrase !== undefined ? { phrase: link.statusPhrase } : {}),
+            },
+          }
         : {}),
       ...(link.fatherRelation !== undefined ? { fatherRelation: link.fatherRelation } : {}),
       ...(link.motherRelation !== undefined ? { motherRelation: link.motherRelation } : {}),
+      ...withNoteList(repo, 'family_child', link.id, xrefs),
     });
   }
   return links.length > 0 ? { childFamilies: links } : {};
@@ -797,6 +939,7 @@ function withSpouseFamilies(
     links.push({
       family: xrefs.of(family.id),
       ...(link.date !== undefined ? { date: buildDate(link.date) } : {}),
+      ...withNoteList(repo, 'family_partner', link.id, xrefs),
     } as SpouseFamilyLink);
   }
   return links.length > 0 ? { spouseFamilies: links } : {};
@@ -806,36 +949,70 @@ function withSpouseFamilies(
 // Media
 // ---------------------------------------------------------------------------
 
-const MIME_BY_EXTENSION: Record<string, string> = {
-  gif: 'image/gif',
-  heic: 'image/heic',
-  jpeg: 'image/jpeg',
-  jpg: 'image/jpeg',
-  pdf: 'application/pdf',
-  png: 'image/png',
-  tif: 'image/tiff',
-  tiff: 'image/tiff',
-  webp: 'image/webp',
-};
+const MIME_BY_EXTENSION = new Map<string, string>([
+  ['gif', 'image/gif'],
+  ['heic', 'image/heic'],
+  ['jpeg', 'image/jpeg'],
+  ['jpg', 'image/jpeg'],
+  ['pdf', 'application/pdf'],
+  ['png', 'image/png'],
+  ['tif', 'image/tiff'],
+  ['tiff', 'image/tiff'],
+  ['webp', 'image/webp'],
+]);
 
 function mediaMime(path: string): string {
   const dot = path.lastIndexOf('.');
   const extension = dot === -1 ? '' : path.slice(dot + 1).toLowerCase();
-  return MIME_BY_EXTENSION[extension] ?? 'application/octet-stream';
+  return MIME_BY_EXTENSION.get(extension) ?? 'application/octet-stream';
+}
+
+/** The stored place text, or the place row's official name when only an id is set. */
+function mediaPlaceText(media: MediaRecord, repo: TreeRepository): string | undefined {
+  if (media.place !== undefined) {
+    return media.place;
+  }
+  const place = media.placeId !== undefined ? repo.getPlace(media.placeId) : undefined;
+  const names = place !== undefined ? officialPlaceNames(place) : [];
+  return names.length > 0 ? names.join(', ') : undefined;
+}
+
+function normalizeMediaPath(path: string): string {
+  return path.replaceAll('\\', '/');
 }
 
 function buildMediaRecord(media: MediaRecord, repo: TreeRepository, xrefs: Xrefs): MultimediaRecord {
   const restriction = repo
     .listRestrictionsFor('media', media.id)
     .map((entry) => entry.level.toUpperCase()) as ListEnum<RestrictionEnum>;
+  const date = buildDate(media.date);
+  const place = mediaPlaceText(media, repo);
   return {
     tag: 'OBJE',
     xref: xrefs.of(media.id),
     ...(media.title !== undefined ? { title: media.title } : {}),
+    ...(date !== undefined ? { date } : {}),
+    ...(place !== undefined && place !== '' ? { place } : {}),
+    ...(media.objectType !== undefined ? { objectType: media.objectType } : {}),
+    ...(media.description !== undefined ? { description: media.description } : {}),
+    ...(media.keywords !== undefined ? { keywords: media.keywords } : {}),
     files: (media.files ?? []).map((file) => ({
-      payload: file.path,
-      form: { payload: mediaMime(file.path) },
+      payload: normalizeMediaPath(file.path),
+      form: {
+        payload: mediaMime(file.path),
+        ...(file.medium !== undefined ? { medium: { payload: file.medium as import('@doru/gedcom').MediaEnum } } : {}),
+      },
       ...(file.title !== undefined ? { title: file.title } : {}),
+      ...(file.contentType !== undefined ? { contentType: file.contentType } : {}),
+      ...(file.text !== undefined ? { text: file.text } : {}),
+      ...(file.translations !== undefined && file.translations.length > 0
+        ? {
+            translations: file.translations.map((translation) => ({
+              payload: normalizeMediaPath(translation.path),
+              form: { payload: mediaMime(translation.path) },
+            })),
+          }
+        : {}),
     })),
     ...(withIdentifiers(repo, 'media', media.id).length > 0
       ? { identifiers: withIdentifiers(repo, 'media', media.id) }
@@ -881,8 +1058,15 @@ function withMediaLinks(
   xrefs: Xrefs,
 ): { media?: MultimediaLink[] } {
   const links = repo
-    .listAttachmentsFor(targetType, targetId)
-    .mediaLinks.map((entry) => buildMediaLink(entry.link, xrefs));
+    .listMediaLinksFor(targetType, targetId)
+    .filter((entry) => (entry.media.files ?? []).length > 0)
+    .map((entry) => {
+      const { citations } = withCitationList(repo, 'media_link', entry.link.id, xrefs);
+      return {
+        ...buildMediaLink(entry.link, xrefs),
+        ...(citations.length > 0 ? { citations } : {}),
+      };
+    });
   return links.length > 0 ? { media: links } : {};
 }
 
@@ -1095,21 +1279,24 @@ function withTodoStructures(
   repo: TreeRepository,
   targetType: string,
   targetId: string,
+  xrefs: Xrefs,
 ): { todos?: Array<import('@doru/gedcom').TodoStructure> } {
-  const todos = repo.listTodosFor(targetType, targetId).map(
-    (todo) =>
-      ({
-        tag: '_TODO' as const,
-        payload: todo.text,
-        ...(todo.category !== undefined ? { category: todo.category } : {}),
-        ...(todo.locality !== undefined ? { locality: todo.locality } : {}),
-        ...(todo.priority !== undefined ? { priority: todo.priority } : {}),
-        ...(todo.status !== undefined ? { status: todo.status } : {}),
-        ...(todo.scheduledDate !== undefined ? { date: buildDate(todo.scheduledDate) } : {}),
-        ...(todo.reminderDate !== undefined ? { reminderDate: buildDate(todo.reminderDate) } : {}),
-        ...(todo.closedDate !== undefined ? { closedDate: buildDate(todo.closedDate) } : {}),
-      }) as import('@doru/gedcom').TodoStructure,
-  );
+  const todos = repo.listTodosFor(targetType, targetId).map((todo) => {
+    const createdDate = formatTodoDate(todo.createdDate);
+    return {
+      tag: '_TODO' as const,
+      payload: todo.text,
+      ...(todo.category !== undefined ? { category: todo.category } : {}),
+      ...(todo.locality !== undefined ? { locality: todo.locality } : {}),
+      ...(todo.priority !== undefined ? { priority: todo.priority } : {}),
+      ...(todo.status !== undefined ? { status: todo.status } : {}),
+      ...(todo.scheduledDate !== undefined ? { date: buildDate(todo.scheduledDate) } : {}),
+      ...(createdDate !== undefined ? { createdDate } : {}),
+      ...(todo.reminderDate !== undefined ? { reminderDate: buildDate(todo.reminderDate) } : {}),
+      ...(todo.closedDate !== undefined ? { closedDate: buildDate(todo.closedDate) } : {}),
+      ...(todo.repositoryId !== undefined ? { repository: xrefs.of(todo.repositoryId) } : {}),
+    } as import('@doru/gedcom').TodoStructure;
+  });
   return todos.length > 0 ? { todos } : {};
 }
 
@@ -1245,9 +1432,15 @@ function buildDetail(fact: FactRecord, repo: TreeRepository, xrefs: Xrefs): Even
       },
     ];
   });
-  const witnesses = (fact.participants ?? [])
-    .filter((participant) => participant.personId === undefined)
-    .flatMap((participant) => (participant.value === undefined ? [] : [participant.value]));
+  const freeTextParticipants = (fact.participants ?? []).filter(
+    (participant) => participant.personId === undefined && participant.value !== undefined,
+  );
+  const witnesses = freeTextParticipants
+    .filter((participant) => participant.role?.toUpperCase() !== 'GODP')
+    .map((participant) => participant.value as string);
+  const godparents = freeTextParticipants
+    .filter((participant) => participant.role?.toUpperCase() === 'GODP')
+    .map((participant) => participant.value as string);
   const citations = withCitationList(repo, 'fact', fact.id, xrefs).citations;
   const notes = withNoteList(repo, 'fact', fact.id, xrefs).notes;
   const media = withMediaLinks(repo, 'fact', fact.id, xrefs).media;
@@ -1260,7 +1453,11 @@ function buildDetail(fact: FactRecord, repo: TreeRepository, xrefs: Xrefs): Even
     .map((identifier) => identifier.value);
   const contacts = withContacts(repo, 'fact', fact.id);
   const changes = withChanges(repo, 'fact', fact.id);
-  const flags = fact.flags;
+  const flags =
+    fact.flags !== undefined && fact.flags.length > 0
+      ? fact.flags.map((flag) => CORE_TO_GEDCOM_FACT_FLAG[flag])
+      : undefined;
+  const primary = fact.primary === true;
   if (
     date === undefined &&
     endDate === undefined &&
@@ -1277,6 +1474,7 @@ function buildDetail(fact: FactRecord, repo: TreeRepository, xrefs: Xrefs): Even
     fact.map === undefined &&
     (ages ?? []).length === 0 &&
     witnesses.length === 0 &&
+    godparents.length === 0 &&
     witnessAssociations.length === 0 &&
     citations.length === 0 &&
     notes.length === 0 &&
@@ -1295,7 +1493,8 @@ function buildDetail(fact: FactRecord, repo: TreeRepository, xrefs: Xrefs): Even
     fact.cause === undefined &&
     fact.sentence === undefined &&
     fact.quality === undefined &&
-    flags === undefined
+    flags === undefined &&
+    !primary
   ) {
     return undefined;
   }
@@ -1334,8 +1533,10 @@ function buildDetail(fact: FactRecord, repo: TreeRepository, xrefs: Xrefs): Even
           },
         }
       : {}),
-    ...(flags !== undefined ? { factFlags: flags as EventDetail['factFlags'] } : {}),
+    ...(flags !== undefined ? { factFlags: flags } : {}),
+    ...(primary ? { primary: true } : {}),
     ...(witnesses.length > 0 ? { witnesses } : {}),
+    ...(godparents.length > 0 ? { godparents } : {}),
     ...(witnessAssociations.length > 0 ? { associations: witnessAssociations } : {}),
     ...(citations.length > 0 ? { citations } : {}),
     ...(notes.length > 0 ? { notes } : {}),
@@ -1344,7 +1545,7 @@ function buildDetail(fact: FactRecord, repo: TreeRepository, xrefs: Xrefs): Even
     ...(uniqueIds.length > 0 ? { uniqueIds } : {}),
     ...contacts,
     ...changes,
-  } as EventDetail;
+  };
 }
 
 function buildAge(age: {
@@ -1436,6 +1637,8 @@ function buildPlace(repo: TreeRepository, placeId: string, xrefs: Xrefs): PlaceS
 }
 
 function buildPlaceRecord(place: PlaceRecord, repo: TreeRepository, xrefs: Xrefs): GedcomPlaceRecord {
+  const identifiers = withIdentifiers(repo, 'place', place.id);
+  const changes = withChanges(repo, 'place', place.id);
   const names = [...place.names]
     .sort((a, b) => a.position - b.position)
     .map((name) => ({
@@ -1496,6 +1699,8 @@ function buildPlaceRecord(place: PlaceRecord, repo: TreeRepository, xrefs: Xrefs
       : {}),
     ...(parents.length > 0 ? { parents } : {}),
     ...(postalCodes.length > 0 ? { postalCodes } : {}),
+    ...(identifiers.length > 0 ? { identifiers } : {}),
+    ...(changes.changeDate !== undefined ? { changeDate: changes.changeDate } : {}),
     ...(place.verified === true ? { extensions: [{ tag: '_VERI', payload: 'Y', children: [] }] } : {}),
     ...withCitationList(repo, 'place', place.id, xrefs),
     ...withNoteList(repo, 'place', place.id, xrefs),

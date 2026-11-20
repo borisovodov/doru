@@ -1,6 +1,7 @@
 import type { AttachmentsSnapshot, FactRecord } from '../model/types';
 import { emptyAttachments } from '../model/types';
-import type { Op } from './op';
+import { withRedoSafe, type Op } from './op';
+import { attachmentsMatch, restoreFact, sameRecord } from './restore';
 
 export function addFactOp(fact: FactRecord): Op {
   return {
@@ -8,6 +9,7 @@ export function addFactOp(fact: FactRecord): Op {
     kind: 'fact.add',
     timestamp: new Date().toISOString(),
     change: { targetType: 'fact', targetId: fact.id, kind: 'created' },
+    dependsOn: [fact.personId, fact.familyId].filter((id): id is string => id !== undefined),
     apply(ctx) {
       ctx.repo.insertFact(fact);
     },
@@ -29,26 +31,42 @@ export function updateFactOp(before: FactRecord, after: FactRecord): Op {
     inverse(ctx) {
       ctx.repo.updateFact(before);
     },
+    redoSafe(ctx) {
+      const current = ctx.repo.getFact(before.id);
+      return current !== undefined && sameRecord(current, before);
+    },
   };
 }
 
 /** Deletes a fact together with its attachments; undo restores both. */
 export function deleteFactOp(fact: FactRecord, attachments: AttachmentsSnapshot = emptyAttachments()): Op {
-  return {
-    id: crypto.randomUUID(),
-    kind: 'fact.delete',
-    timestamp: new Date().toISOString(),
-    ...(fact.personId !== undefined
-      ? { change: { targetType: 'person', targetId: fact.personId, kind: 'changed' as const } }
-      : fact.familyId !== undefined
-        ? { change: { targetType: 'family', targetId: fact.familyId, kind: 'changed' as const } }
-        : {}),
-    apply(ctx) {
-      ctx.repo.deleteFact(fact.id);
+  let baseline = fact;
+  let attachmentBaseline = attachments;
+  return withRedoSafe(
+    {
+      id: crypto.randomUUID(),
+      kind: 'fact.delete',
+      timestamp: new Date().toISOString(),
+      ...(fact.personId !== undefined
+        ? { change: { targetType: 'person', targetId: fact.personId, kind: 'changed' as const } }
+        : fact.familyId !== undefined
+          ? { change: { targetType: 'family', targetId: fact.familyId, kind: 'changed' as const } }
+          : {}),
+      apply(ctx) {
+        ctx.repo.deleteFact(fact.id);
+      },
+      inverse(ctx) {
+        if (restoreFact(ctx, fact)) {
+          baseline = ctx.repo.getFact(fact.id) ?? fact;
+          ctx.repo.restoreAttachments(attachments);
+          attachmentBaseline = ctx.repo.listAttachmentsFor('fact', fact.id);
+        }
+      },
+      snapshots: [attachments],
     },
-    inverse(ctx) {
-      ctx.repo.insertFact(fact);
-      ctx.repo.restoreAttachments(attachments);
-    },
-  };
+    (ctx) =>
+      ctx.repo.getFact(fact.id) !== undefined &&
+      sameRecord(ctx.repo.getFact(fact.id), baseline) &&
+      attachmentsMatch(ctx, 'fact', fact.id, attachmentBaseline),
+  );
 }

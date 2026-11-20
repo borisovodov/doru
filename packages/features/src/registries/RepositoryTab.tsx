@@ -3,7 +3,7 @@ import { Input } from '@doru/ui';
 import { SectionCard } from '@doru/ui';
 import { Field } from '@doru/ui';
 import { Archive } from 'lucide-react';
-import type { AddressRecord, RepositoryRecord, SourceRecord } from '@doru/core';
+import type { AddressRecord, RepositoryRecord, SourceRecord, TitleRecord } from '@doru/core';
 import { AttachmentsPanel, CitationAttachments, NoteAttachments, useAttachments } from '../attachments';
 import { EntityTab } from '../sidebar';
 import type { MediaTargetApi, RegistriesEditorApi } from '../person/types';
@@ -20,6 +20,7 @@ import {
   TagsSection,
   MediaSection,
   TasksSection,
+  SourceLink,
   addressLabel,
 } from '@doru/ui/domain';
 import { nls } from '../nls';
@@ -33,9 +34,11 @@ export function RepositoryTab({
   addresses,
   api,
   sources,
+  titles,
   media,
   mediaApi,
   onOpenSource,
+  onOpenTitle,
   onOpenMedia,
   onOpenAddress,
   onClose,
@@ -46,9 +49,11 @@ export function RepositoryTab({
   addresses: AddressRecord[];
   api: RegistriesEditorApi;
   sources: SourceRecord[];
+  titles: TitleRecord[];
   media: MediaWithPath[];
   mediaApi: MediaTargetApi;
   onOpenSource: (sourceId: string) => void;
+  onOpenTitle: (titleId: string) => void;
   onOpenMedia: (mediaId: string) => void;
   onOpenAddress: (addressId: string) => void;
   onClose: () => void;
@@ -67,9 +72,11 @@ export function RepositoryTab({
       isNew={isNew}
       api={api}
       sources={sources}
+      titles={titles}
       media={media}
       mediaApi={mediaApi}
       onOpenSource={onOpenSource}
+      onOpenTitle={onOpenTitle}
       onOpenMedia={onOpenMedia}
       onOpenAddress={onOpenAddress}
       onClose={onClose}
@@ -84,9 +91,11 @@ function RepositoryTabBody({
   isNew,
   api,
   sources,
+  titles,
   media,
   mediaApi,
   onOpenSource,
+  onOpenTitle,
   onOpenMedia,
   onOpenAddress,
   onClose,
@@ -97,9 +106,11 @@ function RepositoryTabBody({
   isNew: boolean;
   api: RegistriesEditorApi;
   sources: SourceRecord[];
+  titles: TitleRecord[];
   media: MediaWithPath[];
   mediaApi: MediaTargetApi;
   onOpenSource: (sourceId: string) => void;
+  onOpenTitle: (titleId: string) => void;
   onOpenMedia: (mediaId: string) => void;
   onOpenAddress: (addressId: string) => void;
   onClose: () => void;
@@ -109,7 +120,8 @@ function RepositoryTabBody({
   const [lastSaved, setLastSaved] = useState<RepositoryRecord | undefined>(record);
   const [name, setName] = useState(base.name);
   const [linkedAddressId, setLinkedAddressId] = useState<string | undefined>(base.addressId);
-  const { address, setAddress, addressBefore, saveAddress, unlinkAddress } = useRegistryAddress(api, linkedAddressId);
+  const { address, setAddress, addressBefore, addressSaveFailed, saveAddress, unlinkAddress, clearAddressSaveFailure } =
+    useRegistryAddress(api, linkedAddressId);
   const addressText = addressBefore !== undefined ? addressLabel(addressBefore) : '';
   const targetId = (lastSaved ?? record)?.id;
   const {
@@ -136,13 +148,22 @@ function RepositoryTabBody({
 
   const save = async () => {
     const next: RepositoryRecord = { id: base.id, xref: base.xref, name: name.trim() };
-    next.addressId = linkedAddressId ?? (await saveAddress());
+    if (linkedAddressId === undefined) {
+      try {
+        next.addressId = await saveAddress();
+      } catch {
+        return;
+      }
+    } else {
+      next.addressId = linkedAddressId;
+    }
     if (isNew && lastSaved === undefined) {
       await api.addRepository(next);
       onCreated(next.id);
     } else {
       await api.updateRepository(lastSaved ?? base, next);
     }
+    clearAddressSaveFailure();
     setLastSaved(next);
   };
 
@@ -151,6 +172,12 @@ function RepositoryTabBody({
     await api.deleteRepository(target);
     onClose();
   };
+
+  const usedBySources =
+    targetId !== undefined
+      ? sources.filter((source) => (source.repositories ?? []).some((link) => link.repositoryId === targetId))
+      : [];
+  const usedByTitles = targetId !== undefined ? titles.filter((title) => title.repositoryId === targetId) : [];
 
   return (
     <EntityTab>
@@ -184,12 +211,55 @@ function RepositoryTabBody({
           onChange={setAddress}
           onOpen={onOpenAddress}
           renderAttachments={(lineId) => (
-            <AttachmentsPanel targetType="address_line" targetId={lineId} api={api} sources={sources} />
+            <AttachmentsPanel
+              targetType="address_line"
+              targetId={lineId}
+              api={api}
+              sources={sources}
+              onOpenSource={onOpenSource}
+            />
           )}
         />
+        {addressSaveFailed && (
+          <p className="side-registries-note" role="alert">
+            {nls.t('features.tree.address.saveFailed')}
+          </p>
+        )}
       </SectionCard>
       {targetId !== undefined && (
         <>
+          <SectionCard title={nls.t('features.tree.repository.usedBySources')}>
+            {usedBySources.length === 0 ? (
+              <p className="side-registries-note">{nls.t('features.tree.repository.usedBySources.empty')}</p>
+            ) : (
+              <ul className="side-section-list">
+                {usedBySources.map((source) => (
+                  <li key={source.id}>
+                    <SourceLink
+                      title={source.title || source.abbreviation || source.id}
+                      onClick={() => onOpenSource(source.id)}
+                    />
+                  </li>
+                ))}
+              </ul>
+            )}
+          </SectionCard>
+          <SectionCard title={nls.t('features.tree.repository.usedByTitles')}>
+            {usedByTitles.length === 0 ? (
+              <p className="side-registries-note">{nls.t('features.tree.repository.usedByTitles.empty')}</p>
+            ) : (
+              <ul className="side-section-list">
+                {usedByTitles.map((title) => (
+                  <li key={title.id}>
+                    <SourceLink
+                      title={title.name || title.abbreviation || title.id}
+                      onClick={() => onOpenTitle(title.id)}
+                    />
+                  </li>
+                ))}
+              </ul>
+            )}
+          </SectionCard>
           <SourcesSection
             targetType="repository"
             targetId={targetId}

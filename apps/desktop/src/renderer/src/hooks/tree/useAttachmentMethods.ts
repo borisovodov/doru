@@ -6,6 +6,7 @@ import type {
   IdentifierRecord,
   NoteLinkRecord,
   NoteRecord,
+  RecordSubmitterLink,
   RestrictionRecord,
   SourceRecord,
   SubmitterRecord,
@@ -190,18 +191,27 @@ export function useAttachmentMethods(
         projectPath ? window.doru.getChanges(projectPath, targetType, targetId) : Promise.resolve([] as ChangeRecord[]),
       getSubmitters: () =>
         projectPath ? window.doru.getSubmitters(projectPath) : Promise.resolve([] as SubmitterRecord[]),
-      getRecordSubmitters: (targetType: string, targetId: string) =>
-        projectPath
-          ? window.doru.getRecordSubmitters(projectPath, targetType, targetId)
-          : Promise.resolve([] as Array<{ id: string; submitterId: string; targetType: string; targetId: string }>),
-      addRecordSubmitter: async (submitterId: string, targetType: string, targetId: string) => {
+      getRecordSubmitters: (targetType: string, targetId: string): Promise<RecordSubmitterLink[]> =>
+        projectPath ? window.doru.getRecordSubmitters(projectPath, targetType, targetId) : Promise.resolve([]),
+      addRecordSubmitter: async (
+        submitterId: string,
+        targetType: string,
+        targetId: string,
+        kind: NonNullable<RecordSubmitterLink['kind']> = 'contributor',
+      ) => {
         if (!projectPath) return;
-        await window.doru.addRecordSubmitter(projectPath, submitterId, targetType, targetId);
+        await window.doru.addRecordSubmitter(projectPath, submitterId, targetType, targetId, kind);
         await refreshTree();
       },
-      deleteRecordSubmitter: async (id: string, submitterId: string, targetType: string, targetId: string) => {
+      deleteRecordSubmitter: async (
+        id: string,
+        submitterId: string,
+        targetType: string,
+        targetId: string,
+        kind: NonNullable<RecordSubmitterLink['kind']> = 'contributor',
+      ) => {
         if (!projectPath) return;
-        await window.doru.deleteRecordSubmitter(projectPath, id, submitterId, targetType, targetId);
+        await window.doru.deleteRecordSubmitter(projectPath, id, submitterId, targetType, targetId, kind);
         await refreshTree();
       },
     }),

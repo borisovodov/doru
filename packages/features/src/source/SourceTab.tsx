@@ -27,6 +27,7 @@ import {
   MediaSection,
   TasksSection,
   emptySourceDraft,
+  mergeSourceDraft,
   sourceDraftMatches,
   sourceDraftToRecord,
   sourceToDraft,
@@ -135,13 +136,23 @@ function SourceTabBody({
   onClose: () => void;
   onCreated: (realId: string) => void;
 }) {
-  const [draft, setDraft] = useState<SourceDraft>(() =>
+  const [draft, setDraftState] = useState<SourceDraft>(() =>
     isNew ? emptySourceDraft() : record ? sourceToDraft(record) : emptySourceDraft(),
   );
   const [lastSaved, setLastSaved] = useState<SourceRecord | undefined>(record);
   const [repositories, setRepositories] = useState<RepositoryRecord[]>([]);
   const [titles, setTitles] = useState<TitleRecord[]>([]);
   const recordRef = useRef(record);
+  const draftRef = useRef(draft);
+  const baselineRef = useRef(record);
+  const submittedRef = useRef<SourceDraft | undefined>(undefined);
+  const refreshBaselineRef = useRef<SourceDraft | undefined>(undefined);
+  const submissionOriginRef = useRef<SourceDraft | undefined>(undefined);
+  const savingRef = useRef(false);
+  const setDraft = (next: SourceDraft) => {
+    draftRef.current = next;
+    setDraftState(next);
+  };
 
   const currentSource = lastSaved ?? record;
   const targetId = currentSource?.id;
@@ -169,9 +180,69 @@ function SourceTabBody({
     }
     const previous = recordRef.current;
     recordRef.current = record;
-    setDraft((current) =>
-      previous !== undefined && sourceDraftMatches(current, previous) ? sourceToDraft(record) : current,
-    );
+    baselineRef.current = record;
+    setLastSaved(record);
+    const submitted = submittedRef.current;
+    if (submitted !== undefined && sourceDraftMatches(submitted, record)) {
+      // This is the acknowledgement of our own save. If the user edited the
+      // draft after Save started, merge against the submitted values so the
+      // newer edit survives even when it restores the old value.
+      submittedRef.current = undefined;
+      refreshBaselineRef.current = undefined;
+      submissionOriginRef.current = undefined;
+      setDraft(
+        JSON.stringify(draftRef.current) === JSON.stringify(submitted)
+          ? sourceToDraft(record)
+          : mergeSourceDraft(draftRef.current, submitted, sourceToDraft(record)),
+      );
+      return;
+    }
+    if (submitted !== undefined) {
+      // A save is still in flight. Keep every field the submitted draft
+      // changed, plus every post-submission edit, and take refreshed values
+      // only for fields that stayed exactly as submitted.
+      const draft = draftRef.current;
+      const refreshed = sourceToDraft(record);
+      if (previous === undefined) {
+        setDraft(draft);
+      } else {
+        const previousDraft = submissionOriginRef.current ?? sourceToDraft(previous);
+        const baseline = refreshBaselineRef.current ?? submitted;
+        const nextBaseline: SourceDraft = { ...baseline };
+        const merged: SourceDraft = { ...draft };
+        const changedInSubmission = (key: keyof SourceDraft): boolean =>
+          JSON.stringify(submitted[key]) !== JSON.stringify(previousDraft[key]);
+        const editedSinceBaseline = (key: keyof SourceDraft): boolean =>
+          JSON.stringify(draft[key]) !== JSON.stringify(baseline[key]);
+        for (const key of Object.keys(refreshed) as Array<keyof SourceDraft>) {
+          if (key === 'id' || Array.isArray(refreshed[key])) {
+            continue;
+          }
+          if (!changedInSubmission(key) && !editedSinceBaseline(key)) {
+            (merged as unknown as Record<string, unknown>)[key] = refreshed[key];
+            (nextBaseline as unknown as Record<string, unknown>)[key] = refreshed[key];
+          }
+        }
+        for (const key of ['texts', 'dataEvents', 'repositories', 'templateFields'] as const) {
+          if (!changedInSubmission(key) && !editedSinceBaseline(key)) {
+            (merged as unknown as Record<string, unknown>)[key] = refreshed[key];
+            (nextBaseline as unknown as Record<string, unknown>)[key] = refreshed[key];
+          } else {
+            (merged as unknown as Record<string, unknown>)[key] = mergeSourceDraft(draft, previousDraft, refreshed)[
+              key
+            ];
+          }
+        }
+        refreshBaselineRef.current = nextBaseline;
+        setDraft(merged);
+      }
+    } else if (previous !== undefined) {
+      if (sourceDraftMatches(draftRef.current, previous)) {
+        setDraft(sourceToDraft(record));
+      } else {
+        setDraft(mergeSourceDraft(draftRef.current, sourceToDraft(previous), sourceToDraft(record)));
+      }
+    }
   }, [record, isNew]);
 
   useEffect(() => {
@@ -188,18 +259,41 @@ function SourceTabBody({
   }, [api, record]);
 
   const save = async () => {
-    const next = sourceDraftToRecord(draft);
-    if (isNew && lastSaved === undefined) {
-      await api.addSource(next);
-      onCreated(next.id);
-    } else {
-      const target = lastSaved ?? record;
-      if (target === undefined) {
-        return;
-      }
-      await api.updateSource(target, next);
+    if (savingRef.current) {
+      return;
     }
-    setLastSaved(next);
+    savingRef.current = true;
+    try {
+      const target = record ?? lastSaved;
+      const next = sourceDraftToRecord(draftRef.current, record ?? lastSaved ?? baselineRef.current);
+      const submission = sourceToDraft(next);
+      submittedRef.current = submission;
+      refreshBaselineRef.current = submission;
+      submissionOriginRef.current =
+        baselineRef.current !== undefined ? sourceToDraft(baselineRef.current) : emptySourceDraft();
+      try {
+        if (isNew && lastSaved === undefined) {
+          await api.addSource(next);
+          onCreated(next.id);
+        } else {
+          if (target === undefined) {
+            return;
+          }
+          await api.updateSource(target, next);
+        }
+      } catch (error) {
+        if (submittedRef.current === submission) {
+          submittedRef.current = undefined;
+          refreshBaselineRef.current = undefined;
+          submissionOriginRef.current = undefined;
+        }
+        throw error;
+      }
+      baselineRef.current = next;
+      setLastSaved(next);
+    } finally {
+      savingRef.current = false;
+    }
   };
 
   const remove = async () => {

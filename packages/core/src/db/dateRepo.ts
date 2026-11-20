@@ -75,18 +75,48 @@ export class DateRepo {
     if (ids.length === 0) {
       return byId;
     }
-    const placeholders = ids.map(() => '?').join(', ');
-    const rows = this.db
-      .prepare(`SELECT ${DATE_COLUMNS} FROM date WHERE id IN (${placeholders})`)
-      .all(...ids) as unknown as DateRow[];
-    for (const row of rows) {
-      byId.set(row.id, rowToDate(row));
+    // Stay below SQLite's bound-parameter limit for large listings.
+    const chunkSize = 500;
+    for (let start = 0; start < ids.length; start += chunkSize) {
+      const chunk = ids.slice(start, start + chunkSize);
+      const placeholders = chunk.map(() => '?').join(', ');
+      const rows = this.db
+        .prepare(`SELECT ${DATE_COLUMNS} FROM date WHERE id IN (${placeholders})`)
+        .all(...chunk) as unknown as DateRow[];
+      for (const row of rows) {
+        byId.set(row.id, rowToDate(row));
+      }
     }
     return byId;
   }
 
   delete(id: string): boolean {
     return this.db.prepare('DELETE FROM date WHERE id = ?').run(id).changes > 0;
+  }
+
+  /** Deletes the row only when no surviving table still references it. */
+  deleteIfUnused(id: string): boolean {
+    const used = this.db
+      .prepare(
+        `SELECT 1 FROM person_name WHERE date_id = ?1
+         UNION ALL SELECT 1 FROM family_partner WHERE date_id = ?1
+         UNION ALL SELECT 1 FROM family_marriage_status WHERE date_id = ?1
+         UNION ALL SELECT 1 FROM fact WHERE date_id = ?1 OR end_date_id = ?1 OR sort_date_id = ?1
+         UNION ALL SELECT 1 FROM place_postal_code WHERE date_id = ?1
+         UNION ALL SELECT 1 FROM place_name WHERE date_id = ?1
+         UNION ALL SELECT 1 FROM place_hierarchy WHERE date_id = ?1
+         UNION ALL SELECT 1 FROM source WHERE pub_date_id = ?1
+         UNION ALL SELECT 1 FROM source_data_event WHERE date_id = ?1
+         UNION ALL SELECT 1 FROM citation WHERE date_id = ?1
+         UNION ALL SELECT 1 FROM media WHERE date_id = ?1
+         UNION ALL SELECT 1 FROM "change" WHERE date_id = ?1
+         UNION ALL SELECT 1 FROM tag_link WHERE date_id = ?1
+         UNION ALL SELECT 1 FROM todo WHERE created_date_id = ?1 OR scheduled_date_id = ?1 OR reminder_date_id = ?1 OR closed_date_id = ?1
+         UNION ALL SELECT 1 FROM association WHERE period_start_id = ?1 OR period_end_id = ?1
+         LIMIT 1`,
+      )
+      .get(id) as { 1: number } | undefined;
+    return used === undefined && this.delete(id);
   }
 }
 

@@ -110,6 +110,7 @@ export function buildKitchenSinkTree(fixture: RepoFixture): void {
           { id: 'PT2', value: 'a neighbour', position: 1 },
         ],
         flags: ['private', 'preferred'],
+        primary: true,
       },
       { id: 'O1', personId: 'P1', tag: 'OCCU', value: 'Engineer', type: 'main' },
       { id: 'X1', personId: 'P1', tag: '_MILT', value: '2nd regiment' },

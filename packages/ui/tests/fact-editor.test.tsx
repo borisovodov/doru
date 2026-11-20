@@ -68,6 +68,32 @@ describe('FactEditor', () => {
     );
   });
 
+  it('shows and saves the FH flags and the primary marker separately', async () => {
+    const fact = { ...makeFact(), flags: ['private' as const], primary: true };
+    const onSave = vi.fn(async () => {});
+    renderUi(
+      <FactEditor
+        fact={fact}
+        persons={[]}
+        families={[]}
+        places={[]}
+        addresses={[]}
+        onSave={onSave}
+        onCancel={vi.fn()}
+        onDelete={vi.fn(async () => {})}
+      />,
+    );
+
+    expect(screen.getByLabelText(nls.t('features.tree.fact.flags.private'))).toBeChecked();
+    expect(screen.getByLabelText(nls.t('features.tree.fact.primaryEvent'))).toBeChecked();
+
+    fireEvent.click(screen.getByLabelText(nls.t('features.tree.fact.primaryEvent')));
+    fireEvent.click(screen.getByRole('button', { name: nls.t('features.tree.save') }));
+
+    await waitFor(() => expect(onSave).toHaveBeenCalledTimes(1));
+    expect(onSave).toHaveBeenCalledWith(expect.objectContaining({ flags: ['private'], primary: undefined }));
+  });
+
   it('deletes the fact through the callback', async () => {
     const fact = makeFact();
     const onDelete = vi.fn(async () => {});

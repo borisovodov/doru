@@ -10,6 +10,7 @@ import type {
   FactRecord,
   FamilyRecord,
   PersonRecord,
+  RecordSubmitterLink,
   PlaceRecord,
   SourceRecord,
   SubmitterRecord,
@@ -54,6 +55,7 @@ export function FamilyEditor({
   renderStatusAttachments,
   onSave,
   onDelete,
+  onOpenSource,
 }: {
   draft: FamilyDraft;
   savedLinkIds?: ReadonlySet<string> | undefined;
@@ -67,14 +69,13 @@ export function FamilyEditor({
   api: FamilyEditorApi;
   onSave: () => void;
   onDelete: (() => void) | undefined;
+  onOpenSource: (sourceId: string) => void;
 }) {
   const [facts, setFacts] = useState<FactRecord[]>([]);
   const [places, setPlaces] = useState<PlaceRecord[]>([]);
   const [addresses, setAddresses] = useState<AddressRecord[]>([]);
   const [submitters, setSubmitters] = useState<SubmitterRecord[]>([]);
-  const [contributors, setContributors] = useState<
-    Array<{ id: string; submitterId: string; targetType: string; targetId: string }>
-  >([]);
+  const [contributors, setContributors] = useState<RecordSubmitterLink[]>([]);
   const [newPartnerId, setNewPartnerId] = useState('');
   const [newChildId, setNewChildId] = useState('');
   const [expandedLinkId, setExpandedLinkId] = useState<string | null>(null);
@@ -415,6 +416,9 @@ export function FamilyEditor({
                       {nls.t(`features.tree.family.pedigree.${type}`)}
                     </option>
                   ))}
+                  {!(PEDIGREE_TYPES as readonly string[]).includes(link.pedigree) && link.pedigree !== '' && (
+                    <option value={link.pedigree}>{link.pedigree}</option>
+                  )}
                 </Select>
               </Field>
               <Field label={nls.t('features.tree.family.status')}>
@@ -425,7 +429,16 @@ export function FamilyEditor({
                       {nls.t(`features.tree.family.status.${type}`)}
                     </option>
                   ))}
+                  {!(CHILD_STATUS_TYPES as readonly string[]).includes(link.status) && link.status !== '' && (
+                    <option value={link.status}>{link.status}</option>
+                  )}
                 </Select>
+              </Field>
+              <Field label={nls.t('features.tree.family.statusPhrase')}>
+                <Input
+                  value={link.statusPhrase}
+                  onChange={(event) => patchChild(index, { statusPhrase: event.target.value })}
+                />
               </Field>
               <Field label={nls.t('features.tree.family.fatherRelation')}>
                 <Input
@@ -483,6 +496,15 @@ export function FamilyEditor({
         onAdd={api.addAssociation}
         onUpdate={api.updateAssociation}
         onDelete={api.deleteAssociation}
+        renderAttachments={(association) => (
+          <AttachmentsPanel
+            targetType="association"
+            targetId={association.id}
+            api={api}
+            sources={sources}
+            onOpenSource={onOpenSource}
+          />
+        )}
       />
 
       <FactsSection
@@ -512,6 +534,7 @@ export function FamilyEditor({
             targetId={fact.id}
             api={api}
             sources={sources}
+            onOpenSource={onOpenSource}
             sections={[
               'notes',
               'sources',
@@ -525,7 +548,7 @@ export function FamilyEditor({
               'changes',
             ]}
             renderCitationAttachments={(citation) => (
-              <CitationAttachments citation={citation} api={api} sources={sources} />
+              <CitationAttachments citation={citation} api={api} sources={sources} onOpenSource={onOpenSource} />
             )}
           />
         )}
@@ -536,12 +559,12 @@ export function FamilyEditor({
         targetId={draft.id}
         submitters={submitters}
         links={contributors}
-        onAdd={async (submitterId, targetType, targetId) => {
-          await api.addRecordSubmitter(submitterId, targetType, targetId);
+        onAdd={async (submitterId, targetType, targetId, kind) => {
+          await api.addRecordSubmitter(submitterId, targetType, targetId, kind);
           await refreshContributors();
         }}
-        onDelete={async (id, submitterId, targetType, targetId) => {
-          await api.deleteRecordSubmitter(id, submitterId, targetType, targetId);
+        onDelete={async (id, submitterId, targetType, targetId, kind) => {
+          await api.deleteRecordSubmitter(id, submitterId, targetType, targetId, kind);
           await refreshContributors();
         }}
       />

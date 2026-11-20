@@ -146,12 +146,63 @@ export function sourceToDraft(source: SourceRecord): SourceDraft {
   };
 }
 
+function mergeSourceRows<T extends { id: string }>(current: T[], base: T[], refreshed: T[]): T[] {
+  if (JSON.stringify(current) === JSON.stringify(base)) {
+    return refreshed;
+  }
+  const baseById = new Map(base.map((row) => [row.id, row]));
+  const refreshedById = new Map(refreshed.map((row) => [row.id, row]));
+  const currentIds = new Set(current.map((row) => row.id));
+  const merged: T[] = [];
+  for (const row of current) {
+    const previous = baseById.get(row.id);
+    if (previous === undefined) {
+      merged.push(row);
+      continue;
+    }
+    if (JSON.stringify(row) === JSON.stringify(previous)) {
+      const fresh = refreshedById.get(row.id);
+      if (fresh !== undefined) {
+        merged.push(fresh);
+      }
+      continue;
+    }
+    // A local edit wins over a concurrent change to the same row.
+    merged.push(row);
+  }
+  for (const row of refreshed) {
+    if (!currentIds.has(row.id) && !baseById.has(row.id)) {
+      merged.push(row);
+    }
+  }
+  return merged;
+}
+
+/** Merges refreshed stored fields into a dirty draft, keeping user edits. */
+export function mergeSourceDraft(current: SourceDraft, base: SourceDraft, refreshed: SourceDraft): SourceDraft {
+  const merged = { ...current };
+  for (const key of Object.keys(refreshed) as Array<keyof SourceDraft>) {
+    if (key === 'id' || Array.isArray(refreshed[key])) {
+      continue;
+    }
+    if (JSON.stringify(current[key]) === JSON.stringify(base[key])) {
+      (merged as unknown as Record<string, unknown>)[key] = refreshed[key];
+    }
+  }
+  merged.texts = mergeSourceRows(current.texts, base.texts, refreshed.texts);
+  merged.dataEvents = mergeSourceRows(current.dataEvents, base.dataEvents, refreshed.dataEvents);
+  merged.repositories = mergeSourceRows(current.repositories, base.repositories, refreshed.repositories);
+  merged.templateFields = mergeSourceRows(current.templateFields, base.templateFields, refreshed.templateFields);
+  return merged;
+}
+
 /**
  * Builds the source record for a save. Empty sub-rows (a text without
  * content, a repository link without a picked repository, …) are dropped;
  * ids are preserved so nothing is re-created on every save.
  */
-export function sourceDraftToRecord(draft: SourceDraft): SourceRecord {
+export function sourceDraftToRecord(draft: SourceDraft, existing?: SourceRecord): SourceRecord {
+  const existingEvents = new Map((existing?.dataEvents ?? []).map((event) => [event.id, event]));
   return {
     id: draft.id,
     xref: draft.xref,
@@ -168,7 +219,7 @@ export function sourceDraftToRecord(draft: SourceDraft): SourceRecord {
     bibliography: draft.bibliography.trim() || undefined,
     dataNote: draft.dataNote.trim() || undefined,
     agency: draft.agency.trim() || undefined,
-    pubDate: fromDateDraft(draft.pubDate),
+    pubDate: fromDateDraft(draft.pubDate, existing?.pubDate),
     pubPlace: draft.pubDate.place.trim() || undefined,
     titleId: draft.titleId,
     texts: draft.texts
@@ -181,7 +232,7 @@ export function sourceDraftToRecord(draft: SourceDraft): SourceRecord {
       })),
     dataEvents: draft.dataEvents
       .map((event) => {
-        const date = fromDateDraft(event.date);
+        const date = fromDateDraft(event.date, existingEvents.get(event.id)?.date);
         const value = event.value.trim();
         return { event, date, value };
       })
@@ -250,6 +301,10 @@ export function sourceDraftMatches(draft: SourceDraft, source: SourceRecord): bo
     draft.url === other.url &&
     draft.accessDate === other.accessDate &&
     draft.confidence === other.confidence &&
+    draft.certainty === other.certainty &&
+    draft.subsequentCitationFormat === other.subsequentCitationFormat &&
+    draft.bibliography === other.bibliography &&
+    draft.dataNote === other.dataNote &&
     draft.agency === other.agency &&
     draft.titleId === other.titleId &&
     draft.xref === other.xref &&

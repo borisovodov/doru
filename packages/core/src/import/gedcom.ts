@@ -1,3 +1,4 @@
+import { ADOPTION_PHRASE_TAG } from '../gedcomPhraseMarker';
 import type {
   Calendar,
   DateFields,
@@ -15,6 +16,7 @@ import type {
   DatePeriodStructure,
   DateStructure,
   EventDetail,
+  FactFlag as GedcomFactFlag,
   FamilyRecord as GedcomFamilyRecord,
   GedcomDataset,
   GedcomRecord,
@@ -44,6 +46,7 @@ import type {
   ContactRecord,
   DateComponent,
   DateValue,
+  FactFlag,
   FactRecord,
   FamilyChildLink,
   FamilyPartnerLink,
@@ -77,7 +80,11 @@ import type {
  *   vendor IDs (FamilySearch/MyHeritage/Ancestry), raw extension records,
  *   `_ALIA` duplicate-candidate records (they carry a single person pointer
  *   and have no second-person slot in our model).
- * Whole dropped record types are counted into `droppedStructures`.
+ * - the 5.5.1-only `RFN`/`AFN` person identifiers: neither has a 7.0
+ *   spelling, and the tree has no matching identifier namespace.
+ * Whole dropped vendor record types are counted into `droppedStructures`;
+ * HEAD/SUBN, SCHMA and raw extension/unknown structures are wire metadata
+ * and are not counted.
  */
 
 export interface GedcomImportResult {
@@ -87,7 +94,11 @@ export interface GedcomImportResult {
   importedPlaces: number;
   importedMedia: number;
   totalPersons: number;
-  /** Whole records that were deliberately not imported (vendor-only). */
+  /**
+   * Whole vendor record families that were deliberately not imported.
+   * HEAD/SUBN, SCHMA and raw extension/unknown structures are wire metadata
+   * and are not counted.
+   */
   droppedStructures: number;
 }
 
@@ -96,6 +107,10 @@ interface ImportContext {
   personIds: Map<string, string>;
   familyIds: Map<string, string>;
   sourceIds: Map<string, string>;
+  /** True once every SOUR xref has been registered. */
+  sourceIdsReady: boolean;
+  /** Every citation imported before the SOUR pass, with its target. */
+  pendingCitations: Array<{ citation: SourceCitation; targetType: string; targetId: string }>;
   repositoryIds: Map<string, string>;
   submitterIds: Map<string, string>;
   titleIds: Map<string, string>;
@@ -103,16 +118,34 @@ interface ImportContext {
   tagIds: Map<string, string>;
   /** Dedupe of places by their joined name within this import. */
   placeIds: Map<string, string>;
+  /** Place names that resolve to more than one distinct row. */
+  ambiguousPlaceNames: Set<string>;
   /** Place-card xref → place id. */
   placeCardIds: Map<string, string>;
   /** Place id → parent links resolved after all cards are imported. */
   placeParents: Map<string, Array<{ parentXref: string; type?: string | undefined }>>;
   /** Media record xref → media id. */
   mediaIds: Map<string, string>;
+  /** Media id → historical place text, resolved after place records exist. */
+  mediaPlaceText: Map<string, string>;
   /** Original GEDCOM FILE path → project-relative path prepared by the host. */
   mediaPaths: ReadonlyMap<string, string>;
   /** Person xref → the dates carried by their FAMS links, keyed by family xref. */
   spouseLinkDates: Map<string, Map<string, DateStructure | undefined>>;
+  /** Person xref → the notes carried by their FAMS links, keyed by family xref. */
+  spouseLinkNotes: Map<string, Map<string, NoteStructure[] | undefined>>;
+  /** Event-family links held until the family xrefs have ids. */
+  pendingFactFamilies: Array<{
+    factId: string;
+    familyXref: string;
+    adoptedBy?: 'HUSB' | 'WIFE' | 'BOTH' | undefined;
+    phrase?: string | undefined;
+    position: number;
+  }>;
+  /** Families imported with only a WIFE slot (the exporter moves them to HUSB). */
+  singleWifeFamilies: Set<string>;
+  /** `personXref\0familyXref` pairs already linked through a CHIL row. */
+  linkedChildPairs: Set<string>;
   /** Person xref → family xref → the FAMC link details (pedigree, status, relations). */
   childLinkDetails: Map<
     string,
@@ -122,8 +155,10 @@ interface ImportContext {
         pedigree?: string | undefined;
         pedigreePhrase?: string | undefined;
         status?: string | undefined;
+        statusPhrase?: string | undefined;
         fatherRelation?: string | undefined;
         motherRelation?: string | undefined;
+        notes?: NoteStructure[] | undefined;
       }
     >
   >;
@@ -145,17 +180,25 @@ export function importGedcomDataset(
     personIds: new Map(),
     familyIds: new Map(),
     sourceIds: new Map(),
+    sourceIdsReady: false,
+    pendingCitations: [],
     repositoryIds: new Map(),
     submitterIds: new Map(),
     titleIds: new Map(),
     noteIds: new Map(),
     tagIds: new Map(),
     placeIds: new Map(),
+    ambiguousPlaceNames: new Set(),
     placeCardIds: new Map(),
     placeParents: new Map(),
     mediaIds: new Map(),
+    mediaPlaceText: new Map(),
     mediaPaths,
     spouseLinkDates: new Map(),
+    spouseLinkNotes: new Map(),
+    pendingFactFamilies: [],
+    singleWifeFamilies: new Set(),
+    linkedChildPairs: new Set(),
     childLinkDetails: new Map(),
     dropped: 0,
   };
@@ -172,6 +215,8 @@ export function importGedcomDataset(
     importMediaRecords(dataset.records, ctx);
     importPlaceRecords(dataset.records, ctx);
     importedSources = importSources(dataset.records, ctx);
+    ctx.sourceIdsReady = true;
+    flushPendingCitations(ctx);
     for (const record of dataset.records) {
       if (isIndividualRecord(record)) {
         importPerson(record, ctx);
@@ -184,9 +229,11 @@ export function importGedcomDataset(
         importedFamilies += 1;
       }
     }
+    linkFactFamilies(ctx);
     importPersonRelations(dataset.records, ctx);
     linkPlaceHierarchy(ctx);
     importResearchRecords(dataset.records, ctx);
+    linkMediaPlaces(ctx);
     const cycles = detectParentCycles(repo.toTreeDocument());
     if (cycles.length > 0) {
       throw new Error(`GEDCOM import contains a parent cycle: ${cycles[0]?.message ?? 'unknown cycle'}`);
@@ -557,11 +604,19 @@ function importPerson(record: GedcomIndividualRecord, ctx: ImportContext): void 
   // FAMS dates are carried on the person side in GEDCOM; families look them
   // up when building their partner links.
   const famsDates = new Map<string, DateStructure | undefined>();
+  const famsNotes = new Map<string, NoteStructure[] | undefined>();
   for (const link of record.spouseFamilies ?? []) {
-    famsDates.set(link.family, link.date);
+    const known = famsDates.get(link.family);
+    if (!famsDates.has(link.family) || (known === undefined && link.date !== undefined)) {
+      famsDates.set(link.family, link.date);
+    }
+    if (link.notes !== undefined && link.notes.length > 0) {
+      famsNotes.set(link.family, [...(famsNotes.get(link.family) ?? []), ...link.notes]);
+    }
   }
   if (record.xref !== undefined) {
     ctx.spouseLinkDates.set(record.xref, famsDates);
+    ctx.spouseLinkNotes.set(record.xref, famsNotes);
   }
   const famcDetails = new Map<
     string,
@@ -569,17 +624,24 @@ function importPerson(record: GedcomIndividualRecord, ctx: ImportContext): void 
       pedigree?: string | undefined;
       pedigreePhrase?: string | undefined;
       status?: string | undefined;
+      statusPhrase?: string | undefined;
       fatherRelation?: string | undefined;
       motherRelation?: string | undefined;
+      notes?: NoteStructure[] | undefined;
     }
   >();
   for (const link of record.childFamilies ?? []) {
+    const previous = famcDetails.get(link.family);
+    const pedigree = link.pedigree?.payload.toLowerCase();
+    const status = link.status?.payload.toLowerCase();
     famcDetails.set(link.family, {
-      pedigree: link.pedigree?.payload.toLowerCase(),
-      pedigreePhrase: link.pedigree?.phrase,
-      status: link.status?.payload.toLowerCase(),
-      fatherRelation: link.fatherRelation,
-      motherRelation: link.motherRelation,
+      pedigree: pedigree ?? previous?.pedigree,
+      pedigreePhrase: pedigree !== undefined ? link.pedigree?.phrase : previous?.pedigreePhrase,
+      status: status ?? previous?.status,
+      statusPhrase: status !== undefined ? link.status?.phrase : previous?.statusPhrase,
+      fatherRelation: link.fatherRelation ?? previous?.fatherRelation,
+      motherRelation: link.motherRelation ?? previous?.motherRelation,
+      notes: [...(previous?.notes ?? []), ...(link.notes ?? [])],
     });
   }
   if (record.xref !== undefined) {
@@ -601,6 +663,7 @@ function importPerson(record: GedcomIndividualRecord, ctx: ImportContext): void 
       structure.detail,
       structure.detail?.age,
       ctx,
+      structure as EventFamilyRef,
     ),
   );
   for (const nonEvent of record.nonEvents ?? []) {
@@ -616,6 +679,11 @@ function importPerson(record: GedcomIndividualRecord, ctx: ImportContext): void 
     id,
     xref: record.xref,
     sex: mapSex(record.sex),
+    ...(record.deceased === true
+      ? { deathStatus: 'dead' as const }
+      : record.deceased === false
+        ? { deathStatus: 'alive' as const }
+        : {}),
     ...(record.address !== undefined ? { addressId: importAddress(record.address, ctx) } : {}),
     names,
     facts,
@@ -632,6 +700,16 @@ function importPerson(record: GedcomIndividualRecord, ctx: ImportContext): void 
     }
     importCitations(structure.detail?.citations, 'fact', fact.id, ctx);
     importNotes(structure.detail?.notes, 'fact', fact.id, ctx);
+    if (structure.tag === 'WILL') {
+      // WILL.TEXT is normalized into ordinary notes on the fact; export
+      // writes them back as NOTE (see docs/decisions.md).
+      importNotes(
+        (structure.texts ?? []).map((text) => ({ tag: 'NOTE' as const, payload: text })),
+        'fact',
+        fact.id,
+        ctx,
+      );
+    }
     importAddressContacts(structure.detail, fact.id, ctx);
   });
   record.nonEvents?.forEach((nonEvent, index) => {
@@ -642,7 +720,11 @@ function importPerson(record: GedcomIndividualRecord, ctx: ImportContext): void 
     }
   });
   importCitations(record.citations, 'person', id, ctx);
+  importCitations(record.sexCitations, 'person_sex', id, ctx);
   importNotes(record.notes, 'person', id, ctx);
+  // RFN/AFN are 5.5.1-only person identifiers (removed in 7.0). They have
+  // no matching identifier namespace and no 7.0 export form, so they are
+  // deliberately not imported. See docs/decisions.md.
   importIdentifiers(record.identifiers, 'person', id, ctx);
   importMediaLinks(record.media, 'person', id, ctx);
   if (record.sosaNumber !== undefined) {
@@ -677,6 +759,8 @@ function importPerson(record: GedcomIndividualRecord, ctx: ImportContext): void 
   importRestrictions(record.restriction, 'person', id, ctx);
   importChanges(record.changeDate, record.creationDate, 'person', id, ctx);
   importSubmitterLinks(record.submitters, 'person', id, ctx);
+  importSubmitterLinks(record.ancestorInterests, 'person', id, ctx, 'ancestor_interest');
+  importSubmitterLinks(record.descendantInterests, 'person', id, ctx, 'descendant_interest');
   for (const tagLink of record.tagLinks ?? []) {
     importTagLink(tagLink, 'person', id, ctx);
   }
@@ -685,6 +769,60 @@ function importPerson(record: GedcomIndividualRecord, ctx: ImportContext): void 
   }
   // Associations and aliases need the other persons — deferred
   // to importPersonRelations, resolved after every person and family exists.
+}
+
+interface EventFamilyRef {
+  tag?: string | undefined;
+  adoptionFamily?:
+    | {
+        family: string;
+        adoption?: { payload: string; phrase?: string | undefined } | undefined;
+      }
+    | undefined;
+  familyChild?: string | undefined;
+  extensions?: ExtensionStructure[] | undefined;
+}
+
+function queueFactFamily(
+  structure: EventFamilyRef | undefined,
+  factId: string,
+  ctx: ImportContext,
+  detail?: EventDetail,
+): void {
+  if (structure?.adoptionFamily !== undefined) {
+    const marker =
+      structure.extensions?.find((entry) => entry.tag === ADOPTION_PHRASE_TAG) ??
+      detail?.extensions?.find((entry) => entry.tag === ADOPTION_PHRASE_TAG);
+    ctx.pendingFactFamilies.push({
+      factId,
+      familyXref: structure.adoptionFamily.family,
+      adoptedBy: structure.adoptionFamily.adoption?.payload as 'HUSB' | 'WIFE' | 'BOTH' | undefined,
+      phrase: structure.adoptionFamily.adoption?.phrase ?? marker?.payload,
+      position: 0,
+    });
+    return;
+  }
+  if ((structure?.tag === 'BIRT' || structure?.tag === 'CHR') && structure.familyChild !== undefined) {
+    ctx.pendingFactFamilies.push({ factId, familyXref: structure.familyChild, position: 0 });
+  }
+}
+
+function linkFactFamilies(ctx: ImportContext): void {
+  for (const pending of ctx.pendingFactFamilies) {
+    const familyId = ctx.familyIds.get(pending.familyXref);
+    if (familyId === undefined) {
+      continue;
+    }
+    const movedToHusband =
+      ctx.singleWifeFamilies.has(pending.familyXref) && (pending.adoptedBy === 'WIFE' || pending.adoptedBy === 'BOTH');
+    ctx.repo.insertFactFamilyLink(pending.factId, {
+      id: crypto.randomUUID(),
+      familyId,
+      adoptedBy: movedToHusband ? 'HUSB' : pending.adoptedBy,
+      phrase: pending.phrase,
+      position: pending.position,
+    });
+  }
 }
 
 function mapFact(
@@ -699,7 +837,9 @@ function mapFact(
   detail: EventDetail | undefined,
   age: AgeStructure | undefined,
   ctx: ImportContext,
+  structure?: EventFamilyRef,
 ): FactRecord {
+  queueFactFamily(structure, base.id, ctx, detail);
   importMediaLinks(detail?.media, 'fact', base.id, ctx);
   importRestrictions(detail?.restriction, 'fact', base.id, ctx);
   importIdentifiers(
@@ -763,16 +903,25 @@ function mapFact(
     ages: mapAges(age),
     participants: mapParticipants(detail, ctx),
     flags: factFlags(detail),
+    primary: detail?.primary === true ? true : undefined,
   };
 }
 
-/** The `_FLGS` flags plus the `_PRI` preferred marker. */
-function factFlags(detail: EventDetail | undefined): string[] | undefined {
-  const flags = new Set<string>(detail?.factFlags ?? []);
-  if (detail?.primary === true) {
-    flags.add('preferred');
+/** The GEDCOM wire flags mapped to the lowercase core vocabulary. */
+const GEDCOM_TO_CORE_FACT_FLAG: Readonly<Record<GedcomFactFlag, FactFlag>> = {
+  PRIVATE: 'private',
+  PREFERRED: 'preferred',
+  TENTATIVE: 'tentative',
+  REJECTED: 'rejected',
+};
+
+/** The Family Historian `_FLGS` flags; `_PRI` is mapped to `primary` separately. */
+function factFlags(detail: EventDetail | undefined): FactFlag[] | undefined {
+  const flags = detail?.factFlags;
+  if (flags === undefined || flags.length === 0) {
+    return undefined;
   }
-  return flags.size > 0 ? [...flags] : undefined;
+  return [...new Set(flags.map((flag) => GEDCOM_TO_CORE_FACT_FLAG[flag]))];
 }
 
 function mapAges(age: AgeStructure | undefined): FactRecord['ages'] {
@@ -962,7 +1111,8 @@ function importFamily(record: GedcomFamilyRecord, ctx: ImportContext): void {
       continue;
     }
     const date = ctx.spouseLinkDates.get(link.partner)?.get(record.xref ?? '');
-    partnerLinks.push({
+    const notes = ctx.spouseLinkNotes.get(link.partner)?.get(record.xref ?? '');
+    const partnerLink: FamilyPartnerLink = {
       id: crypto.randomUUID(),
       personId,
       preferred: link.preferred,
@@ -973,27 +1123,46 @@ function importFamily(record: GedcomFamilyRecord, ctx: ImportContext): void {
         : undefined,
       civilStatus: link.civilStatus,
       marriageNumber: link.marriageNumber !== undefined ? String(link.marriageNumber) : undefined,
-    });
+    };
+    partnerLinks.push(partnerLink);
+    importNotes(notes, 'family_partner', partnerLink.id, ctx);
+  }
+  const husbandResolved = record.husband !== undefined && ctx.personIds.get(record.husband.partner) !== undefined;
+  const wifeResolved = record.wife !== undefined && ctx.personIds.get(record.wife.partner) !== undefined;
+  if (record.xref !== undefined && !husbandResolved && wifeResolved) {
+    ctx.singleWifeFamilies.add(record.xref);
   }
   const childLinks: FamilyChildLink[] = [];
+  const childLinkByPerson = new Map<string, FamilyChildLink>();
   for (const link of record.children ?? []) {
     const personId = ctx.personIds.get(link.child);
     if (personId === undefined) {
       continue;
     }
+    if (record.xref !== undefined) {
+      ctx.linkedChildPairs.add(`${link.child}\u0000${record.xref}`);
+    }
+    if (childLinkByPerson.has(personId)) {
+      // The schema keeps one link per child; repeated CHIL rows add their
+      // notes to that link (handled below) rather than a second link.
+      continue;
+    }
     const pedigree = link.pedigrees?.[0]?.pedigree;
     const details = ctx.childLinkDetails.get(link.child)?.get(record.xref ?? '');
-    childLinks.push({
+    const childLink: FamilyChildLink = {
       id: crypto.randomUUID(),
       childId: personId,
       pedigree: pedigree?.payload.toLowerCase() ?? details?.pedigree,
       pedigreePhrase: pedigree?.phrase ?? details?.pedigreePhrase,
       status: details?.status,
+      statusPhrase: details?.statusPhrase,
       fatherRelation: link.fatherRelation ?? details?.fatherRelation,
       motherRelation: link.motherRelation ?? details?.motherRelation,
       preferred: link.preferred,
       multiplicity: link.multiplicity,
-    });
+    };
+    childLinks.push(childLink);
+    childLinkByPerson.set(personId, childLink);
   }
   const marriageStatuses = (record.marriageStatuses ?? []).map((status) => ({
     mapped: {
@@ -1024,15 +1193,25 @@ function importFamily(record: GedcomFamilyRecord, ctx: ImportContext): void {
     importNotes(entry.source.notes, 'family_marriage_status', entry.mapped.id, ctx);
     importCitations(entry.source.citations, 'family_marriage_status', entry.mapped.id, ctx);
   }
-  const childrenByXref = new Map<string, NoteStructure[] | undefined>();
-  for (const link of record.children ?? []) {
-    childrenByXref.set(link.child, link.notes);
+  const childRowsByPerson = new Map<string, Array<{ xref: string; notes: NoteStructure[] | undefined }>>();
+  for (const child of record.children ?? []) {
+    const personId = ctx.personIds.get(child.child);
+    if (personId !== undefined) {
+      const rows = childRowsByPerson.get(personId) ?? [];
+      rows.push({ xref: child.child, notes: child.notes });
+      childRowsByPerson.set(personId, rows);
+    }
   }
   for (const link of childLinks) {
-    const notes = [...childrenByXref.entries()].find(
-      ([childXref]) => ctx.personIds.get(childXref) === link.childId,
-    )?.[1];
-    importNotes(notes, 'family_child', link.id, ctx);
+    const rows = childRowsByPerson.get(link.childId) ?? [];
+    // Person-side FAMC notes belong to the child, not to each repeated CHIL
+    // row: collect them once, then append each row's own notes.
+    const firstRow = rows[0];
+    const personNotes =
+      firstRow !== undefined ? (ctx.childLinkDetails.get(firstRow.xref)?.get(record.xref ?? '')?.notes ?? []) : [];
+    const rowNotes = rows.flatMap((row) => row.notes ?? []);
+    const mergedNotes = [...personNotes, ...rowNotes];
+    importNotes(mergedNotes.length > 0 ? mergedNotes : undefined, 'family_child', link.id, ctx);
   }
 
   const factStructures = [...(record.events ?? []), ...(record.attributes ?? [])];
@@ -1050,16 +1229,21 @@ function importFamily(record: GedcomFamilyRecord, ctx: ImportContext): void {
       detail,
       undefined,
       ctx,
+      structure,
     );
     const husbandAge = structure.detail?.husband?.age;
     const wifeAge = structure.detail?.wife?.age;
     if (husbandAge !== undefined || wifeAge !== undefined) {
       const ages: NonNullable<FactRecord['ages']> = [];
+      // The exporter normalizes a wife-only family to the HUSB slot, so the
+      // wife's age must follow that slot too.
+      const wifeOnly = !husbandResolved && wifeResolved;
       if (husbandAge !== undefined) {
-        ages.push(mapAge(husbandAge, 'HUSB'));
+        // An unmatched husband slot has no person to attach to.
+        ages.push(mapAge(husbandAge, wifeOnly ? undefined : 'HUSB'));
       }
       if (wifeAge !== undefined) {
-        ages.push(mapAge(wifeAge, 'WIFE'));
+        ages.push(mapAge(wifeAge, wifeOnly ? 'HUSB' : 'WIFE'));
       }
       fact.ages = ages;
     }
@@ -1141,6 +1325,42 @@ function importPersonRelations(records: GedcomRecord[], ctx: ImportContext): voi
     const personId = ctx.personIds.get(record.xref ?? '');
     if (personId === undefined) {
       continue;
+    }
+    // A person-side FAMC without a reciprocal CHIL still describes a child
+    // link. Keep its pedigree/status/relations/notes instead of dropping it.
+    for (const [familyXref, details] of ctx.childLinkDetails.get(record.xref ?? '') ?? []) {
+      if (ctx.linkedChildPairs.has(`${record.xref ?? ''}\u0000${familyXref}`)) {
+        continue;
+      }
+      const familyId = ctx.familyIds.get(familyXref);
+      if (familyId === undefined) {
+        continue;
+      }
+      const family = ctx.repo.getFamily(familyId);
+      if (
+        family === undefined ||
+        family.partners.includes(personId) ||
+        family.children.includes(personId) ||
+        (family.childLinks ?? []).some((link) => link.childId === personId)
+      ) {
+        continue;
+      }
+      const link: FamilyChildLink = {
+        id: crypto.randomUUID(),
+        childId: personId,
+        pedigree: details.pedigree,
+        pedigreePhrase: details.pedigreePhrase,
+        status: details.status,
+        statusPhrase: details.statusPhrase,
+        fatherRelation: details.fatherRelation,
+        motherRelation: details.motherRelation,
+      };
+      ctx.repo.updateFamily({
+        ...family,
+        children: [...family.children, personId],
+        childLinks: [...(family.childLinks ?? []), link],
+      });
+      importNotes(details.notes, 'family_child', link.id, ctx);
     }
     for (const association of record.associations ?? []) {
       const otherId = association.individual === '@VOID@' ? undefined : ctx.personIds.get(association.individual);
@@ -1235,6 +1455,8 @@ function importTodoRecord(record: GedcomTodoRecord, ctx: ImportContext): void {
     locality: record.locality,
     priority: record.priority,
     status: record.status,
+    createdDate: parseTodoDate(record.createdDate),
+    ...(record.repository !== undefined ? { repositoryId: ctx.repositoryIds.get(record.repository) } : {}),
   });
   for (const uid of record.uids ?? []) {
     ctx.repo.insertIdentifier({
@@ -1247,6 +1469,178 @@ function importTodoRecord(record: GedcomTodoRecord, ctx: ImportContext): void {
   }
 }
 
+function parseStructuredComponent(value: unknown): NonNullable<DateValue['component']> | null | undefined {
+  if (value === undefined) {
+    return undefined;
+  }
+  if (typeof value !== 'object' || value === null) {
+    return null;
+  }
+  const record = value as Record<string, unknown>;
+  if (
+    (record['calendar'] !== undefined && typeof record['calendar'] !== 'string') ||
+    (record['year'] !== undefined && (typeof record['year'] !== 'number' || !Number.isInteger(record['year']))) ||
+    (record['month'] !== undefined &&
+      ((typeof record['month'] !== 'number' && typeof record['month'] !== 'string') ||
+        (typeof record['month'] === 'number' && !Number.isInteger(record['month'])))) ||
+    (record['day'] !== undefined && (typeof record['day'] !== 'number' || !Number.isInteger(record['day']))) ||
+    (record['epoch'] !== undefined && record['epoch'] !== 'BCE')
+  ) {
+    return null;
+  }
+  return {
+    ...(record['calendar'] !== undefined ? { calendar: record['calendar'] } : {}),
+    ...(record['year'] !== undefined ? { year: record['year'] } : {}),
+    ...(record['month'] !== undefined ? { month: record['month'] } : {}),
+    ...(record['day'] !== undefined ? { day: record['day'] } : {}),
+    ...(record['epoch'] !== undefined ? { epoch: 'BCE' as const } : {}),
+  };
+}
+
+function validStructuredComponent(component: NonNullable<DateValue['component']> | undefined): boolean {
+  if (typeof component?.month === 'number' && (component.month < 1 || component.month > 12)) {
+    return false;
+  }
+  if (component?.day !== undefined && (component.day < 1 || component.day > 31)) {
+    return false;
+  }
+  if (component?.year === undefined || typeof component.month !== 'number' || component.day === undefined) {
+    return true;
+  }
+  if (component.calendar !== undefined && component.calendar !== '' && component.calendar !== 'julian') {
+    return true;
+  }
+  // Julian leap years are every fourth year; the Gregorian century
+  // exception applies only to Gregorian dates (1900-02-29 stays invalid there).
+  const leap =
+    component.calendar === 'julian'
+      ? component.year % 4 === 0
+      : component.year % 4 === 0 && (component.year % 100 !== 0 || component.year % 400 === 0);
+  const days = [31, leap ? 29 : 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31][component.month - 1] ?? 31;
+  return component.day >= 1 && component.day <= days;
+}
+
+function parseStructuredTime(value: unknown): NonNullable<DateValue['time']> | null | undefined {
+  if (value === undefined) {
+    return undefined;
+  }
+  if (typeof value !== 'object' || value === null) {
+    return null;
+  }
+  const record = value as Record<string, unknown>;
+  if (
+    typeof record['hour'] !== 'number' ||
+    typeof record['minute'] !== 'number' ||
+    (record['second'] !== undefined && typeof record['second'] !== 'number') ||
+    (record['fraction'] !== undefined && typeof record['fraction'] !== 'string') ||
+    (record['utc'] !== undefined && typeof record['utc'] !== 'boolean')
+  ) {
+    return null;
+  }
+  return {
+    hour: record['hour'],
+    minute: record['minute'],
+    ...(record['second'] !== undefined ? { second: record['second'] } : {}),
+    ...(record['fraction'] !== undefined ? { fraction: record['fraction'] } : {}),
+    ...(record['utc'] !== undefined ? { utc: record['utc'] } : {}),
+  };
+}
+
+/** The `_TCDT` slot is free text; parse the structured form the export writes. */
+function parseTodoDate(text: string | undefined): DateValue | undefined {
+  if (text === undefined || text.trim() === '') {
+    return undefined;
+  }
+  if (text.startsWith('json:')) {
+    try {
+      const parsed = JSON.parse(text.slice('json:'.length)) as unknown;
+      const record = typeof parsed === 'object' && parsed !== null ? (parsed as Record<string, unknown>) : undefined;
+      const quality = record?.['quality'];
+      const qualities = ['exact', 'about', 'before', 'after', 'range', 'unknown'];
+      const component = parseStructuredComponent(record?.['component']);
+      const end = parseStructuredComponent(record?.['end']);
+      const time = parseStructuredTime(record?.['time']);
+      const modifier = record?.['modifier'];
+      const parsedText = record?.['text'];
+      if (
+        record !== undefined &&
+        typeof quality === 'string' &&
+        qualities.includes(quality) &&
+        component !== null &&
+        end !== null &&
+        time !== null &&
+        validStructuredComponent(component) &&
+        validStructuredComponent(end) &&
+        (modifier === undefined || modifier === 'ABT' || modifier === 'CAL' || modifier === 'EST') &&
+        (parsedText === undefined || typeof parsedText === 'string')
+      ) {
+        return {
+          quality: quality as DateValue['quality'],
+          ...(modifier !== undefined ? { modifier: modifier } : {}),
+          ...(component !== undefined ? { component } : {}),
+          ...(end !== undefined ? { end } : {}),
+          ...(time !== undefined ? { time } : {}),
+          ...(parsedText !== undefined ? { text: parsedText } : {}),
+        };
+      }
+    } catch {
+      // Fall through to the unknown-text fallback.
+    }
+    return { quality: 'unknown', text };
+  }
+  const match =
+    /^(?:(exact|about|before|after|range|unknown):)?(?:(\d{4})(?:-(\d{2}))?(?:-(\d{2}))?)?(?:\.\.(\d{4})(?:-(\d{2}))?(?:-(\d{2}))?)?(?:\|([\s\S]*))?$/.exec(
+      text.trim(),
+    );
+  const valid = (year: number, month: number | undefined, day: number | undefined): boolean => {
+    if (month !== undefined && (month < 1 || month > 12)) {
+      return false;
+    }
+    if (day === undefined) {
+      return true;
+    }
+    if (month === undefined) {
+      return false;
+    }
+    const leap = year % 4 === 0 && (year % 100 !== 0 || year % 400 === 0);
+    const daysInMonth = [31, leap ? 29 : 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31][month - 1] ?? 31;
+    return day >= 1 && day <= daysInMonth;
+  };
+  const year = match?.[2] !== undefined ? Number(match[2]) : undefined;
+  const month = match?.[3] !== undefined ? Number(match[3]) : undefined;
+  const day = match?.[4] !== undefined ? Number(match[4]) : undefined;
+  const endYear = match?.[5] !== undefined ? Number(match[5]) : undefined;
+  const endMonth = match?.[6] !== undefined ? Number(match[6]) : undefined;
+  const endDay = match?.[7] !== undefined ? Number(match[7]) : undefined;
+  const hasDate = year !== undefined || endYear !== undefined;
+  if (
+    match === null ||
+    (!hasDate && !(match[1] === 'unknown' && match[8] !== undefined)) ||
+    (year !== undefined && !valid(year, month, day)) ||
+    (endYear !== undefined && !valid(endYear, endMonth, endDay))
+  ) {
+    return { quality: 'unknown', text };
+  }
+  const component =
+    year !== undefined
+      ? { year, ...(month !== undefined ? { month } : {}), ...(day !== undefined ? { day } : {}) }
+      : undefined;
+  const end =
+    endYear !== undefined
+      ? {
+          year: endYear,
+          ...(endMonth !== undefined ? { month: endMonth } : {}),
+          ...(endDay !== undefined ? { day: endDay } : {}),
+        }
+      : undefined;
+  return {
+    quality: (match[1] ?? 'exact') as DateValue['quality'],
+    ...(component !== undefined ? { component } : {}),
+    ...(end !== undefined ? { end } : {}),
+    ...(match[8] !== undefined ? { text: match[8] } : {}),
+  };
+}
+
 function importTodoStructure(todo: TodoStructure, targetType: string, targetId: string, ctx: ImportContext): void {
   const mapped: TodoRecord = {
     id: crypto.randomUUID(),
@@ -1257,9 +1651,11 @@ function importTodoStructure(todo: TodoStructure, targetType: string, targetId: 
     locality: todo.locality,
     priority: todo.priority,
     status: todo.status,
+    createdDate: parseTodoDate(todo.createdDate),
     scheduledDate: mapDate(todo.date),
     reminderDate: mapDate(todo.reminderDate),
     closedDate: mapDate(todo.closedDate),
+    ...(todo.repository !== undefined ? { repositoryId: ctx.repositoryIds.get(todo.repository) } : {}),
   };
   ctx.repo.insertTodo(mapped);
   importNotes(todo.notes, 'todo', mapped.id, ctx);
@@ -1305,6 +1701,12 @@ function importOccurrence(record: GedcomOccurrenceRecord, ctx: ImportContext): v
 // ---------------------------------------------------------------------------
 
 function importCitation(citation: SourceCitation, targetType: string, targetId: string, ctx: ImportContext): void {
+  if (!ctx.sourceIdsReady) {
+    // Sources are registered after places, notes and media records; defer the
+    // whole citation (including its nested notes/media) to the flush pass.
+    ctx.pendingCitations.push({ citation, targetType, targetId });
+    return;
+  }
   const sourceId = ctx.sourceIds.get(citation.source);
   if (sourceId === undefined) {
     // A void pointer or an unknown xref: nothing to cite in the tree.
@@ -1496,11 +1898,12 @@ function importSubmitterLinks(
   targetType: string,
   targetId: string,
   ctx: ImportContext,
+  kind: 'contributor' | 'ancestor_interest' | 'descendant_interest' = 'contributor',
 ): void {
   for (const submitter of submitters ?? []) {
     const submitterId = ctx.submitterIds.get(submitter);
     if (submitterId !== undefined) {
-      ctx.repo.insertRecordSubmitter(crypto.randomUUID(), submitterId, targetType, targetId);
+      ctx.repo.insertRecordSubmitter(crypto.randomUUID(), submitterId, targetType, targetId, kind);
     }
   }
 }
@@ -1702,34 +2105,79 @@ function importMediaRecords(records: GedcomRecord[], ctx: ImportContext): void {
     if (record.tag !== 'OBJE') {
       continue;
     }
-    const id = crypto.randomUUID();
-    if (record.xref !== undefined) {
-      ctx.mediaIds.set(record.xref, id);
-    }
     const files = record.files
       .filter((file) => file.payload !== '')
       .map((file) => ({
         id: crypto.randomUUID(),
         path: ctx.mediaPaths.get(file.payload) ?? file.payload,
         ...(file.title !== undefined ? { title: file.title } : {}),
+        ...(file.form?.medium !== undefined ? { medium: file.form.medium.payload } : {}),
+        ...(file.contentType !== undefined ? { contentType: file.contentType } : {}),
+        ...(file.text !== undefined ? { text: file.text } : {}),
+        ...(file.translations !== undefined && file.translations.length > 0
+          ? {
+              translations: file.translations.map((translation, position) => ({
+                id: crypto.randomUUID(),
+                path: ctx.mediaPaths.get(translation.payload) ?? translation.payload,
+                position,
+              })),
+            }
+          : {}),
       }));
     if (files.length === 0) {
+      // A record with only FORM/BLOB (or an empty FILE) has no path to
+      // store; registering its xref would make later OBJE links point at a
+      // media row that does not exist and fail the import on the FK.
       continue;
     }
+    const id = crypto.randomUUID();
     ctx.repo.insertMedia({
       id,
       ...(record.xref !== undefined ? { xref: record.xref } : {}),
       ...(record.title !== undefined ? { title: record.title } : {}),
+      ...(record.date !== undefined ? { date: mapDate(record.date) } : {}),
+      ...(record.place !== undefined ? { place: record.place } : {}),
+      ...(record.objectType !== undefined ? { objectType: record.objectType } : {}),
+      ...(record.description !== undefined ? { description: record.description } : {}),
+      ...(record.keywords !== undefined ? { keywords: record.keywords } : {}),
       files,
     });
-    importNotes(record.notes, 'media', id, ctx);
+    if (record.place !== undefined) {
+      ctx.mediaPlaceText.set(id, record.place);
+    }
     importCitations(record.citations, 'media', id, ctx);
+    if (record.xref !== undefined) {
+      ctx.mediaIds.set(record.xref, id);
+    }
+    importNotes(record.notes, 'media', id, ctx);
     importIdentifiers(record.identifiers, 'media', id, ctx);
     importRestrictions(record.restriction, 'media', id, ctx);
     importChanges(record.changeDate, record.creationDate, 'media', id, ctx);
     importSubmitterLinks(record.submitters, 'media', id, ctx);
     for (const tagLink of record.tagLinks ?? []) {
       importTagLink(tagLink, 'media', id, ctx);
+    }
+  }
+}
+
+/** Imports every citation queued before the SOUR records had ids. */
+function flushPendingCitations(ctx: ImportContext): void {
+  const pending = ctx.pendingCitations;
+  ctx.pendingCitations = [];
+  for (const entry of pending) {
+    importCitation(entry.citation, entry.targetType, entry.targetId, ctx);
+  }
+}
+
+/** Resolves historical media places after the place records are registered. */
+function linkMediaPlaces(ctx: ImportContext): void {
+  for (const [mediaId, placeText] of ctx.mediaPlaceText) {
+    if (ctx.ambiguousPlaceNames.has(placeText)) {
+      continue;
+    }
+    const placeId = ctx.placeIds.get(placeText);
+    if (placeId !== undefined) {
+      ctx.repo.setMediaPlaceId(mediaId, placeId);
     }
   }
 }
@@ -1748,6 +2196,7 @@ function importMediaLinks(
         thumbnail?: boolean | undefined;
         excludeFromDiagrams?: boolean | undefined;
         caption?: boolean | undefined;
+        citations?: SourceCitation[] | undefined;
       }>
     | undefined,
   targetType: string,
@@ -1759,8 +2208,9 @@ function importMediaLinks(
     if (mediaId === undefined) {
       continue;
     }
+    const linkId = crypto.randomUUID();
     ctx.repo.addMediaLink(mediaId, {
-      id: crypto.randomUUID(),
+      id: linkId,
       mediaId,
       targetType,
       targetId,
@@ -1774,6 +2224,7 @@ function importMediaLinks(
       ...(link.excludeFromDiagrams !== undefined ? { exclude: link.excludeFromDiagrams } : {}),
       ...(link.caption !== undefined ? { caption: link.caption } : {}),
     });
+    importCitations(link.citations, 'media_link', linkId, ctx);
   }
 }
 
@@ -1816,11 +2267,19 @@ function importPlaceRecords(records: GedcomRecord[], ctx: ImportContext): void {
       .sort((a, b) => a.position - b.position)
       .map((name) => name.value);
     const joined = official.length > 0 ? official.join(', ') : record.payload;
+    const rememberPlace = (name: string): void => {
+      const existing = ctx.placeIds.get(name);
+      if (existing !== undefined && existing !== id) {
+        ctx.ambiguousPlaceNames.add(name);
+      } else {
+        ctx.placeIds.set(name, id);
+      }
+    };
     if (joined !== '') {
-      ctx.placeIds.set(joined, id);
+      rememberPlace(joined);
     }
     if (record.xref !== undefined && record.payload !== '') {
-      ctx.placeIds.set(record.payload, id);
+      rememberPlace(record.payload);
     }
     const verified = record.extensions?.some(
       (extension) => extension.tag === '_VERI' && (extension.payload === 'Y' || extension.payload === '1'),
@@ -1944,6 +2403,11 @@ function importPlace(place: PlaceStructure, ctx: ImportContext): string | undefi
   importCitations(place.citations, 'place', id, ctx);
   importNotes(place.notes, 'place', id, ctx);
   importIdentifiers(place.externalIds, 'place', id, ctx);
-  ctx.placeIds.set(joined, id);
+  const existingPlace = ctx.placeIds.get(joined);
+  if (existingPlace !== undefined && existingPlace !== id) {
+    ctx.ambiguousPlaceNames.add(joined);
+  } else {
+    ctx.placeIds.set(joined, id);
+  }
   return id;
 }

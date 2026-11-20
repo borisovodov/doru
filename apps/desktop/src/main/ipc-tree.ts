@@ -14,6 +14,7 @@ import type {
   PersonRecord,
   NoteLinkRecord,
   PlaceRecord,
+  RecordSubmitterLink,
   RepositoryRecord,
   RestrictionRecord,
   SourceRecord,
@@ -350,6 +351,11 @@ export function registerTreeIpc(): void {
     },
   );
 
+  ipcMain.handle('tree:allTagLinks', async (_event, options: { projectPath: string }) => {
+    const { runtime } = await ensureRuntime(options.projectPath);
+    return runtime.service.listAllTagLinks();
+  });
+
   ipcMain.handle('tree:addTag', async (_event, options: { projectPath: string; tag: TagRecord }) => {
     const { runtime } = await ensureRuntime(options.projectPath);
     return runtime.service.addTag(options.tag);
@@ -542,11 +548,29 @@ export function registerTreeIpc(): void {
     },
   );
 
+  ipcMain.handle('tree:allRecordSubmitters', async (_event, options: { projectPath: string }) => {
+    const { runtime } = await ensureRuntime(options.projectPath);
+    return runtime.service.listAllRecordSubmitters();
+  });
+
   ipcMain.handle(
     'tree:addRecordSubmitter',
-    async (_event, options: { projectPath: string; submitterId: string; targetType: string; targetId: string }) => {
+    async (
+      _event,
+      options: {
+        projectPath: string;
+        submitterId: string;
+        targetType: string;
+        targetId: string;
+        kind?: NonNullable<RecordSubmitterLink['kind']>;
+      },
+    ) => {
+      const kind = options.kind ?? 'contributor';
+      if (!['contributor', 'ancestor_interest', 'descendant_interest'].includes(kind)) {
+        throw new Error(`unsupported submitter kind: ${kind}`);
+      }
       const { runtime } = await ensureRuntime(options.projectPath);
-      return runtime.service.addRecordSubmitter(options.submitterId, options.targetType, options.targetId);
+      return runtime.service.addRecordSubmitter(options.submitterId, options.targetType, options.targetId, kind);
     },
   );
 
@@ -554,7 +578,14 @@ export function registerTreeIpc(): void {
     'tree:deleteRecordSubmitter',
     async (
       _event,
-      options: { projectPath: string; id: string; submitterId: string; targetType: string; targetId: string },
+      options: {
+        projectPath: string;
+        id: string;
+        submitterId: string;
+        targetType: string;
+        targetId: string;
+        kind?: NonNullable<RecordSubmitterLink['kind']>;
+      },
     ) => {
       const { runtime } = await ensureRuntime(options.projectPath);
       return runtime.service.deleteRecordSubmitter(
@@ -562,6 +593,7 @@ export function registerTreeIpc(): void {
         options.submitterId,
         options.targetType,
         options.targetId,
+        options.kind ?? 'contributor',
       );
     },
   );

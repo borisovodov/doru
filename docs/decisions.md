@@ -54,12 +54,34 @@ locations are intentional — do not move the macOS settings to `~/.config`.
 
 The project database deliberately does not store the GEDCOM `HEAD`/`SUBN`
 metadata or raw extension structures (`extensions`, vendor blocks, unknown
-records). The schema models the genealogy domain; import counts these
-structures as dropped and export synthesizes a fresh header. This is a
-product decision, not an unfinished mapping: revisit it only when a concrete
-feature needs the wire metadata. The same applies to the LDS, research,
-census, event-definition, duplicate-candidate, published-site, group,
-tree-tag and GenoPro record families listed in `import/gedcom.ts`.
+records). The schema models the genealogy domain; export synthesizes a fresh
+header. Import reports whole vendor record families in `droppedStructures`;
+`HEAD`/`SUBN`, `SCHMA` and raw extension/unknown structures are dropped
+without a counter because they are wire metadata rather than tree records.
+This is a product decision, not an unfinished mapping: revisit it only when a
+concrete feature needs the wire metadata. The same applies to the LDS,
+research, census, event-definition, duplicate-candidate, published-site,
+group, tree-tag and GenoPro record families listed in `import/gedcom.ts`.
+
+## GEDCOM legacy identifiers and FAMC/FAMS vendor details
+
+`RFN` and `AFN` are GEDCOM 5.5.1 identifiers with no 7.0 spelling; Dóru does
+not store them. The vendor FAMC/FAMS link fields `_HUSB`, `_WIFE`, `MTYP`,
+`_PRIMARY`, `_PREF` and `_PLINK` are also intentionally not stored. Corpus
+counts showed them in only a handful of files (or not at all); the standard
+`PEDI`, `STAT` (including its 7.0 `PHRASE`), relation fields and link notes
+are stored. `WILL.TEXT` is normalized into a note on the `WILL` fact and is
+exported as `NOTE`, not as the vendor `TEXT` tag.
+
+## Free-text family witnesses
+
+`family_witness` preserves the vendor `_WITN` and `_GODT` family witnesses
+verbatim as text. They are names, not person pointers, and are deliberately
+not an attachment target: notes, sources, tasks and media belong on a
+standard GEDCOM `ASSO` association row (`association`), which points at a
+person and carries a role. Giving the free-text rows stable ids and
+attachment panels would create `.doru`-only evidence that cannot survive a
+GEDCOM round-trip.
 
 ## GEDCOM media
 
@@ -69,6 +91,18 @@ referenced file is reachable on the importing machine. Unresolvable paths
 stay external references in the database and are hidden from the UI. Export
 offers GEDCOM 7.0 (`.ged`, paths only) and GEDZIP (`.gdz`, bundled files);
 the choice lives in the Export tab, not in a save-dialog filter.
+
+The database stores only historical/GEDCOM metadata: the record title,
+`_DATE`, `_PLAC`, `_TYPE`, `_DSCR` and `_KEYS`, plus the file's `MEDI`,
+`_CTYP`, `_TEXT` and `TRAN` rows. Technical facts — MIME type, byte size
+and image dimensions — are derived from the file in the main process and
+never persisted; EXIF metadata is neither derived nor stored. A moved or
+replaced file therefore reports fresh facts, and a missing file reports none
+instead of stale values. `FORM` is synthesized
+from the file path on export; `TRAN` is written only for GEDCOM 7.0. Sources
+and notes attach to the media record (`media`); vendor `SOUR` lines under an
+`OBJE` link attach to the link (`media_link`) and are editable in the media
+tab.
 
 ## API stability before 1.0.0
 
@@ -87,6 +121,20 @@ scripts/eval-ai.vitest.config.ts`): on the agent toolset both 4B and 9B pass
 at parity, and thinking mode wins no scenario while costing ~2.5x latency.
 A larger model tier re-enters through the same gate later — it is a manifest
 entry, not architecture. Minimum machine: 8 GB of RAM.
+
+## GEDCOM vendor spellings
+
+The standard writers keep unknown standard tags from being emitted where a
+version has no slot for them. Two deliberate vendor mappings are documented
+here:
+
+- Source-level certainty from Heredis is written as the extension-safe
+  `_QUAY` at the `SOUR` record level. The parser accepts both `QUAY` and
+  `_QUAY`, so existing Heredis files still round-trip.
+- Citations attached to the `SEX` fact are written as `SOUR` children of
+  `SEX`. GEDCOM 5.5.1 and 7.0 do not define that substructure, but the
+  alternative record-level placement loses the link to the sex fact. When no
+  `SEX` line can be emitted, the citations fall back to the record level.
 
 ## Rejected alternatives
 

@@ -1,6 +1,7 @@
 import type { DatabaseSync } from 'node:sqlite';
 import type { PlaceName, PlaceRecord } from '../model/types';
 import type { DateRepo } from './dateRepo';
+import type { TransactionScope } from './transaction';
 
 interface PlaceRow {
   id: string;
@@ -41,6 +42,7 @@ export class PlaceRepo {
   constructor(
     private readonly db: DatabaseSync,
     private readonly dates: DateRepo,
+    private readonly transactions: TransactionScope,
   ) {
     this.insertName = this.db.prepare(
       `INSERT INTO place_name (id, place_id, kind, language, type, position, value,
@@ -71,6 +73,9 @@ export class PlaceRepo {
 
   /** Replaces the place's names, hierarchy and postal codes wholesale. */
   updatePlace(place: PlaceRecord): void {
+    if (this.db.prepare('SELECT 1 FROM place WHERE id = ?').get(place.id) === undefined) {
+      throw new Error(`place ${place.id} no longer exists`);
+    }
     this.db
       .prepare(`UPDATE place SET xref = ?, latitude = ?, longitude = ?, verified = ?, form = ?,
         abbreviation = ?, preposition = ?, gov_id = ?, maidenhead = ?, place_type = ? WHERE id = ?`)
@@ -99,6 +104,14 @@ export class PlaceRepo {
   }
 
   /** Every place, ordered by the joined name. */
+  /** Hierarchy rows whose parent is the given place. */
+  listHierarchyLinksByParent(parentId: string): Array<{ id: string; childId: string }> {
+    const rows = this.db
+      .prepare('SELECT id, child_id FROM place_hierarchy WHERE parent_id = ? ORDER BY child_id, id')
+      .all(parentId) as unknown as { id: string; child_id: string }[];
+    return rows.map((row) => ({ id: row.id, childId: row.child_id }));
+  }
+
   listPlaces(): PlaceRecord[] {
     const rows = this.db
       .prepare(`SELECT id, xref, latitude, longitude, verified, form, abbreviation, preposition,
@@ -107,16 +120,48 @@ export class PlaceRepo {
     return rows.map((row) => this.hydrate(row));
   }
 
+  /** Re-inserts one hierarchy row after the parent place was deleted. */
+  insertHierarchyLink(
+    childId: string,
+    link: { id: string; parentId: string; type?: string; date?: import('../model/types').DateValue },
+  ): void {
+    this.transactions.run(() => {
+      if (this.db.prepare('SELECT 1 FROM place_hierarchy WHERE id = ?').get(link.id) !== undefined) {
+        return;
+      }
+      const dateId =
+        link.date === undefined
+          ? null
+          : link.date.id !== undefined &&
+              this.db.prepare('SELECT 1 FROM date WHERE id = ?').get(link.date.id) !== undefined
+            ? link.date.id
+            : this.dates.upsert(link.date);
+      this.db
+        .prepare('INSERT INTO place_hierarchy (id, parent_id, child_id, type, date_id) VALUES (?, ?, ?, ?, ?)')
+        .run(link.id, link.parentId, childId, link.type ?? null, dateId);
+    });
+  }
+
   deletePlace(id: string): boolean {
     // fact.place_id is ON DELETE SET NULL — facts detach automatically and
     // keep their raw place_text. The op that deletes a place restores the
-    // link on undo.
-    const postalDates = this.db
-      .prepare('SELECT date_id FROM place_postal_code WHERE place_id = ? AND date_id IS NOT NULL')
-      .all(id) as unknown as { date_id: string }[];
+    // link on undo. The place's own names/hierarchy rows and the hierarchy
+    // rows where it is the parent cascade; their date rows are owned by the
+    // deleted rows, so collect them first.
+    const dateRows = this.db
+      .prepare(
+        `SELECT date_id FROM place_postal_code WHERE place_id = ? AND date_id IS NOT NULL
+         UNION
+         SELECT date_id FROM place_name WHERE place_id = ? AND date_id IS NOT NULL
+         UNION
+         SELECT date_id FROM place_hierarchy WHERE child_id = ? AND date_id IS NOT NULL
+         UNION
+         SELECT date_id FROM place_hierarchy WHERE parent_id = ? AND date_id IS NOT NULL`,
+      )
+      .all(id, id, id, id) as unknown as { date_id: string }[];
     const removed = this.db.prepare('DELETE FROM place WHERE id = ?').run(id).changes > 0;
-    for (const entry of postalDates) {
-      this.dates.delete(entry.date_id);
+    for (const entry of dateRows) {
+      this.dates.deleteIfUnused(entry.date_id);
     }
     return removed;
   }

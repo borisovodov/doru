@@ -56,7 +56,7 @@ export function associationToDraft(association: AssociationRecord): AssociationD
   };
 }
 
-export function associationDraftToRecord(draft: AssociationDraft): AssociationRecord {
+export function associationDraftToRecord(draft: AssociationDraft, existing?: AssociationRecord): AssociationRecord {
   return {
     id: draft.id,
     ...(draft.personId !== undefined ? { personId: draft.personId } : {}),
@@ -68,8 +68,8 @@ export function associationDraftToRecord(draft: AssociationDraft): AssociationRe
     primary: draft.primary || undefined,
     specificType: draft.specificType.trim() || undefined,
     confidence: draft.confidence.trim() || undefined,
-    periodStart: fromDateDraft(draft.periodStart),
-    periodEnd: fromDateDraft(draft.periodEnd),
+    periodStart: fromDateDraft(draft.periodStart, existing?.periodStart),
+    periodEnd: fromDateDraft(draft.periodEnd, existing?.periodEnd),
   };
 }
 

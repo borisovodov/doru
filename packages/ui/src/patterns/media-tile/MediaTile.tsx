@@ -1,4 +1,5 @@
 import { X } from 'lucide-react';
+import type { ReactNode } from 'react';
 import { IconButton } from '../../atoms/icon-button/IconButton';
 import { cx } from '../../lib/cx';
 import styles from './MediaTile.module.css';
@@ -13,6 +14,8 @@ export interface MediaTileProps {
   badge?: string;
   muted?: boolean;
   className?: string;
+  /** Shown instead of the image for non-previewable (external or non-image) media. */
+  fallback?: ReactNode;
 }
 
 /** A square media thumbnail with optional open and remove actions. */
@@ -26,12 +29,21 @@ export function MediaTile({
   badge,
   muted,
   className,
+  fallback,
 }: MediaTileProps) {
-  const image = <img src={src} alt={alt} loading="lazy" />;
+  const image =
+    src !== '' ? (
+      <img src={src} alt={alt} loading="lazy" />
+    ) : (
+      <span className={styles['fallback']} role="img" aria-label={alt}>
+        {fallback}
+      </span>
+    );
+  const openName = openLabel === undefined || alt === '' ? (openLabel ?? alt) : `${openLabel}: ${alt}`;
   return (
     <figure className={cx(styles['tile'], muted === true && styles['muted'], className)}>
       {onOpen ? (
-        <button type="button" className={styles['open']} aria-label={openLabel} onClick={onOpen}>
+        <button type="button" className={styles['open']} aria-label={openName} onClick={onOpen}>
           {image}
         </button>
       ) : (

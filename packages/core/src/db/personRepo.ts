@@ -19,6 +19,7 @@ export interface PersonRow {
   id: string;
   xref?: string | undefined;
   sex: Sex;
+  deathStatus?: 'alive' | 'dead' | undefined;
   addressId?: string | undefined;
 }
 
@@ -26,6 +27,7 @@ interface PersonDbRow {
   id: string;
   xref: string | null;
   sex: string | null;
+  death_status: string | null;
   address_id: string | null;
 }
 
@@ -38,21 +40,25 @@ export class PersonRepo {
   insertPerson(person: PersonRow): void {
     this.transactions.run(() => {
       this.db
-        .prepare('INSERT INTO person (id, xref, sex, address_id) VALUES (?, ?, ?, ?)')
-        .run(person.id, person.xref ?? null, person.sex, person.addressId ?? null);
+        .prepare('INSERT INTO person (id, xref, sex, death_status, address_id) VALUES (?, ?, ?, ?, ?)')
+        .run(person.id, person.xref ?? null, person.sex, person.deathStatus ?? null, person.addressId ?? null);
     });
   }
 
   updatePerson(person: PersonRow): void {
     this.transactions.run(() => {
       this.db
-        .prepare('UPDATE person SET xref = ?, sex = ?, address_id = ? WHERE id = ?')
-        .run(person.xref ?? null, person.sex, person.addressId ?? null, person.id);
+        .prepare('UPDATE person SET xref = ?, sex = ?, death_status = ?, address_id = ? WHERE id = ?')
+        .run(person.xref ?? null, person.sex, person.deathStatus ?? null, person.addressId ?? null, person.id);
     });
   }
 
+  setAddressId(id: string, addressId: string | undefined): void {
+    this.db.prepare('UPDATE person SET address_id = ? WHERE id = ? AND address_id IS NULL').run(addressId ?? null, id);
+  }
+
   getPerson(id: string): PersonRow | undefined {
-    const row = this.db.prepare('SELECT id, xref, sex, address_id FROM person WHERE id = ?').get(id) as
+    const row = this.db.prepare('SELECT id, xref, sex, death_status, address_id FROM person WHERE id = ?').get(id) as
       | PersonDbRow
       | undefined;
     return row ? toPerson(row) : undefined;
@@ -91,7 +97,7 @@ export class PersonRepo {
       conditions.push('p.sex = ?');
       params.push(query.sex);
     }
-    let sql = 'SELECT p.id, p.xref, p.sex, p.address_id FROM person p';
+    let sql = 'SELECT p.id, p.xref, p.sex, p.death_status, p.address_id FROM person p';
     if (conditions.length > 0) {
       sql += ' WHERE ' + conditions.join(' AND ');
     }
@@ -102,9 +108,17 @@ export class PersonRepo {
 
   listAllPersons(): PersonRow[] {
     const rows = this.db
-      .prepare('SELECT id, xref, sex, address_id FROM person ORDER BY id')
+      .prepare('SELECT id, xref, sex, death_status, address_id FROM person ORDER BY id')
       .all() as unknown as PersonDbRow[];
     return rows.map(toPerson);
+  }
+
+  /** Person ids that reference an address, for targeted delete/undo snapshots. */
+  listPersonIdsForAddress(addressId: string): string[] {
+    const rows = this.db
+      .prepare('SELECT id FROM person WHERE address_id = ? ORDER BY id')
+      .all(addressId) as unknown as { id: string }[];
+    return rows.map((row) => row.id);
   }
 
   countPersons(): number {
@@ -118,6 +132,7 @@ function toPerson(row: PersonDbRow): PersonRow {
     id: row.id,
     xref: row.xref ?? undefined,
     sex: (row.sex ?? 'U') as Sex,
+    deathStatus: row.death_status === 'alive' || row.death_status === 'dead' ? row.death_status : undefined,
     addressId: row.address_id ?? undefined,
   };
 }

@@ -17,6 +17,12 @@ export class RepositoryRepo {
       .run(repository.xref ?? null, repository.name, repository.addressId ?? null, repository.id);
   }
 
+  setAddressId(id: string, addressId: string | undefined): void {
+    this.db
+      .prepare('UPDATE repository SET address_id = ? WHERE id = ? AND address_id IS NULL')
+      .run(addressId ?? null, id);
+  }
+
   getRepository(id: string): RepositoryRecord | undefined {
     const row = this.db.prepare('SELECT id, xref, name, address_id FROM repository WHERE id = ?').get(id) as
       | { id: string; xref: string | null; name: string; address_id: string | null }

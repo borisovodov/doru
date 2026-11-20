@@ -48,7 +48,7 @@ export function CitationEditor({
   const save = async () => {
     setSaving(true);
     try {
-      await onSave(citationDraftToRecord(draft));
+      await onSave(citationDraftToRecord(draft, citation));
     } finally {
       setSaving(false);
     }

@@ -5,7 +5,7 @@ import { EntityTab } from '../sidebar';
 import type { MediaTargetApi, PlaceEditorApi } from '../person/types';
 import { PlaceEditor } from './PlaceEditor';
 import { PlaceFactsList } from './PlaceFactsList';
-import { emptyPlaceDraft, placeDraftMatches, placeDraftToRecord, placeToDraft, type PlaceDraft } from './placeDraft';
+import { emptyPlaceDraft, mergePlaceDraft, placeDraftToRecord, placeToDraft, type PlaceDraft } from './placeDraft';
 import type { MediaWithPath } from '@doru/ui/domain';
 import {
   ChangesSection,
@@ -112,11 +112,20 @@ function PlaceTabBody({
   onClose: () => void;
   onCreated: (realId: string) => void;
 }) {
-  const [draft, setDraft] = useState<PlaceDraft>(() =>
+  const [draft, setDraftState] = useState<PlaceDraft>(() =>
     isNew ? emptyPlaceDraft() : record ? placeToDraft(record) : emptyPlaceDraft(),
   );
   const [lastSaved, setLastSaved] = useState<PlaceRecord | undefined>(record);
   const recordRef = useRef(record);
+  const draftRef = useRef(draft);
+  const baselineRef = useRef(record);
+  const submittedRef = useRef<PlaceDraft | undefined>(undefined);
+  const submittedRecordRef = useRef<PlaceRecord | undefined>(undefined);
+  const submissionTokenRef = useRef<object | undefined>(undefined);
+  const setDraft = (next: PlaceDraft) => {
+    draftRef.current = next;
+    setDraftState(next);
+  };
 
   const targetId = (lastSaved ?? record)?.id;
   const {
@@ -143,23 +152,53 @@ function PlaceTabBody({
     }
     const previous = recordRef.current;
     recordRef.current = record;
-    setDraft((current) =>
-      previous !== undefined && placeDraftMatches(current, previous) ? placeToDraft(record) : current,
-    );
+    if (previous !== undefined) {
+      const submittedRecord = submittedRecordRef.current;
+      const confirms =
+        submittedRecord !== undefined &&
+        JSON.stringify(placeToDraft(record)) === JSON.stringify(placeToDraft(submittedRecord));
+      const submitted = confirms ? submittedRef.current : undefined;
+      if (confirms) {
+        submittedRef.current = undefined;
+        submittedRecordRef.current = undefined;
+      }
+      baselineRef.current = record;
+      setDraft(mergePlaceDraft(draftRef.current, previous, record, submitted));
+      setLastSaved(record);
+    }
   }, [record, isNew]);
 
   const save = async () => {
-    const next = placeDraftToRecord(draft);
+    const target = record ?? lastSaved;
+    const next = placeDraftToRecord(draftRef.current, record ?? lastSaved ?? baselineRef.current);
     if (isNew && lastSaved === undefined) {
       await api.addPlace(next);
       onCreated(next.id);
     } else {
-      const target = lastSaved ?? record;
       if (target === undefined) {
         return;
       }
-      await api.updatePlace(target, next);
+      const submission = draftRef.current;
+      const token = {};
+      submissionTokenRef.current = token;
+      submittedRef.current = submission;
+      try {
+        await api.updatePlace(target, next);
+        if (submissionTokenRef.current === token) {
+          submittedRecordRef.current = next;
+        }
+      } catch (error) {
+        if (submissionTokenRef.current === token && submittedRef.current === submission) {
+          submittedRef.current = undefined;
+          submittedRecordRef.current = undefined;
+        }
+        throw error;
+      }
+      if (submissionTokenRef.current !== token) {
+        return;
+      }
     }
+    baselineRef.current = next;
     setLastSaved(next);
   };
 
@@ -172,7 +211,12 @@ function PlaceTabBody({
   };
 
   const currentPlace = lastSaved ?? record;
-  const factsAtPlace = currentPlace !== undefined ? facts.filter((fact) => fact.placeId === currentPlace.id) : [];
+  const factsAtPlace =
+    currentPlace !== undefined
+      ? facts.filter(
+          (fact) => fact.placeId === currentPlace.id || (fact.additionalPlaceIds ?? []).includes(currentPlace.id),
+        )
+      : [];
 
   return (
     <EntityTab>
@@ -183,10 +227,22 @@ function PlaceTabBody({
         onSave={() => void save()}
         onDelete={!isNew || lastSaved !== undefined ? () => void remove() : undefined}
         renderAttachments={(linkId) => (
-          <AttachmentsPanel targetType="place_hierarchy" targetId={linkId} api={api} sources={sources} />
+          <AttachmentsPanel
+            targetType="place_hierarchy"
+            targetId={linkId}
+            api={api}
+            sources={sources}
+            onOpenSource={onOpenSource}
+          />
         )}
         renderNameAttachments={(nameId) => (
-          <AttachmentsPanel targetType="place_name" targetId={nameId} api={api} sources={sources} />
+          <AttachmentsPanel
+            targetType="place_name"
+            targetId={nameId}
+            api={api}
+            sources={sources}
+            onOpenSource={onOpenSource}
+          />
         )}
       />
       {(lastSaved !== undefined || record !== undefined) && (

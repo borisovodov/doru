@@ -33,6 +33,9 @@ export class NoteRepo {
 
   /** Updates the note text and translations; links are managed separately. */
   updateNote(note: NoteRecord): void {
+    if (this.db.prepare('SELECT 1 FROM note WHERE id = ?').get(note.id) === undefined) {
+      throw new Error(`note ${note.id} no longer exists`);
+    }
     this.db
       .prepare('UPDATE note SET xref = ?, text = ?, mime = ?, language = ? WHERE id = ?')
       .run(note.xref ?? null, note.text, note.mime ?? null, note.language ?? null, note.id);
@@ -133,6 +136,17 @@ export class NoteRepo {
         this.db.prepare('DELETE FROM note WHERE id = ?').run(link.note_id);
       }
     }
+  }
+
+  /** Whether one note link id exists, without hydrating its target. */
+  hasLink(id: string): boolean {
+    return this.db.prepare('SELECT 1 FROM note_link WHERE id = ?').get(id) !== undefined;
+  }
+
+  /** How many targets currently link this note. */
+  countLinksForNote(noteId: string): number {
+    const row = this.db.prepare('SELECT COUNT(*) AS n FROM note_link WHERE note_id = ?').get(noteId) as { n: number };
+    return row.n;
   }
 
   private insertRow(note: NoteRecord): void {

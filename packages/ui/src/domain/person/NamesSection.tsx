@@ -118,9 +118,6 @@ export function NamesSection({
     patch(nameIndex, { variants: name.variants.filter((_, i) => i !== variantIndex) });
   };
 
-  const setVariantDate = (nameIndex: number, variantIndex: number, date: DateDraft) =>
-    patchVariant(nameIndex, variantIndex, { date: dateDraftBlank(date) ? undefined : date });
-
   return (
     <div className={styles['namesSection']}>
       {names.map((name, index) => (
@@ -157,6 +154,9 @@ export function NamesSection({
                     {nls.t(`features.tree.names.type.${type}`)}
                   </option>
                 ))}
+                {!(NAME_TYPES as readonly string[]).includes(name.type) && name.type !== '' && (
+                  <option value={name.type}>{name.type}</option>
+                )}
               </Select>
             </Field>
             <Field label={nls.t('features.tree.names.language')}>
@@ -208,77 +208,16 @@ export function NamesSection({
           </details>
           <div className={styles['variants']}>
             {name.variants.map((variant, variantIndex) => (
-              <div className={styles['variant']} key={variant.id}>
-                <div className={styles['variantHead']}>
-                  <Select
-                    aria-label={nls.t('features.tree.names.variant.kind.translation')}
-                    value={variant.kind}
-                    onChange={(event) =>
-                      patchVariant(index, variantIndex, { kind: event.target.value as NameVariantDraft['kind'] })
-                    }
-                  >
-                    {NAME_VARIANT_KINDS.map((kind) => (
-                      <option key={kind} value={kind}>
-                        {nls.t(`features.tree.names.variant.kind.${kind}`)}
-                      </option>
-                    ))}
-                  </Select>
-                  <Input
-                    aria-label={nls.t('features.tree.names.language')}
-                    placeholder={nls.t('features.tree.names.language')}
-                    value={variant.language}
-                    onChange={(event) => patchVariant(index, variantIndex, { language: event.target.value })}
-                  />
-                  <Input
-                    aria-label={nls.t('features.tree.names.variantType')}
-                    placeholder={nls.t('features.tree.names.variantType')}
-                    value={variant.variantType}
-                    onChange={(event) => patchVariant(index, variantIndex, { variantType: event.target.value })}
-                  />
-                  <IconButton
-                    size="sm"
-                    label={nls.t('features.tree.names.variant.remove')}
-                    icon={<X size={14} aria-hidden="true" />}
-                    onClick={() => removeVariant(index, variantIndex)}
-                  />
-                </div>
-                <Field label={nls.t('features.tree.names.displayForm')}>
-                  <Input
-                    value={partOf(variant, 'full')}
-                    onChange={(event) =>
-                      patchVariant(index, variantIndex, setPartValue(variant, 'full', event.target.value))
-                    }
-                  />
-                </Field>
-                <FieldGrid columns={3}>
-                  {NAME_PART_FIELDS.map((field) => (
-                    <NamePartField
-                      key={field}
-                      field={field}
-                      value={partOf(variant, field)}
-                      partId={partsOfKind(variant, field)[0]?.id}
-                      expandedPartId={expandedPartId}
-                      onTogglePart={(partId) => setExpandedPartId(expandedPartId === partId ? null : partId)}
-                      renderPartAttachments={renderPartAttachments}
-                      onChange={(value) => patchVariant(index, variantIndex, setPartValue(variant, field, value))}
-                    />
-                  ))}
-                </FieldGrid>
-                <ExtraParts
-                  name={variant}
-                  onChange={(next) => patchVariant(index, variantIndex, next)}
-                  expandedPartId={expandedPartId}
-                  onTogglePart={(partId) => setExpandedPartId(expandedPartId === partId ? null : partId)}
-                  renderPartAttachments={renderPartAttachments}
-                />
-                <DateEditor
-                  label={nls.t('features.tree.names.date')}
-                  value={variant.date ?? emptyDate()}
-                  onChange={(date) => setVariantDate(index, variantIndex, date)}
-                  hidePlace
-                />
-                {renderAttachments?.(variant)}
-              </div>
+              <VariantEditor
+                key={variant.id}
+                variant={variant}
+                onChange={(next) => patchVariant(index, variantIndex, next)}
+                onRemove={() => removeVariant(index, variantIndex)}
+                expandedPartId={expandedPartId}
+                onTogglePart={(partId) => setExpandedPartId(expandedPartId === partId ? null : partId)}
+                renderPartAttachments={renderPartAttachments}
+                renderAttachments={renderAttachments}
+              />
             ))}
             <Button
               size="sm"
@@ -295,6 +234,122 @@ export function NamesSection({
       <Button size="sm" variant="secondary" icon={<Plus size={13} aria-hidden="true" />} onClick={addName}>
         {nls.t('features.tree.names.add')}
       </Button>
+    </div>
+  );
+}
+
+function VariantEditor({
+  variant,
+  onChange,
+  onRemove,
+  expandedPartId,
+  onTogglePart,
+  renderPartAttachments,
+  renderAttachments,
+}: {
+  variant: NameVariantDraft;
+  onChange: (next: NameVariantDraft) => void;
+  onRemove: () => void;
+  expandedPartId: string | null;
+  onTogglePart: (partId: string) => void;
+  renderPartAttachments: ((partId: string) => ReactNode) | undefined;
+  renderAttachments: ((name: NameDraft | NameVariantDraft) => ReactNode) | undefined;
+}) {
+  const patch = (values: Partial<NameVariantDraft>) => onChange({ ...variant, ...values });
+  return (
+    <div className={styles['variant']}>
+      <div className={styles['variantHead']}>
+        <Select
+          aria-label={nls.t('features.tree.names.variant.kind.translation')}
+          value={variant.kind}
+          onChange={(event) => patch({ kind: event.target.value as NameVariantDraft['kind'] })}
+        >
+          {NAME_VARIANT_KINDS.map((kind) => (
+            <option key={kind} value={kind}>
+              {nls.t(`features.tree.names.variant.kind.${kind}`)}
+            </option>
+          ))}
+          {!(NAME_VARIANT_KINDS as readonly string[]).includes(variant.kind) && (
+            <option value={variant.kind}>{variant.kind}</option>
+          )}
+        </Select>
+        <Input
+          aria-label={nls.t('features.tree.names.language')}
+          placeholder={nls.t('features.tree.names.language')}
+          value={variant.language}
+          onChange={(event) => patch({ language: event.target.value })}
+        />
+        <Input
+          aria-label={nls.t('features.tree.names.variantType')}
+          placeholder={nls.t('features.tree.names.variantType')}
+          value={variant.variantType}
+          onChange={(event) => patch({ variantType: event.target.value })}
+        />
+        <IconButton
+          size="sm"
+          label={nls.t('features.tree.names.variant.remove')}
+          icon={<X size={14} aria-hidden="true" />}
+          onClick={onRemove}
+        />
+      </div>
+      <Field label={nls.t('features.tree.names.displayForm')}>
+        <Input
+          value={partOf(variant, 'full')}
+          onChange={(event) => patch(setPartValue(variant, 'full', event.target.value))}
+        />
+      </Field>
+      <FieldGrid columns={3}>
+        {NAME_PART_FIELDS.map((field) => (
+          <NamePartField
+            key={field}
+            field={field}
+            value={partOf(variant, field)}
+            partId={partsOfKind(variant, field)[0]?.id}
+            expandedPartId={expandedPartId}
+            onTogglePart={onTogglePart}
+            renderPartAttachments={renderPartAttachments}
+            onChange={(value) => patch(setPartValue(variant, field, value))}
+          />
+        ))}
+      </FieldGrid>
+      <ExtraParts
+        name={variant}
+        onChange={onChange}
+        expandedPartId={expandedPartId}
+        onTogglePart={onTogglePart}
+        renderPartAttachments={renderPartAttachments}
+      />
+      <DateEditor
+        label={nls.t('features.tree.names.date')}
+        value={variant.date ?? emptyDate()}
+        onChange={(date) => patch({ date: dateDraftBlank(date) ? undefined : date })}
+        hidePlace
+      />
+      {variant.variants.map((child, index) => (
+        <VariantEditor
+          key={child.id}
+          variant={child}
+          onChange={(next) =>
+            patch({
+              variants: variant.variants.map((entry, entryIndex) => (entryIndex === index ? next : entry)),
+            })
+          }
+          onRemove={() => patch({ variants: variant.variants.filter((_, entryIndex) => entryIndex !== index) })}
+          expandedPartId={expandedPartId}
+          onTogglePart={onTogglePart}
+          renderPartAttachments={renderPartAttachments}
+          renderAttachments={renderAttachments}
+        />
+      ))}
+      <Button
+        size="sm"
+        variant="secondary"
+        icon={<Plus size={13} aria-hidden="true" />}
+        onClick={() => patch({ variants: [...variant.variants, emptyVariantDraft()] })}
+      >
+        {nls.t('features.tree.names.variant.add')}
+      </Button>
+      {renderAttachments?.(variant)}
     </div>
   );
 }

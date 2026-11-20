@@ -1,14 +1,14 @@
 import { IconButton } from '@doru/ui';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Input } from '@doru/ui';
 import { SectionCard } from '@doru/ui';
 import { Field, FieldGrid, InlineForm } from '@doru/ui';
 import { Plus, User, X } from 'lucide-react';
-import type { AddressRecord, SourceRecord, SubmitterRecord } from '@doru/core';
+import type { AddressRecord, RecordSubmitterLink, SourceRecord, SubmitterRecord } from '@doru/core';
 import { AttachmentsPanel, CitationAttachments, NoteAttachments, useAttachments } from '../attachments';
 import { EntityTab } from '../sidebar';
 import type { MediaTargetApi, RegistriesEditorApi } from '../person/types';
-import type { MediaWithPath } from '@doru/ui/domain';
+import type { MediaWithPath, TaskTargetData } from '@doru/ui/domain';
 import {
   AddressLinkField,
   ChangesSection,
@@ -22,10 +22,11 @@ import {
   MediaSection,
   TasksSection,
   addressLabel,
+  taskTargetLabel,
 } from '@doru/ui/domain';
 import { nls } from '../nls';
 import { Button } from '@doru/ui';
-import { EntityViewCard } from '@doru/ui';
+import { EntityCard, EntityViewCard } from '@doru/ui';
 import { useRegistryAddress } from './useRegistryAddress';
 
 /* oxlint-disable react/no-array-index-key -- lists without stable ids use their position as identity */
@@ -38,9 +39,12 @@ export function SubmitterTab({
   sources,
   media,
   mediaApi,
+  recordSubmitters,
+  targetData,
   onOpenSource,
   onOpenMedia,
   onOpenAddress,
+  onOpenTarget,
   onClose,
   onCreated,
 }: {
@@ -51,9 +55,12 @@ export function SubmitterTab({
   sources: SourceRecord[];
   media: MediaWithPath[];
   mediaApi: MediaTargetApi;
+  recordSubmitters: RecordSubmitterLink[];
+  targetData: TaskTargetData;
   onOpenSource: (sourceId: string) => void;
   onOpenMedia: (mediaId: string) => void;
   onOpenAddress: (addressId: string) => void;
+  onOpenTarget: (targetType: string, targetId: string) => void;
   onClose: () => void;
   onCreated: (realId: string) => void;
 }) {
@@ -72,9 +79,12 @@ export function SubmitterTab({
       sources={sources}
       media={media}
       mediaApi={mediaApi}
+      recordSubmitters={recordSubmitters}
+      targetData={targetData}
       onOpenSource={onOpenSource}
       onOpenMedia={onOpenMedia}
       onOpenAddress={onOpenAddress}
+      onOpenTarget={onOpenTarget}
       onClose={onClose}
       onCreated={onCreated}
     />
@@ -89,9 +99,12 @@ function SubmitterTabBody({
   sources,
   media,
   mediaApi,
+  recordSubmitters,
+  targetData,
   onOpenSource,
   onOpenMedia,
   onOpenAddress,
+  onOpenTarget,
   onClose,
   onCreated,
 }: {
@@ -102,9 +115,12 @@ function SubmitterTabBody({
   sources: SourceRecord[];
   media: MediaWithPath[];
   mediaApi: MediaTargetApi;
+  recordSubmitters: RecordSubmitterLink[];
+  targetData: TaskTargetData;
   onOpenSource: (sourceId: string) => void;
   onOpenMedia: (mediaId: string) => void;
   onOpenAddress: (addressId: string) => void;
+  onOpenTarget: (targetType: string, targetId: string) => void;
   onClose: () => void;
   onCreated: (realId: string) => void;
 }) {
@@ -113,7 +129,8 @@ function SubmitterTabBody({
   const [name, setName] = useState(base.name);
   const [languages, setLanguages] = useState<string[]>([...(base.languages ?? [])]);
   const [linkedAddressId, setLinkedAddressId] = useState<string | undefined>(base.addressId);
-  const { address, setAddress, addressBefore, saveAddress, unlinkAddress } = useRegistryAddress(api, linkedAddressId);
+  const { address, setAddress, addressBefore, addressSaveFailed, saveAddress, unlinkAddress, clearAddressSaveFailure } =
+    useRegistryAddress(api, linkedAddressId);
   const addressText = addressBefore !== undefined ? addressLabel(addressBefore) : '';
   const targetId = (lastSaved ?? record)?.id;
   const {
@@ -148,13 +165,22 @@ function SubmitterTabBody({
       name: name.trim(),
       languages: languages.map((language) => language.trim()).filter((language) => language !== ''),
     };
-    next.addressId = linkedAddressId ?? (await saveAddress());
+    if (linkedAddressId === undefined) {
+      try {
+        next.addressId = await saveAddress();
+      } catch {
+        return;
+      }
+    } else {
+      next.addressId = linkedAddressId;
+    }
     if (isNew && lastSaved === undefined) {
       await api.addSubmitter(next);
       onCreated(next.id);
     } else {
       await api.updateSubmitter(lastSaved ?? base, next);
     }
+    clearAddressSaveFailure();
     setLastSaved(next);
   };
 
@@ -163,6 +189,25 @@ function SubmitterTabBody({
     await api.deleteSubmitter(target);
     onClose();
   };
+
+  const referencedBy = useMemo(
+    () => (targetId !== undefined ? recordSubmitters.filter((link) => link.submitterId === targetId) : []),
+    [recordSubmitters, targetId],
+  );
+  const targetLabels = useMemo(() => {
+    const labels = new Map<string, string>();
+    for (const link of referencedBy) {
+      const key = `${link.targetType}:${link.targetId}`;
+      if (!labels.has(key)) {
+        labels.set(key, taskTargetLabel(link.targetType, link.targetId, targetData));
+      }
+    }
+    return labels;
+  }, [referencedBy, targetData]);
+  const openableTarget = (targetType: string): boolean =>
+    ['person', 'family', 'source', 'place', 'repository', 'submitter', 'address', 'todo', 'media', 'title'].includes(
+      targetType,
+    );
 
   return (
     <EntityTab>
@@ -217,12 +262,48 @@ function SubmitterTabBody({
           onChange={setAddress}
           onOpen={onOpenAddress}
           renderAttachments={(lineId) => (
-            <AttachmentsPanel targetType="address_line" targetId={lineId} api={api} sources={sources} />
+            <AttachmentsPanel
+              targetType="address_line"
+              targetId={lineId}
+              api={api}
+              sources={sources}
+              onOpenSource={onOpenSource}
+            />
           )}
         />
+        {addressSaveFailed && (
+          <p className="side-registries-note" role="alert">
+            {nls.t('features.tree.address.saveFailed')}
+          </p>
+        )}
       </SectionCard>
       {targetId !== undefined && (
         <>
+          <SectionCard title={nls.t('features.tree.submitter.referencedBy')}>
+            {referencedBy.length === 0 ? (
+              <p className="side-registries-note">{nls.t('features.tree.submitter.referencedBy.empty')}</p>
+            ) : (
+              <ul className="side-section-list">
+                {referencedBy.map((link) => (
+                  <li key={link.id}>
+                    <EntityCard
+                      title={
+                        targetLabels.get(`${link.targetType}:${link.targetId}`) ?? `${link.targetType}:${link.targetId}`
+                      }
+                      subtitle={
+                        (link.kind ?? 'contributor') === 'contributor'
+                          ? null
+                          : nls.t(`features.tree.contributors.kind.${link.kind ?? 'contributor'}`)
+                      }
+                      {...(openableTarget(link.targetType)
+                        ? { onClick: () => onOpenTarget(link.targetType, link.targetId) }
+                        : {})}
+                    />
+                  </li>
+                ))}
+              </ul>
+            )}
+          </SectionCard>
           <SourcesSection
             targetType="submitter"
             targetId={targetId}

@@ -31,6 +31,10 @@ describe('emptyFactDraft', () => {
       ages: [],
       participants: [],
       flags: [],
+      primary: false,
+      relatedFamilyId: '',
+      adoptedBy: '',
+      adoptionPhrase: '',
     });
   });
 });
@@ -71,6 +75,8 @@ describe('factToDraft / factDraftToRecord', () => {
         { id: 'W2', value: 'Unknown woman', position: 1 },
       ],
       flags: ['private', 'tentative'],
+      primary: true,
+      familyLinks: [{ id: 'FF1', familyId: 'FAM1', adoptedBy: 'BOTH', phrase: 'both parents', position: 0 }],
     });
     const draft = factToDraft(source);
     expect(draft).toMatchObject({
@@ -103,6 +109,11 @@ describe('factToDraft / factDraftToRecord', () => {
       ages: source.ages,
       participants: source.participants,
       flags: ['private', 'tentative'],
+      primary: true,
+      relatedFamilyId: 'FAM1',
+      familyLinkId: 'FF1',
+      adoptedBy: 'BOTH',
+      adoptionPhrase: 'both parents',
     });
     expect(factDraftToRecord(draft)).toEqual(source);
   });
@@ -131,6 +142,7 @@ describe('factToDraft / factDraftToRecord', () => {
       ages: undefined,
       participants: undefined,
       flags: undefined,
+      primary: undefined,
     });
   });
 
@@ -213,5 +225,25 @@ describe('factKindLabel', () => {
     expect(factKindLabel(factToDraft(fact({ tag: 'EVEN', type: 'graduation' })))).toBe('EVEN · graduation');
     expect(factKindLabel(factToDraft(fact()))).toBe('BIRT');
     expect(factKindLabel(emptyFactDraft({}))).toBe('—');
+  });
+
+  it('preserves family links outside the edited first link', () => {
+    const source = fact({
+      familyLinks: [
+        { id: 'L1', familyId: 'F1', position: 0 },
+        { id: 'L2', familyId: 'F2', position: 1 },
+      ],
+    });
+    const edited = factToDraft(source);
+    edited.primary = true;
+    expect(factDraftToRecord(edited, source).familyLinks).toEqual(source.familyLinks);
+
+    const cleared = factDraftToRecord({ ...edited, relatedFamilyId: '' }, source);
+    expect(cleared.familyLinks).toEqual([source.familyLinks![1]]);
+
+    // A stale draft must not recreate a link removed by another writer, but
+    // the unrelated link still survives.
+    const refreshed: FactRecord = { ...source, familyLinks: [source.familyLinks![1]!] };
+    expect(factDraftToRecord(edited, refreshed).familyLinks).toEqual([source.familyLinks![1]]);
   });
 });

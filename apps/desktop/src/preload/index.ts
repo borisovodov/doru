@@ -1,4 +1,7 @@
 import { contextBridge, ipcRenderer } from 'electron';
+import type { RecordSubmitterLink, TagLinkRecord, TagRecord } from '@doru/core';
+
+type SubmitterKind = NonNullable<RecordSubmitterLink['kind']>;
 
 const api = {
   platform: process.platform,
@@ -143,9 +146,15 @@ const api = {
     ipcRenderer.invoke('tree:deleteRestriction', { projectPath, restriction }),
   updateRestriction: (projectPath: string, before: unknown, after: unknown): Promise<unknown> =>
     ipcRenderer.invoke('tree:updateRestriction', { projectPath, before, after }),
-  getTags: (projectPath: string): Promise<unknown> => ipcRenderer.invoke('tree:tags', { projectPath }),
-  getTagLinks: (projectPath: string, targetType: string, targetId: string): Promise<unknown> =>
+  getTags: (projectPath: string): Promise<TagRecord[]> => ipcRenderer.invoke('tree:tags', { projectPath }),
+  getTagLinks: (
+    projectPath: string,
+    targetType: string,
+    targetId: string,
+  ): Promise<Array<{ tagId: string; link: TagLinkRecord }>> =>
     ipcRenderer.invoke('tree:tagLinks', { projectPath, targetType, targetId }),
+  getAllTagLinks: (projectPath: string): Promise<TagLinkRecord[]> =>
+    ipcRenderer.invoke('tree:allTagLinks', { projectPath }),
   addTag: (projectPath: string, tag: unknown): Promise<unknown> =>
     ipcRenderer.invoke('tree:addTag', { projectPath, tag }),
   updateTag: (projectPath: string, before: unknown, after: unknown): Promise<unknown> =>
@@ -208,23 +217,34 @@ const api = {
     ipcRenderer.invoke('tree:updateSubmitter', { projectPath, before, after }),
   deleteSubmitter: (projectPath: string, submitter: unknown): Promise<unknown> =>
     ipcRenderer.invoke('tree:deleteSubmitter', { projectPath, submitter }),
-  getRecordSubmitters: (projectPath: string, targetType: string, targetId: string): Promise<unknown> =>
+  getRecordSubmitters: (projectPath: string, targetType: string, targetId: string): Promise<RecordSubmitterLink[]> =>
     ipcRenderer.invoke('tree:recordSubmitters', { projectPath, targetType, targetId }),
+  getAllRecordSubmitters: (projectPath: string): Promise<RecordSubmitterLink[]> =>
+    ipcRenderer.invoke('tree:allRecordSubmitters', { projectPath }),
   addRecordSubmitter: (
     projectPath: string,
     submitterId: string,
     targetType: string,
     targetId: string,
+    kind?: SubmitterKind,
   ): Promise<unknown> =>
-    ipcRenderer.invoke('tree:addRecordSubmitter', { projectPath, submitterId, targetType, targetId }),
+    ipcRenderer.invoke('tree:addRecordSubmitter', { projectPath, submitterId, targetType, targetId, kind }),
   deleteRecordSubmitter: (
     projectPath: string,
     id: string,
     submitterId: string,
     targetType: string,
     targetId: string,
+    kind?: SubmitterKind,
   ): Promise<unknown> =>
-    ipcRenderer.invoke('tree:deleteRecordSubmitter', { projectPath, id, submitterId, targetType, targetId }),
+    ipcRenderer.invoke('tree:deleteRecordSubmitter', {
+      projectPath,
+      id,
+      submitterId,
+      targetType,
+      targetId,
+      kind,
+    }),
   addAddress: (projectPath: string, address: unknown): Promise<unknown> =>
     ipcRenderer.invoke('tree:addAddress', { projectPath, address }),
   updateAddress: (projectPath: string, before: unknown, after: unknown): Promise<unknown> =>

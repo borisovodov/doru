@@ -106,6 +106,102 @@ describe('place ops', () => {
     }
   });
 
+  it('restores additional places at their stored positions', () => {
+    const { fixture, service } = makeService();
+    try {
+      service.addPerson({ id: 'P1', names: [], sex: 'U', facts: [] });
+      for (const id of ['PL1', 'PL2', 'PL3', 'PL4']) {
+        service.addPlace({ id, names: [{ id: `PN-${id}`, kind: 'official', position: 0, value: id }] });
+      }
+      service.addFact({
+        id: 'F1',
+        personId: 'P1',
+        tag: 'BIRT',
+        additionalPlaceIds: ['PL1', 'PL2', 'PL3', 'PL4'],
+      });
+
+      service.deletePlace(fixture.repo.getPlace('PL1')!);
+      service.deletePlace(fixture.repo.getPlace('PL4')!);
+      expect(fixture.repo.listFactsForPerson('P1')[0]?.additionalPlaceIds).toEqual(['PL2', 'PL3']);
+
+      service.undo();
+      expect(fixture.repo.listFactsForPerson('P1')[0]?.additionalPlaceIds).toEqual(['PL2', 'PL3', 'PL4']);
+    } finally {
+      cleanupRepo(fixture);
+    }
+  });
+
+  it('redo deletes and restores the place when nothing changed', () => {
+    const { fixture, service } = makeService();
+    try {
+      service.addPlace(moscow);
+      service.deletePlace(moscow);
+      const undone = service.undo();
+      expect(fixture.repo.getPlace('PL1')).toBeDefined();
+      expect(undone.canRedo).toBe(true);
+      const state = service.redo();
+      expect(state.redoBlocked).toBeUndefined();
+      expect(fixture.repo.getPlace('PL1')).toBeUndefined();
+    } finally {
+      cleanupRepo(fixture);
+    }
+  });
+
+  it('rejects place redo when new attachments appeared', () => {
+    const { fixture, service } = makeService();
+    const { repo } = fixture;
+    try {
+      service.addPlace(moscow);
+      service.deletePlace(moscow);
+      service.undo();
+      repo.insertNote({ id: 'N1', text: 'new note', targetType: 'place', targetId: 'PL1' });
+
+      const state = service.redo();
+      expect(state.redoBlocked).toBe(true);
+      expect(repo.getPlace('PL1')).toBeDefined();
+      expect(repo.listNotesFor('place', 'PL1').map((entry) => entry.id)).toEqual(['N1']);
+    } finally {
+      cleanupRepo(fixture);
+    }
+  });
+
+  it('rejects place redo when a fact reference kind changed', () => {
+    const { fixture, service } = makeService();
+    const { repo } = fixture;
+    try {
+      service.addPerson({ id: 'P1', names: [], sex: 'U', facts: [] });
+      service.addPlace(moscow);
+      service.addFact({ id: 'F1', personId: 'P1', tag: 'BIRT', additionalPlaceIds: ['PL1'] });
+      service.deletePlace(moscow);
+      service.undo();
+
+      repo.updateFact({ ...repo.getFact('F1')!, placeId: 'PL1', additionalPlaceIds: undefined });
+      expect(service.redo().redoBlocked).toBe(true);
+      expect(repo.getPlace('PL1')).toBeDefined();
+    } finally {
+      cleanupRepo(fixture);
+    }
+  });
+
+  it('keeps a date that another place name still references', () => {
+    const { fixture, service } = makeService();
+    try {
+      const date = { id: 'SHARED-DATE', quality: 'exact' as const, component: { year: 1900 } };
+      service.addPlace({
+        id: 'PL1',
+        names: [{ id: 'PN1', kind: 'official', position: 0, value: 'One', date }],
+      });
+      service.addPlace({
+        id: 'PL2',
+        names: [{ id: 'PN2', kind: 'official', position: 0, value: 'Two', date }],
+      });
+      service.deletePlace(fixture.repo.getPlace('PL1')!);
+      expect(fixture.repo.getPlace('PL2')?.names[0]?.date?.id).toBe('SHARED-DATE');
+    } finally {
+      cleanupRepo(fixture);
+    }
+  });
+
   it('updates a place through the service with undo', () => {
     const { fixture, service } = makeService();
     try {

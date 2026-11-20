@@ -125,6 +125,23 @@ export function collectNameIds(names: PersonName[]): string[] {
   return ids;
 }
 
+/** Every name part id, including parts of nested variants. */
+export function collectNamePartIds(names: PersonName[]): string[] {
+  const ids: string[] = [];
+  const visit = (name: PersonName): void => {
+    for (const part of name.parts ?? []) {
+      ids.push(part.id);
+    }
+    for (const variant of name.variants ?? []) {
+      visit(variant);
+    }
+  };
+  for (const name of names) {
+    visit(name);
+  }
+  return ids;
+}
+
 export interface PersonName {
   id: string;
   /** Translation/phonetic/romanized variant of another name; undefined for a top-level name. */
@@ -160,6 +177,16 @@ export interface PersonName {
   parts?: NamePart[] | undefined;
   variants?: PersonName[] | undefined;
 }
+
+/**
+ * The Family Historian fact flags (`_FLGS`). Stored in lowercase in the
+ * `fact_flag` table and edited as checkboxes; the GEDCOM wire form is the
+ * uppercase `FactFlag` of `@doru/gedcom`. The AGES! `_PRI` marker is a
+ * separate concept and lives in `FactRecord.primary`.
+ */
+export const FACT_FLAGS = ['private', 'preferred', 'tentative', 'rejected'] as const;
+
+export type FactFlag = (typeof FACT_FLAGS)[number];
 
 /**
  * A fact about a person or a family: a life event (birth, death, marriage)
@@ -202,8 +229,12 @@ export interface FactRecord {
   ages?: FactAge[] | undefined;
   /** Witnesses and other participants. */
   participants?: FactParticipant[] | undefined;
-  /** Flags: private | preferred | tentative | rejected. */
-  flags?: string[] | undefined;
+  /** The Family Historian `_FLGS` flags. */
+  flags?: FactFlag[] | undefined;
+  /** The fact is the primary one of its kind (AGES! `_PRI`). */
+  primary?: boolean | undefined;
+  /** Families referenced by the event (GEDCOM event-level FAMC). */
+  familyLinks?: FactFamilyLink[] | undefined;
   /** The place prefix (vendor `_PPFX`). */
   placePrefix?: string | undefined;
   /** The vendor event number (vendor `_EVN`). */
@@ -216,6 +247,16 @@ export interface FactRecord {
   descriptionAware?: boolean | undefined;
   /** Event coordinates (vendor `_COR`). */
   map?: { latitude: number; longitude: number } | undefined;
+}
+
+/** The family an event belongs to (GEDCOM event-level FAMC). */
+export interface FactFamilyLink {
+  id: string;
+  familyId: string;
+  /** The parent(s) who adopted the subject (ADOP only): HUSB | WIFE | BOTH. */
+  adoptedBy?: 'HUSB' | 'WIFE' | 'BOTH' | undefined;
+  phrase?: string | undefined;
+  position: number;
 }
 
 /** An age at a fact: the subject's (no person/role) or a partner's (HUSB/WIFE). */
@@ -245,6 +286,8 @@ export interface PersonRecord {
   /** Identifier assigned by a GEDCOM import; provenance only. */
   xref?: string | undefined;
   sex: Sex;
+  /** The parser's ISDEAD vital flag: alive | dead; undefined = unknown. */
+  deathStatus?: 'alive' | 'dead' | undefined;
   /** The person's own address (GEDCOM INDI.ADDR), shared with other records. */
   addressId?: string | undefined;
   names: PersonName[];
@@ -285,6 +328,7 @@ export interface FamilyChildLink {
   pedigree?: string | undefined;
   pedigreePhrase?: string | undefined;
   status?: string | undefined;
+  statusPhrase?: string | undefined;
   fatherRelation?: string | undefined;
   motherRelation?: string | undefined;
   preferred?: boolean | undefined;
@@ -320,7 +364,12 @@ export interface FamilyRecord {
   marriageBeginStatus?: string | undefined;
   marriageEndStatus?: string | undefined;
   marriageStatuses?: FamilyMarriageStatus[] | undefined;
-  /** Free-text family witnesses (vendor `_WITN`/`_GODT`). */
+  /**
+   * Free-text family witnesses (vendor `_WITN`/`_GODT`). These are names,
+   * not person pointers, and deliberately have no stable row identity in
+   * the model: they are not attachment targets. Use `association` for
+   * witnesses that need notes, sources or tasks.
+   */
   witnesses?: string[] | undefined;
 }
 
@@ -496,6 +545,20 @@ export interface MediaFile {
   id: string;
   path: string;
   title?: string | undefined;
+  /** FORM.MEDI: the historical medium (photograph, negative, digital, …). */
+  medium?: string | undefined;
+  /** _CTYP: person, group, place, tombstone, document, heirloom, … */
+  contentType?: string | undefined;
+  /** _TEXT: the file's transcription text. */
+  text?: string | undefined;
+  /** TRAN: the same content in another digital format. */
+  translations?: MediaFileTranslation[] | undefined;
+}
+
+export interface MediaFileTranslation {
+  id: string;
+  path: string;
+  position: number;
 }
 
 /** A media record attached to some target, with the link's usage details. */
@@ -526,6 +589,17 @@ export interface MediaRecord {
   /** Project-relative path under the media folder (first file). */
   path?: string | undefined;
   title?: string | undefined;
+  /** Historical media date (`_DATE`), not the file's EXIF timestamp. */
+  date?: DateValue | undefined;
+  /** Historical place (`PLAC`), as typed and optionally linked to a place row. */
+  place?: string | undefined;
+  placeId?: string | undefined;
+  /** _TYPE: Photo, Sound, Video, Document, … */
+  objectType?: string | undefined;
+  /** _DSCR: the media object's description. */
+  description?: string | undefined;
+  /** _KEYS: keywords of the media object. */
+  keywords?: string | undefined;
   targetType?: string | undefined;
   targetId?: string | undefined;
   files?: MediaFile[] | undefined;
@@ -543,13 +617,19 @@ export function isImagePath(path: string | undefined): boolean {
   return dot !== -1 && (IMAGE_EXTENSIONS as readonly string[]).includes(path.slice(dot + 1).toLowerCase());
 }
 
+/** True when a stored path points inside the project's media folder. */
+export function isProjectMediaPath(path: string): boolean {
+  const normalized = path.replaceAll('\\', '/');
+  return normalized.startsWith('media/') && !normalized.split('/').includes('..');
+}
+
 /**
  * True when a media record has at least one project-relative image file.
  * External paths and non-image files are intentionally hidden from the UI.
  */
 export function isVisibleMedia(media: Pick<MediaRecord, 'path' | 'files'>): boolean {
   const paths = media.files?.map((file) => file.path) ?? (media.path !== undefined ? [media.path] : []);
-  return paths.some((path) => path.startsWith('media/') && !path.includes('../') && isImagePath(path));
+  return paths.some((path) => isProjectMediaPath(path) && isImagePath(path));
 }
 
 // ---------------------------------------------------------------------------
@@ -638,31 +718,66 @@ export interface TagLinkRecord {
   date?: DateValue | undefined;
 }
 
+/** A submitter link: contributor or an ANCI/DESI research interest. */
+export interface RecordSubmitterLink {
+  id: string;
+  submitterId: string;
+  targetType: string;
+  targetId: string;
+  /** Missing on legacy/caller snapshots means an ordinary contributor. */
+  kind?: 'contributor' | 'ancestor_interest' | 'descendant_interest' | undefined;
+}
+
+/** Attachments of a target nested inside a larger snapshot (e.g. a media link). */
+export interface NestedAttachmentSnapshot {
+  targetType: string;
+  targetId: string;
+  attachments: AttachmentsSnapshot;
+}
+
 /** Everything attached to one target, for op snapshots and cascades. */
 export interface AttachmentsSnapshot {
   noteLinks: Array<{ note: NoteRecord; link: NoteLinkRecord }>;
+  /** Attachments of linked notes, restored when this snapshot reinserts one. */
+  noteAttachments: NestedAttachmentSnapshot[];
   citations: CitationRecord[];
+  /** Attachments of citations that would be deleted with this target. */
+  citationAttachments: NestedAttachmentSnapshot[];
   mediaLinks: Array<{ media: MediaRecord; link: MediaLinkRecord }>;
+  /** Attachments of media records that would be deleted with this target. */
+  mediaAttachments: NestedAttachmentSnapshot[];
+  /** Attachments of the files of those media records. */
+  mediaFileAttachments: NestedAttachmentSnapshot[];
+  /** Attachments of the media links above, restored with them. */
+  mediaLinkAttachments: NestedAttachmentSnapshot[];
   identifiers: IdentifierRecord[];
   contacts: ContactRecord[];
   restrictions: RestrictionRecord[];
   changes: ChangeRecord[];
   tagLinks: Array<{ tagId: string; link: TagLinkRecord }>;
   todos: TodoRecord[];
-  recordSubmitters: Array<{ id: string; submitterId: string; targetType: string; targetId: string }>;
+  /** Attachments of todos that would be deleted with this target. */
+  todoAttachments: NestedAttachmentSnapshot[];
+  recordSubmitters: RecordSubmitterLink[];
 }
 
 export function emptyAttachments(): AttachmentsSnapshot {
   return {
     noteLinks: [],
+    noteAttachments: [],
     citations: [],
+    citationAttachments: [],
     mediaLinks: [],
+    mediaAttachments: [],
+    mediaFileAttachments: [],
+    mediaLinkAttachments: [],
     identifiers: [],
     contacts: [],
     restrictions: [],
     changes: [],
     tagLinks: [],
     todos: [],
+    todoAttachments: [],
     recordSubmitters: [],
   };
 }
@@ -727,9 +842,12 @@ export interface TitleRecord {
 /**
  * The machine-readable list of attachment target types. The polymorphic
  * attachment tables pair `target_type` with the target row's UUID.
+ * Free-text `family_witness` rows are deliberately absent: they are names
+ * without stable identity and are not attachment targets.
  */
 export const TARGET_TYPES = [
   'person',
+  'person_sex',
   'family',
   'family_partner',
   'family_child',
@@ -742,6 +860,7 @@ export const TARGET_TYPES = [
   'note',
   'media',
   'media_file',
+  'media_link',
   'place',
   'place_name',
   'place_hierarchy',

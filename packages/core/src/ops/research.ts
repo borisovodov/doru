@@ -1,19 +1,42 @@
 import type { AssociationRecord, AttachmentsSnapshot, TitleRecord, TodoRecord } from '../model/types';
 import { emptyAttachments } from '../model/types';
 import type { Op } from './op';
+import { attachmentsMatch, restoreAlias, restoreAssociation, restoreTitle, restoreTodo, sameRecord } from './restore';
 
-function op(id: string, kind: string, apply: Op['apply'], inverse: Op['inverse'], change?: Op['change']): Op {
-  return { id, kind, timestamp: new Date().toISOString(), ...(change ? { change } : {}), apply, inverse };
+function op(
+  id: string,
+  kind: string,
+  apply: Op['apply'],
+  inverse: Op['inverse'],
+  change?: Op['change'],
+  redoSafe?: NonNullable<Op['redoSafe']>,
+  snapshots?: AttachmentsSnapshot[],
+): Op {
+  return {
+    id,
+    kind,
+    timestamp: new Date().toISOString(),
+    ...(change ? { change } : {}),
+    ...(redoSafe ? { redoSafe } : {}),
+    ...(snapshots ? { snapshots } : {}),
+    apply,
+    inverse,
+  };
 }
 
 export function addAssociationOp(association: AssociationRecord): Op {
-  return op(
-    crypto.randomUUID(),
-    'association.add',
-    (ctx) => ctx.repo.insertAssociation(association),
-    (ctx) => ctx.repo.deleteAssociation(association.id),
-    { targetType: 'association', targetId: association.id, kind: 'created' },
-  );
+  return {
+    ...op(
+      crypto.randomUUID(),
+      'association.add',
+      (ctx) => ctx.repo.insertAssociation(association),
+      (ctx) => ctx.repo.deleteAssociation(association.id),
+      { targetType: 'association', targetId: association.id, kind: 'created' },
+    ),
+    dependsOn: [association.personId, association.familyId, association.otherPersonId].filter(
+      (id): id is string => id !== undefined,
+    ),
+  };
 }
 
 export function updateAssociationOp(before: AssociationRecord, after: AssociationRecord): Op {
@@ -23,6 +46,22 @@ export function updateAssociationOp(before: AssociationRecord, after: Associatio
     (ctx) => ctx.repo.updateAssociation(after),
     (ctx) => ctx.repo.updateAssociation(before),
     { targetType: 'association', targetId: before.id, kind: 'changed' },
+    (ctx) => {
+      const current = ctx.repo.listAssociations().find((entry) => entry.id === before.id);
+      if (current === undefined || !sameRecord(current, before)) {
+        return false;
+      }
+      if (ctx.repo.getPerson(after.otherPersonId) === undefined) {
+        return false;
+      }
+      if (
+        (after.personId !== undefined && ctx.repo.getPerson(after.personId) === undefined) ||
+        (after.familyId !== undefined && ctx.repo.getFamily(after.familyId) === undefined)
+      ) {
+        return false;
+      }
+      return true;
+    },
   );
 }
 
@@ -35,10 +74,25 @@ export function deleteAssociationOp(
     'association.delete',
     (ctx) => ctx.repo.deleteAssociation(association.id),
     (ctx) => {
-      ctx.repo.insertAssociation(association);
-      ctx.repo.restoreAttachments(attachments);
+      if (restoreAssociation(ctx, association)) {
+        ctx.repo.restoreAttachments(attachments);
+      }
     },
     { targetType: 'association', targetId: association.id, kind: 'changed' },
+    (ctx) => {
+      const current =
+        association.personId !== undefined
+          ? ctx.repo.listAssociationsFor(association.personId).find((entry) => entry.id === association.id)
+          : association.familyId !== undefined
+            ? ctx.repo.listAssociationsForFamily(association.familyId).find((entry) => entry.id === association.id)
+            : undefined;
+      return (
+        current !== undefined &&
+        sameRecord(current, association) &&
+        attachmentsMatch(ctx, 'association', association.id, attachments)
+      );
+    },
+    [attachments],
   );
 }
 
@@ -46,9 +100,17 @@ export function addAliasOp(id: string, personId: string, aliasId: string): Op {
   return op(
     crypto.randomUUID(),
     'alias.add',
-    (ctx) => ctx.repo.insertAlias(id, personId, aliasId),
+    (ctx) => {
+      if (!restoreAlias(ctx, id, personId, aliasId)) {
+        throw new Error(`cannot add alias ${id}: person ${personId} or ${aliasId} no longer exists`);
+      }
+    },
     (ctx) => ctx.repo.deleteAlias(id),
     { targetType: 'person', targetId: personId, kind: 'changed' },
+    (ctx) =>
+      ctx.repo.getPerson(personId) !== undefined &&
+      ctx.repo.getPerson(aliasId) !== undefined &&
+      !ctx.repo.listAliasRowsFor(personId).some((row) => row.personId === personId && row.aliasId === aliasId),
   );
 }
 
@@ -59,6 +121,10 @@ export function deleteAliasOp(id: string, personId: string, aliasId: string): Op
     (ctx) => ctx.repo.deleteAlias(id),
     (ctx) => ctx.repo.insertAlias(id, personId, aliasId),
     { targetType: 'person', targetId: personId, kind: 'changed' },
+    (ctx) =>
+      ctx.repo.getPerson(personId) !== undefined &&
+      ctx.repo.getPerson(aliasId) !== undefined &&
+      ctx.repo.listAliasRowsFor(personId).some((row) => row.id === id),
   );
 }
 
@@ -83,15 +149,22 @@ export function updateTodoOp(before: TodoRecord, after: TodoRecord): Op {
 }
 
 export function deleteTodoOp(todo: TodoRecord, attachments: AttachmentsSnapshot = emptyAttachments()): Op {
+  let baseline = todo;
   return op(
     crypto.randomUUID(),
     'todo.delete',
     (ctx) => ctx.repo.deleteTodo(todo.id),
     (ctx) => {
-      ctx.repo.insertTodo(todo);
+      restoreTodo(ctx, todo);
+      baseline = ctx.repo.getTodo(todo.id) ?? todo;
       ctx.repo.restoreAttachments(attachments);
     },
     { targetType: 'todo', targetId: todo.id, kind: 'changed' },
+    (ctx) =>
+      ctx.repo.getTodo(todo.id) !== undefined &&
+      sameRecord(ctx.repo.getTodo(todo.id), baseline) &&
+      attachmentsMatch(ctx, 'todo', todo.id, attachments),
+    [attachments],
   );
 }
 
@@ -112,6 +185,14 @@ export function updateTitleOp(before: TitleRecord, after: TitleRecord): Op {
     (ctx) => ctx.repo.updateTitle(after),
     (ctx) => ctx.repo.updateTitle(before),
     { targetType: 'title', targetId: before.id, kind: 'changed' },
+    (ctx) => {
+      const current = ctx.repo.getTitle(before.id);
+      return (
+        current !== undefined &&
+        sameRecord(current, before) &&
+        (after.repositoryId === undefined || ctx.repo.getRepository(after.repositoryId) !== undefined)
+      );
+    },
   );
 }
 
@@ -125,17 +206,37 @@ export function deleteTitleOp(
   attachments: AttachmentsSnapshot = emptyAttachments(),
   consumers: TitleConsumers = {},
 ): Op {
+  let baseline = title;
+  let baselineSourceIds = (consumers.sources ?? []).map((source) => source.id);
   return op(
     crypto.randomUUID(),
     'title.delete',
     (ctx) => ctx.repo.deleteTitle(title.id),
     (ctx) => {
-      ctx.repo.insertTitle(title);
+      restoreTitle(ctx, title);
+      baseline = ctx.repo.getTitle(title.id) ?? title;
       ctx.repo.restoreAttachments(attachments);
       for (const source of consumers.sources ?? []) {
         ctx.repo.setSourceTitle(source.id, source.titleId);
       }
+      baselineSourceIds = ctx.repo.listSourcesForTitle(title.id).map((source) => source.id);
     },
     { targetType: 'title', targetId: title.id, kind: 'changed' },
+    (ctx) => {
+      if (
+        ctx.repo.getTitle(title.id) === undefined ||
+        !sameRecord(ctx.repo.getTitle(title.id), baseline) ||
+        !attachmentsMatch(ctx, 'title', title.id, attachments)
+      ) {
+        return false;
+      }
+      const captured = [...baselineSourceIds].sort();
+      const live = ctx.repo
+        .listSourcesForTitle(title.id)
+        .map((source) => source.id)
+        .sort();
+      return JSON.stringify(captured) === JSON.stringify(live);
+    },
+    [attachments],
   );
 }

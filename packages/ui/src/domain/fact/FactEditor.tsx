@@ -5,6 +5,7 @@ import { Plus, X } from 'lucide-react';
 import type {
   AddressRecord,
   FactAge,
+  FactFlag,
   FactParticipant,
   FactRecord,
   FamilyRecord,
@@ -15,6 +16,7 @@ import { nls } from '../../nls';
 import { placeName } from '@doru/core/model';
 import { DateEditor } from '../date/DateEditor';
 import { Checkbox } from '../../atoms/form/Checkbox';
+import { Field } from '../../atoms/field/Field';
 import { Input } from '../../atoms/form/Input';
 import { Select } from '../../atoms/form/Select';
 import { ReorderButtons } from '../../atoms/reorder-buttons/ReorderButtons';
@@ -76,7 +78,7 @@ export function FactEditor({
   const [addressDraft, setAddressDraft] = useState<AddressDraft | undefined>(undefined);
   const [saving, setSaving] = useState(false);
 
-  const set = (patch: Partial<FactDraft>) => setDraft({ ...draft, ...patch });
+  const set = (patch: Partial<FactDraft>) => setDraft((current) => ({ ...current, ...patch }));
 
   const owner = factOwnerRef(draft);
   const personById = new Map(persons.map((person) => [person.id, person]));
@@ -146,7 +148,7 @@ export function FactEditor({
     } else if (onAddAddress !== undefined) {
       await onAddAddress(record);
     }
-    set({ addressId: record.id });
+    setDraft((current) => ({ ...current, addressId: record.id }));
     setAddressDraft(undefined);
   };
 
@@ -172,7 +174,7 @@ export function FactEditor({
         .map((participant, position) => ({ ...participant, position })),
     });
 
-  const toggleFlag = (flag: string) =>
+  const toggleFlag = (flag: FactFlag) =>
     set({ flags: draft.flags.includes(flag) ? draft.flags.filter((entry) => entry !== flag) : [...draft.flags, flag] });
 
   const pickParticipantPerson = (index: number, personId: string) => {
@@ -235,6 +237,44 @@ export function FactEditor({
         {nls.t('features.tree.fact.value')}
         <Input value={draft.value} onChange={(event) => set({ value: event.target.value })} />
       </label>
+
+      {['ADOP', 'BIRT', 'CHR'].includes(draft.tag) && (
+        <div className="fact-editor-row">
+          <Field label={nls.t('features.tree.fact.relatedFamily')}>
+            <Select value={draft.relatedFamilyId} onChange={(event) => set({ relatedFamilyId: event.target.value })}>
+              <option value="">{nls.t('features.tasks.none')}</option>
+              {families.map((family) => (
+                <option key={family.id} value={family.id}>
+                  {familyLabel(family, personById)}
+                </option>
+              ))}
+            </Select>
+          </Field>
+          {draft.tag === 'ADOP' && (
+            <>
+              <Field label={nls.t('features.tree.fact.adoptedBy')}>
+                <Select
+                  value={draft.adoptedBy}
+                  disabled={draft.relatedFamilyId === ''}
+                  onChange={(event) => set({ adoptedBy: event.target.value })}
+                >
+                  <option value="">{nls.t('features.tasks.none')}</option>
+                  <option value="HUSB">{nls.t('features.tree.fact.adoptedBy.husb')}</option>
+                  <option value="WIFE">{nls.t('features.tree.fact.adoptedBy.wife')}</option>
+                  <option value="BOTH">{nls.t('features.tree.fact.adoptedBy.both')}</option>
+                </Select>
+              </Field>
+              <Field label={nls.t('features.tree.fact.adoptionPhrase')}>
+                <Input
+                  value={draft.adoptionPhrase}
+                  disabled={draft.relatedFamilyId === ''}
+                  onChange={(event) => set({ adoptionPhrase: event.target.value })}
+                />
+              </Field>
+            </>
+          )}
+        </div>
+      )}
 
       <DateEditor
         label={nls.t('features.tree.events.dateField')}
@@ -461,6 +501,9 @@ export function FactEditor({
                       )}
                 </option>
               ))}
+              {!(FACT_AGE_ROLES as readonly string[]).includes(age.role ?? '') && (age.role ?? '') !== '' && (
+                <option value={age.role}>{age.role}</option>
+              )}
             </Select>
             {AGE_NUMBER_FIELDS.map((field) => (
               <Input
@@ -569,6 +612,11 @@ export function FactEditor({
               onChange={() => toggleFlag(flag)}
             />
           ))}
+          <Checkbox
+            label={nls.t('features.tree.fact.primaryEvent')}
+            checked={draft.primary}
+            onChange={() => set({ primary: !draft.primary })}
+          />
         </div>
       </div>
 

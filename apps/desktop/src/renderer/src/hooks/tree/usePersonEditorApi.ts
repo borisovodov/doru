@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import type { TodoRecord } from '@doru/core';
+import type { RecordSubmitterLink, TodoRecord } from '@doru/core';
 import type { MediaTargetApi, PersonEditorApi } from '@doru/features';
 import type { RefreshTree } from './types';
 
@@ -23,7 +23,9 @@ export function usePersonEditorApi(
           return;
         }
         await window.doru.updatePerson(projectPath, before, after);
-        await refreshTree();
+        // The write already committed; a failed snapshot reload must not keep
+        // the submitted edits marked as pending.
+        await refreshTree().catch(() => undefined);
       },
       getNotes: (targetType, targetId) =>
         projectPath ? window.doru.listNotes(projectPath, targetType, targetId) : Promise.resolve([]),
@@ -269,20 +271,31 @@ export function usePersonEditorApi(
         await window.doru.deleteAlias(projectPath, id, personId, aliasId);
         await refreshTree();
       },
-      getRecordSubmitters: (targetType, targetId) =>
+      getRecordSubmitters: (targetType, targetId): Promise<RecordSubmitterLink[]> =>
         projectPath ? window.doru.getRecordSubmitters(projectPath, targetType, targetId) : Promise.resolve([]),
-      addRecordSubmitter: async (submitterId, targetType, targetId) => {
+      addRecordSubmitter: async (
+        submitterId,
+        targetType,
+        targetId,
+        kind: NonNullable<RecordSubmitterLink['kind']> = 'contributor',
+      ) => {
         if (!projectPath) {
           return;
         }
-        await window.doru.addRecordSubmitter(projectPath, submitterId, targetType, targetId);
+        await window.doru.addRecordSubmitter(projectPath, submitterId, targetType, targetId, kind);
         await refreshTree();
       },
-      deleteRecordSubmitter: async (id, submitterId, targetType, targetId) => {
+      deleteRecordSubmitter: async (
+        id,
+        submitterId,
+        targetType,
+        targetId,
+        kind: NonNullable<RecordSubmitterLink['kind']> = 'contributor',
+      ) => {
         if (!projectPath) {
           return;
         }
-        await window.doru.deleteRecordSubmitter(projectPath, id, submitterId, targetType, targetId);
+        await window.doru.deleteRecordSubmitter(projectPath, id, submitterId, targetType, targetId, kind);
         await refreshTree();
       },
       getTagLinks: (targetType, targetId) =>
@@ -292,36 +305,46 @@ export function usePersonEditorApi(
           return;
         }
         await window.doru.addTag(projectPath, tag);
+        // The tag already exists; a failed snapshot reload must not stop the
+        // caller from attaching it (the follow-up refresh runs then).
+        await refreshTree().catch(() => undefined);
       },
       attachTag: async (link) => {
         if (!projectPath) {
           return;
         }
         await window.doru.attachTag(projectPath, link);
+        // The link is committed; a failed snapshot reload must not make the
+        // caller treat the attach as failed.
+        await refreshTree().catch(() => undefined);
       },
       detachTag: async (link) => {
         if (!projectPath) {
           return;
         }
         await window.doru.detachTag(projectPath, link);
+        await refreshTree();
       },
       updateTagLink: async (before, after) => {
         if (!projectPath) {
           return;
         }
         await window.doru.updateTagLink(projectPath, before, after);
+        await refreshTree();
       },
       updateTag: async (before, after) => {
         if (!projectPath) {
           return;
         }
         await window.doru.updateTag(projectPath, before, after);
+        await refreshTree();
       },
       deleteTag: async (tag) => {
         if (!projectPath) {
           return;
         }
         await window.doru.deleteTag(projectPath, tag);
+        await refreshTree();
       },
       getChanges: (targetType, targetId) =>
         projectPath ? window.doru.getChanges(projectPath, targetType, targetId) : Promise.resolve([]),

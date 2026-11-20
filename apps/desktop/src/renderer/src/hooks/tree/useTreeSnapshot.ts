@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import type {
   AddressRecord,
   AssociationRecord,
@@ -8,9 +8,12 @@ import type {
   NoteRecord,
   PersonRecord,
   PlaceRecord,
+  RecordSubmitterLink,
   RepositoryRecord,
   SourceRecord,
   SubmitterRecord,
+  TagLinkRecord,
+  TagRecord,
   TitleRecord,
   TodoRecord,
 } from '@doru/core';
@@ -27,12 +30,22 @@ export function useTreeSnapshot(projectPath: string | null | undefined) {
   const [places, setPlaces] = useState<PlaceRecord[]>([]);
   const [repositories, setRepositories] = useState<RepositoryRecord[]>([]);
   const [submitters, setSubmitters] = useState<SubmitterRecord[]>([]);
+  const [recordSubmitters, setRecordSubmitters] = useState<RecordSubmitterLink[]>([]);
+  const [tags, setTags] = useState<TagRecord[]>([]);
+  const [tagLinks, setTagLinks] = useState<TagLinkRecord[]>([]);
   const [addresses, setAddresses] = useState<AddressRecord[]>([]);
   const [todos, setTodos] = useState<TodoRecord[]>([]);
   const [titles, setTitles] = useState<TitleRecord[]>([]);
   const [associations, setAssociations] = useState<AssociationRecord[]>([]);
+  const requestRef = useRef(0);
+  const publishedRef = useRef(0);
+  const activeProjectPathRef = useRef(projectPath);
+  useEffect(() => {
+    activeProjectPathRef.current = projectPath;
+  }, [projectPath]);
 
   const reloadTree = useCallback(async (path: string) => {
+    const request = ++requestRef.current;
     const [
       data,
       allFacts,
@@ -43,6 +56,9 @@ export function useTreeSnapshot(projectPath: string | null | undefined) {
       allPlaces,
       allRepositories,
       allSubmitters,
+      allRecordSubmitters,
+      allTags,
+      allTagLinks,
       allAddresses,
       allTodos,
       allTitles,
@@ -57,11 +73,18 @@ export function useTreeSnapshot(projectPath: string | null | undefined) {
       window.doru.getPlaces(path),
       window.doru.getRepositories(path),
       window.doru.getSubmitters(path),
+      window.doru.getAllRecordSubmitters(path),
+      window.doru.getTags(path),
+      window.doru.getAllTagLinks(path),
       window.doru.listAddresses(path),
       window.doru.getTodos(path),
       window.doru.getTitles(path),
       window.doru.getAllAssociations(path),
     ]);
+    if (path !== activeProjectPathRef.current || request < publishedRef.current) {
+      return;
+    }
+    publishedRef.current = request;
     setPersons(data.persons);
     setFamilies(data.families);
     setFacts(allFacts);
@@ -72,6 +95,9 @@ export function useTreeSnapshot(projectPath: string | null | undefined) {
     setPlaces(allPlaces);
     setRepositories(allRepositories);
     setSubmitters(allSubmitters);
+    setRecordSubmitters(allRecordSubmitters);
+    setTags(allTags);
+    setTagLinks(allTagLinks);
     setAddresses(allAddresses);
     setTodos(allTodos);
     setTitles(allTitles);
@@ -80,6 +106,8 @@ export function useTreeSnapshot(projectPath: string | null | undefined) {
 
   useEffect(() => {
     if (!projectPath) {
+      requestRef.current += 1;
+      publishedRef.current = requestRef.current;
       setPersons([]);
       setFamilies([]);
       setFacts([]);
@@ -90,6 +118,9 @@ export function useTreeSnapshot(projectPath: string | null | undefined) {
       setPlaces([]);
       setRepositories([]);
       setSubmitters([]);
+      setRecordSubmitters([]);
+      setTags([]);
+      setTagLinks([]);
       setAddresses([]);
       setTodos([]);
       setTitles([]);
@@ -112,10 +143,11 @@ export function useTreeSnapshot(projectPath: string | null | undefined) {
   }, [projectPath, reloadTree]);
 
   const refreshTree = useCallback(async () => {
-    if (projectPath) {
-      await reloadTree(projectPath);
+    const activePath = activeProjectPathRef.current;
+    if (activePath) {
+      await reloadTree(activePath);
     }
-  }, [projectPath, reloadTree]);
+  }, [reloadTree]);
   return {
     persons,
     families,
@@ -127,6 +159,9 @@ export function useTreeSnapshot(projectPath: string | null | undefined) {
     places,
     repositories,
     submitters,
+    recordSubmitters,
+    tags,
+    tagLinks,
     addresses,
     todos,
     titles,

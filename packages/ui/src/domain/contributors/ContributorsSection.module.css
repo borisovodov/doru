@@ -3,3 +3,9 @@
   flex-wrap: wrap;
   gap: 6px;
 }
+
+.kind {
+  margin-inline-start: var(--doru-space-2);
+  color: var(--doru-fg);
+  font-size: var(--doru-font-size-xs);
+}

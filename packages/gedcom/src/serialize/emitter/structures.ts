@@ -1190,6 +1190,19 @@ export function emitExtension(w: Writer, version: Version, level: number, ext: E
   }
 }
 
+export function emitExtensionList(
+  w: Writer,
+  version: Version,
+  level: number,
+  extensions: ExtensionStructure[] | undefined,
+): void {
+  for (const ext of extensions ?? []) {
+    // These are children of a typed extension tag, where standard tags are
+    // permitted; only top-level extensions are restricted to `_TAG` names.
+    emitExtension(w, version, level, ext, false);
+  }
+}
+
 export function emitExtensions(w: Writer, version: Version, level: number, structure: GedcomStructureBase): void {
   for (const ext of structure.extensions ?? []) {
     emitExtension(w, version, level, ext, undefined);

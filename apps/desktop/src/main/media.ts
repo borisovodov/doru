@@ -1,16 +1,22 @@
 import { BrowserWindow, dialog, type OpenDialogOptions } from 'electron';
 import { randomUUID } from 'node:crypto';
-import { dirname, extname, join } from 'node:path';
+import { rename, stat, unlink } from 'node:fs/promises';
+import { dirname, extname, join, resolve } from 'node:path';
 import { IMAGE_EXTENSIONS, MEDIA_DIR_NAME, type MediaFile, type MediaRecord } from '@doru/core';
 import { NodeFileSystem } from './filesystem';
 import { log } from './log';
+import { readMediaFileFacts, type MediaFileFacts } from './mediaFacts';
+import { resolveMediaPath, symlinkChainResolvesTo } from './mediaPaths';
 import { ensureRuntime, runtimeFilePath } from './runtime';
 import { focusedWindow } from './windows';
 
 const fs = new NodeFileSystem();
 
+export type { MediaFileFacts };
+
 export interface MediaFileWithPath extends MediaFile {
   absolutePath: string;
+  facts?: MediaFileFacts | undefined;
 }
 
 export interface MediaWithPath extends Omit<MediaRecord, 'files'> {
@@ -23,24 +29,50 @@ export interface MediaWithPath extends Omit<MediaRecord, 'files'> {
  * Resolves a media path stored in the database to an absolute path inside
  * the project's media folder. Returns null for paths that would escape it.
  */
-function mediaAbsolutePath(projectPath: string, mediaPath: string): string | null {
-  const normalized = mediaPath.replaceAll('\\', '/');
-  if (!normalized.startsWith(`${MEDIA_DIR_NAME}/`) || normalized.includes('../')) {
-    return null;
-  }
-  return join(dirname(runtimeFilePath(projectPath)), mediaPath);
+function mediaAbsolutePath(projectPath: string, mediaPath: string): Promise<string | null> {
+  return resolveMediaPath(dirname(runtimeFilePath(projectPath)), mediaPath);
 }
 
-function withPaths(projectPath: string, media: MediaRecord): MediaWithPath {
+const MEDIA_FACT_CONCURRENCY = 4;
+
+/** Maps items with bounded concurrency, preserving the input order. */
+async function mapWithConcurrency<T, R>(
+  items: readonly T[],
+  limit: number,
+  map: (item: T) => Promise<R>,
+): Promise<R[]> {
+  const results = new Array<R>(items.length);
+  let nextIndex = 0;
+  const workers = Array.from({ length: Math.min(limit, items.length) }, async () => {
+    for (;;) {
+      const index = nextIndex;
+      nextIndex += 1;
+      const item = items[index];
+      if (item === undefined) {
+        return;
+      }
+      results[index] = await map(item);
+    }
+  });
+  await Promise.all(workers);
+  return results;
+}
+
+async function withPaths(projectPath: string, media: MediaRecord): Promise<MediaWithPath> {
   const sourceFiles: MediaFile[] =
     media.files ?? (media.path !== undefined ? [{ id: media.id, path: media.path }] : []);
-  const files = sourceFiles.flatMap((file) => {
-    const absolutePath = mediaAbsolutePath(projectPath, file.path);
-    return absolutePath === null ? [] : [{ ...file, absolutePath }];
-  });
+  const files: MediaFileWithPath[] = [];
+  for (const file of sourceFiles) {
+    const absolutePath = await mediaAbsolutePath(projectPath, file.path);
+    files.push({
+      ...file,
+      absolutePath: absolutePath ?? '',
+      ...(absolutePath !== null ? { facts: await readMediaFileFacts(absolutePath) } : {}),
+    });
+  }
   return {
     ...media,
-    absolutePath: files[0]?.absolutePath ?? '',
+    absolutePath: files.find((file) => file.absolutePath !== '')?.absolutePath ?? '',
     files: files.length > 0 ? files : undefined,
   };
 }
@@ -64,13 +96,17 @@ export async function listMediaForTarget(
   targetId: string,
 ): Promise<MediaWithPath[]> {
   const { runtime } = await ensureRuntime(projectPath);
-  return runtime.service.listMediaFor(targetType, targetId).map((media) => withPaths(projectPath, media));
+  return mapWithConcurrency(runtime.service.listMediaFor(targetType, targetId), MEDIA_FACT_CONCURRENCY, (media) =>
+    withPaths(projectPath, media),
+  );
 }
 
 /** Every media record in the project, with resolvable absolute paths. */
 export async function listAllMedia(projectPath: string): Promise<MediaWithPath[]> {
   const { runtime } = await ensureRuntime(projectPath);
-  return runtime.service.listAllMedia().map((media) => withPaths(projectPath, media));
+  return mapWithConcurrency(runtime.service.listAllMedia(), MEDIA_FACT_CONCURRENCY, (media) =>
+    withPaths(projectPath, media),
+  );
 }
 
 export async function addMediaToTarget(
@@ -97,7 +133,7 @@ export async function addMediaToTarget(
       targetId,
     };
     runtime.service.addMedia(media);
-    added.push(withPaths(projectPath, media));
+    added.push(await withPaths(projectPath, media));
   }
   return added;
 }
@@ -121,7 +157,7 @@ export async function addStandaloneMedia(projectPath: string): Promise<MediaWith
       path: join(MEDIA_DIR_NAME, name),
     };
     runtime.service.addMedia(media);
-    added.push(withPaths(projectPath, media));
+    added.push(await withPaths(projectPath, media));
   }
   return added;
 }
@@ -151,7 +187,7 @@ export async function addFilesToMedia(projectPath: string, mediaId: string): Pro
     }
     const after: MediaRecord = { ...before, files: [...(before.files ?? []), ...added] };
     runtime.service.updateMedia(before, after);
-    return withPaths(projectPath, runtime.service.getMedia(mediaId) ?? after);
+    return await withPaths(projectPath, runtime.service.getMedia(mediaId) ?? after);
   } catch (error) {
     for (const destination of destinations) {
       try {
@@ -171,13 +207,16 @@ export async function removeFileFromMedia(
   file: MediaFile,
 ): Promise<MediaWithPath | undefined> {
   const { runtime } = await ensureRuntime(projectPath);
-  const before = runtime.service.getMedia(media.id) ?? media;
-  const files = (before.files ?? []).filter((entry) => entry.id !== file.id);
-  if (files.length === (before.files ?? []).length) {
+  const before = runtime.service.getMedia(media.id);
+  const stored = before?.files?.find((entry) => entry.id === file.id);
+  if (before === undefined || stored === undefined) {
     return undefined;
   }
+  const files = (before.files ?? []).filter((entry) => entry.id !== stored.id);
   runtime.service.updateMedia(before, { ...before, files });
-  await removeMediaFile(projectPath, file.path);
+  const references = (): Promise<Set<string>> =>
+    resolveMediaReferencePaths(projectPath, () => runtime.service.listAllMedia());
+  await removeMediaFileCopies(projectPath, stored, references);
   return withPaths(projectPath, runtime.service.getMedia(media.id) ?? { ...before, files });
 }
 
@@ -190,20 +229,123 @@ export async function removeFileFromMedia(
  * treated as derived assets, not undoable state.
  */
 export async function removeMediaFiles(projectPath: string, media: MediaRecord): Promise<void> {
-  const paths = media.files?.map((file) => file.path) ?? (media.path !== undefined ? [media.path] : []);
-  for (const path of paths) {
-    await removeMediaFile(projectPath, path);
+  const { runtime } = await ensureRuntime(projectPath);
+  const references = (): Promise<Set<string>> =>
+    resolveMediaReferencePaths(projectPath, () => runtime.service.listAllMedia());
+  const initial = await references();
+  for (const file of media.files ?? []) {
+    await removeMediaFileCopies(projectPath, file, references, initial);
+  }
+  if (media.path !== undefined && (media.files ?? []).length === 0) {
+    await removeMediaFile(projectPath, media.path, references, initial);
   }
 }
 
-async function removeMediaFile(projectPath: string, mediaPath: string): Promise<void> {
-  const absolute = mediaAbsolutePath(projectPath, mediaPath);
+function mediaReferenceSignature(media: MediaRecord[]): string {
+  return media
+    .flatMap((record) =>
+      (record.files ?? []).flatMap((file) => [
+        file.path,
+        ...(file.translations ?? []).map((translation) => translation.path),
+      ]),
+    )
+    .join('\u0000');
+}
+
+/** Canonical identities of every stored file and translation. */
+async function resolveReferenceSet(projectPath: string, media: MediaRecord[]): Promise<Set<string>> {
+  const resolved = new Set<string>();
+  for (const record of media) {
+    for (const file of record.files ?? []) {
+      const paths = [file.path, ...(file.translations ?? []).map((translation) => translation.path)];
+      for (const path of paths) {
+        const absolute = await mediaAbsolutePath(projectPath, path);
+        if (absolute !== null) {
+          resolved.add(absolute);
+          resolved.add(resolve(dirname(runtimeFilePath(projectPath)), path));
+        }
+      }
+    }
+  }
+  return resolved;
+}
+
+async function resolveMediaReferencePaths(projectPath: string, getMedia: () => MediaRecord[]): Promise<Set<string>> {
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    const media = getMedia();
+    const signature = mediaReferenceSignature(media);
+    const resolved = await resolveReferenceSet(projectPath, media);
+    if (mediaReferenceSignature(getMedia()) === signature) {
+      return resolved;
+    }
+  }
+  return resolveReferenceSet(projectPath, getMedia());
+}
+
+async function removeMediaFileCopies(
+  projectPath: string,
+  file: MediaFile,
+  references: () => Promise<Set<string>>,
+  initial?: Set<string>,
+): Promise<void> {
+  const referenced = initial ?? (await references());
+  const paths = new Set([file.path, ...(file.translations ?? []).map((translation) => translation.path)]);
+  for (const path of paths) {
+    await removeMediaFile(projectPath, path, references, referenced);
+  }
+}
+
+async function removeMediaFile(
+  projectPath: string,
+  mediaPath: string,
+  references: () => Promise<Set<string>> = async () => new Set(),
+  referenced?: Set<string>,
+): Promise<void> {
+  const absolute = await mediaAbsolutePath(projectPath, mediaPath);
   if (!absolute) {
     return;
   }
+  if ((referenced ?? (await references())).has(absolute)) {
+    return;
+  }
+  let trash: string | undefined;
   try {
-    await fs.remove(absolute);
+    const info = await stat(absolute);
+    // A stored translation may name a directory; never remove its contents.
+    if (!info.isFile()) {
+      return;
+    }
+    // Move the bytes aside first: if undo restores a reference during the
+    // final check, the original file can be put back without data loss.
+    trash = `${absolute}.doru-deleting-${randomUUID()}`;
+    await rename(absolute, trash);
+    const current = await references();
+    let stillReferenced = current.has(absolute);
+    if (!stillReferenced) {
+      for (const reference of current) {
+        // Follow the whole symlink chain: an alias may point at another link
+        // whose final target is the staged file.
+        if (await symlinkChainResolvesTo(reference, absolute)) {
+          stillReferenced = true;
+          break;
+        }
+      }
+    }
+    if (stillReferenced) {
+      await rename(trash, absolute);
+      trash = undefined;
+      return;
+    }
+    await unlink(trash);
+    trash = undefined;
   } catch (error) {
     log.warn('could not remove media file', absolute, error);
+    if (trash !== undefined) {
+      try {
+        await rename(trash, absolute);
+      } catch {
+        // Best effort: the original bytes may already be gone.
+      }
+    }
   }
 }

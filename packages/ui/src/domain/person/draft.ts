@@ -109,10 +109,23 @@ export interface NameDraft {
 export interface PersonDraft {
   id: string;
   names: NameDraft[];
+  /** True after the names section was edited. */
+  namesTouched?: boolean | undefined;
   sex: Sex;
+  /** True after the sex select was changed explicitly. */
+  sexTouched?: boolean | undefined;
+  deathStatus?: 'alive' | 'dead' | undefined;
+  /** True after the death-status select was changed or cleared explicitly. */
+  deathStatusTouched?: boolean | undefined;
   addressId?: string | undefined;
+  /** True after the address select was changed or cleared explicitly. */
+  addressTouched?: boolean | undefined;
   birth: DateDraft;
+  /** True after the birth date/place was changed. */
+  birthTouched?: boolean | undefined;
   death: DateDraft;
+  /** True after the death date/place was changed. */
+  deathTouched?: boolean | undefined;
   isNew: boolean;
 }
 
@@ -347,9 +360,16 @@ export function newPersonDraft(): PersonDraft {
   return {
     id: crypto.randomUUID(),
     names: [emptyNameDraft()],
+    namesTouched: false,
     sex: 'U',
+    sexTouched: false,
+    deathStatus: undefined,
+    deathStatusTouched: false,
+    addressTouched: false,
     birth: emptyDate(),
+    birthTouched: false,
     death: emptyDate(),
+    deathTouched: false,
     isNew: true,
   };
 }
@@ -378,7 +398,12 @@ export function toDateDraft(date: DateValue | undefined, place = ''): DateDraft 
   };
 }
 
-export function fromDateDraft(draft: DateDraft): DateValue | undefined {
+export function fromDateDraft(draft: DateDraft, stored?: DateValue): DateValue | undefined {
+  const value = dateValueFromDraft(draft);
+  return value !== undefined && stored !== undefined ? rebaseDate(value, stored) : value;
+}
+
+function dateValueFromDraft(draft: DateDraft): DateValue | undefined {
   const component = componentOf(draft.year, draft.month, draft.day, draft.calendar, draft.epoch);
   const end = componentOf(draft.endYear, draft.endMonth, draft.endDay, draft.endCalendar, draft.endEpoch);
   const text = draft.text.trim() || undefined;
@@ -386,6 +411,7 @@ export function fromDateDraft(draft: DateDraft): DateValue | undefined {
   if (!component && !end && !text && !time) {
     return undefined;
   }
+  const modifier = draft.modifier !== '' ? { modifier: draft.modifier as 'ABT' | 'CAL' | 'EST' } : {};
   if (draft.quality === 'range') {
     return {
       quality: 'range',
@@ -393,13 +419,14 @@ export function fromDateDraft(draft: DateDraft): DateValue | undefined {
       ...(end !== undefined ? { end } : {}),
       ...(text !== undefined ? { text } : {}),
       ...(time !== undefined ? { time } : {}),
+      ...modifier,
     };
   }
   return {
     quality: draft.quality,
     ...(component !== undefined ? { component } : {}),
     ...(text !== undefined ? { text } : {}),
-    ...(draft.modifier !== '' ? { modifier: draft.modifier as 'ABT' | 'CAL' | 'EST' } : {}),
+    ...modifier,
     ...(time !== undefined ? { time } : {}),
   };
 }
@@ -464,10 +491,17 @@ export function personToDraft(person: PersonRecord): PersonDraft {
   return {
     id: person.id,
     names: person.names.map(nameToDraft),
+    namesTouched: false,
     sex: person.sex,
+    sexTouched: false,
+    deathStatus: person.deathStatus,
+    deathStatusTouched: false,
     ...(person.addressId !== undefined ? { addressId: person.addressId } : {}),
+    addressTouched: false,
     birth: toDateDraft(birth?.date, birth?.place),
+    birthTouched: false,
     death: toDateDraft(death?.date, death?.place),
+    deathTouched: false,
     isNew: false,
   };
 }
@@ -475,14 +509,17 @@ export function personToDraft(person: PersonRecord): PersonDraft {
 export function personDraftMatches(draft: PersonDraft, person: PersonRecord): boolean {
   const other = personToDraft(person);
   return (
-    draft.sex === other.sex &&
-    draft.names.length === other.names.length &&
-    draft.names.every((name, index) => {
-      const otherName = other.names[index];
-      return otherName !== undefined && nameDraftMatches(name, otherName);
-    }) &&
-    dateDraftMatches(draft.birth, factOf(person, 'BIRT')) &&
-    dateDraftMatches(draft.death, factOf(person, 'DEAT'))
+    (draft.sexTouched !== true || draft.sex === other.sex) &&
+    (draft.deathStatusTouched !== true || draft.deathStatus === other.deathStatus) &&
+    (draft.addressTouched !== true || draft.addressId === other.addressId) &&
+    (draft.namesTouched !== true ||
+      (draft.names.length === other.names.length &&
+        draft.names.every((name, index) => {
+          const otherName = other.names[index];
+          return otherName !== undefined && nameDraftMatches(name, otherName);
+        }))) &&
+    (draft.birthTouched !== true || dateDraftMatches(draft.birth, factOf(person, 'BIRT'))) &&
+    (draft.deathTouched !== true || dateDraftMatches(draft.death, factOf(person, 'DEAT')))
   );
 }
 
@@ -579,10 +616,11 @@ export function nameDraftEmpty(name: NameDraft): boolean {
   );
 }
 
-export function variantDraftToName(variant: NameVariantDraft): PersonName | undefined {
+export function variantDraftToName(variant: NameVariantDraft, existing?: PersonName): PersonName | undefined {
   if (variantDraftEmpty(variant)) {
     return undefined;
   }
+  const existingVariants = new Map((existing?.variants ?? []).map((entry) => [entry.id, entry]));
   return {
     id: variant.id,
     kind: variant.kind,
@@ -592,15 +630,18 @@ export function variantDraftToName(variant: NameVariantDraft): PersonName | unde
     primary: variant.primary || undefined,
     parts: normalizedParts(variant.parts),
     ...flatFromParts(variant.parts),
-    date: variant.date !== undefined ? fromDateDraft(variant.date) : undefined,
-    variants: variant.variants.map(variantDraftToName).filter((entry): entry is PersonName => entry !== undefined),
+    date: variant.date !== undefined ? fromDateDraft(variant.date, existing?.date) : undefined,
+    variants: variant.variants
+      .map((entry) => variantDraftToName(entry, existingVariants.get(entry.id)))
+      .filter((entry): entry is PersonName => entry !== undefined),
   };
 }
 
-export function nameDraftToName(draft: NameDraft): PersonName | undefined {
+export function nameDraftToName(draft: NameDraft, existing?: PersonName): PersonName | undefined {
   if (nameDraftEmpty(draft)) {
     return undefined;
   }
+  const existingVariants = new Map((existing?.variants ?? []).map((entry) => [entry.id, entry]));
   return {
     id: draft.id,
     type: draft.type.trim() || undefined,
@@ -618,8 +659,10 @@ export function nameDraftToName(draft: NameDraft): PersonName | undefined {
     givenNameUsed: draft.givenNameUsed.trim() || undefined,
     parts: normalizedParts(draft.parts),
     ...flatFromParts(draft.parts),
-    date: draft.date !== undefined ? fromDateDraft(draft.date) : undefined,
-    variants: draft.variants.map(variantDraftToName).filter((entry): entry is PersonName => entry !== undefined),
+    date: draft.date !== undefined ? fromDateDraft(draft.date, existing?.date) : undefined,
+    variants: draft.variants
+      .map((variant) => variantDraftToName(variant, existingVariants.get(variant.id)))
+      .filter((entry): entry is PersonName => entry !== undefined),
   };
 }
 
@@ -633,21 +676,45 @@ export function nameDraftToName(draft: NameDraft): PersonName | undefined {
  * edited elsewhere.
  */
 export function draftToRecord(draft: PersonDraft, existing?: PersonRecord): PersonRecord {
-  const names = draft.names.map(nameDraftToName).filter((name): name is PersonName => name !== undefined);
-  const facts = existing ? existing.facts.filter((fact) => fact.tag !== 'BIRT' && fact.tag !== 'DEAT') : [];
-  const birth = factFromDraft(draft, existing, 'BIRT', draft.birth);
-  const death = factFromDraft(draft, existing, 'DEAT', draft.death);
-  if (birth) {
-    facts.push(birth);
+  const existingNames = new Map((existing?.names ?? []).map((name) => [name.id, name]));
+  const names =
+    existing !== undefined && draft.namesTouched !== true
+      ? existing.names
+      : draft.names
+          .map((name) => nameDraftToName(name, existingNames.get(name.id)))
+          .filter((name): name is PersonName => name !== undefined);
+  const facts = existing ? [...existing.facts] : [];
+  if (existing === undefined || draft.birthTouched === true) {
+    for (let index = facts.length - 1; index >= 0; index -= 1) {
+      if (facts[index]?.tag === 'BIRT') {
+        facts.splice(index, 1);
+      }
+    }
+    const birth = factFromDraft(draft, existing, 'BIRT', draft.birth);
+    if (birth) {
+      facts.push(birth);
+    }
   }
-  if (death) {
-    facts.push(death);
+  if (existing === undefined || draft.deathTouched === true) {
+    for (let index = facts.length - 1; index >= 0; index -= 1) {
+      if (facts[index]?.tag === 'DEAT') {
+        facts.splice(index, 1);
+      }
+    }
+    const death = factFromDraft(draft, existing, 'DEAT', draft.death);
+    if (death) {
+      facts.push(death);
+    }
   }
+  const addressId = draft.addressTouched === true ? draft.addressId : existing?.addressId;
+  const deathStatus = draft.deathStatusTouched === true ? draft.deathStatus : existing?.deathStatus;
+  const sex = draft.sexTouched === true || existing === undefined ? draft.sex : existing.sex;
   return {
     id: draft.id,
     ...(existing?.xref !== undefined ? { xref: existing.xref } : {}),
-    ...(draft.addressId !== undefined ? { addressId: draft.addressId } : {}),
-    sex: draft.sex,
+    ...(addressId !== undefined ? { addressId } : {}),
+    sex,
+    ...(deathStatus !== undefined ? { deathStatus } : {}),
     names,
     facts,
   };

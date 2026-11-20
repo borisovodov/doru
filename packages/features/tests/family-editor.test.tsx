@@ -43,6 +43,7 @@ async function renderEditor(overrides: { onSave?: () => void; onDelete?: () => v
       api={api}
       onSave={overrides.onSave ?? vi.fn()}
       onDelete={overrides.onDelete}
+      onOpenSource={vi.fn()}
     />,
   );
 

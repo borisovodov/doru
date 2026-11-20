@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import type { DateQuality } from '@doru/core';
 import { nls } from '../../nls';
 import { Checkbox } from '../../atoms/form/Checkbox';
@@ -22,6 +23,39 @@ export function DateEditor({
   hidePlace?: boolean;
 }) {
   const set = (patch: Partial<DateDraft>) => onChange({ ...value, ...patch });
+  // Keep the date's own custom spellings selectable while editing: changing
+  // ABT back to none must not hide a modifier the record imported with.
+  const [knownCustom, setKnownCustom] = useState(() => ({
+    modifiers: value.modifier !== '' && !['ABT', 'CAL', 'EST'].includes(value.modifier) ? [value.modifier] : [],
+    calendars:
+      value.calendar !== '' && !(CALENDARS as readonly string[]).includes(value.calendar) ? [value.calendar] : [],
+    endCalendars:
+      value.endCalendar !== '' && !(CALENDARS as readonly string[]).includes(value.endCalendar)
+        ? [value.endCalendar]
+        : [],
+  }));
+  const modifierAdded =
+    value.modifier !== '' &&
+    !['ABT', 'CAL', 'EST'].includes(value.modifier) &&
+    !knownCustom.modifiers.includes(value.modifier);
+  const calendarAdded =
+    value.calendar !== '' &&
+    !(CALENDARS as readonly string[]).includes(value.calendar) &&
+    !knownCustom.calendars.includes(value.calendar);
+  const endCalendarAdded =
+    value.endCalendar !== '' &&
+    !(CALENDARS as readonly string[]).includes(value.endCalendar) &&
+    !knownCustom.endCalendars.includes(value.endCalendar);
+  if (modifierAdded || calendarAdded || endCalendarAdded) {
+    setKnownCustom({
+      modifiers: modifierAdded ? [...knownCustom.modifiers, value.modifier] : knownCustom.modifiers,
+      calendars: calendarAdded ? [...knownCustom.calendars, value.calendar] : knownCustom.calendars,
+      endCalendars: endCalendarAdded ? [...knownCustom.endCalendars, value.endCalendar] : knownCustom.endCalendars,
+    });
+  }
+  const customModifiers = knownCustom.modifiers;
+  const customCalendars = knownCustom.calendars;
+  const customEndCalendars = knownCustom.endCalendars;
 
   return (
     <div className={styles['dateEditor']}>
@@ -101,6 +135,11 @@ export function DateEditor({
             <option value="ABT">{nls.t('features.tree.date.modifier.ABT')}</option>
             <option value="CAL">{nls.t('features.tree.date.modifier.CAL')}</option>
             <option value="EST">{nls.t('features.tree.date.modifier.EST')}</option>
+            {customModifiers.map((modifier) => (
+              <option key={modifier} value={modifier}>
+                {modifier}
+              </option>
+            ))}
           </Select>
         </div>
       )}
@@ -162,6 +201,11 @@ export function DateEditor({
               )}
             </option>
           ))}
+          {customCalendars.map((calendar) => (
+            <option key={calendar} value={calendar}>
+              {calendar}
+            </option>
+          ))}
         </Select>
         <Checkbox
           label={nls.t('features.tree.date.bce')}
@@ -184,6 +228,11 @@ export function DateEditor({
                       ? 'features.tree.date.calendar.gregorian'
                       : `features.tree.date.calendar.${calendar}`,
                   )}
+                </option>
+              ))}
+              {customEndCalendars.map((calendar) => (
+                <option key={calendar} value={calendar}>
+                  {calendar}
                 </option>
               ))}
             </Select>

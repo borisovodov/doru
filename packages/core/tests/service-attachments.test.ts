@@ -216,6 +216,7 @@ describe('TreeService attachments', () => {
   it('adds sources with and without a citation, updates and deletes them', () => {
     const { fixture, service } = makeService();
     try {
+      service.addPerson({ id: 'P1', names: [], sex: 'U', facts: [] });
       service.addSource(source(), 'person', 'P1');
       expect(fixture.repo.listSources().map((entry) => entry.id)).toEqual(['S1']);
       expect(fixture.repo.listCitationsFor('person', 'P1').map((entry) => entry.source.id)).toEqual(['S1']);
@@ -246,6 +247,8 @@ describe('TreeService attachments', () => {
   it('attaches, updates and detaches citations with undo', () => {
     const { fixture, service } = makeService();
     try {
+      service.addPerson({ id: 'P1', names: [], sex: 'U', facts: [] });
+      service.addPerson({ id: 'P2', names: [], sex: 'U', facts: [] });
       fixture.repo.insertSource(source());
       service.attachSource('S1', 'person', 'P1');
       expect(fixture.repo.listCitationsFor('person', 'P1').map((entry) => entry.source.id)).toEqual(['S1']);
@@ -268,6 +271,7 @@ describe('TreeService attachments', () => {
   it('attaches and detaches media links with undo', () => {
     const { fixture, service } = makeService();
     try {
+      service.addPerson({ id: 'P1', names: [], sex: 'U', facts: [] });
       service.addMedia({ id: 'M1', path: 'media/photo.jpg', title: 'Portrait', targetType: 'person', targetId: 'P1' });
       expect(fixture.repo.listMediaFor('person', 'P1')).toHaveLength(1);
 
@@ -291,6 +295,46 @@ describe('TreeService attachments', () => {
       // The service snapshots the full current record, so both links are
       // restored by one undo.
       expect(fixture.repo.listMediaFor('person', 'P1')).toHaveLength(2);
+    } finally {
+      cleanupRepo(fixture);
+    }
+  });
+
+  it('restores media-link citations when detaching and deleting the record', () => {
+    const { fixture, service } = makeService();
+    try {
+      service.addPerson({ id: 'P1', names: [], sex: 'U', facts: [] });
+      service.addSource(source());
+      service.addMedia({ id: 'M1', path: 'media/photo.jpg', title: 'Portrait', targetType: 'person', targetId: 'P1' });
+      const link = fixture.repo.listAttachmentsFor('person', 'P1').mediaLinks[0]!.link;
+      fixture.repo.insertCitation({
+        id: 'C1',
+        sourceId: 'S1',
+        targetType: 'media_link',
+        targetId: link.id,
+        page: 'p. 1',
+      });
+      expect(fixture.repo.listCitationRecordsFor('media_link', link.id)).toHaveLength(1);
+
+      service.detachMedia(link);
+      expect(fixture.repo.listMediaFor('person', 'P1')).toEqual([]);
+      expect(fixture.repo.listCitationRecordsFor('media_link', link.id)).toEqual([]);
+      service.undo();
+      expect(
+        fixture.repo.listAttachmentsFor('person', 'P1').mediaLinks.some((entry) => entry.link.id === link.id),
+      ).toBe(true);
+      expect(fixture.repo.listCitationRecordsFor('media_link', link.id).map((entry) => entry.id)).toEqual(['C1']);
+
+      const media = fixture.repo.getMedia('M1')!;
+      service.deleteMedia(media);
+      expect(fixture.repo.getMedia('M1')).toBeUndefined();
+      expect(fixture.repo.listCitationRecordsFor('media_link', link.id)).toEqual([]);
+      service.undo();
+      expect(fixture.repo.getMedia('M1')).toBeDefined();
+      expect(
+        fixture.repo.listAttachmentsFor('person', 'P1').mediaLinks.some((entry) => entry.link.id === link.id),
+      ).toBe(true);
+      expect(fixture.repo.listCitationRecordsFor('media_link', link.id).map((entry) => entry.id)).toEqual(['C1']);
     } finally {
       cleanupRepo(fixture);
     }
@@ -414,6 +458,7 @@ describe('TreeService attachments', () => {
   it('manages tags and tag links', () => {
     const { fixture, service } = makeService();
     try {
+      service.addPerson({ id: 'P1', names: [], sex: 'U', facts: [] });
       service.addTag(tag());
       expect(fixture.repo.listTags()).toEqual([tag()]);
 
@@ -489,6 +534,65 @@ describe('TreeService attachments', () => {
       expect(fixture.repo.getAddress('AD1')).toBeDefined();
       expect(fixture.repo.getRepository('RP1')?.addressId).toBe('AD1');
       expect(fixture.repo.listNotesFor('address', 'AD1').map((entry) => entry.id)).toEqual(['N1']);
+    } finally {
+      cleanupRepo(fixture);
+    }
+  });
+
+  it('restores address and repository references without overwriting later edits', () => {
+    const { fixture, service } = makeService();
+    try {
+      service.addPerson({ id: 'P1', names: [{ id: 'N1', given: 'Ada' }], sex: 'U', facts: [] });
+      service.addAddress(address());
+      const beforeAddress = fixture.repo.getPerson('P1')!;
+      service.updatePerson(beforeAddress, { ...beforeAddress, addressId: 'AD1' });
+      service.deleteAddress(fixture.repo.getAddress('AD1')!);
+
+      fixture.repo.updatePerson({
+        ...fixture.repo.getPerson('P1')!,
+        names: [{ id: 'N2', given: 'Augusta' }],
+      });
+      service.undo();
+      expect(fixture.repo.getPerson('P1')?.addressId).toBe('AD1');
+      expect(fixture.repo.getPerson('P1')?.names[0]?.id).toBe('N2');
+
+      service.addRepository(repository());
+      service.addTodo({ id: 'TD1', text: 'Old task', repositoryId: 'RP1' });
+      service.addTitle({ id: 'TT1', name: 'Old title', repositoryId: 'RP1' });
+      service.deleteRepository(fixture.repo.getRepository('RP1')!);
+
+      fixture.repo.updateTodo({ ...fixture.repo.listTodos()[0]!, text: 'Edited task' });
+      fixture.repo.updateTitle({ ...fixture.repo.listTitles()[0]!, name: 'Edited title' });
+      service.undo();
+
+      expect(fixture.repo.listTodos()[0]).toMatchObject({ text: 'Edited task', repositoryId: 'RP1' });
+      expect(fixture.repo.listTitles()[0]).toMatchObject({ name: 'Edited title', repositoryId: 'RP1' });
+    } finally {
+      cleanupRepo(fixture);
+    }
+  });
+
+  it('restores a submitter link only once across media and consumer snapshots', () => {
+    const { fixture, service } = makeService();
+    try {
+      service.addSubmitter(submitter());
+      service.addMedia({ id: 'M1', title: 'Scan' });
+      service.attachMedia({ id: 'ML1', mediaId: 'M1', targetType: 'submitter', targetId: 'SU1' });
+      service.addRecordSubmitter('SU1', 'media_link', 'ML1');
+      const link = fixture.repo.listRecordSubmittersFor('media_link', 'ML1')[0]!;
+
+      service.deleteSubmitter(submitter());
+      expect(fixture.repo.getSubmitter('SU1')).toBeUndefined();
+      expect(fixture.repo.getMedia('M1')).toBeUndefined();
+      expect(fixture.repo.listRecordSubmittersFor('media_link', 'ML1')).toEqual([]);
+
+      service.undo();
+
+      expect(fixture.repo.getSubmitter('SU1')).toBeDefined();
+      expect(fixture.repo.getMedia('M1')?.links).toEqual([
+        expect.objectContaining({ id: 'ML1', targetType: 'submitter', targetId: 'SU1' }),
+      ]);
+      expect(fixture.repo.listRecordSubmittersFor('media_link', 'ML1')).toEqual([link]);
     } finally {
       cleanupRepo(fixture);
     }
@@ -580,9 +684,38 @@ describe('TreeService attachments', () => {
     }
   });
 
+  it('stores submitter link kinds and restores them on undo', () => {
+    const { fixture, service } = makeService();
+    try {
+      service.addPerson({ id: 'P1', names: [], sex: 'U', facts: [] });
+      service.addSubmitter(submitter());
+      service.addRecordSubmitter('SU1', 'person', 'P1', 'contributor');
+      service.addRecordSubmitter('SU1', 'person', 'P1', 'ancestor_interest');
+      service.addRecordSubmitter('SU1', 'person', 'P1', 'descendant_interest');
+      expect(new Set(fixture.repo.listRecordSubmittersFor('person', 'P1').map((link) => link.kind))).toEqual(
+        new Set(['ancestor_interest', 'contributor', 'descendant_interest']),
+      );
+
+      const link = fixture.repo
+        .listRecordSubmittersFor('person', 'P1')
+        .find((entry) => entry.kind === 'ancestor_interest')!;
+      service.deleteRecordSubmitter(link.id, 'SU1', 'person', 'P1', 'ancestor_interest');
+      expect(new Set(fixture.repo.listRecordSubmittersFor('person', 'P1').map((entry) => entry.kind))).toEqual(
+        new Set(['contributor', 'descendant_interest']),
+      );
+      service.undo();
+      expect(new Set(fixture.repo.listRecordSubmittersFor('person', 'P1').map((entry) => entry.kind))).toEqual(
+        new Set(['ancestor_interest', 'contributor', 'descendant_interest']),
+      );
+    } finally {
+      cleanupRepo(fixture);
+    }
+  });
+
   it('links and unlinks record contributors with undo', () => {
     const { fixture, service } = makeService();
     try {
+      service.addPerson({ id: 'P1', names: [], sex: 'U', facts: [] });
       service.addSubmitter(submitter());
       service.addRecordSubmitter('SU1', 'person', 'P1');
       expect(fixture.repo.listRecordSubmittersFor('person', 'P1').map((entry) => entry.submitterId)).toEqual(['SU1']);
@@ -599,6 +732,32 @@ describe('TreeService attachments', () => {
     }
   });
 
+  it('restores citation attachments on detach undo', () => {
+    const { fixture, service } = makeService();
+    try {
+      service.addSource(source());
+      const person = fixture.repo.getPerson('P1');
+      if (person === undefined) {
+        service.addPerson({ id: 'P1', names: [], sex: 'U', facts: [] });
+      }
+      service.attachSource('S1', 'person', 'P1');
+      const [citation] = fixture.repo.listCitationRecordsFor('person', 'P1');
+      service.addNote({
+        ...note(),
+        links: [{ id: 'NL1', targetType: 'citation', targetId: citation!.id }],
+      });
+      expect(fixture.repo.listNotesFor('citation', citation!.id).map((entry) => entry.id)).toEqual(['N1']);
+
+      service.detachCitation(citation!.id);
+      expect(fixture.repo.listNotesFor('citation', citation!.id)).toEqual([]);
+      service.undo();
+      expect(fixture.repo.getCitation(citation!.id)).toBeDefined();
+      expect(fixture.repo.listNotesFor('citation', citation!.id).map((entry) => entry.id)).toEqual(['N1']);
+    } finally {
+      cleanupRepo(fixture);
+    }
+  });
+
   it('changes are recorded for the touched entity and cleaned with the entity', () => {
     const { fixture, service } = makeService();
     try {
@@ -609,6 +768,8 @@ describe('TreeService attachments', () => {
 
       service.deleteNote(note());
       expect(fixture.repo.listChangesFor('note', 'N1')).toEqual([]);
+      const ownerChanges = new Set(fixture.repo.listChangesFor('person', 'P1').map((change) => change.id));
+      expect(ownerChanges.size).toBeGreaterThan(0);
 
       service.undo();
       expect(
@@ -616,7 +777,37 @@ describe('TreeService attachments', () => {
           .listChangesFor('note', 'N1')
           .map((change) => change.kind)
           .sort(),
-      ).toEqual(['changed', 'created']);
+      ).toEqual(['created']);
+      // The note is attached to P1, so undo adds a new owner change row.
+      expect(
+        fixture.repo
+          .listChangesFor('person', 'P1')
+          .some((change) => !ownerChanges.has(change.id) && change.kind === 'changed'),
+      ).toBe(true);
+    } finally {
+      cleanupRepo(fixture);
+    }
+  });
+
+  it('lists every tag link and submitter link for the global registries', () => {
+    const { fixture, service } = makeService();
+    try {
+      service.addPerson({ id: 'P1', names: [], sex: 'U', facts: [] });
+      service.addTag({ id: 'TAG1', name: 'Priority' });
+      service.addTag({ id: 'TAG2', name: 'Orphan' });
+      service.attachTag({ id: 'TL1', tagId: 'TAG1', targetType: 'person', targetId: 'P1' });
+      expect(fixture.repo.listAllTagLinks().map((link) => link.id)).toEqual(['TL1']);
+
+      service.addSubmitter(submitter());
+      service.addRecordSubmitter('SU1', 'person', 'P1', 'ancestor_interest');
+      expect(fixture.repo.listAllRecordSubmitters()).toEqual([
+        expect.objectContaining({
+          submitterId: 'SU1',
+          targetType: 'person',
+          targetId: 'P1',
+          kind: 'ancestor_interest',
+        }),
+      ]);
     } finally {
       cleanupRepo(fixture);
     }

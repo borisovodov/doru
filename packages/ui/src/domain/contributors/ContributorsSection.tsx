@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Plus, X } from 'lucide-react';
-import type { SubmitterRecord } from '@doru/core';
+import type { RecordSubmitterLink, SubmitterRecord } from '@doru/core';
 import { nls } from '../../nls';
 import { Button } from '../../atoms/button/Button';
 import { Chip } from '../../atoms/display/Chip';
@@ -27,20 +27,34 @@ export function ContributorsSection({
   targetType: string;
   targetId: string;
   submitters: SubmitterRecord[];
-  links: Array<{ id: string; submitterId: string; targetType: string; targetId: string }>;
-  onAdd: (submitterId: string, targetType: string, targetId: string) => Promise<void>;
-  onDelete: (id: string, submitterId: string, targetType: string, targetId: string) => Promise<void>;
+  links: RecordSubmitterLink[];
+  onAdd: (
+    submitterId: string,
+    targetType: string,
+    targetId: string,
+    kind: RecordSubmitterLink['kind'],
+  ) => Promise<void>;
+  onDelete: (
+    id: string,
+    submitterId: string,
+    targetType: string,
+    targetId: string,
+    kind: RecordSubmitterLink['kind'],
+  ) => Promise<void>;
 }) {
   const [adding, setAdding] = useState(false);
   const [selected, setSelected] = useState('');
+  const [kind, setKind] = useState<RecordSubmitterLink['kind']>('contributor');
   const byId = new Map(submitters.map((submitter) => [submitter.id, submitter]));
-  const available = submitters.filter((submitter) => !links.some((link) => link.submitterId === submitter.id));
+  const available = submitters.filter(
+    (submitter) => !links.some((link) => link.submitterId === submitter.id && (link.kind ?? 'contributor') === kind),
+  );
 
   const save = async () => {
-    if (selected === '') {
+    if (selected === '' || !available.some((submitter) => submitter.id === selected)) {
       return;
     }
-    await onAdd(selected, targetType, targetId);
+    await onAdd(selected, targetType, targetId, kind);
     setSelected('');
     setAdding(false);
   };
@@ -67,11 +81,18 @@ export function ContributorsSection({
           {links.map((link) => (
             <Chip key={link.id}>
               {byId.get(link.submitterId)?.name ?? link.submitterId}
+              {(link.kind ?? 'contributor') !== 'contributor' && (
+                <span className={styles['kind']}>
+                  {nls.t(`features.tree.contributors.kind.${link.kind ?? 'contributor'}`)}
+                </span>
+              )}
               <IconButton
                 size="sm"
                 label={nls.t('features.tree.contributors.remove')}
                 icon={<X size={12} aria-hidden="true" />}
-                onClick={() => void onDelete(link.id, link.submitterId, link.targetType, link.targetId)}
+                onClick={() =>
+                  void onDelete(link.id, link.submitterId, link.targetType, link.targetId, link.kind ?? 'contributor')
+                }
               />
             </Chip>
           ))}
@@ -89,6 +110,23 @@ export function ContributorsSection({
               ))}
             </Select>
           </Field>
+          {targetType === 'person' && (
+            <Field label={nls.t('features.tree.contributors.kind')}>
+              <Select
+                value={kind}
+                onChange={(event) => {
+                  setKind(event.target.value as RecordSubmitterLink['kind']);
+                  setSelected('');
+                }}
+              >
+                <option value="contributor">{nls.t('features.tree.contributors.kind.contributor')}</option>
+                <option value="ancestor_interest">{nls.t('features.tree.contributors.kind.ancestor_interest')}</option>
+                <option value="descendant_interest">
+                  {nls.t('features.tree.contributors.kind.descendant_interest')}
+                </option>
+              </Select>
+            </Field>
+          )}
           <ActionBar>
             <Button variant="primary" onClick={() => void save()}>
               {nls.t('features.tree.save')}

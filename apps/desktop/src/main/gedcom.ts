@@ -1,6 +1,7 @@
 import { dialog } from 'electron';
 import { randomUUID } from 'node:crypto';
-import { basename, dirname, extname, isAbsolute, join } from 'node:path';
+import { stat } from 'node:fs/promises';
+import { basename, dirname, extname, join, resolve } from 'node:path';
 import {
   buildGedcomDataset,
   importGedcomDataset,
@@ -17,6 +18,7 @@ import {
   type GedzipMediaEntry,
 } from '@doru/gedcom';
 import { NodeFileSystem } from './filesystem';
+import { resolveImportFile, resolveMediaPath } from './mediaPaths';
 import { log } from './log';
 import { ensureRuntime, openUntitledStore, runtimeFilePath } from './runtime';
 import { projectWindows, untitledProjects } from './state';
@@ -52,13 +54,41 @@ async function prepareGedcomMedia(
     if (record.tag !== 'OBJE') {
       continue;
     }
-    for (const file of record.files) {
-      if (file.payload === '' || paths.has(file.payload)) {
-        continue;
+    const storeReachable = async (original: string): Promise<void> => {
+      if (original === '' || paths.has(original)) {
+        return;
       }
-      const candidate = isAbsolute(file.payload) ? file.payload : join(dirname(sourcePath), file.payload);
-      if (await fs.exists(candidate)) {
-        await store(await fs.readBinary(candidate), file.payload);
+      let contents: Uint8Array | undefined;
+      try {
+        // A GEDCOM from another person may name any readable file: only
+        // payloads whose canonical path stays beside the source file may be
+        // imported.
+        const candidate = resolve(dirname(sourcePath), original);
+        const safe = await resolveImportFile(dirname(sourcePath), candidate);
+        if (safe === null) {
+          log.warn('gedcom import: skipped media outside the source folder', original);
+          return;
+        }
+        if (!(await fs.exists(safe)) || !(await stat(safe)).isFile()) {
+          return;
+        }
+        contents = await fs.readBinary(safe);
+        if ((await resolveImportFile(dirname(sourcePath), candidate)) !== safe) {
+          return;
+        }
+      } catch (error) {
+        // Unreadable payloads stay external and hidden; they must not abort
+        // the whole import.
+        log.warn('gedcom import: could not read media payload', original, error);
+        return;
+      }
+      // Project-write failures are not per-payload and must propagate.
+      await store(contents, original);
+    };
+    for (const file of record.files) {
+      await storeReachable(file.payload);
+      for (const translation of file.translations ?? []) {
+        await storeReachable(translation.payload);
       }
     }
   }
@@ -124,15 +154,32 @@ export async function exportGedcom(
     if (format === 'gdz') {
       const mediaFiles: GedzipMediaEntry[] = [];
       const seen = new Set<string>();
+      const appendFile = async (path: string): Promise<void> => {
+        const normalized = path.replaceAll('\\', '/');
+        if (seen.has(normalized) || !normalized.startsWith(`${MEDIA_DIR_NAME}/`) || normalized.includes('../')) {
+          return;
+        }
+        const absolute = await resolveMediaPath(dirname(runtimeFilePath(projectPath)), normalized);
+        if (absolute !== null && (await fs.exists(absolute))) {
+          const info = await stat(absolute);
+          if (!info.isFile()) {
+            return;
+          }
+          const contents = await fs.readBinary(absolute);
+          // Re-check containment after reading: a replaced ancestor must not
+          // let bytes from outside the project reach the archive.
+          if ((await resolveMediaPath(dirname(runtimeFilePath(projectPath)), normalized)) !== absolute) {
+            return;
+          }
+          mediaFiles.push({ name: normalized, contents });
+          seen.add(normalized);
+        }
+      };
       for (const media of repo.listAllMedia()) {
         for (const file of media.files ?? []) {
-          if (seen.has(file.path) || !file.path.startsWith(`${MEDIA_DIR_NAME}/`) || file.path.includes('../')) {
-            continue;
-          }
-          const absolute = join(dirname(runtimeFilePath(projectPath)), file.path);
-          if (await fs.exists(absolute)) {
-            mediaFiles.push({ name: file.path, contents: await fs.readBinary(absolute) });
-            seen.add(file.path);
+          await appendFile(file.path);
+          for (const translation of file.translations ?? []) {
+            await appendFile(translation.path);
           }
         }
       }

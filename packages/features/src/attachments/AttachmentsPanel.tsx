@@ -1,5 +1,5 @@
 import { useEffect, useState, type ReactNode } from 'react';
-import type { CitationRecord, SourceRecord, SubmitterRecord } from '@doru/core';
+import type { CitationRecord, SourceRecord } from '@doru/core';
 import {
   ChangesSection,
   ContactsSection,
@@ -14,7 +14,7 @@ import {
   type MediaWithPath,
 } from '@doru/ui/domain';
 import type { AttachmentsApi } from '../person/types';
-import { useAttachments } from './useAttachments';
+import { useAttachments, type ContributorApi } from './useAttachments';
 
 export type AttachmentSection =
   | 'notes'
@@ -28,15 +28,7 @@ export type AttachmentSection =
   | 'tasks'
   | 'changes';
 
-export interface AttachmentsPanelApi extends AttachmentsApi {
-  getSubmitters(): Promise<SubmitterRecord[]>;
-  getRecordSubmitters(
-    targetType: string,
-    targetId: string,
-  ): Promise<Array<{ id: string; submitterId: string; targetType: string; targetId: string }>>;
-  addRecordSubmitter(submitterId: string, targetType: string, targetId: string): Promise<void>;
-  deleteRecordSubmitter(id: string, submitterId: string, targetType: string, targetId: string): Promise<void>;
-}
+export type AttachmentsPanelApi = AttachmentsApi & ContributorApi;
 
 const ALL_SECTIONS: readonly AttachmentSection[] = [
   'notes',
@@ -245,12 +237,12 @@ export function AttachmentsPanel({
           targetId={targetId}
           submitters={submitters}
           links={contributors}
-          onAdd={async (submitterId, type, id) => {
-            await api.addRecordSubmitter(submitterId, type, id);
+          onAdd={async (submitterId, type, id, kind) => {
+            await api.addRecordSubmitter(submitterId, type, id, kind);
             await refresh();
           }}
-          onDelete={async (id, submitterId, type, target) => {
-            await api.deleteRecordSubmitter(id, submitterId, type, target);
+          onDelete={async (id, submitterId, type, target, kind) => {
+            await api.deleteRecordSubmitter(id, submitterId, type, target, kind);
             await refresh();
           }}
         />

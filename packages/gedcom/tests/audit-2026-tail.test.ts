@@ -489,11 +489,11 @@ describe('the extension-family pointers under the NO rule and void pointers', ()
     }
   });
 
-  test('the SEX citations type and project onto record-level INDI citations', () => {
+  test('the SEX citations type and round-trip under the SEX structure', () => {
     // The FTM Mac willis shape: a full citation subtree under the SEX
     // fact, with the 5.5.1-style DATA/TEXT inside. Neither grammar has
-    // a SEX substructure, so the citation moves to the standard INDI
-    // SOURCE_CITATION slot on export.
+    // a standard SEX substructure, but the vendor shape is written back
+    // under SEX so the evidence stays attached to the sex fact.
     const dataset = parseOk551(
       [
         ...H551,
@@ -515,13 +515,34 @@ describe('the extension-family pointers under the NO rule and void pointers', ()
     expect(indi.sexCitations?.[0]?.page?.payload).toBe('Year: 1880');
     expect((indi as { extensions?: unknown[] }).extensions).toBeUndefined();
     for (const text of [ser551(dataset), ser70(dataset)]) {
-      expect(text).toContain('1 SEX M\r\n1 SOUR @S9@');
-      expect(text).toContain('2 PAGE Year: 1880');
-      expect(text).not.toContain('2 SOUR @S9@');
+      expect(text).toContain('1 SEX M\r\n2 SOUR @S9@');
+      expect(text).toContain('3 PAGE Year: 1880');
       const reparsed = text.includes('2 VERS 7.0') ? parseOk70(text) : parseOk551(text);
       const reparsedIndi = reparsed.records.find((r) => r.tag === 'INDI') as IndividualRecord;
-      expect(reparsedIndi.sexCitations).toBeUndefined();
-      expect(reparsedIndi.citations?.[0]?.source).toBe('@S9@');
+      expect(reparsedIndi.sexCitations?.[0]?.source).toBe('@S9@');
     }
+  });
+
+  test('SEX citations fall back to record level when the SEX value is dropped', () => {
+    const dataset = parseOk551(
+      [
+        ...H551,
+        '0 @I1@ INDI',
+        '1 NAME A /B/',
+        '1 SEX X',
+        '2 SOUR @S9@',
+        '0 @S9@ SOUR',
+        '1 TITL t',
+        ...SUBM,
+        '0 TRLR',
+      ].join('\n'),
+    );
+    const text = ser551(dataset);
+    expect(text).not.toContain('1 SEX');
+    expect(text).toContain('1 SOUR @S9@');
+    const reparsed = parseOk551(text);
+    const indi = reparsed.records.find((r) => r.tag === 'INDI') as IndividualRecord;
+    expect(indi.citations?.[0]?.source).toBe('@S9@');
+    expect(indi.sexCitations).toBeUndefined();
   });
 });

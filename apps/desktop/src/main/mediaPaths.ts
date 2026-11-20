@@ -1,0 +1,96 @@
+import { lstat, readlink, realpath } from 'node:fs/promises';
+import { basename, dirname, isAbsolute, join, relative, resolve, sep } from 'node:path';
+import { MEDIA_DIR_NAME } from '@doru/core';
+
+/** True when `child` is a strict descendant of `parent`. */
+function isInside(parent: string, child: string): boolean {
+  const path = relative(parent, child);
+  return path !== '' && path !== '..' && !path.startsWith(`..${sep}`) && !isAbsolute(path);
+}
+
+/** Canonicalizes an existing path; for a missing path, its deepest existing ancestor. */
+async function canonicalPath(path: string): Promise<string> {
+  const suffix: string[] = [];
+  let current = path;
+  for (;;) {
+    try {
+      const canonical = await realpath(current);
+      return suffix.length === 0 ? canonical : join(canonical, ...suffix.reverse());
+    } catch {
+      const parent = dirname(current);
+      if (parent === current) {
+        return path;
+      }
+      suffix.push(basename(current));
+      current = parent;
+    }
+  }
+}
+
+/**
+ * Resolves an import-time file only when its canonical path stays inside
+ * `directory`. Absolute payloads and `..` segments outside it are skipped,
+ * including paths that escape through a symlink.
+ */
+export async function resolveImportFile(directory: string, candidate: string): Promise<string | null> {
+  const canonicalDir = await canonicalPath(directory);
+  const canonicalTarget = await canonicalPath(resolve(candidate));
+  return isInside(canonicalDir, canonicalTarget) ? canonicalTarget : null;
+}
+
+/**
+ * Resolves a stored media path under the project's media folder. Returns
+ * null for anything that resolves to the media folder itself or outside it,
+ * including paths escaping through a symlink.
+ */
+export async function resolveMediaPath(projectDir: string, mediaPath: string): Promise<string | null> {
+  const normalized = mediaPath.replaceAll('\\', '/');
+  const mediaDir = join(projectDir, MEDIA_DIR_NAME);
+  const absolute = resolve(projectDir, normalized);
+  if (!isInside(mediaDir, absolute)) {
+    return null;
+  }
+  const canonicalProject = await canonicalPath(projectDir);
+  const canonicalMedia = await canonicalPath(mediaDir);
+  if (!isInside(canonicalProject, canonicalMedia)) {
+    return null;
+  }
+  const canonicalTarget = await canonicalPath(absolute);
+  return isInside(canonicalMedia, canonicalTarget) ? canonicalTarget : null;
+}
+
+/**
+ * Whether a symlink chain starting at `reference` ends at `target`. Follows
+ * every hop (a symlink may point at another symlink) and stops on cycles.
+ * Unlike realpath, the target itself may be missing — the media cleanup
+ * stages the bytes under a new name before running this check.
+ */
+export async function symlinkChainResolvesTo(reference: string, target: string): Promise<boolean> {
+  let current = reference;
+  const seen = new Set<string>();
+  for (;;) {
+    if (seen.has(current)) {
+      return false;
+    }
+    seen.add(current);
+    let info;
+    try {
+      info = await lstat(current);
+    } catch {
+      return false;
+    }
+    if (!info.isSymbolicLink()) {
+      return current === target;
+    }
+    let next: string;
+    try {
+      next = resolve(dirname(current), await readlink(current));
+    } catch {
+      return false;
+    }
+    if (next === target) {
+      return true;
+    }
+    current = next;
+  }
+}

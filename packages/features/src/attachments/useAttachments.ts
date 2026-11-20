@@ -5,6 +5,7 @@ import type {
   ContactRecord,
   IdentifierRecord,
   NoteRecord,
+  RecordSubmitterLink,
   RestrictionRecord,
   SubmitterRecord,
   TagLinkRecord,
@@ -24,14 +25,27 @@ export interface AttachmentApi {
   getChanges(targetType: string, targetId: string): Promise<ChangeRecord[]>;
 }
 
-/** The extra methods needed by tabs that render the contributors section. */
-export interface SubmitterAttachmentApi extends AttachmentApi {
+/** The read and write contract every editor with contributors shares. */
+export interface ContributorApi {
   getSubmitters(): Promise<SubmitterRecord[]>;
-  getRecordSubmitters(
+  getRecordSubmitters(targetType: string, targetId: string): Promise<RecordSubmitterLink[]>;
+  addRecordSubmitter(
+    submitterId: string,
     targetType: string,
     targetId: string,
-  ): Promise<Array<{ id: string; submitterId: string; targetType: string; targetId: string }>>;
+    kind?: RecordSubmitterLink['kind'],
+  ): Promise<void>;
+  deleteRecordSubmitter(
+    id: string,
+    submitterId: string,
+    targetType: string,
+    targetId: string,
+    kind?: RecordSubmitterLink['kind'],
+  ): Promise<void>;
 }
+
+/** The extra methods needed by tabs that render the contributors section. */
+export interface SubmitterAttachmentApi extends AttachmentApi, ContributorApi {}
 
 export interface AttachmentData {
   notes: NoteRecord[];
@@ -44,7 +58,7 @@ export interface AttachmentData {
   restrictions: RestrictionRecord[];
   changes: ChangeRecord[];
   submitters: SubmitterRecord[];
-  contributors: Array<{ id: string; submitterId: string; targetType: string; targetId: string }>;
+  contributors: RecordSubmitterLink[];
 }
 
 const emptyAttachments = (): AttachmentData => ({

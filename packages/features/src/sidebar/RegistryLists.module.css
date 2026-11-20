@@ -1,0 +1,10 @@
+.tagRow {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+}
+
+.tagRow > :first-child {
+  flex: 1;
+  min-width: 0;
+}

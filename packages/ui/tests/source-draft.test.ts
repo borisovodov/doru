@@ -155,6 +155,10 @@ describe('sourceDraftMatches', () => {
     const stored = source({ author: 'A', texts: [{ id: 'T1', text: 'entry' }] });
     const base = sourceToDraft(stored);
     expect(sourceDraftMatches({ ...base, author: 'B' }, stored)).toBe(false);
+    expect(sourceDraftMatches({ ...base, certainty: '3' }, stored)).toBe(false);
+    expect(sourceDraftMatches({ ...base, subsequentCitationFormat: 'MB23' }, stored)).toBe(false);
+    expect(sourceDraftMatches({ ...base, bibliography: 'Book' }, stored)).toBe(false);
+    expect(sourceDraftMatches({ ...base, dataNote: 'Note' }, stored)).toBe(false);
     expect(sourceDraftMatches({ ...base, texts: [{ id: 'T1', text: 'other', mime: '', language: '' }] }, stored)).toBe(
       false,
     );

@@ -68,7 +68,9 @@ decisions about what we deliberately do **not** build, see
 - File bytes live in the `media/` folder next to the `.doru` file; the
   database stores project-relative paths plus `media_file`/`media_link`
   metadata. The main process validates every path against `media/` before it
-  reads or deletes a file.
+  reads or deletes a file. Historical media fields (date, place, object type,
+  description, keywords, file medium) are stored; MIME, size and image
+  dimensions are derived from the file at read time and never persisted.
 - A media record can be linked to several targets. Removing the last link
   removes the record; removing a file copy is deliberately not undoable, so
   undo restores the database rows but not bytes that were deleted from disk.

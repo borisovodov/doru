@@ -1,4 +1,5 @@
 import { useCallback } from 'react';
+import { nls } from '@doru/workbench';
 import type { RefreshTree } from './types';
 
 export function useTreeHistory(projectPath: string | null | undefined, refreshTree: RefreshTree) {
@@ -6,7 +7,10 @@ export function useTreeHistory(projectPath: string | null | undefined, refreshTr
     if (!projectPath) {
       return;
     }
-    await window.doru.undo(projectPath);
+    const state = await window.doru.undo(projectPath);
+    if (state.undoBlocked === true) {
+      window.alert(nls.t('features.tree.undoBlocked'));
+    }
     void refreshTree();
   }, [projectPath, refreshTree]);
 
@@ -14,7 +18,10 @@ export function useTreeHistory(projectPath: string | null | undefined, refreshTr
     if (!projectPath) {
       return;
     }
-    await window.doru.redo(projectPath);
+    const state = await window.doru.redo(projectPath);
+    if (state.redoBlocked === true) {
+      window.alert(nls.t('features.tree.redoBlocked'));
+    }
     void refreshTree();
   }, [projectPath, refreshTree]);
 

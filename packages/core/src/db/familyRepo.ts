@@ -33,6 +33,7 @@ interface ChildRow {
   pedigree: string | null;
   pedigree_phrase: string | null;
   status: string | null;
+  status_phrase: string | null;
   father_relation: string | null;
   mother_relation: string | null;
   preferred: number;
@@ -90,14 +91,44 @@ export class FamilyRepo {
     return row ? this.hydrate(row) : undefined;
   }
 
+  /** Reconnects a surviving marriage-status row to its place. */
+  setMarriageStatusPlaceId(statusId: string, placeId: string | undefined): void {
+    this.db
+      .prepare('UPDATE family_marriage_status SET place_id = ? WHERE id = ? AND place_id IS NULL')
+      .run(placeId ?? null, statusId);
+  }
+
   deleteFamily(id: string): boolean {
     return this.transactions.run(() => {
+      const dateIds = new Set<string>();
       for (const row of this.listPartnerRows(id)) {
         if (row.date_id !== null) {
-          this.dates.delete(row.date_id);
+          dateIds.add(row.date_id);
         }
       }
-      return this.db.prepare('DELETE FROM family WHERE id = ?').run(id).changes > 0;
+      for (const status of this.listMarriageStatuses(id)) {
+        if (status.date_id !== null) {
+          dateIds.add(status.date_id);
+        }
+      }
+      // Family-owned associations cascade with the family; their period dates
+      // become unreferenced and must be collected before the delete.
+      const associationDates = this.db
+        .prepare('SELECT period_start_id, period_end_id FROM association WHERE family_id = ?')
+        .all(id) as unknown as { period_start_id: string | null; period_end_id: string | null }[];
+      for (const row of associationDates) {
+        if (row.period_start_id !== null) {
+          dateIds.add(row.period_start_id);
+        }
+        if (row.period_end_id !== null) {
+          dateIds.add(row.period_end_id);
+        }
+      }
+      const removed = this.db.prepare('DELETE FROM family WHERE id = ?').run(id).changes > 0;
+      for (const dateId of dateIds) {
+        this.dates.deleteIfUnused(dateId);
+      }
+      return removed;
     });
   }
 
@@ -180,8 +211,8 @@ export class FamilyRepo {
     this.db.prepare('DELETE FROM family_child WHERE family_id = ?').run(family.id);
     const insertChild = this.db.prepare(
       `INSERT INTO family_child (id, family_id, child_id, position, pedigree, pedigree_phrase, status,
-        father_relation, mother_relation, preferred, multiplicity)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        status_phrase, father_relation, mother_relation, preferred, multiplicity)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     );
     childLinks.forEach((link, position) => {
       if (personExists.get(link.childId) === undefined) {
@@ -196,6 +227,7 @@ export class FamilyRepo {
         link.pedigree ?? null,
         link.pedigreePhrase ?? null,
         link.status ?? null,
+        link.statusPhrase ?? null,
         link.fatherRelation ?? null,
         link.motherRelation ?? null,
         link.preferred === true ? 1 : 0,
@@ -227,7 +259,7 @@ export class FamilyRepo {
       marriageBeginStatus: row.marriage_begin_status ?? undefined,
       marriageEndStatus: row.marriage_end_status ?? undefined,
       partners: partners.map((link) => link.person_id),
-      children: children.map((link) => link.child_id),
+      children: children.filter((link) => link.status !== 'disproven').map((link) => link.child_id),
       partnerLinks: partners.map((link) => ({
         id: link.id,
         personId: link.person_id,
@@ -244,6 +276,7 @@ export class FamilyRepo {
         pedigree: link.pedigree ?? undefined,
         pedigreePhrase: link.pedigree_phrase ?? undefined,
         status: link.status ?? undefined,
+        statusPhrase: link.status_phrase ?? undefined,
         fatherRelation: link.father_relation ?? undefined,
         motherRelation: link.mother_relation ?? undefined,
         preferred: link.preferred === 1 ? true : undefined,
@@ -275,8 +308,8 @@ export class FamilyRepo {
   private listChildRows(familyId: string): ChildRow[] {
     return this.db
       .prepare(
-        `SELECT id, child_id, position, pedigree, pedigree_phrase, status, father_relation, mother_relation,
-           preferred, multiplicity
+        `SELECT id, child_id, position, pedigree, pedigree_phrase, status, status_phrase,
+           father_relation, mother_relation, preferred, multiplicity
          FROM family_child WHERE family_id = ?`,
       )
       .all(familyId) as unknown as ChildRow[];

@@ -8,4 +8,4 @@ export { NamesSection } from './NamesSection';
 export { PersonCardView } from './PersonCardView';
 export { PersonCardEditor } from './PersonCardEditor';
 export { PersonList, type PersonListProps } from './PersonList';
-export type { CardAction, MediaFileWithPath, MediaWithPath, PersonCounts } from './types';
+export type { CardAction, MediaFileFacts, MediaFileWithPath, MediaWithPath, PersonCounts } from './types';

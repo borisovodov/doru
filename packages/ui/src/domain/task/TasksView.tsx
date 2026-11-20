@@ -20,7 +20,7 @@ import { cx } from '../../lib/cx';
 import { SideBarEmpty } from '../../patterns/side-bar-empty/SideBarEmpty';
 import { SideBarList } from '../../patterns/side-bar-list/SideBarList';
 import { nls } from '../../nls';
-import { taskTargetLabel, type TaskTargetData } from './taskTargets';
+import { createTaskTargetLabeler, type TaskTargetData } from './taskTargets';
 import styles from './TasksView.module.css';
 
 /**
@@ -98,6 +98,7 @@ export function TasksView({
     associations,
     todos,
   };
+  const targetLabel = createTaskTargetLabeler(targetData);
   const isClosed = (todo: TodoRecord) => todo.status === 'closed';
   const sorted = [...todos].sort((a, b) => Number(isClosed(a)) - Number(isClosed(b)));
 
@@ -109,6 +110,7 @@ export function TasksView({
     let open: (() => void) | undefined;
     switch (todo.targetType) {
       case 'person':
+      case 'person_sex':
         open = () => onOpenPerson(id);
         break;
       case 'family':
@@ -152,6 +154,11 @@ export function TasksView({
         open = record !== undefined ? () => onOpenMedia(record.id) : undefined;
         break;
       }
+      case 'media_link': {
+        const record = media.find((entry) => (entry.links ?? []).some((link) => link.id === id));
+        open = record !== undefined ? () => onOpenMedia(record.id) : undefined;
+        break;
+      }
       case 'place':
         open = () => onOpenPlace(id);
         break;
@@ -179,7 +186,7 @@ export function TasksView({
       default:
         open = undefined;
     }
-    return { label: taskTargetLabel(todo.targetType, id, targetData), open };
+    return { label: targetLabel(todo.targetType, id), open };
   };
 
   return (
