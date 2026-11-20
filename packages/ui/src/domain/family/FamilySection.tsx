@@ -3,6 +3,7 @@ import { EmptyText } from '../../atoms/feedback/EmptyText';
 import { useEffect, useState } from 'react';
 import { X } from 'lucide-react';
 import type { FactRecord, FamilyRecord, PersonRecord } from '@doru/core';
+import { foldCase } from '@doru/core/model';
 import { nls } from '../../nls';
 import { DateEditor } from '../date/DateEditor';
 import { IconButton } from '../../atoms/icon-button/IconButton';
@@ -236,10 +237,10 @@ function PersonPicker({
 }) {
   const [query, setQuery] = useState('');
   const [open, setOpen] = useState(false);
-  const needle = query.trim().toLowerCase();
+  const needle = foldCase(query.trim());
   const candidates = persons
     .filter((person) => !exclude.includes(person.id))
-    .filter((person) => !needle || displayName(person).toLowerCase().includes(needle))
+    .filter((person) => !needle || foldCase(displayName(person)).includes(needle))
     .slice(0, 8);
 
   return (

@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { BookOpenText, MapPin, Users } from 'lucide-react';
 import type { FactRecord, FamilyRecord, PersonRecord, SourceRecord } from '@doru/core';
+import { foldCase } from '@doru/core/model';
 import { Avatar } from '@doru/ui';
 import { Chip, EntityRow, SearchField, SideBarEmpty, SideBarLayout, SideBarList } from '@doru/ui';
 import { nls } from '../nls';
@@ -39,7 +40,7 @@ export function SidebarSearch({
 }) {
   const [query, setQuery] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
-  const needle = query.trim().toLowerCase();
+  const needle = foldCase(query.trim());
 
   useEffect(() => {
     if (focusNonce > 0) {
@@ -54,7 +55,7 @@ export function SidebarSearch({
     if (needle === '') {
       return null;
     }
-    const matches = (text: string | undefined): boolean => text !== undefined && text.toLowerCase().includes(needle);
+    const matches = (text: string | undefined): boolean => text !== undefined && foldCase(text).includes(needle);
 
     const matchedPersons = persons.filter((person) =>
       person.names.some(

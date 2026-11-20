@@ -83,10 +83,10 @@ export interface TreeRepository {
   insertFactPlace(factId: string, placeId: string, position: number): void;
   deleteFact(id: string): boolean;
   /** Adds an event-family link after the family records exist. */
-  insertFactFamilyLink(factId: string, link: FactFamilyLink): void;
+  insertFactEventFamilyLink(factId: string, link: FactFamilyLink): void;
   listFactsForPerson(personId: string): FactRecord[];
   listFactsForFamily(familyId: string): FactRecord[];
-  /** Facts that link to a family through fact_family. */
+  /** Facts that link to a family through fact_event_family. */
   listFactsLinkedToFamily(familyId: string): FactRecord[];
   /** Fact ids that reference an address. */
   listFactIdsForAddress(addressId: string): string[];
@@ -408,7 +408,6 @@ export class SqliteTreeRepository implements TreeRepository {
         this.deleteAttachmentsFor('association', association.id);
       }
       this.deleteAttachmentsFor('person', id);
-      this.deleteAttachmentsFor('person_sex', id);
       this.names.deleteNamesForPerson(id);
       this.facts.deleteFactsForPerson(id);
       this.relations.deleteAssociationsForPerson(id);
@@ -565,8 +564,8 @@ export class SqliteTreeRepository implements TreeRepository {
     this.facts.insertFactPlace(factId, placeId, position);
   }
 
-  insertFactFamilyLink(factId: string, link: FactFamilyLink): void {
-    this.facts.insertFactFamilyLink(factId, link);
+  insertFactEventFamilyLink(factId: string, link: FactFamilyLink): void {
+    this.facts.insertFactEventFamilyLink(factId, link);
   }
 
   deleteFact(id: string): boolean {

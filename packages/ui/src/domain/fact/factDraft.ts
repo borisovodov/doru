@@ -5,7 +5,7 @@ import {
   type FactFlag,
   type FactParticipant,
   type FactRecord,
-} from '@doru/core';
+} from '@doru/core/model';
 import { dateDraftsEqual, emptyDate, fromDateDraft, rebaseDate, toDateDraft, type DateDraft } from '../person/draft';
 
 /** The event/attribute tags the form suggests; the field stays free text. */

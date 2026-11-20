@@ -1,5 +1,5 @@
 import type { DatabaseSync } from 'node:sqlite';
-import type { Sex } from '../model/types';
+import { foldCase, type Sex } from '../model/types';
 import type { TransactionScope } from './transaction';
 
 export interface PersonQuery {
@@ -12,8 +12,8 @@ export interface PersonQuery {
 
 /**
  * The identity row of a person: the person table only. Names live in
- * NameRepo (with the FTS index), facts in FactRepo; the repository facade
- * composes the full aggregate.
+ * NameRepo, facts in FactRepo; the repository facade composes the full
+ * aggregate.
  */
 export interface PersonRow {
   id: string;
@@ -69,41 +69,71 @@ export class PersonRepo {
   }
 
   /**
-   * Persons matching the query, ordered by id. The name search runs against
-   * the FTS index owned by NameRepo (this repo only reads it): terms of 3+
-   * characters go through the trigram MATCH, shorter terms fall back to a
-   * scan of the lowercased FTS content so every query keeps working.
+   * Persons matching the query, ordered by id. Search is a temporary
+   * in-memory substring scan over the stored name parts: there is no search
+   * index yet, and SQLite's lower() folds ASCII only, so the comparison runs
+   * in JavaScript to keep every script case-insensitive.
    */
   listPersons(query: PersonQuery = {}): PersonRow[] {
     const limit = query.limit ?? 100;
     const offset = query.offset ?? 0;
     const search = query.search?.trim();
-    const conditions: string[] = [];
+    const terms = search ? search.split(/\s+/).filter((term) => term !== '') : [];
+    if (terms.length > 0) {
+      const haystacks = this.nameSearchText(query.sex);
+      const matched = this.listPersonRows(query.sex).filter((row) => {
+        const haystack = haystacks.get(row.id);
+        return haystack !== undefined && terms.every((term) => haystack.includes(foldCase(term)));
+      });
+      return matched.slice(offset, offset + limit).map(toPerson);
+    }
     const params: Array<string | number> = [];
-    if (search) {
-      const terms = search.split(/\s+/).filter((term) => term !== '');
-      if (terms.length > 0) {
-        if (terms.every((term) => term.length >= 3)) {
-          const matchQuery = terms.map((term) => `"${term.toLowerCase().replaceAll('"', '""')}"`).join(' AND ');
-          conditions.push('p.id IN (SELECT person_id FROM person_name_fts WHERE person_name_fts MATCH ?)');
-          params.push(matchQuery);
-        } else {
-          conditions.push('p.id IN (SELECT person_id FROM person_name_fts fts WHERE instr(fts.name, ?) > 0)');
-          params.push(search.toLowerCase());
-        }
-      }
-    }
-    if (query.sex) {
-      conditions.push('p.sex = ?');
-      params.push(query.sex);
-    }
     let sql = 'SELECT p.id, p.xref, p.sex, p.death_status, p.address_id FROM person p';
-    if (conditions.length > 0) {
-      sql += ' WHERE ' + conditions.join(' AND ');
+    if (query.sex) {
+      sql += ' WHERE p.sex = ?';
+      params.push(query.sex);
     }
     sql += ' ORDER BY p.id LIMIT ? OFFSET ?';
     const rows = this.db.prepare(sql).all(...params, limit, offset) as unknown as PersonDbRow[];
     return rows.map(toPerson);
+  }
+
+  /** Every person row in id order, optionally limited to one sex. */
+  private listPersonRows(sex: Sex | undefined): PersonDbRow[] {
+    const sql =
+      'SELECT p.id, p.xref, p.sex, p.death_status, p.address_id FROM person p' +
+      (sex ? ' WHERE p.sex = ?' : '') +
+      ' ORDER BY p.id';
+    const rows = this.db.prepare(sql).all(...(sex ? [sex] : [])) as unknown as PersonDbRow[];
+    return rows;
+  }
+
+  /**
+   * Lowercased concatenation of every name-part value per person, across all
+   * names and variants. Persons without names stay absent from the map.
+   */
+  private nameSearchText(sex: Sex | undefined): Map<string, string> {
+    const rows = this.db
+      .prepare(
+        `SELECT pn.person_id AS person_id, np.value AS value
+           FROM person_name pn
+           JOIN name_part np ON np.name_id = pn.id
+           JOIN person p ON p.id = pn.person_id
+           ${sex ? 'WHERE p.sex = ?' : ''}
+          ORDER BY pn.person_id, pn.position, np.position`,
+      )
+      .all(...(sex ? [sex] : [])) as unknown as Array<{ person_id: string; value: string }>;
+    const valuesByPerson = new Map<string, string[]>();
+    for (const row of rows) {
+      const values = valuesByPerson.get(row.person_id) ?? [];
+      values.push(row.value);
+      valuesByPerson.set(row.person_id, values);
+    }
+    const textByPerson = new Map<string, string>();
+    for (const [personId, values] of valuesByPerson) {
+      textByPerson.set(personId, foldCase(values.join(' ')));
+    }
+    return textByPerson;
   }
 
   listAllPersons(): PersonRow[] {

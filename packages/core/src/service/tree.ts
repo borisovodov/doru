@@ -389,13 +389,7 @@ export class TreeService {
         },
       }));
       const attachments = this.repo.listAttachmentsFor('person', current.id);
-      const nested: NestedAttachments[] = [
-        {
-          targetType: 'person_sex',
-          targetId: current.id,
-          attachments: this.repo.listAttachmentsFor('person_sex', current.id),
-        },
-      ];
+      const nested: NestedAttachments[] = [];
       for (const nameId of collectNameIds(current.names)) {
         nested.push({
           targetType: 'name',

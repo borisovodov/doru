@@ -1,3 +1,4 @@
+import { GEDCOM_INTEROP_VISIBLE } from './flags';
 import type { MessageKey } from './nls';
 
 /**
@@ -73,6 +74,8 @@ export interface MenuItemEntry {
   /** Shortcut hint shown on platforms without a native menu (Ctrl+N and friends). */
   readonly hint?: string;
   readonly platforms?: readonly MenuPlatform[];
+  /** Whether the entry is rendered; a hidden entry is also not invokable. */
+  readonly visible?: boolean;
 }
 
 export interface MenuSeparatorEntry {
@@ -142,6 +145,7 @@ export const APP_MENU: readonly MenuGroup[] = [
         command: 'workbench.exportGedcom',
         accelerator: 'CmdOrCtrl+Shift+E',
         hint: 'Ctrl+Shift+E',
+        visible: GEDCOM_INTEROP_VISIBLE,
       },
       {
         type: 'item',
@@ -293,9 +297,12 @@ export const APP_MENU: readonly MenuGroup[] = [
   },
 ];
 
-/** A group or entry is visible on `platform` unless it limits itself to others. */
-export function menuVisible(entry: { readonly platforms?: readonly MenuPlatform[] }, platform: MenuPlatform): boolean {
-  return !entry.platforms || entry.platforms.includes(platform);
+/** A group or entry is visible on `platform` unless it hides itself or limits itself to others. */
+export function menuVisible(
+  entry: { readonly platforms?: readonly MenuPlatform[]; readonly visible?: boolean },
+  platform: MenuPlatform,
+): boolean {
+  return entry.visible !== false && (!entry.platforms || entry.platforms.includes(platform));
 }
 
 /** Maps a `process.platform` value to the platform the menu model speaks. */

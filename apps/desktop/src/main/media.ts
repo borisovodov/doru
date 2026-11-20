@@ -7,6 +7,7 @@ import { NodeFileSystem } from './filesystem';
 import { log } from './log';
 import { readMediaFileFacts, type MediaFileFacts } from './mediaFacts';
 import { resolveMediaPath, symlinkChainResolvesTo } from './mediaPaths';
+import { nls } from './nls';
 import { ensureRuntime, runtimeFilePath } from './runtime';
 import { focusedWindow } from './windows';
 
@@ -80,8 +81,8 @@ async function withPaths(projectPath: string, media: MediaRecord): Promise<Media
 async function pickMediaFiles(): Promise<string[]> {
   const dialogOptions: OpenDialogOptions = {
     properties: ['openFile', 'multiSelections'],
-    filters: [{ name: 'Images', extensions: [...IMAGE_EXTENSIONS] }],
-    title: 'Add photos',
+    filters: [{ name: nls.t('media.dialog.addPhotos.filter'), extensions: [...IMAGE_EXTENSIONS] }],
+    title: nls.t('media.dialog.addPhotos.title'),
   };
   const result =
     focusedWindow() !== null

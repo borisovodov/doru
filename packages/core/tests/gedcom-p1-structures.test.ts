@@ -71,7 +71,7 @@ const GEDCOM = [
 ].join('\n');
 
 describe('P1 schema v5 GEDCOM structures', () => {
-  it('imports and round-trips submitter kinds, death status, sex citations, link details, event families and will text', () => {
+  it('imports and round-trips submitter kinds, death status, person citations, link details, event families and will text', () => {
     const fixture = makeRepo();
     try {
       importGedcomDataset(parseDataset(GEDCOM), fixture.repo);
@@ -86,7 +86,7 @@ describe('P1 schema v5 GEDCOM structures', () => {
           expect.objectContaining({ kind: 'descendant_interest' }),
         ]),
       );
-      expect(fixture.repo.listCitationRecordsFor('person_sex', person.id)).toHaveLength(1);
+      expect(fixture.repo.listCitationRecordsFor('person', person.id)).toHaveLength(1);
 
       const childFamily = fixture.repo.listFamilies().find((entry) => entry.xref === '@F1@')!;
       const childLink = (childFamily.childLinks ?? []).find((link) => link.childId === person.id)!;
@@ -125,7 +125,9 @@ describe('P1 schema v5 GEDCOM structures', () => {
         expect(text).toContain('1 ISDEAD Y');
         expect(text).toContain('1 ANCI @U1@');
         expect(text).toContain('1 DESI @U2@');
-        expect(text).toContain('1 SEX F\r\n2 SOUR @S1@');
+        expect(text).toContain('1 SEX F');
+        expect(text).toContain('1 SOUR @S1@');
+        expect(text).toContain('2 PAGE Sex evidence');
         if (is70) {
           expect(text).toContain('3 PHRASE documented');
           expect(text).toContain('4 PHRASE both parents');
@@ -151,7 +153,7 @@ describe('P1 schema v5 GEDCOM structures', () => {
             'contributor:U1',
             'descendant_interest:U2',
           ]);
-          expect(target.repo.listCitationRecordsFor('person_sex', imported.id)).toHaveLength(1);
+          expect(target.repo.listCitationRecordsFor('person', imported.id)).toHaveLength(1);
           expect(imported.facts.find((fact) => fact.tag === 'ADOP')?.familyLinks?.[0]).toMatchObject({
             adoptedBy: 'BOTH',
             ...(is70 ? { phrase: 'both parents' } : {}),

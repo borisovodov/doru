@@ -15,56 +15,25 @@ export class ResearchRepo {
     this.db
       .prepare(
         `INSERT INTO todo (id, text, target_type, target_id, category, locality, priority, status,
-           created_date_id, scheduled_date_id, reminder_date_id, closed_date_id, repository_id)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+           repository_id)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       )
-      .run(...todoParams(todo, this.dates));
+      .run(...todoParams(todo));
+    this.replaceTodoDates(todo);
   }
 
   updateTodo(todo: TodoRecord): void {
     if (this.db.prepare('SELECT 1 FROM todo WHERE id = ?').get(todo.id) === undefined) {
       throw new Error(`todo ${todo.id} no longer exists`);
     }
-    const before = this.db
-      .prepare('SELECT created_date_id, scheduled_date_id, reminder_date_id, closed_date_id FROM todo WHERE id = ?')
-      .get(todo.id) as
-      | {
-          created_date_id: string | null;
-          scheduled_date_id: string | null;
-          reminder_date_id: string | null;
-          closed_date_id: string | null;
-        }
-      | undefined;
     this.db
       .prepare(
         `UPDATE todo SET text = ?, target_type = ?, target_id = ?, category = ?, locality = ?, priority = ?,
-           status = ?, created_date_id = ?, scheduled_date_id = ?, reminder_date_id = ?, closed_date_id = ?, repository_id = ?
+           status = ?, repository_id = ?
          WHERE id = ?`,
       )
-      .run(...todoParams(todo, this.dates).slice(1), todo.id);
-    const after = this.db
-      .prepare('SELECT created_date_id, scheduled_date_id, reminder_date_id, closed_date_id FROM todo WHERE id = ?')
-      .get(todo.id) as {
-      created_date_id: string | null;
-      scheduled_date_id: string | null;
-      reminder_date_id: string | null;
-      closed_date_id: string | null;
-    };
-    const kept = new Set(
-      [after.created_date_id, after.scheduled_date_id, after.reminder_date_id, after.closed_date_id].filter(
-        (id): id is string => id !== null,
-      ),
-    );
-    for (const dateId of [
-      before?.created_date_id,
-      before?.scheduled_date_id,
-      before?.reminder_date_id,
-      before?.closed_date_id,
-    ]) {
-      if (dateId !== null && dateId !== undefined && !kept.has(dateId)) {
-        this.dates.delete(dateId);
-      }
-    }
+      .run(...todoParams(todo).slice(1), todo.id);
+    this.replaceTodoDates(todo);
   }
 
   setTodoRepositoryId(id: string, repositoryId: string | undefined): void {
@@ -74,25 +43,7 @@ export class ResearchRepo {
   }
 
   deleteTodo(id: string): boolean {
-    const row = this.db
-      .prepare('SELECT created_date_id, scheduled_date_id, reminder_date_id, closed_date_id FROM todo WHERE id = ?')
-      .get(id) as
-      | {
-          created_date_id: string | null;
-          scheduled_date_id: string | null;
-          reminder_date_id: string | null;
-          closed_date_id: string | null;
-        }
-      | undefined;
-    const result = this.db.prepare('DELETE FROM todo WHERE id = ?').run(id);
-    if (row) {
-      for (const dateId of [row.created_date_id, row.scheduled_date_id, row.reminder_date_id, row.closed_date_id]) {
-        if (dateId !== null) {
-          this.dates.delete(dateId);
-        }
-      }
-    }
-    return result.changes > 0;
+    return this.db.prepare('DELETE FROM todo WHERE id = ?').run(id).changes > 0;
   }
 
   getTodo(id: string): TodoRecord | undefined {
@@ -113,34 +64,20 @@ export class ResearchRepo {
   }
 
   deleteTodosFor(targetType: string, targetId: string): void {
-    const rows = this.db
-      .prepare(
-        `SELECT id, created_date_id, scheduled_date_id, reminder_date_id, closed_date_id
-         FROM todo WHERE target_type = ? AND target_id = ?`,
-      )
-      .all(targetType, targetId) as unknown as {
-      id: string;
-      created_date_id: string | null;
-      scheduled_date_id: string | null;
-      reminder_date_id: string | null;
-      closed_date_id: string | null;
-    }[];
     this.db.prepare('DELETE FROM todo WHERE target_type = ? AND target_id = ?').run(targetType, targetId);
-    for (const row of rows) {
-      for (const dateId of [row.created_date_id, row.scheduled_date_id, row.reminder_date_id, row.closed_date_id]) {
-        if (dateId !== null) {
-          this.dates.delete(dateId);
-        }
-      }
-    }
+  }
+
+  private replaceTodoDates(todo: TodoRecord): void {
+    this.dates.replaceForOwner('todo', todo.id, {
+      created: todo.createdDate,
+      scheduled: todo.scheduledDate,
+      reminder: todo.reminderDate,
+      closed: todo.closedDate,
+    });
   }
 
   private hydrateTodo(row: TodoRow): TodoRecord {
-    const datesById = this.dates.getMany(
-      [row.created_date_id, row.scheduled_date_id, row.reminder_date_id, row.closed_date_id].filter(
-        (id): id is string => id !== null,
-      ),
-    );
+    const dates = this.dates.getManyForOwners('todo', [row.id]).get(row.id);
     return {
       id: row.id,
       text: row.text,
@@ -150,10 +87,10 @@ export class ResearchRepo {
       locality: row.locality ?? undefined,
       priority: row.priority ?? undefined,
       status: row.status ?? undefined,
-      createdDate: row.created_date_id !== null ? datesById.get(row.created_date_id) : undefined,
-      scheduledDate: row.scheduled_date_id !== null ? datesById.get(row.scheduled_date_id) : undefined,
-      reminderDate: row.reminder_date_id !== null ? datesById.get(row.reminder_date_id) : undefined,
-      closedDate: row.closed_date_id !== null ? datesById.get(row.closed_date_id) : undefined,
+      createdDate: dates?.get('created'),
+      scheduledDate: dates?.get('scheduled'),
+      reminderDate: dates?.get('reminder'),
+      closedDate: dates?.get('closed'),
       repositoryId: row.repository_id ?? undefined,
     };
   }
@@ -219,10 +156,6 @@ interface TodoRow {
   locality: string | null;
   priority: string | null;
   status: string | null;
-  created_date_id: string | null;
-  scheduled_date_id: string | null;
-  reminder_date_id: string | null;
-  closed_date_id: string | null;
   repository_id: string | null;
 }
 
@@ -240,10 +173,10 @@ interface TitleRow {
 }
 
 const todoSelect = `SELECT id, text, target_type, target_id, category, locality, priority, status,
-  created_date_id, scheduled_date_id, reminder_date_id, closed_date_id, repository_id
+  repository_id
   FROM todo`;
 
-function todoParams(todo: TodoRecord, dates: DateRepo): Array<string | number | null> {
+function todoParams(todo: TodoRecord): Array<string | number | null> {
   return [
     todo.id,
     todo.text,
@@ -253,10 +186,6 @@ function todoParams(todo: TodoRecord, dates: DateRepo): Array<string | number | 
     todo.locality ?? null,
     todo.priority ?? null,
     todo.status ?? null,
-    todo.createdDate ? dates.upsert(todo.createdDate) : null,
-    todo.scheduledDate ? dates.upsert(todo.scheduledDate) : null,
-    todo.reminderDate ? dates.upsert(todo.reminderDate) : null,
-    todo.closedDate ? dates.upsert(todo.closedDate) : null,
     todo.repositoryId ?? null,
   ];
 }

@@ -385,7 +385,6 @@ export function attachmentTargetExists(ctx: MutationContext, targetType: string,
     );
   switch (targetType) {
     case 'person':
-    case 'person_sex':
       return ctx.repo.getPerson(targetId) !== undefined;
     case 'family':
       return ctx.repo.getFamily(targetId) !== undefined;

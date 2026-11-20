@@ -183,7 +183,7 @@ describe('place ops', () => {
     }
   });
 
-  it('keeps a date that another place name still references', () => {
+  it('gives each place name its own date row even when a date id is reused', () => {
     const { fixture, service } = makeService();
     try {
       const date = { id: 'SHARED-DATE', quality: 'exact' as const, component: { year: 1900 } };
@@ -195,8 +195,15 @@ describe('place ops', () => {
         id: 'PL2',
         names: [{ id: 'PN2', kind: 'official', position: 0, value: 'Two', date }],
       });
+      const secondDateId = fixture.repo.getPlace('PL2')?.names[0]?.date?.id;
+      expect(secondDateId).toBeDefined();
+      expect(secondDateId).not.toBe('SHARED-DATE');
+
       service.deletePlace(fixture.repo.getPlace('PL1')!);
-      expect(fixture.repo.getPlace('PL2')?.names[0]?.date?.id).toBe('SHARED-DATE');
+      expect(fixture.repo.getPlace('PL2')?.names[0]?.date).toMatchObject({
+        id: secondDateId,
+        component: { year: 1900 },
+      });
     } finally {
       cleanupRepo(fixture);
     }

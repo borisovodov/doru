@@ -1,5 +1,5 @@
 import { useEffect, useMemo } from 'react';
-import { CommandService } from '@doru/platform';
+import { CommandService, GEDCOM_INTEROP_VISIBLE } from '@doru/platform';
 import { nls } from '@doru/workbench';
 import type { useProject } from './useProject';
 import type { useTabs } from './useTabs';
@@ -119,8 +119,12 @@ export function useAppCommands(project: ProjectApi, tabs: TabsApi, tree: TreeHis
       { key: 'meta+shift+[', command: 'workbench.prevTab' },
       { key: 'ctrl+tab', command: 'workbench.nextTab' },
       { key: 'ctrl+shift+tab', command: 'workbench.prevTab' },
-      { key: 'meta+shift+e', command: 'workbench.exportGedcom' },
-      { key: 'ctrl+shift+e', command: 'workbench.exportGedcom' },
+      ...(GEDCOM_INTEROP_VISIBLE
+        ? [
+            { key: 'meta+shift+e', command: 'workbench.exportGedcom' },
+            { key: 'ctrl+shift+e', command: 'workbench.exportGedcom' },
+          ]
+        : []),
       { key: 'meta+alt+b', command: 'workbench.toggleAgentChat' },
       { key: 'ctrl+alt+b', command: 'workbench.toggleAgentChat' },
       ...Array.from({ length: 9 }, (_, index) => [

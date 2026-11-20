@@ -416,6 +416,15 @@ export interface PlaceRecord {
   postalCodes?: { id: string; code: string; date?: DateValue }[] | undefined;
 }
 
+/**
+ * Case-folds text for user-facing substring matching. Unicode lowercasing
+ * maps word-final Greek sigma to ς, so a query ending in Σ would miss the
+ * same letters inside a word; fold it to σ on both sides.
+ */
+export function foldCase(value: string): string {
+  return value.toLowerCase().replaceAll('ς', 'σ');
+}
+
 /** The joined display form of a place: jurisdictions smallest first. */
 export function placeName(place: PlaceRecord | undefined): string {
   if (!place) {
@@ -847,7 +856,6 @@ export interface TitleRecord {
  */
 export const TARGET_TYPES = [
   'person',
-  'person_sex',
   'family',
   'family_partner',
   'family_child',

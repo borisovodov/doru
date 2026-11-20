@@ -231,6 +231,15 @@ describe('SqliteTreeRepository', () => {
       };
       repo.insertPerson(boris);
 
+      const greek: PersonRecord = {
+        id: 'P4',
+        names: [{ id: 'N5', given: 'ΚΟΣΜΑΣ' }],
+        sex: 'M',
+        facts: [],
+      };
+      repo.insertPerson(greek);
+      expect(repo.listPersons({ search: 'ΚΟΣ' }).map((p) => p.id)).toEqual(['P4']);
+
       expect(repo.listPersons({ search: 'борис' }).map((p) => p.id)).toEqual(['P3']);
       expect(repo.listPersons({ search: 'БОРИС' }).map((p) => p.id)).toEqual(['P3']);
       expect(repo.listPersons({ search: 'ёлк' }).map((p) => p.id)).toEqual(['P3']);
