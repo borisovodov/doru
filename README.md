@@ -7,7 +7,6 @@
 **Genealogy for the AI era.**
 
 [![CI](https://img.shields.io/github/actions/workflow/status/borisovodov/doru/ci.yml?branch=main)](https://github.com/borisovodov/doru/actions/workflows/ci.yml)
-[![Coverage Status](https://coveralls.io/repos/github/borisovodov/doru/badge.svg?branch=main)](https://coveralls.io/github/borisovodov/doru?branch=main)
 
 🚧🚧🚧🚧🚧🚧🚧🚧🚧🚧🚧🚧🚧🚧🚧🚧🚧🚧🚧🚧
 
