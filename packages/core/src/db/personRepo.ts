@@ -1,5 +1,5 @@
 import type { DatabaseSync } from 'node:sqlite';
-import type { Sex } from '../model/types';
+import { foldCase, type Sex } from '../model/types';
 import type { TransactionScope } from './transaction';
 
 export interface PersonQuery {
@@ -83,7 +83,7 @@ export class PersonRepo {
       const haystacks = this.nameSearchText(query.sex);
       const matched = this.listPersonRows(query.sex).filter((row) => {
         const haystack = haystacks.get(row.id);
-        return haystack !== undefined && terms.every((term) => haystack.includes(term.toLowerCase()));
+        return haystack !== undefined && terms.every((term) => haystack.includes(foldCase(term)));
       });
       return matched.slice(offset, offset + limit).map(toPerson);
     }
@@ -131,7 +131,7 @@ export class PersonRepo {
     }
     const textByPerson = new Map<string, string>();
     for (const [personId, values] of valuesByPerson) {
-      textByPerson.set(personId, values.join(' ').toLowerCase());
+      textByPerson.set(personId, foldCase(values.join(' ')));
     }
     return textByPerson;
   }

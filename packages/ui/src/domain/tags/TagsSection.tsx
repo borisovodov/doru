@@ -6,6 +6,7 @@ import { SectionCard } from '../../patterns/section-card/SectionCard';
 import { useRef, useState } from 'react';
 import { CalendarDays, Trash2, X } from 'lucide-react';
 import type { TagLinkRecord, TagRecord } from '@doru/core';
+import { foldCase } from '@doru/core/model';
 import { nls } from '../../nls';
 import { DateEditor } from '../date/DateEditor';
 import { emptyDate, fromDateDraft, toDateDraft, type DateDraft } from '../person/draft';
@@ -56,7 +57,7 @@ export function TagsSection({
     if (name === '') {
       return;
     }
-    let tag = tags.find((entry) => entry.name.toLowerCase() === name.toLowerCase());
+    let tag = tags.find((entry) => foldCase(entry.name) === foldCase(name));
     if (!tag) {
       tag = { id: crypto.randomUUID(), name };
       await onAddTag(tag);

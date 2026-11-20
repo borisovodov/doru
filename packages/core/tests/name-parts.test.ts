@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { partsFromFlat } from '../src/db/nameRepo';
+import { foldCase } from '../src/model/types';
 
 describe('name parts', () => {
   it('keeps the id of the part that supplied an edited flat field', () => {
@@ -9,5 +10,10 @@ describe('name parts', () => {
       { id: 'S', kind: 'surname', value: 'Doe', position: 2 },
     ]);
     expect(parts.find((part) => part.kind === 'given')?.id).toBe('A');
+  });
+
+  it('folds the Greek final sigma for caseless matching', () => {
+    expect(foldCase('ΚΟΣ')).toBe('κοσ');
+    expect(foldCase('ΚΟΣΜΑΣ')).toBe('κοσμασ');
   });
 });
