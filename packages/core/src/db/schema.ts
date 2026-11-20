@@ -45,10 +45,10 @@ export const DORU_APPLICATION_ID = 0x444f5255;
  * Bumped whenever the schema changes. There are no migrations before 1.0.0:
  * a newer version may simply not understand files written by older ones
  * (the store refuses to open them with a loud error). This schema uses
- * version 7, above every version written by an earlier build (the old model
+ * version 8, above every version written by an earlier build (the old model
  * reached 6), so the open guard cannot mistake an old file for this one.
  */
-export const SCHEMA_VERSION = 7;
+export const SCHEMA_VERSION = 8;
 
 export const SCHEMA_SQL = `
 CREATE TABLE IF NOT EXISTS person (
@@ -196,7 +196,7 @@ CREATE TABLE IF NOT EXISTS fact (
 
 -- The family an event belongs to (GEDCOM event-level FAMC: ADOP, BIRT, CHR),
 -- with the "which parent adopted" marker for ADOP.
-CREATE TABLE IF NOT EXISTS fact_family (
+CREATE TABLE IF NOT EXISTS fact_event_family (
   id TEXT PRIMARY KEY,
   fact_id TEXT NOT NULL REFERENCES fact(id) ON DELETE CASCADE,
   family_id TEXT NOT NULL REFERENCES family(id) ON DELETE CASCADE,
@@ -595,8 +595,8 @@ CREATE INDEX IF NOT EXISTS idx_family_partner_family ON family_partner(family_id
 CREATE INDEX IF NOT EXISTS idx_family_partner_person ON family_partner(person_id);
 CREATE INDEX IF NOT EXISTS idx_family_child_family ON family_child(family_id, position);
 CREATE INDEX IF NOT EXISTS idx_family_child_child ON family_child(child_id);
-CREATE INDEX IF NOT EXISTS idx_fact_family_fact ON fact_family(fact_id, position);
-CREATE INDEX IF NOT EXISTS idx_fact_family_family ON fact_family(family_id);
+CREATE INDEX IF NOT EXISTS idx_fact_event_family_fact ON fact_event_family(fact_id, position);
+CREATE INDEX IF NOT EXISTS idx_fact_event_family_family ON fact_event_family(family_id);
 CREATE INDEX IF NOT EXISTS idx_fact_person ON fact(person_id);
 CREATE INDEX IF NOT EXISTS idx_fact_family ON fact(family_id);
 CREATE INDEX IF NOT EXISTS idx_fact_place ON fact(place_id);

@@ -210,7 +210,7 @@ export function deleteFamilyOp(
         const existing = new Set((current.familyLinks ?? []).map((link) => link.id));
         for (const link of fact.familyLinks ?? []) {
           if (link.familyId === family.id && !existing.has(link.id)) {
-            ctx.repo.insertFactFamilyLink(fact.id, link);
+            ctx.repo.insertFactEventFamilyLink(fact.id, link);
           }
         }
       }

@@ -126,11 +126,11 @@ export class FactRepo {
     return this.queryFacts('family_id', familyId);
   }
 
-  /** Facts that link to a family through fact_family, without scanning the tree. */
+  /** Facts that link to a family through fact_event_family, without scanning the tree. */
   listFactsLinkedToFamily(familyId: string): FactRecord[] {
     const rows = this.db
       .prepare(
-        `SELECT ${FACT_COLUMNS} FROM fact WHERE id IN (SELECT DISTINCT fact_id FROM fact_family WHERE family_id = ?)`,
+        `SELECT ${FACT_COLUMNS} FROM fact WHERE id IN (SELECT DISTINCT fact_id FROM fact_event_family WHERE family_id = ?)`,
       )
       .all(familyId) as unknown as FactRow[];
     const facts: FactRecord[] = [];
@@ -354,7 +354,7 @@ export class FactRepo {
     this.db.prepare('DELETE FROM fact_participant WHERE fact_id = ?').run(fact.id);
     this.db.prepare('DELETE FROM fact_flag WHERE fact_id = ?').run(fact.id);
     this.db.prepare('DELETE FROM fact_place WHERE fact_id = ?').run(fact.id);
-    this.db.prepare('DELETE FROM fact_family WHERE fact_id = ?').run(fact.id);
+    this.db.prepare('DELETE FROM fact_event_family WHERE fact_id = ?').run(fact.id);
     const insertPlace = this.db.prepare('INSERT INTO fact_place (id, fact_id, place_id, position) VALUES (?, ?, ?, ?)');
     (fact.additionalPlaceIds ?? []).forEach((placeId, position) => {
       insertPlace.run(crypto.randomUUID(), fact.id, placeId, position);
@@ -394,7 +394,7 @@ export class FactRepo {
       insertFlag.run(fact.id, flag);
     }
     const insertFamily = this.db.prepare(
-      `INSERT INTO fact_family (id, fact_id, family_id, adopted_by, phrase, position)
+      `INSERT INTO fact_event_family (id, fact_id, family_id, adopted_by, phrase, position)
        VALUES (?, ?, ?, ?, ?, ?)`,
     );
     for (const link of fact.familyLinks ?? []) {
@@ -403,10 +403,10 @@ export class FactRepo {
   }
 
   /** Adds one event-family link after the families themselves are imported. */
-  insertFactFamilyLink(factId: string, link: FactFamilyLink): void {
+  insertFactEventFamilyLink(factId: string, link: FactFamilyLink): void {
     this.db
       .prepare(
-        `INSERT INTO fact_family (id, fact_id, family_id, adopted_by, phrase, position)
+        `INSERT INTO fact_event_family (id, fact_id, family_id, adopted_by, phrase, position)
          VALUES (?, ?, ?, ?, ?, ?)`,
       )
       .run(link.id, factId, link.familyId, link.adoptedBy ?? null, link.phrase ?? null, link.position);
@@ -508,7 +508,7 @@ export class FactRepo {
     const placeholders = factIds.map(() => '?').join(', ');
     const rows = this.db
       .prepare(
-        `SELECT id, fact_id, family_id, adopted_by, phrase, position FROM fact_family
+        `SELECT id, fact_id, family_id, adopted_by, phrase, position FROM fact_event_family
          WHERE fact_id IN (${placeholders}) ORDER BY position`,
       )
       .all(...factIds) as unknown as {

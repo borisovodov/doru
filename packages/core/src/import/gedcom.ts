@@ -815,7 +815,7 @@ function linkFactFamilies(ctx: ImportContext): void {
     }
     const movedToHusband =
       ctx.singleWifeFamilies.has(pending.familyXref) && (pending.adoptedBy === 'WIFE' || pending.adoptedBy === 'BOTH');
-    ctx.repo.insertFactFamilyLink(pending.factId, {
+    ctx.repo.insertFactEventFamilyLink(pending.factId, {
       id: crypto.randomUUID(),
       familyId,
       adoptedBy: movedToHusband ? 'HUSB' : pending.adoptedBy,
