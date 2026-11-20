@@ -1,7 +1,7 @@
 import { BrowserWindow, app, dialog, type OpenDialogOptions, type SaveDialogOptions } from 'electron';
 import { basename, dirname, join } from 'node:path';
 import { MEDIA_DIR_NAME, TREE_FILE_EXTENSION, type ProjectBinding, type ProjectSummary } from '@doru/core';
-import { LocalizationService, resolveLocale } from '@doru/platform';
+import { GEDCOM_INTEROP_VISIBLE, LocalizationService, resolveLocale } from '@doru/platform';
 import { createBookmark, releaseBookmarkAccess, startAccessing } from './bookmarks';
 import { NodeFileSystem } from './filesystem';
 import { openGedcomAsProject } from './gedcom';
@@ -169,19 +169,26 @@ export function openFileAsProject(
 }
 
 /**
- * The Open dialog: project files and GEDCOM files in one list. A `.doru`
- * file opens its project; a `.ged`/`.gdz` file starts a new, not-yet-saved
- * project that the user saves to `.doru` later (see `openFileAsProject`).
+ * The Open dialog: project files and, while `GEDCOM_INTEROP_VISIBLE` is on,
+ * GEDCOM files in one list. A `.doru` file opens its project; a `.ged`/`.gdz`
+ * file starts a new, not-yet-saved project that the user saves to `.doru`
+ * later (see `openFileAsProject`).
  *
  * A single filter entry keeps every extension selectable on macOS, where a
  * multi-filter panel greys out files outside the active filter.
  */
 export async function openAnyProjectDialog(senderId?: number): Promise<ProjectSummary | ProjectBinding | null> {
-  const dialogOptions: OpenDialogOptions = {
-    properties: ['openFile'],
-    filters: [{ name: 'Dóru project or GEDCOM file', extensions: ['doru', 'ged', 'gdz'] }],
-    title: 'Open Project or Import GEDCOM',
-  };
+  const dialogOptions: OpenDialogOptions = GEDCOM_INTEROP_VISIBLE
+    ? {
+        properties: ['openFile'],
+        filters: [{ name: 'Dóru project or GEDCOM file', extensions: ['doru', 'ged', 'gdz'] }],
+        title: 'Open Project or Import GEDCOM',
+      }
+    : {
+        properties: ['openFile'],
+        filters: [{ name: 'Dóru project', extensions: ['doru'] }],
+        title: 'Open Project',
+      };
   const parent = senderId !== undefined ? windowById(senderId) : focusedWindow();
   const result =
     parent !== null ? await dialog.showOpenDialog(parent, dialogOptions) : await dialog.showOpenDialog(dialogOptions);

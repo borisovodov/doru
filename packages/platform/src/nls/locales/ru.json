@@ -747,7 +747,7 @@
   "workbench.keyboardShortcuts": "Сочетания клавиш",
   "workbench.newWindow": "Новое окно",
   "workbench.nextTab": "Следующая вкладка",
-  "workbench.openProject": "Открыть проект или импортировать GEDCOM…",
+  "workbench.openProject": "Открыть проект…",
   "workbench.prevTab": "Предыдущая вкладка",
   "workbench.recent": "Недавние",
   "workbench.recent.empty": "Нет недавних проектов",

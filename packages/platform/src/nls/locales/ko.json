@@ -747,7 +747,7 @@
   "workbench.keyboardShortcuts": "키보드 단축키",
   "workbench.newWindow": "새 창",
   "workbench.nextTab": "다음 탭",
-  "workbench.openProject": "프로젝트 열기 또는 GEDCOM 가져오기…",
+  "workbench.openProject": "프로젝트 열기…",
   "workbench.prevTab": "이전 탭",
   "workbench.recent": "최근",
   "workbench.recent.empty": "최근 프로젝트 없음",

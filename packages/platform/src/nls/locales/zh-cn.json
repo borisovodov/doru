@@ -747,7 +747,7 @@
   "workbench.keyboardShortcuts": "键盘快捷键",
   "workbench.newWindow": "新建窗口",
   "workbench.nextTab": "下一个标签页",
-  "workbench.openProject": "打开项目或导入 GEDCOM…",
+  "workbench.openProject": "打开项目…",
   "workbench.prevTab": "上一个标签页",
   "workbench.recent": "最近",
   "workbench.recent.empty": "暂无最近项目",

@@ -747,7 +747,7 @@
   "workbench.keyboardShortcuts": "キーボードショートカット",
   "workbench.newWindow": "新しいウィンドウ",
   "workbench.nextTab": "次のタブ",
-  "workbench.openProject": "プロジェクトを開く、または GEDCOM をインポート…",
+  "workbench.openProject": "プロジェクトを開く…",
   "workbench.prevTab": "前のタブ",
   "workbench.recent": "最近",
   "workbench.recent.empty": "最近のプロジェクトはありません",

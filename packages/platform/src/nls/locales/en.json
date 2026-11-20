@@ -747,7 +747,7 @@
   "workbench.keyboardShortcuts": "Keyboard Shortcuts",
   "workbench.newWindow": "New Window",
   "workbench.nextTab": "Next Tab",
-  "workbench.openProject": "Open Project or Import GEDCOM…",
+  "workbench.openProject": "Open Project…",
   "workbench.prevTab": "Previous Tab",
   "workbench.recent": "Recent",
   "workbench.recent.empty": "No recent projects",
