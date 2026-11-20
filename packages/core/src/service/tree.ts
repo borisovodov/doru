@@ -642,6 +642,40 @@ export class TreeService {
         candidate.childLinks = kept;
         candidate.children = kept.map((link) => link.childId);
       }
+      // Preserve links another writer added even when the draft did not
+      // touch the flat lists (for example, a metadata-only family edit).
+      if (
+        before.partnerLinks !== undefined &&
+        after.partnerLinks !== undefined &&
+        JSON.stringify(before.partnerLinks) === JSON.stringify(after.partnerLinks)
+      ) {
+        const knownPartnerIds = new Set([
+          ...before.partnerLinks.map((link) => link.id),
+          ...(candidate.partnerLinks ?? []).map((link) => link.id),
+        ]);
+        const extraPartners = (current.partnerLinks ?? []).filter((link) => !knownPartnerIds.has(link.id));
+        if (extraPartners.length > 0) {
+          const partnerLinks = [...(candidate.partnerLinks ?? []), ...extraPartners];
+          candidate.partnerLinks = partnerLinks;
+          candidate.partners = partnerLinks.map((link) => link.personId);
+        }
+      }
+      if (
+        before.childLinks !== undefined &&
+        after.childLinks !== undefined &&
+        JSON.stringify(before.childLinks) === JSON.stringify(after.childLinks)
+      ) {
+        const knownChildIds = new Set([
+          ...before.childLinks.map((link) => link.id),
+          ...(candidate.childLinks ?? []).map((link) => link.id),
+        ]);
+        const extraChildren = (current.childLinks ?? []).filter((link) => !knownChildIds.has(link.id));
+        if (extraChildren.length > 0) {
+          const childLinks = [...(candidate.childLinks ?? []), ...extraChildren];
+          candidate.childLinks = childLinks;
+          candidate.children = childLinks.map((link) => link.childId);
+        }
+      }
       // Validate against the graph inside the write transaction: another
       // connection must not close a cycle between the check and the write.
       this.assertFamilyAcyclic(candidate);

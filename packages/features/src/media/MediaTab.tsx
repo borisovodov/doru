@@ -190,7 +190,7 @@ function MediaTabBody({
       refreshed.date = record.date;
       setDate(toDateDraft(record.date));
     }
-    if (draft.place === base.place && draft.placeId === base.placeId) {
+    if (draft.place.trim() === base.place.trim() && draft.placeId === base.placeId) {
       refreshed.place = record.place;
       refreshed.placeId = record.placeId;
       setPlace(record.place ?? '');

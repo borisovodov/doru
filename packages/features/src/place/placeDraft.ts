@@ -234,7 +234,12 @@ function mergePlaceRows<T extends { id: string }>(
     const comparison = comparisonById.get(row.id);
     const previous = previousById.get(row.id);
     if (previous === undefined) {
-      merged.push(row);
+      const refreshed = refreshedById.get(row.id);
+      if (comparison !== undefined && placeRowsEqual(row, comparison) && refreshed !== undefined) {
+        merged.push(refreshed);
+      } else {
+        merged.push(row);
+      }
       continue;
     }
     const refreshed = refreshedById.get(row.id);
