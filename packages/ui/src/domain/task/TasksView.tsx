@@ -110,7 +110,6 @@ export function TasksView({
     let open: (() => void) | undefined;
     switch (todo.targetType) {
       case 'person':
-      case 'person_sex':
         open = () => onOpenPerson(id);
         break;
       case 'family':

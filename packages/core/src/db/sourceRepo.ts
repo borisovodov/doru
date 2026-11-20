@@ -13,7 +13,6 @@ interface SourceRow {
   url: string | null;
   access_date: string | null;
   confidence: string | null;
-  pub_date_id: string | null;
   pub_place_text: string | null;
   agency: string | null;
   title_id: string | null;
@@ -35,7 +34,6 @@ interface CitationRow {
   event: string | null;
   role: string | null;
   phrase: string | null;
-  date_id: string | null;
   www: string | null;
   name: string | null;
   quality_assessment: string | null;
@@ -62,11 +60,12 @@ export class SourceRepo {
     this.db
       .prepare(
         `INSERT INTO source (id, xref, title, abbreviation, author, publication,
-           medium, url, access_date, confidence, pub_date_id, pub_place_text, agency, title_id,
+           medium, url, access_date, confidence, pub_place_text, agency, title_id,
            certainty, subsequent_citation_format, bibliography, data_note)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       )
-      .run(...sourceParams(source, this.dates));
+      .run(...sourceParams(source));
+    this.dates.upsertForOwner('source', source.id, 'publication', source.pubDate);
     this.replaceSourceDetails(source);
   }
 
@@ -74,28 +73,16 @@ export class SourceRepo {
     if (this.db.prepare('SELECT 1 FROM source WHERE id = ?').get(source.id) === undefined) {
       throw new Error(`source ${source.id} no longer exists`);
     }
-    const before = this.db.prepare('SELECT pub_date_id FROM source WHERE id = ?').get(source.id) as
-      | { pub_date_id: string | null }
-      | undefined;
     this.db
       .prepare(
         `UPDATE source SET xref = ?, title = ?, abbreviation = ?, author = ?, publication = ?,
-           medium = ?, url = ?, access_date = ?, confidence = ?, pub_date_id = ?, pub_place_text = ?,
+           medium = ?, url = ?, access_date = ?, confidence = ?, pub_place_text = ?,
            agency = ?, title_id = ?, certainty = ?, subsequent_citation_format = ?, bibliography = ?,
            data_note = ?
          WHERE id = ?`,
       )
-      .run(...sourceParams(source, this.dates).slice(1), source.id);
-    const after = this.db.prepare('SELECT pub_date_id FROM source WHERE id = ?').get(source.id) as
-      | { pub_date_id: string | null }
-      | undefined;
-    if (
-      before?.pub_date_id !== null &&
-      before?.pub_date_id !== undefined &&
-      before.pub_date_id !== after?.pub_date_id
-    ) {
-      this.dates.delete(before.pub_date_id);
-    }
+      .run(...sourceParams(source).slice(1), source.id);
+    this.dates.upsertForOwner('source', source.id, 'publication', source.pubDate);
     this.replaceSourceDetails(source);
   }
 
@@ -107,27 +94,9 @@ export class SourceRepo {
   }
 
   deleteSource(id: string): boolean {
-    const row = this.db.prepare('SELECT pub_date_id FROM source WHERE id = ?').get(id) as
-      | { pub_date_id: string | null }
-      | undefined;
-    // Citation rows cascade with the source; their date rows must go too.
-    const citationDateIds = this.db
-      .prepare('SELECT date_id FROM citation WHERE source_id = ? AND date_id IS NOT NULL')
-      .all(id) as unknown as { date_id: string }[];
-    const eventDateIds = this.listSourceEventDateIds(id);
-    const result = this.db.prepare('DELETE FROM source WHERE id = ?').run(id);
-    for (const dateId of citationDateIds.map((entry) => entry.date_id)) {
-      this.dates.delete(dateId);
-    }
-    for (const dateId of eventDateIds) {
-      if (dateId !== null) {
-        this.dates.delete(dateId);
-      }
-    }
-    if (row?.pub_date_id !== null && row?.pub_date_id !== undefined) {
-      this.dates.delete(row.pub_date_id);
-    }
-    return result.changes > 0;
+    // Citation and source-data-event rows cascade with the source; their
+    // owner triggers delete the date rows with them.
+    return this.db.prepare('DELETE FROM source WHERE id = ?').run(id).changes > 0;
   }
 
   getSource(id: string): SourceRecord | undefined {
@@ -210,11 +179,12 @@ export class SourceRepo {
     this.db
       .prepare(
         `INSERT INTO citation (id, source_id, target_type, target_id, description, page, quality,
-           confidence, event, role, phrase, date_id, www, name, quality_assessment, reference,
+           confidence, event, role, phrase, www, name, quality_assessment, reference,
            reference_number, abbreviation, footnote, verified, assessment, found_by)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       )
-      .run(...citationParams(citation, this.dates));
+      .run(...citationParams(citation));
+    this.dates.upsertForOwner('citation', citation.id, 'date', citation.date);
     this.replaceCitationDetails(citation);
   }
 
@@ -222,36 +192,21 @@ export class SourceRepo {
     if (this.db.prepare('SELECT 1 FROM citation WHERE id = ?').get(citation.id) === undefined) {
       throw new Error(`citation ${citation.id} no longer exists`);
     }
-    const before = this.db.prepare('SELECT date_id FROM citation WHERE id = ?').get(citation.id) as
-      | { date_id: string | null }
-      | undefined;
     this.db
       .prepare(
         `UPDATE citation SET source_id = ?, target_type = ?, target_id = ?, description = ?, page = ?,
-           quality = ?, confidence = ?, event = ?, role = ?, phrase = ?, date_id = ?, www = ?,
+           quality = ?, confidence = ?, event = ?, role = ?, phrase = ?, www = ?,
            name = ?, quality_assessment = ?, reference = ?, reference_number = ?, abbreviation = ?,
            footnote = ?, verified = ?, assessment = ?, found_by = ?
          WHERE id = ?`,
       )
-      .run(...citationParams(citation, this.dates).slice(1), citation.id);
-    const after = this.db.prepare('SELECT date_id FROM citation WHERE id = ?').get(citation.id) as
-      | { date_id: string | null }
-      | undefined;
-    if (before?.date_id !== null && before?.date_id !== undefined && before.date_id !== after?.date_id) {
-      this.dates.delete(before.date_id);
-    }
+      .run(...citationParams(citation).slice(1), citation.id);
+    this.dates.upsertForOwner('citation', citation.id, 'date', citation.date);
     this.replaceCitationDetails(citation);
   }
 
   deleteCitation(id: string): boolean {
-    const row = this.db.prepare('SELECT date_id FROM citation WHERE id = ?').get(id) as
-      | { date_id: string | null }
-      | undefined;
-    const result = this.db.prepare('DELETE FROM citation WHERE id = ?').run(id);
-    if (row?.date_id !== null && row?.date_id !== undefined) {
-      this.dates.delete(row.date_id);
-    }
-    return result.changes > 0;
+    return this.db.prepare('DELETE FROM citation WHERE id = ?').run(id).changes > 0;
   }
 
   getCitation(id: string): CitationRecord | undefined {
@@ -287,21 +242,12 @@ export class SourceRepo {
     return rows.map((row) => this.hydrateCitation(row));
   }
 
-  /** Deletes every citation of the target together with their date rows (cascade part). */
+  /** Deletes every citation of the target; owner triggers delete their dates. */
   deleteCitationsFor(targetType: string, targetId: string): void {
-    const rows = this.db
-      .prepare('SELECT id, date_id FROM citation WHERE target_type = ? AND target_id = ?')
-      .all(targetType, targetId) as unknown as { id: string; date_id: string | null }[];
     this.db.prepare('DELETE FROM citation WHERE target_type = ? AND target_id = ?').run(targetType, targetId);
-    for (const row of rows) {
-      if (row.date_id !== null) {
-        this.dates.deleteIfUnused(row.date_id);
-      }
-    }
   }
 
   private replaceSourceDetails(source: SourceRecord): void {
-    const oldEventDates = new Set(this.listSourceEventDateIds(source.id));
     this.db.prepare('DELETE FROM source_text WHERE source_id = ?').run(source.id);
     this.db.prepare('DELETE FROM source_data_event WHERE source_id = ?').run(source.id);
     this.db.prepare('DELETE FROM source_repository WHERE source_id = ?').run(source.id);
@@ -314,20 +260,11 @@ export class SourceRepo {
       insertText.run(text.id, source.id, text.text, text.mime ?? null, text.language ?? null);
     }
     const insertEvent = this.db.prepare(
-      'INSERT INTO source_data_event (id, source_id, tag, value, date_id, place_id) VALUES (?, ?, ?, ?, ?, ?)',
+      'INSERT INTO source_data_event (id, source_id, tag, value, place_id) VALUES (?, ?, ?, ?, ?)',
     );
-    const newEventDates = new Set<string>();
     for (const event of source.dataEvents ?? []) {
-      const dateId = event.date ? this.dates.upsert(event.date) : null;
-      insertEvent.run(event.id, source.id, event.tag, event.value ?? null, dateId, event.placeId ?? null);
-      if (dateId !== null) {
-        newEventDates.add(dateId);
-      }
-    }
-    for (const stale of oldEventDates) {
-      if (stale !== null && !newEventDates.has(stale)) {
-        this.dates.delete(stale);
-      }
+      insertEvent.run(event.id, source.id, event.tag, event.value ?? null, event.placeId ?? null);
+      this.dates.upsertForOwner('source_data_event', event.id, 'date', event.date);
     }
     const insertRepository = this.db.prepare(
       'INSERT INTO source_repository (id, source_id, repository_id) VALUES (?, ?, ?)',
@@ -367,21 +304,21 @@ export class SourceRepo {
   }
 
   private hydrate(row: SourceRow): SourceRecord {
-    const datesById = this.dates.getMany(
-      [row.pub_date_id, ...this.listSourceEventDateIds(row.id)].filter((id): id is string => id !== null),
-    );
-    const texts = this.db
-      .prepare('SELECT id, text, mime, language FROM source_text WHERE source_id = ? ORDER BY id')
-      .all(row.id) as unknown as { id: string; text: string; mime: string | null; language: string | null }[];
     const events = this.db
-      .prepare('SELECT id, tag, value, date_id, place_id FROM source_data_event WHERE source_id = ? ORDER BY id')
+      .prepare('SELECT id, tag, value, place_id FROM source_data_event WHERE source_id = ? ORDER BY id')
       .all(row.id) as unknown as {
       id: string;
       tag: string;
       value: string | null;
-      date_id: string | null;
       place_id: string | null;
     }[];
+    const eventDates = this.dates.getManyForOwners(
+      'source_data_event',
+      events.map((event) => event.id),
+    );
+    const texts = this.db
+      .prepare('SELECT id, text, mime, language FROM source_text WHERE source_id = ? ORDER BY id')
+      .all(row.id) as unknown as { id: string; text: string; mime: string | null; language: string | null }[];
     const repositories = this.db
       .prepare('SELECT id, repository_id FROM source_repository WHERE source_id = ? ORDER BY id')
       .all(row.id) as unknown as { id: string; repository_id: string }[];
@@ -400,7 +337,7 @@ export class SourceRepo {
       url: row.url ?? undefined,
       accessDate: row.access_date ?? undefined,
       confidence: row.confidence ?? undefined,
-      pubDate: row.pub_date_id !== null ? datesById.get(row.pub_date_id) : undefined,
+      pubDate: this.dates.getForOwner('source', row.id, 'publication'),
       pubPlace: row.pub_place_text ?? undefined,
       agency: row.agency ?? undefined,
       titleId: row.title_id ?? undefined,
@@ -419,7 +356,7 @@ export class SourceRepo {
     }
     if (events.length > 0) {
       source.dataEvents = events.map((event) => {
-        const date = event.date_id !== null ? datesById.get(event.date_id) : undefined;
+        const date = eventDates.get(event.id)?.get('date');
         return {
           id: event.id,
           tag: event.tag,
@@ -455,15 +392,7 @@ export class SourceRepo {
     return source;
   }
 
-  private listSourceEventDateIds(sourceId: string): Array<string | null> {
-    const rows = this.db
-      .prepare('SELECT date_id FROM source_data_event WHERE source_id = ? AND date_id IS NOT NULL')
-      .all(sourceId) as unknown as { date_id: string }[];
-    return rows.map((row) => row.date_id);
-  }
-
   private hydrateCitation(row: CitationRow): CitationRecord {
-    const datesById = this.dates.getMany([row.date_id].filter((id): id is string => id !== null));
     const texts = this.db
       .prepare('SELECT id, text, mime, language FROM citation_text WHERE citation_id = ? ORDER BY id')
       .all(row.id) as unknown as { id: string; text: string; mime: string | null; language: string | null }[];
@@ -482,7 +411,7 @@ export class SourceRepo {
       event: row.event ?? undefined,
       role: row.role ?? undefined,
       phrase: row.phrase ?? undefined,
-      date: row.date_id !== null ? datesById.get(row.date_id) : undefined,
+      date: this.dates.getForOwner('citation', row.id, 'date'),
       www: row.www ?? undefined,
       name: row.name ?? undefined,
       qualityAssessment: row.quality_assessment ?? undefined,
@@ -514,16 +443,16 @@ export class SourceRepo {
 }
 
 const sourceSelect = `SELECT id, xref, title, abbreviation, author, publication,
-  medium, url, access_date, confidence, pub_date_id, pub_place_text, agency, title_id,
+  medium, url, access_date, confidence, pub_place_text, agency, title_id,
   certainty, subsequent_citation_format, bibliography, data_note
   FROM source`;
 
 const citationSelect = `SELECT id, source_id, target_type, target_id, description, page, quality,
-  confidence, event, role, phrase, date_id, www, name, quality_assessment, reference,
+  confidence, event, role, phrase, www, name, quality_assessment, reference,
   reference_number, abbreviation, footnote, verified, assessment, found_by
   FROM citation`;
 
-function sourceParams(source: SourceRecord, dates: DateRepo): Array<string | number | null> {
+function sourceParams(source: SourceRecord): Array<string | number | null> {
   return [
     source.id,
     source.xref ?? null,
@@ -535,7 +464,6 @@ function sourceParams(source: SourceRecord, dates: DateRepo): Array<string | num
     source.url ?? null,
     source.accessDate ?? null,
     source.confidence ?? null,
-    source.pubDate ? dates.upsert(source.pubDate) : null,
     source.pubPlace ?? null,
     source.agency ?? null,
     source.titleId ?? null,
@@ -546,7 +474,7 @@ function sourceParams(source: SourceRecord, dates: DateRepo): Array<string | num
   ];
 }
 
-function citationParams(citation: CitationRecord, dates: DateRepo): Array<string | number | null> {
+function citationParams(citation: CitationRecord): Array<string | number | null> {
   return [
     citation.id,
     citation.sourceId,
@@ -559,7 +487,6 @@ function citationParams(citation: CitationRecord, dates: DateRepo): Array<string
     citation.event ?? null,
     citation.role ?? null,
     citation.phrase ?? null,
-    citation.date ? dates.upsert(citation.date) : null,
     citation.www ?? null,
     citation.name ?? null,
     citation.qualityAssessment ?? null,

@@ -80,7 +80,6 @@ export function PersonEditor({
   const [aliases, setAliases] = useState<Array<{ id: string; aliasId: string }>>([]);
   const [sources, setSources] = useState<SourceRecord[]>([]);
   const [citations, setCitations] = useState<CitationRecord[]>([]);
-  const [sexCitations, setSexCitations] = useState<CitationRecord[]>([]);
   const [facts, setFacts] = useState<FactRecord[]>([]);
   const [media, setMedia] = useState<MediaWithPath[]>([]);
   const [identifiers, setIdentifiers] = useState<IdentifierRecord[]>([]);
@@ -135,7 +134,6 @@ export function PersonEditor({
 
   const refreshCitations = async () => {
     setCitations(await api.getCitations('person', draft.id));
-    setSexCitations(await api.getCitations('person_sex', draft.id));
     setSources(await api.getSources());
   };
 
@@ -169,18 +167,6 @@ export function PersonEditor({
         }
       },
     );
-    void api
-      .getCitations('person_sex', draft.id)
-      .then((loadedSexCitations) => {
-        if (!cancelled) {
-          setSexCitations(loadedSexCitations);
-        }
-      })
-      .catch(() => {
-        if (!cancelled) {
-          setSexCitations([]);
-        }
-      });
     void api.getAssociations(draft.id).then((loaded) => {
       if (!cancelled) setAssociations(loaded);
     });
@@ -403,31 +389,6 @@ export function PersonEditor({
 
       {!draft.isNew && (
         <>
-          <SourcesSection
-            sectionTitle={nls.t('features.tree.person.sexSources')}
-            targetType="person_sex"
-            targetId={draft.id}
-            sources={sources}
-            citations={sexCitations}
-            refresh={refreshCitations}
-            onAddSource={async (source, _targetType, targetId) => {
-              await api.addSource(source, 'person_sex', targetId);
-            }}
-            onAttachSource={async (sourceId, _targetType, targetId) => {
-              await api.attachSource(sourceId, 'person_sex', targetId);
-            }}
-            onDetachCitation={api.detachCitation}
-            onUpdateCitation={api.updateCitation}
-            onOpenSource={(sourceId) => api.openSource?.(sourceId)}
-            renderCitationAttachments={(citation) => (
-              <CitationAttachments
-                citation={citation}
-                api={api}
-                sources={sources}
-                onOpenSource={(sourceId) => api.openSource?.(sourceId)}
-              />
-            )}
-          />
           <FamilySection
             personId={draft.id}
             persons={persons}

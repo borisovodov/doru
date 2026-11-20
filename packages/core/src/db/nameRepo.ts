@@ -11,7 +11,6 @@ interface NameRow {
   type: string | null;
   variant_type: string | null;
   primary_flag: number;
-  date_id: string | null;
   position: number;
   call_name: string | null;
   middle_name: string | null;
@@ -33,14 +32,13 @@ interface PartRow {
 }
 
 /**
- * The single writer of person_name, name_part and the person-name FTS index.
- * Names are stored as rows plus part rows; the flat pieces on the model
- * (given, surname, …) are projections of the first part of each kind.
+ * The single writer of person_name and name_part. Names are stored as rows
+ * plus part rows; the flat pieces on the model (given, surname, …) are
+ * projections of the first part of each kind.
  */
 export class NameRepo {
   private readonly insertName: ReturnType<DatabaseSync['prepare']>;
   private readonly insertPart: ReturnType<DatabaseSync['prepare']>;
-  private readonly insertFts: ReturnType<DatabaseSync['prepare']>;
 
   constructor(
     private readonly db: DatabaseSync,
@@ -48,21 +46,20 @@ export class NameRepo {
   ) {
     this.insertName = this.db.prepare(
       `INSERT INTO person_name (id, person_id, variant_of_id, kind, language, type, variant_type,
-         primary_flag, date_id, position, call_name, middle_name, patronymic, married_name, aka,
+         primary_flag, position, call_name, middle_name, patronymic, married_name, aka,
          hebrew_name, title, short_name, name_as_recorded, given_name_used)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     );
     this.insertPart = this.db.prepare(
       'INSERT INTO name_part (id, name_id, part_kind, value, position) VALUES (?, ?, ?, ?, ?)',
     );
-    this.insertFts = this.db.prepare('INSERT INTO person_name_fts (person_id, name) VALUES (?, ?)');
   }
 
   /**
-   * Replaces every name of a person, wholesale: names, their parts, their
-   * variants and the FTS rows are rewritten; date rows no longer referenced
-   * are deleted. Callers may pass flat name pieces (`given`, `surname`, …) —
-   * they become parts — or explicit `parts`.
+   * Replaces every name of a person, wholesale: names, their parts and their
+   * variants are rewritten; date rows no longer referenced are deleted.
+   * Callers may pass flat name pieces (`given`, `surname`, …) — they become
+   * parts — or explicit `parts`.
    */
   replaceNamesForPerson(personId: string, names: PersonName[]): Set<string> {
     const existingNames = new Map<string, PersonName>();
@@ -75,11 +72,8 @@ export class NameRepo {
     for (const name of this.listNamesForPerson(personId)) {
       remember(name);
     }
-    const oldDateIds = new Set(this.dateIdsOfPerson(personId));
-    this.db.prepare('DELETE FROM person_name_fts WHERE person_id = ?').run(personId);
     this.db.prepare('DELETE FROM person_name WHERE person_id = ?').run(personId);
 
-    const newDateIds = new Set<string>();
     const partIds = new Set<string>();
     const reservedPartIds = new Set<string>();
     const reserve = (name: PersonName): void => {
@@ -92,29 +86,14 @@ export class NameRepo {
     };
     names.forEach(reserve);
     names.forEach((name, position) => {
-      this.writeName(personId, name, null, position, newDateIds, existingNames, partIds, reservedPartIds);
+      this.writeName(personId, name, null, position, existingNames, partIds, reservedPartIds);
     });
-    for (const stale of oldDateIds) {
-      if (!newDateIds.has(stale)) {
-        this.dates.delete(stale);
-      }
-    }
     return partIds;
   }
 
-  /** Removes the person's FTS rows before the person row itself is deleted. */
-  deleteFtsForPerson(personId: string): void {
-    this.db.prepare('DELETE FROM person_name_fts WHERE person_id = ?').run(personId);
-  }
-
-  /** Deletes every name of a person together with the name date rows. */
+  /** Deletes every name of a person; owner triggers delete their dates. */
   deleteNamesForPerson(personId: string): void {
-    const dateIds = this.dateIdsOfPerson(personId);
-    this.deleteFtsForPerson(personId);
     this.db.prepare('DELETE FROM person_name WHERE person_id = ?').run(personId);
-    for (const dateId of dateIds) {
-      this.dates.delete(dateId);
-    }
   }
 
   /** Every name of one person: top-level names with their parts and variants. */
@@ -131,7 +110,7 @@ export class NameRepo {
     const placeholders = personIds.map(() => '?').join(', ');
     const rows = this.db
       .prepare(
-        `SELECT id, person_id, variant_of_id, kind, language, type, variant_type, primary_flag, date_id, position,
+        `SELECT id, person_id, variant_of_id, kind, language, type, variant_type, primary_flag, position,
            call_name, middle_name, patronymic, married_name, aka, hebrew_name, title, short_name,
            name_as_recorded, given_name_used
          FROM person_name WHERE person_id IN (${placeholders}) ORDER BY position`,
@@ -142,8 +121,7 @@ export class NameRepo {
     }
     const nameIds = rows.map((row) => row.id);
     const partsByName = this.partsForNames(nameIds);
-    const dateIds = rows.map((row) => row.date_id).filter((id): id is string => id !== null);
-    const datesById = this.dates.getMany(dateIds);
+    const datesByOwner = this.dates.getManyForOwners('person_name', nameIds);
 
     const childrenByParent = new Map<string, NameRow[]>();
     const topLevel: NameRow[] = [];
@@ -158,7 +136,7 @@ export class NameRepo {
     }
     for (const row of topLevel) {
       const names = byPerson.get(row.person_id) ?? [];
-      names.push(this.hydrate(row, partsByName, datesById, childrenByParent));
+      names.push(this.hydrate(row, partsByName, datesByOwner, childrenByParent));
       byPerson.set(row.person_id, names);
     }
     return byPerson;
@@ -169,15 +147,10 @@ export class NameRepo {
     name: PersonName,
     variantOfId: string | null,
     position: number,
-    dateIds: Set<string>,
     existingNames: Map<string, PersonName>,
     partIds: Set<string>,
     reservedPartIds: Set<string>,
   ): void {
-    const dateId = name.date ? this.dates.upsert(name.date) : null;
-    if (dateId !== null) {
-      dateIds.add(dateId);
-    }
     this.insertName.run(
       name.id,
       personId,
@@ -187,7 +160,6 @@ export class NameRepo {
       name.type ?? null,
       name.variantType ?? null,
       name.primary ? 1 : 0,
-      dateId,
       position,
       name.callName ?? null,
       name.middleName ?? null,
@@ -200,6 +172,7 @@ export class NameRepo {
       name.nameAsRecorded ?? null,
       name.givenNameUsed ?? null,
     );
+    this.dates.upsertForOwner('person_name', name.id, 'period', name.date);
     const existingParts = existingNames.get(name.id)?.parts;
     const parts = [...(name.parts ?? partsFromFlat(name, existingParts, reservedPartIds))];
     if (name.full !== undefined && name.full.trim() !== '' && !parts.some((part) => part.kind === 'full')) {
@@ -220,29 +193,21 @@ export class NameRepo {
       partIds.add(part.id);
       this.insertPart.run(part.id, name.id, part.kind, part.value, index);
     });
-    const searchable = parts
-      .map((part) => part.value)
-      .filter((value) => value.trim() !== '')
-      .join(' ')
-      .toLowerCase();
-    if (searchable !== '') {
-      this.insertFts.run(personId, searchable);
-    }
     (name.variants ?? []).forEach((variant, variantPosition) => {
-      this.writeName(personId, variant, name.id, variantPosition, dateIds, existingNames, partIds, reservedPartIds);
+      this.writeName(personId, variant, name.id, variantPosition, existingNames, partIds, reservedPartIds);
     });
   }
 
   private hydrate(
     row: NameRow,
     partsByName: Map<string, NamePart[]>,
-    datesById: Map<string, import('../model/types').DateValue>,
+    datesByOwner: Map<string, Map<string, import('../model/types').DateValue>>,
     childrenByParent: Map<string, NameRow[]>,
   ): PersonName {
     const parts = partsByName.get(row.id) ?? [];
     const variants = (childrenByParent.get(row.id) ?? [])
       .sort((a, b) => a.position - b.position)
-      .map((child) => this.hydrate(child, partsByName, datesById, childrenByParent));
+      .map((child) => this.hydrate(child, partsByName, datesByOwner, childrenByParent));
     const flat = flatFromParts(parts);
     return {
       id: row.id,
@@ -251,7 +216,7 @@ export class NameRepo {
       type: row.type ?? undefined,
       variantType: row.variant_type ?? undefined,
       primary: row.primary_flag === 1 ? true : undefined,
-      date: row.date_id !== null ? datesById.get(row.date_id) : undefined,
+      date: datesByOwner.get(row.id)?.get('period'),
       ...flat,
       callName: row.call_name ?? undefined,
       middleName: row.middle_name ?? undefined,
@@ -290,13 +255,6 @@ export class NameRepo {
       byName.set(row.name_id, parts);
     }
     return byName;
-  }
-
-  private dateIdsOfPerson(personId: string): string[] {
-    const rows = this.db
-      .prepare('SELECT date_id FROM person_name WHERE person_id = ? AND date_id IS NOT NULL')
-      .all(personId) as unknown as { date_id: string }[];
-    return rows.map((row) => row.date_id);
   }
 }
 

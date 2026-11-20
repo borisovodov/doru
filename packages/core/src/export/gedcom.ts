@@ -253,7 +253,6 @@ function buildPerson(person: PersonRecord, repo: TreeRepository, xrefs: Xrefs): 
   const descendantInterests = submitterLinks
     .filter((link) => link.kind === 'descendant_interest')
     .map((link) => xrefs.of(link.submitterId));
-  const sexCitations = withCitationList(repo, 'person_sex', person.id, xrefs).citations;
   return {
     tag: 'INDI',
     xref: xrefs.of(person.id),
@@ -271,7 +270,6 @@ function buildPerson(person: PersonRecord, repo: TreeRepository, xrefs: Xrefs): 
     ...contacts,
     ...(addressRecord !== undefined ? { address: buildAddress(addressRecord, repo, xrefs) } : {}),
     ...withCitationList(repo, 'person', person.id, xrefs),
-    ...(sexCitations.length > 0 ? { sexCitations } : {}),
     ...withNoteList(repo, 'person', person.id, xrefs),
     ...withMediaLinks(repo, 'person', person.id, xrefs),
     ...withSubmitterLinks(repo, 'person', person.id, xrefs),

@@ -720,7 +720,7 @@ function importPerson(record: GedcomIndividualRecord, ctx: ImportContext): void 
     }
   });
   importCitations(record.citations, 'person', id, ctx);
-  importCitations(record.sexCitations, 'person_sex', id, ctx);
+  importCitations(record.sexCitations, 'person', id, ctx);
   importNotes(record.notes, 'person', id, ctx);
   // RFN/AFN are 5.5.1-only person identifiers (removed in 7.0). They have
   // no matching identifier namespace and no 7.0 export form, so they are

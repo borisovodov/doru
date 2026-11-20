@@ -8,10 +8,10 @@ import { launchApp } from './launch';
 test('a project picked in the dialog is not reopened when it fails to load', async () => {
   const dir = mkdtempSync(join(tmpdir(), 'doru-e2e-open-'));
   const projectPath = join(dir, 'old.doru');
-  // A file from an older build: the store refuses it before reading the
+  // A file from a different build: the store refuses it before reading the
   // schema, so opening it fails the same way a real stale project does.
   const db = new DatabaseSync(projectPath);
-  db.exec('PRAGMA user_version = 1');
+  db.exec('PRAGMA user_version = 999');
   db.close();
 
   try {

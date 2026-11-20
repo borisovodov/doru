@@ -847,7 +847,6 @@ export interface TitleRecord {
  */
 export const TARGET_TYPES = [
   'person',
-  'person_sex',
   'family',
   'family_partner',
   'family_child',

@@ -7,7 +7,6 @@ interface MediaRow {
   id: string;
   xref: string | null;
   title: string | null;
-  date_id: string | null;
   place_id: string | null;
   place_text: string | null;
   object_type: string | null;
@@ -58,7 +57,7 @@ interface LinkRow {
  * The flat `path`/`targetType`/`targetId` on the model are projections of
  * the first file and the first link.
  */
-const MEDIA_COLUMNS = `id, xref, title, date_id, place_id, place_text, object_type, description, keywords`;
+const MEDIA_COLUMNS = `id, xref, title, place_id, place_text, object_type, description, keywords`;
 
 export class MediaRepo {
   constructor(
@@ -72,10 +71,11 @@ export class MediaRepo {
     this.transactions.run(() => {
       this.db
         .prepare(
-          `INSERT INTO media (id, xref, title, date_id, place_id, place_text, object_type, description, keywords)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          `INSERT INTO media (id, xref, title, place_id, place_text, object_type, description, keywords)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
         )
-        .run(...mediaParams(media, this.dates));
+        .run(...mediaParams(media));
+      this.dates.upsertForOwner('media', media.id, 'date', media.date);
       this.replaceFiles(media);
       this.replaceLinks(media);
     });
@@ -83,20 +83,16 @@ export class MediaRepo {
 
   updateMedia(media: MediaRecord): void {
     this.transactions.run(() => {
-      const old = this.db.prepare('SELECT date_id FROM media WHERE id = ?').get(media.id) as
-        | { date_id: string | null }
-        | undefined;
-      if (old === undefined) {
+      if (this.db.prepare('SELECT 1 FROM media WHERE id = ?').get(media.id) === undefined) {
         throw new Error(`media ${media.id} no longer exists`);
       }
-      const params = mediaParams(media, this.dates);
       this.db
         .prepare(
-          `UPDATE media SET xref = ?, title = ?, date_id = ?, place_id = ?, place_text = ?,
+          `UPDATE media SET xref = ?, title = ?, place_id = ?, place_text = ?,
              object_type = ?, description = ?, keywords = ? WHERE id = ?`,
         )
-        .run(...params.slice(1), media.id);
-      this.deleteStaleDate(old.date_id, params[3] as string | null);
+        .run(...mediaParams(media).slice(1), media.id);
+      this.dates.upsertForOwner('media', media.id, 'date', media.date);
       this.replaceFiles(media);
     });
   }
@@ -254,22 +250,9 @@ export class MediaRepo {
     }
   }
 
-  /** Deletes one media row and the date row it owns. */
+  /** Deletes one media row; the owner trigger deletes its date row. */
   private deleteMediaRow(id: string): boolean {
-    const row = this.db.prepare('SELECT date_id FROM media WHERE id = ?').get(id) as
-      | { date_id: string | null }
-      | undefined;
-    const changes = this.db.prepare('DELETE FROM media WHERE id = ?').run(id).changes;
-    if (changes > 0) {
-      this.deleteStaleDate(row?.date_id ?? null, null);
-    }
-    return changes > 0;
-  }
-
-  private deleteStaleDate(oldId: string | null, keptId: string | null): void {
-    if (oldId !== null && oldId !== keptId) {
-      this.dates.deleteIfUnused(oldId);
-    }
+    return this.db.prepare('DELETE FROM media WHERE id = ?').run(id).changes > 0;
   }
 
   private replaceFiles(media: MediaRecord): void {
@@ -351,11 +334,12 @@ export class MediaRepo {
     const translationsByFile = this.translationsForFiles(files.map((file) => file.id));
     const firstFile = files[0];
     const firstLink = links[0];
+    const date = this.dates.getForOwner('media', row.id, 'date');
     return {
       id: row.id,
       xref: row.xref ?? undefined,
       title: row.title ?? undefined,
-      ...(row.date_id !== null ? { date: this.dates.get(row.date_id) } : {}),
+      ...(date !== undefined ? { date } : {}),
       ...(row.place_id !== null ? { placeId: row.place_id } : {}),
       ...(row.place_text !== null ? { place: row.place_text } : {}),
       ...(row.object_type !== null ? { objectType: row.object_type } : {}),
@@ -398,12 +382,11 @@ export class MediaRepo {
   }
 }
 
-function mediaParams(media: MediaRecord, dates: DateRepo): Array<string | number | null> {
+function mediaParams(media: MediaRecord): Array<string | number | null> {
   return [
     media.id,
     media.xref ?? null,
     media.title ?? null,
-    media.date !== undefined ? dates.upsert(media.date) : null,
     media.placeId ?? null,
     media.place ?? null,
     media.objectType ?? null,

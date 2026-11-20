@@ -15,57 +15,36 @@ export class RelationRepo {
     this.db
       .prepare(
         `INSERT INTO association (id, person_id, family_id, other_person_id, role, relationship, phrase,
-           primary_flag, specific_type, confidence, period_start_id, period_end_id)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+           primary_flag, specific_type, confidence)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       )
-      .run(...associationParams(association, this.dates));
+      .run(...associationParams(association));
+    this.replaceAssociationDates(association);
   }
 
   updateAssociation(association: AssociationRecord): void {
     if (this.db.prepare('SELECT 1 FROM association WHERE id = ?').get(association.id) === undefined) {
       throw new Error(`association ${association.id} no longer exists`);
     }
-    const before = this.db
-      .prepare('SELECT period_start_id, period_end_id FROM association WHERE id = ?')
-      .get(association.id) as { period_start_id: string | null; period_end_id: string | null } | undefined;
     this.db
       .prepare(
         `UPDATE association SET person_id = ?, family_id = ?, other_person_id = ?, role = ?, relationship = ?, phrase = ?,
-           primary_flag = ?, specific_type = ?, confidence = ?, period_start_id = ?, period_end_id = ?
+           primary_flag = ?, specific_type = ?, confidence = ?
          WHERE id = ?`,
       )
-      .run(...associationParams(association, this.dates).slice(1), association.id);
-    const after = this.db
-      .prepare('SELECT period_start_id, period_end_id FROM association WHERE id = ?')
-      .get(association.id) as { period_start_id: string | null; period_end_id: string | null } | undefined;
-    const kept = new Set([after?.period_start_id, after?.period_end_id].filter((id): id is string => id != null));
-    for (const dateId of [before?.period_start_id, before?.period_end_id]) {
-      if (dateId !== null && dateId !== undefined && !kept.has(dateId)) {
-        this.dates.delete(dateId);
-      }
-    }
+      .run(...associationParams(association).slice(1), association.id);
+    this.replaceAssociationDates(association);
   }
 
   deleteAssociation(id: string): boolean {
-    const row = this.db.prepare('SELECT period_start_id, period_end_id FROM association WHERE id = ?').get(id) as
-      | { period_start_id: string | null; period_end_id: string | null }
-      | undefined;
-    const result = this.db.prepare('DELETE FROM association WHERE id = ?').run(id);
-    if (row) {
-      for (const dateId of [row.period_start_id, row.period_end_id]) {
-        if (dateId !== null) {
-          this.dates.delete(dateId);
-        }
-      }
-    }
-    return result.changes > 0;
+    return this.db.prepare('DELETE FROM association WHERE id = ?').run(id).changes > 0;
   }
 
   listAssociations(): AssociationRecord[] {
     const rows = this.db
       .prepare(
         `SELECT id, person_id, family_id, other_person_id, role, relationship, phrase,
-           primary_flag, specific_type, confidence, period_start_id, period_end_id
+           primary_flag, specific_type, confidence
          FROM association ORDER BY id`,
       )
       .all() as unknown as AssociationRow[];
@@ -76,7 +55,7 @@ export class RelationRepo {
     const rows = this.db
       .prepare(
         `SELECT id, person_id, family_id, other_person_id, role, relationship, phrase,
-           primary_flag, specific_type, confidence, period_start_id, period_end_id
+           primary_flag, specific_type, confidence
          FROM association WHERE person_id = ? OR other_person_id = ? ORDER BY id`,
       )
       .all(personId, personId) as unknown as AssociationRow[];
@@ -87,36 +66,27 @@ export class RelationRepo {
     const rows = this.db
       .prepare(
         `SELECT id, person_id, family_id, other_person_id, role, relationship, phrase,
-           primary_flag, specific_type, confidence, period_start_id, period_end_id
+           primary_flag, specific_type, confidence
          FROM association WHERE family_id = ? ORDER BY id`,
       )
       .all(familyId) as unknown as AssociationRow[];
     return rows.map((row) => this.hydrate(row));
   }
 
-  /** Deletes every association of a person with its period date rows. */
+  /** Deletes every association of a person; owner triggers delete the dates. */
   deleteAssociationsForPerson(personId: string): void {
-    const rows = this.db
-      .prepare('SELECT id, period_start_id, period_end_id FROM association WHERE person_id = ? OR other_person_id = ?')
-      .all(personId, personId) as unknown as {
-      id: string;
-      period_start_id: string | null;
-      period_end_id: string | null;
-    }[];
     this.db.prepare('DELETE FROM association WHERE person_id = ? OR other_person_id = ?').run(personId, personId);
-    for (const row of rows) {
-      for (const dateId of [row.period_start_id, row.period_end_id]) {
-        if (dateId !== null) {
-          this.dates.delete(dateId);
-        }
-      }
-    }
+  }
+
+  private replaceAssociationDates(association: AssociationRecord): void {
+    this.dates.replaceForOwner('association', association.id, {
+      period_start: association.periodStart,
+      period_end: association.periodEnd,
+    });
   }
 
   private hydrate(row: AssociationRow): AssociationRecord {
-    const datesById = this.dates.getMany(
-      [row.period_start_id, row.period_end_id].filter((id): id is string => id !== null),
-    );
+    const dates = this.dates.getManyForOwners('association', [row.id]).get(row.id);
     return {
       id: row.id,
       personId: row.person_id ?? undefined,
@@ -128,8 +98,8 @@ export class RelationRepo {
       primary: row.primary_flag === 1 ? true : undefined,
       specificType: row.specific_type ?? undefined,
       confidence: row.confidence ?? undefined,
-      periodStart: row.period_start_id !== null ? datesById.get(row.period_start_id) : undefined,
-      periodEnd: row.period_end_id !== null ? datesById.get(row.period_end_id) : undefined,
+      periodStart: dates?.get('period_start'),
+      periodEnd: dates?.get('period_end'),
     };
   }
 
@@ -187,11 +157,9 @@ interface AssociationRow {
   primary_flag: number;
   specific_type: string | null;
   confidence: string | null;
-  period_start_id: string | null;
-  period_end_id: string | null;
 }
 
-function associationParams(association: AssociationRecord, dates: DateRepo): Array<string | number | null> {
+function associationParams(association: AssociationRecord): Array<string | number | null> {
   return [
     association.id,
     association.personId ?? null,
@@ -203,7 +171,5 @@ function associationParams(association: AssociationRecord, dates: DateRepo): Arr
     association.primary ? 1 : 0,
     association.specificType ?? null,
     association.confidence ?? null,
-    association.periodStart ? dates.upsert(association.periodStart) : null,
-    association.periodEnd ? dates.upsert(association.periodEnd) : null,
   ];
 }

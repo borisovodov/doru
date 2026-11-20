@@ -408,7 +408,6 @@ export class SqliteTreeRepository implements TreeRepository {
         this.deleteAttachmentsFor('association', association.id);
       }
       this.deleteAttachmentsFor('person', id);
-      this.deleteAttachmentsFor('person_sex', id);
       this.names.deleteNamesForPerson(id);
       this.facts.deleteFactsForPerson(id);
       this.relations.deleteAssociationsForPerson(id);

@@ -154,32 +154,34 @@ export class AttachmentRepo {
   // change log --------------------------------------------------------------
 
   insertChange(change: ChangeRecord): void {
-    const dateId = change.date ? this.dates.upsert(change.date) : null;
     this.db
-      .prepare('INSERT INTO change (id, target_type, target_id, kind, date_id, user) VALUES (?, ?, ?, ?, ?, ?)')
-      .run(change.id, change.targetType, change.targetId, change.kind, dateId, change.user ?? null);
+      .prepare('INSERT INTO change_log (id, target_type, target_id, kind, user) VALUES (?, ?, ?, ?, ?)')
+      .run(change.id, change.targetType, change.targetId, change.kind, change.user ?? null);
+    this.dates.upsertForOwner('change_log', change.id, 'date', change.date);
   }
 
   listChangesFor(targetType: string, targetId: string): ChangeRecord[] {
     const rows = this.db
       .prepare(
-        'SELECT id, target_type, target_id, kind, date_id, user FROM change WHERE target_type = ? AND target_id = ? ORDER BY rowid ASC',
+        'SELECT id, target_type, target_id, kind, user FROM change_log WHERE target_type = ? AND target_id = ? ORDER BY rowid ASC',
       )
       .all(targetType, targetId) as unknown as {
       id: string;
       target_type: string;
       target_id: string;
       kind: string;
-      date_id: string | null;
       user: string | null;
     }[];
-    const datesById = this.dates.getMany(rows.map((row) => row.date_id).filter((id): id is string => id !== null));
+    const datesByOwner = this.dates.getManyForOwners(
+      'change_log',
+      rows.map((row) => row.id),
+    );
     return rows.map((row) => ({
       id: row.id,
       targetType: row.target_type,
       targetId: row.target_id,
       kind: row.kind as ChangeRecord['kind'],
-      date: row.date_id !== null ? datesById.get(row.date_id) : undefined,
+      date: datesByOwner.get(row.id)?.get('date'),
       user: row.user ?? undefined,
     }));
   }
@@ -191,14 +193,7 @@ export class AttachmentRepo {
   }
 
   deleteTag(id: string): boolean {
-    const linkDates = this.db
-      .prepare('SELECT date_id FROM tag_link WHERE tag_id = ? AND date_id IS NOT NULL')
-      .all(id) as unknown as { date_id: string }[];
-    const removed = this.db.prepare('DELETE FROM tag WHERE id = ?').run(id).changes > 0;
-    for (const entry of linkDates) {
-      this.dates.delete(entry.date_id);
-    }
-    return removed;
+    return this.db.prepare('DELETE FROM tag WHERE id = ?').run(id).changes > 0;
   }
 
   updateTag(tag: TagRecord): void {
@@ -214,52 +209,41 @@ export class AttachmentRepo {
   }
 
   insertTagLink(link: TagLinkRecord): void {
-    const dateId = link.date ? this.dates.upsert(link.date) : null;
     this.db
-      .prepare('INSERT INTO tag_link (id, tag_id, target_type, target_id, date_id) VALUES (?, ?, ?, ?, ?)')
-      .run(link.id, link.tagId, link.targetType, link.targetId, dateId);
+      .prepare('INSERT INTO tag_link (id, tag_id, target_type, target_id) VALUES (?, ?, ?, ?)')
+      .run(link.id, link.tagId, link.targetType, link.targetId);
+    this.dates.upsertForOwner('tag_link', link.id, 'date', link.date);
   }
 
   deleteTagLink(id: string): boolean {
-    const row = this.db.prepare('SELECT date_id FROM tag_link WHERE id = ?').get(id) as
-      | { date_id: string | null }
-      | undefined;
-    const removed = this.db.prepare('DELETE FROM tag_link WHERE id = ?').run(id).changes > 0;
-    if (row?.date_id !== null && row?.date_id !== undefined) {
-      this.dates.delete(row.date_id);
-    }
-    return removed;
+    return this.db.prepare('DELETE FROM tag_link WHERE id = ?').run(id).changes > 0;
   }
 
   updateTagLink(link: TagLinkRecord): void {
     if (this.db.prepare('SELECT 1 FROM tag_link WHERE id = ?').get(link.id) === undefined) {
       throw new Error(`tag_link ${link.id} no longer exists`);
     }
-    const before = this.db.prepare('SELECT date_id FROM tag_link WHERE id = ?').get(link.id) as
-      | { date_id: string | null }
-      | undefined;
-    const dateId = link.date ? this.dates.upsert(link.date) : null;
     this.db
-      .prepare('UPDATE tag_link SET tag_id = ?, target_type = ?, target_id = ?, date_id = ? WHERE id = ?')
-      .run(link.tagId, link.targetType, link.targetId, dateId, link.id);
-    if (before?.date_id !== null && before?.date_id !== undefined && before.date_id !== dateId) {
-      this.dates.delete(before.date_id);
-    }
+      .prepare('UPDATE tag_link SET tag_id = ?, target_type = ?, target_id = ? WHERE id = ?')
+      .run(link.tagId, link.targetType, link.targetId, link.id);
+    this.dates.upsertForOwner('tag_link', link.id, 'date', link.date);
   }
 
   listTagLinksFor(targetType: string, targetId: string): Array<{ tagId: string; link: TagLinkRecord }> {
     const rows = this.db
       .prepare(
-        'SELECT id, tag_id, target_type, target_id, date_id FROM tag_link WHERE target_type = ? AND target_id = ? ORDER BY id',
+        'SELECT id, tag_id, target_type, target_id FROM tag_link WHERE target_type = ? AND target_id = ? ORDER BY id',
       )
       .all(targetType, targetId) as unknown as {
       id: string;
       tag_id: string;
       target_type: string;
       target_id: string;
-      date_id: string | null;
     }[];
-    const datesById = this.dates.getMany(rows.map((row) => row.date_id).filter((id): id is string => id !== null));
+    const datesByOwner = this.dates.getManyForOwners(
+      'tag_link',
+      rows.map((row) => row.id),
+    );
     return rows.map((row) => ({
       tagId: row.tag_id,
       link: {
@@ -267,69 +251,69 @@ export class AttachmentRepo {
         tagId: row.tag_id,
         targetType: row.target_type,
         targetId: row.target_id,
-        date: row.date_id !== null ? datesById.get(row.date_id) : undefined,
+        date: datesByOwner.get(row.id)?.get('date'),
       },
     }));
   }
 
   getTagLink(id: string): TagLinkRecord | undefined {
-    const row = this.db
-      .prepare('SELECT id, tag_id, target_type, target_id, date_id FROM tag_link WHERE id = ?')
-      .get(id) as
-      | { id: string; tag_id: string; target_type: string; target_id: string; date_id: string | null }
+    const row = this.db.prepare('SELECT id, tag_id, target_type, target_id FROM tag_link WHERE id = ?').get(id) as
+      | { id: string; tag_id: string; target_type: string; target_id: string }
       | undefined;
     if (row === undefined) {
       return undefined;
     }
-    const datesById =
-      row.date_id === null ? new Map<string, TagLinkRecord['date']>() : this.dates.getMany([row.date_id]);
     return {
       id: row.id,
       tagId: row.tag_id,
       targetType: row.target_type,
       targetId: row.target_id,
-      date: row.date_id !== null ? datesById.get(row.date_id) : undefined,
+      date: this.dates.getForOwner('tag_link', row.id, 'date'),
     };
   }
 
   listTagLinksByTag(tagId: string): TagLinkRecord[] {
     const rows = this.db
-      .prepare('SELECT id, tag_id, target_type, target_id, date_id FROM tag_link WHERE tag_id = ? ORDER BY id')
+      .prepare('SELECT id, tag_id, target_type, target_id FROM tag_link WHERE tag_id = ? ORDER BY id')
       .all(tagId) as unknown as {
       id: string;
       tag_id: string;
       target_type: string;
       target_id: string;
-      date_id: string | null;
     }[];
-    const datesById = this.dates.getMany(rows.map((row) => row.date_id).filter((id): id is string => id !== null));
+    const datesByOwner = this.dates.getManyForOwners(
+      'tag_link',
+      rows.map((row) => row.id),
+    );
     return rows.map((row) => ({
       id: row.id,
       tagId: row.tag_id,
       targetType: row.target_type,
       targetId: row.target_id,
-      date: row.date_id !== null ? datesById.get(row.date_id) : undefined,
+      date: datesByOwner.get(row.id)?.get('date'),
     }));
   }
 
   /** Every tag link in the tree, for the global tag registry. */
   listAllTagLinks(): TagLinkRecord[] {
     const rows = this.db
-      .prepare('SELECT id, tag_id, target_type, target_id, date_id FROM tag_link ORDER BY id')
+      .prepare('SELECT id, tag_id, target_type, target_id FROM tag_link ORDER BY id')
       .all() as unknown as {
       id: string;
       tag_id: string;
       target_type: string;
       target_id: string;
-      date_id: string | null;
     }[];
-    const datesById = this.dates.getMany(rows.map((row) => row.date_id).filter((id): id is string => id !== null));
+    const datesByOwner = this.dates.getManyForOwners(
+      'tag_link',
+      rows.map((row) => row.id),
+    );
     return rows.map((row) => ({
       id: row.id,
       tagId: row.tag_id,
       targetType: row.target_type,
       targetId: row.target_id,
-      date: row.date_id !== null ? datesById.get(row.date_id) : undefined,
+      date: datesByOwner.get(row.id)?.get('date'),
     }));
   }
 
@@ -337,17 +321,8 @@ export class AttachmentRepo {
 
   /** Deletes every attachment row of the target (except notes/citations/media, which own their links). */
   deleteAllFor(targetType: string, targetId: string): void {
-    const changeDates = this.db
-      .prepare('SELECT date_id FROM change WHERE target_type = ? AND target_id = ? AND date_id IS NOT NULL')
-      .all(targetType, targetId) as unknown as { date_id: string }[];
-    const tagLinkDates = this.db
-      .prepare('SELECT date_id FROM tag_link WHERE target_type = ? AND target_id = ? AND date_id IS NOT NULL')
-      .all(targetType, targetId) as unknown as { date_id: string }[];
-    for (const table of ['identifier', 'contact', 'restriction', 'tag_link', 'change'] as const) {
+    for (const table of ['identifier', 'contact', 'restriction', 'tag_link', 'change_log'] as const) {
       this.db.prepare(`DELETE FROM ${table} WHERE target_type = ? AND target_id = ?`).run(targetType, targetId);
-    }
-    for (const entry of [...changeDates, ...tagLinkDates]) {
-      this.dates.delete(entry.date_id);
     }
   }
 }
