@@ -26,7 +26,7 @@ import type {
   TagLinkRecord,
   TagRecord,
   TitleRecord,
-  TodoRecord,
+  TaskRecord,
   TreeDocument,
 } from '../model/types';
 import { collectNameIds, collectNamePartIds, emptyAttachments } from '../model/types';
@@ -238,14 +238,14 @@ export interface TreeRepository {
   listAliasesFor(personId: string): Array<{ id: string; aliasId: string }>;
   /** Exact direction of every alias link involving a person, for snapshots. */
   listAliasRowsFor(personId: string): Array<{ id: string; personId: string; aliasId: string }>;
-  insertTodo(todo: TodoRecord): void;
-  updateTodo(todo: TodoRecord): void;
-  getTodo(id: string): TodoRecord | undefined;
-  /** Reconnects a todo to a repository without rewriting its other fields. */
-  setTodoRepositoryId(todoId: string, repositoryId: string | undefined): void;
-  deleteTodo(id: string): boolean;
-  listTodos(): TodoRecord[];
-  listTodosFor(targetType: string, targetId: string): TodoRecord[];
+  insertTask(task: TaskRecord): void;
+  updateTask(task: TaskRecord): void;
+  getTask(id: string): TaskRecord | undefined;
+  /** Reconnects a task to a repository without rewriting its other fields. */
+  setTaskRepositoryId(taskId: string, repositoryId: string | undefined): void;
+  deleteTask(id: string): boolean;
+  listTasks(): TaskRecord[];
+  listTasksFor(targetType: string, targetId: string): TaskRecord[];
   insertTitle(title: TitleRecord): void;
   updateTitle(title: TitleRecord): void;
   getTitle(id: string): TitleRecord | undefined;
@@ -1169,37 +1169,37 @@ export class SqliteTreeRepository implements TreeRepository {
     return this.relations.listAliasRowsFor(personId);
   }
 
-  insertTodo(todo: TodoRecord): void {
-    this.research.insertTodo(todo);
+  insertTask(task: TaskRecord): void {
+    this.research.insertTask(task);
   }
 
-  updateTodo(todo: TodoRecord): void {
+  updateTask(task: TaskRecord): void {
     this.transactions.run(() => {
-      this.research.updateTodo(todo);
+      this.research.updateTask(task);
     });
   }
 
-  getTodo(id: string): TodoRecord | undefined {
-    return this.research.getTodo(id);
+  getTask(id: string): TaskRecord | undefined {
+    return this.research.getTask(id);
   }
 
-  setTodoRepositoryId(todoId: string, repositoryId: string | undefined): void {
-    this.research.setTodoRepositoryId(todoId, repositoryId);
+  setTaskRepositoryId(taskId: string, repositoryId: string | undefined): void {
+    this.research.setTaskRepositoryId(taskId, repositoryId);
   }
 
-  deleteTodo(id: string): boolean {
+  deleteTask(id: string): boolean {
     return this.transactions.run(() => {
-      this.deleteAttachmentsFor('todo', id);
-      return this.research.deleteTodo(id);
+      this.deleteAttachmentsFor('task', id);
+      return this.research.deleteTask(id);
     });
   }
 
-  listTodos(): TodoRecord[] {
-    return this.research.listTodos();
+  listTasks(): TaskRecord[] {
+    return this.research.listTasks();
   }
 
-  listTodosFor(targetType: string, targetId: string): TodoRecord[] {
-    return this.research.listTodosFor(targetType, targetId);
+  listTasksFor(targetType: string, targetId: string): TaskRecord[] {
+    return this.research.listTasksFor(targetType, targetId);
   }
 
   insertTitle(title: TitleRecord): void {
@@ -1253,7 +1253,7 @@ export class SqliteTreeRepository implements TreeRepository {
     state.visiting.add(key);
     const mediaLinks = this.media.listLinksFor(targetType, targetId);
     const citations = this.sources.listCitations(targetType, targetId);
-    const todos = this.research.listTodosFor(targetType, targetId);
+    const tasks = this.research.listTasksFor(targetType, targetId);
     const noteLinks = this.notes.listLinksFor(targetType, targetId);
     // Capture every linked note: another target removed by the same
     // operation may take the note's last link, and this snapshot is then
@@ -1296,11 +1296,11 @@ export class SqliteTreeRepository implements TreeRepository {
       restrictions: this.attachments.listRestrictionsFor(targetType, targetId),
       changes: this.attachments.listChangesFor(targetType, targetId),
       tagLinks: this.attachments.listTagLinksFor(targetType, targetId),
-      todos,
-      todoAttachments: todos.map((todo) => ({
-        targetType: 'todo',
-        targetId: todo.id,
-        attachments: this.collectAttachments('todo', todo.id, state),
+      tasks,
+      taskAttachments: tasks.map((task) => ({
+        targetType: 'task',
+        targetId: task.id,
+        attachments: this.collectAttachments('task', task.id, state),
       })),
       recordSubmitters: this.submitters.listRecordSubmittersFor(targetType, targetId),
     };
@@ -1356,10 +1356,10 @@ export class SqliteTreeRepository implements TreeRepository {
       }
     }
     this.attachments.deleteAllFor(targetType, targetId);
-    for (const todo of this.research.listTodosFor(targetType, targetId)) {
-      this.deleteAttachmentsForInternal('todo', todo.id, visited);
+    for (const task of this.research.listTasksFor(targetType, targetId)) {
+      this.deleteAttachmentsForInternal('task', task.id, visited);
     }
-    this.research.deleteTodosFor(targetType, targetId);
+    this.research.deleteTasksFor(targetType, targetId);
     this.submitters.deleteRecordSubmittersFor(targetType, targetId);
   }
 
@@ -1522,18 +1522,18 @@ export class SqliteTreeRepository implements TreeRepository {
         tagLinkIds.add(entry.link.id);
       }
     }
-    for (const todo of snapshot.todos) {
-      if (this.research.getTodo(todo.id) === undefined) {
-        if (removed.size > 0 && !removed.has(`todo\u0000${todo.id}`)) {
+    for (const task of snapshot.tasks) {
+      if (this.research.getTask(task.id) === undefined) {
+        if (removed.size > 0 && !removed.has(`task\u0000${task.id}`)) {
           continue;
         }
         const repositoryMissing =
-          todo.repositoryId !== undefined && this.getRepository(todo.repositoryId) === undefined;
-        this.research.insertTodo(repositoryMissing ? { ...todo, repositoryId: undefined } : todo);
+          task.repositoryId !== undefined && this.getRepository(task.repositoryId) === undefined;
+        this.research.insertTask(repositoryMissing ? { ...task, repositoryId: undefined } : task);
       }
     }
-    for (const nested of snapshot.todoAttachments) {
-      if (this.research.getTodo(nested.targetId) !== undefined) {
+    for (const nested of snapshot.taskAttachments) {
+      if (this.research.getTask(nested.targetId) !== undefined) {
         this.restoreAttachmentsInternal(nested.attachments, visitedFiles);
       }
     }
@@ -1593,7 +1593,7 @@ export class SqliteTreeRepository implements TreeRepository {
         ...node.mediaAttachments,
         ...node.mediaFileAttachments,
         ...node.mediaLinkAttachments,
-        ...node.todoAttachments,
+        ...node.taskAttachments,
       ]) {
         visit(nested.attachments);
       }

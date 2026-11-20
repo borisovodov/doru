@@ -13,7 +13,7 @@ function parseDataset(text: string): GedcomDataset {
 }
 
 describe('P1 GEDCOM export gaps', () => {
-  it('round-trips family non-events, godparents, source certainty, place metadata and todos', () => {
+  it('round-trips family non-events, godparents, source certainty, place metadata and tasks', () => {
     const fixture = makeRepo();
     try {
       const { repo } = fixture;
@@ -76,13 +76,13 @@ describe('P1 GEDCOM export gaps', () => {
       });
       repo.addSourceCitation('S1', 'fact', 'FN1');
       repo.insertNote({ id: 'NF1', text: 'family non-event note', targetType: 'fact', targetId: 'FN1' });
-      repo.insertTodo({
+      repo.insertTask({
         id: 'T1',
         text: 'Free task',
         createdDate: { quality: 'exact', component: { year: 2026, month: 11, day: 17 } },
         repositoryId: 'R1',
       });
-      repo.insertTodo({
+      repo.insertTask({
         id: 'T2',
         text: 'Attached task',
         targetType: 'person',
@@ -163,9 +163,9 @@ describe('P1 GEDCOM export gaps', () => {
           }
 
           const repository = target.repo.listRepositories()[0]!;
-          const todos = target.repo.listTodos();
-          const freeTask = todos.find((todo) => todo.text === 'Free task')!;
-          const attachedTask = todos.find((todo) => todo.text === 'Attached task')!;
+          const tasks = target.repo.listTasks();
+          const freeTask = tasks.find((task) => task.text === 'Free task')!;
+          const attachedTask = tasks.find((task) => task.text === 'Attached task')!;
           expect(freeTask).toMatchObject({
             createdDate: { quality: 'exact', component: { year: 2026, month: 11, day: 17 } },
             repositoryId: repository.id,
@@ -190,27 +190,27 @@ describe('P1 GEDCOM export gaps', () => {
     const fixture = makeRepo();
     try {
       const { repo } = fixture;
-      repo.insertTodo({
+      repo.insertTask({
         id: 'T1',
         text: 'Ancient task',
         createdDate: { quality: 'exact', component: { year: 999, month: 11, day: 17 } },
       });
-      repo.insertTodo({
+      repo.insertTask({
         id: 'T2',
         text: 'Approximate task',
         createdDate: { quality: 'about', component: { year: 1900 }, text: 'circa' },
       });
-      repo.insertTodo({
+      repo.insertTask({
         id: 'T3',
         text: 'End-only task',
         createdDate: { quality: 'range', end: { year: 1900 } },
       });
-      repo.insertTodo({
+      repo.insertTask({
         id: 'T4',
         text: 'Unknown text task',
         createdDate: { quality: 'unknown', text: '1900' },
       });
-      repo.insertTodo({
+      repo.insertTask({
         id: 'T5',
         text: 'Julian task',
         createdDate: {
@@ -220,27 +220,27 @@ describe('P1 GEDCOM export gaps', () => {
           time: { hour: 12, minute: 0 },
         },
       });
-      repo.insertTodo({
+      repo.insertTask({
         id: 'T6',
         text: 'Yearless task',
         createdDate: { quality: 'exact', component: { month: 5, day: 3 } },
       });
-      repo.insertTodo({
+      repo.insertTask({
         id: 'T7',
         text: 'Day-only task',
         createdDate: { quality: 'exact', component: { year: 1900, day: 15 } },
       });
-      repo.insertTodo({
+      repo.insertTask({
         id: 'T8',
         text: 'Julian leap task',
         createdDate: { quality: 'exact', component: { calendar: 'julian', year: 1900, month: 2, day: 29 } },
       });
-      repo.insertTodo({
+      repo.insertTask({
         id: 'T9',
         text: 'Text-only approximate task',
         createdDate: { quality: 'about', text: 'circa spring' },
       });
-      repo.insertTodo({
+      repo.insertTask({
         id: 'T10',
         text: 'Long-year task',
         createdDate: { quality: 'exact', component: { year: 10000 } },
@@ -259,45 +259,45 @@ describe('P1 GEDCOM export gaps', () => {
       const target = makeRepo();
       try {
         importGedcomDataset(parseDataset(serialized.value), target.repo);
-        expect(target.repo.listTodos().find((todo) => todo.text === 'Ancient task')?.createdDate).toMatchObject({
+        expect(target.repo.listTasks().find((task) => task.text === 'Ancient task')?.createdDate).toMatchObject({
           quality: 'exact',
           component: { year: 999, month: 11, day: 17 },
         });
-        expect(target.repo.listTodos().find((todo) => todo.text === 'Approximate task')?.createdDate).toMatchObject({
+        expect(target.repo.listTasks().find((task) => task.text === 'Approximate task')?.createdDate).toMatchObject({
           quality: 'about',
           component: { year: 1900 },
           text: 'circa',
         });
-        expect(target.repo.listTodos().find((todo) => todo.text === 'End-only task')?.createdDate).toMatchObject({
+        expect(target.repo.listTasks().find((task) => task.text === 'End-only task')?.createdDate).toMatchObject({
           quality: 'range',
           end: { year: 1900 },
         });
-        expect(target.repo.listTodos().find((todo) => todo.text === 'Unknown text task')?.createdDate).toMatchObject({
+        expect(target.repo.listTasks().find((task) => task.text === 'Unknown text task')?.createdDate).toMatchObject({
           quality: 'unknown',
           text: '1900',
         });
-        expect(target.repo.listTodos().find((todo) => todo.text === 'Julian task')?.createdDate).toMatchObject({
+        expect(target.repo.listTasks().find((task) => task.text === 'Julian task')?.createdDate).toMatchObject({
           quality: 'about',
           modifier: 'CAL',
           component: { calendar: 'julian', year: 1900, month: 1, day: 1 },
           time: { hour: 12, minute: 0 },
         });
-        expect(target.repo.listTodos().find((todo) => todo.text === 'Yearless task')?.createdDate).toMatchObject({
+        expect(target.repo.listTasks().find((task) => task.text === 'Yearless task')?.createdDate).toMatchObject({
           quality: 'exact',
           component: { month: 5, day: 3 },
         });
-        expect(target.repo.listTodos().find((todo) => todo.text === 'Day-only task')?.createdDate).toMatchObject({
+        expect(target.repo.listTasks().find((task) => task.text === 'Day-only task')?.createdDate).toMatchObject({
           quality: 'exact',
           component: { year: 1900, day: 15 },
         });
-        expect(target.repo.listTodos().find((todo) => todo.text === 'Julian leap task')?.createdDate).toMatchObject({
+        expect(target.repo.listTasks().find((task) => task.text === 'Julian leap task')?.createdDate).toMatchObject({
           quality: 'exact',
           component: { calendar: 'julian', year: 1900, month: 2, day: 29 },
         });
         expect(
-          target.repo.listTodos().find((todo) => todo.text === 'Text-only approximate task')?.createdDate,
+          target.repo.listTasks().find((task) => task.text === 'Text-only approximate task')?.createdDate,
         ).toMatchObject({ quality: 'about', text: 'circa spring' });
-        expect(target.repo.listTodos().find((todo) => todo.text === 'Long-year task')?.createdDate).toMatchObject({
+        expect(target.repo.listTasks().find((task) => task.text === 'Long-year task')?.createdDate).toMatchObject({
           quality: 'exact',
           component: { year: 10000 },
         });
@@ -438,7 +438,7 @@ describe('P1 GEDCOM export gaps', () => {
     const fixture = makeRepo();
     const target = makeRepo();
     try {
-      fixture.repo.insertTodo({
+      fixture.repo.insertTask({
         id: 'T1',
         text: 'Task',
         createdDate: { quality: 'exact', component: { year: 1900 }, text: 'recorded ' },
@@ -450,7 +450,7 @@ describe('P1 GEDCOM export gaps', () => {
       }
       expect(serialized.value).toContain('json:');
       importGedcomDataset(parseDataset(serialized.value), target.repo);
-      expect(target.repo.listTodos()[0]?.createdDate).toMatchObject({ quality: 'exact', text: 'recorded ' });
+      expect(target.repo.listTasks()[0]?.createdDate).toMatchObject({ quality: 'exact', text: 'recorded ' });
     } finally {
       cleanupRepo(fixture);
       cleanupRepo(target);

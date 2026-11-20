@@ -12,7 +12,7 @@ import type {
   SourceRecord,
   SubmitterRecord,
   TitleRecord,
-  TodoRecord,
+  TaskRecord,
 } from '@doru/core';
 import { formatDate } from '../format/format';
 import { Chip } from '../../atoms/display/Chip';
@@ -28,7 +28,7 @@ import styles from './TasksView.module.css';
  * tab; the plus button opens the new-task tab.
  */
 export function TasksView({
-  todos,
+  tasks,
   persons,
   families,
   sources,
@@ -54,7 +54,7 @@ export function TasksView({
   onOpenTitle,
   selectedId,
 }: {
-  todos: TodoRecord[];
+  tasks: TaskRecord[];
   persons: PersonRecord[];
   families: FamilyRecord[];
   sources: SourceRecord[];
@@ -68,7 +68,7 @@ export function TasksView({
   submitters: SubmitterRecord[];
   addresses: AddressRecord[];
   associations: AssociationRecord[];
-  onOpenTask: (todoId: string) => void;
+  onOpenTask: (taskId: string) => void;
   onOpenPerson: (personId: string) => void;
   onOpenFamily: (familyId: string) => void;
   onOpenSource: (sourceId: string) => void;
@@ -96,19 +96,19 @@ export function TasksView({
     submitters,
     addresses,
     associations,
-    todos,
+    tasks,
   };
   const targetLabel = createTaskTargetLabeler(targetData);
-  const isClosed = (todo: TodoRecord) => todo.status === 'closed';
-  const sorted = [...todos].sort((a, b) => Number(isClosed(a)) - Number(isClosed(b)));
+  const isClosed = (task: TaskRecord) => task.status === 'closed';
+  const sorted = [...tasks].sort((a, b) => Number(isClosed(a)) - Number(isClosed(b)));
 
-  const target = (todo: TodoRecord): { label: string; open: (() => void) | undefined } | undefined => {
-    if (todo.targetType === undefined || todo.targetId === undefined) {
+  const target = (task: TaskRecord): { label: string; open: (() => void) | undefined } | undefined => {
+    if (task.targetType === undefined || task.targetId === undefined) {
       return undefined;
     }
-    const id = todo.targetId;
+    const id = task.targetId;
     let open: (() => void) | undefined;
-    switch (todo.targetType) {
+    switch (task.targetType) {
       case 'person':
         open = () => onOpenPerson(id);
         break;
@@ -176,7 +176,7 @@ export function TasksView({
         open = personId !== undefined ? () => onOpenPerson(personId) : undefined;
         break;
       }
-      case 'todo':
+      case 'task':
         open = () => onOpenTask(id);
         break;
       case 'title':
@@ -185,7 +185,7 @@ export function TasksView({
       default:
         open = undefined;
     }
-    return { label: targetLabel(todo.targetType, id), open };
+    return { label: targetLabel(task.targetType, id), open };
   };
 
   return (
@@ -194,37 +194,37 @@ export function TasksView({
         <SideBarEmpty>{nls.t('features.tasks.empty')}</SideBarEmpty>
       ) : (
         <SideBarList>
-          {sorted.map((todo) => {
-            const related = target(todo);
+          {sorted.map((task) => {
+            const related = target(task);
             return (
-              <li key={todo.id} className={cx(styles['taskItem'], todo.id === selectedId && styles['selected'])}>
+              <li key={task.id} className={cx(styles['taskItem'], task.id === selectedId && styles['selected'])}>
                 <div className={styles['taskRow']}>
                   <button
                     type="button"
                     className={styles['taskOpen']}
-                    aria-current={todo.id === selectedId ? 'true' : undefined}
-                    onClick={() => onOpenTask(todo.id)}
+                    aria-current={task.id === selectedId ? 'true' : undefined}
+                    onClick={() => onOpenTask(task.id)}
                   >
-                    <span className={cx(styles['taskRowText'], isClosed(todo) && styles['closed'])}>{todo.text}</span>
+                    <span className={cx(styles['taskRowText'], isClosed(task) && styles['closed'])}>{task.text}</span>
                     <span className={styles['taskRowMeta']}>
-                      {todo.priority !== undefined && (
+                      {task.priority !== undefined && (
                         <Chip variant="neutral">
-                          {todo.priority === 'low'
+                          {task.priority === 'low'
                             ? nls.t('features.tasks.priorityLow')
-                            : todo.priority === 'medium'
+                            : task.priority === 'medium'
                               ? nls.t('features.tasks.priorityMedium')
-                              : todo.priority === 'high'
+                              : task.priority === 'high'
                                 ? nls.t('features.tasks.priorityHigh')
-                                : todo.priority}
+                                : task.priority}
                         </Chip>
                       )}
-                      {todo.category !== undefined && <Chip variant="neutral">{todo.category}</Chip>}
-                      {todo.scheduledDate !== undefined && (
-                        <Chip variant="neutral">{formatDate(todo.scheduledDate)}</Chip>
+                      {task.category !== undefined && <Chip variant="neutral">{task.category}</Chip>}
+                      {task.scheduledDate !== undefined && (
+                        <Chip variant="neutral">{formatDate(task.scheduledDate)}</Chip>
                       )}
-                      {todo.closedDate !== undefined && <Chip variant="neutral">{formatDate(todo.closedDate)}</Chip>}
-                      {todo.repositoryId !== undefined && repositoryById.has(todo.repositoryId) && (
-                        <Chip variant="neutral">{repositoryById.get(todo.repositoryId)?.name}</Chip>
+                      {task.closedDate !== undefined && <Chip variant="neutral">{formatDate(task.closedDate)}</Chip>}
+                      {task.repositoryId !== undefined && repositoryById.has(task.repositoryId) && (
+                        <Chip variant="neutral">{repositoryById.get(task.repositoryId)?.name}</Chip>
                       )}
                       {related !== undefined && related.open === undefined && (
                         <Chip variant="neutral">{related.label}</Chip>

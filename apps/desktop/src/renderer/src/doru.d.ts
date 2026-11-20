@@ -25,7 +25,7 @@ import type {
   TagLinkRecord,
   TagRecord,
   TitleRecord,
-  TodoRecord,
+  TaskRecord,
   TreeStats,
   UndoRedoState,
 } from '@doru/core';
@@ -161,11 +161,11 @@ declare global {
       attachTag(projectPath: string, link: TagLinkRecord): Promise<UndoRedoState>;
       detachTag(projectPath: string, link: TagLinkRecord): Promise<UndoRedoState>;
       updateTagLink(projectPath: string, before: TagLinkRecord, after: TagLinkRecord): Promise<UndoRedoState>;
-      getTodos(projectPath: string): Promise<TodoRecord[]>;
-      getTodosFor(projectPath: string, targetType: string, targetId: string): Promise<TodoRecord[]>;
-      addTodo(projectPath: string, todo: TodoRecord): Promise<UndoRedoState>;
-      updateTodo(projectPath: string, before: TodoRecord, after: TodoRecord): Promise<UndoRedoState>;
-      deleteTodo(projectPath: string, todo: TodoRecord): Promise<UndoRedoState>;
+      getTasks(projectPath: string): Promise<TaskRecord[]>;
+      getTasksFor(projectPath: string, targetType: string, targetId: string): Promise<TaskRecord[]>;
+      addTask(projectPath: string, task: TaskRecord): Promise<UndoRedoState>;
+      updateTask(projectPath: string, before: TaskRecord, after: TaskRecord): Promise<UndoRedoState>;
+      deleteTask(projectPath: string, task: TaskRecord): Promise<UndoRedoState>;
       getChanges(projectPath: string, targetType: string, targetId: string): Promise<ChangeRecord[]>;
       getSources(projectPath: string): Promise<SourceRecord[]>;
       addSource(

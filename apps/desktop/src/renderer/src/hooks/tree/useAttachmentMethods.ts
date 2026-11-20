@@ -12,7 +12,7 @@ import type {
   SubmitterRecord,
   TagLinkRecord,
   TagRecord,
-  TodoRecord,
+  TaskRecord,
 } from '@doru/core';
 import type { MediaTargetApi } from '@doru/features';
 import type { RefreshTree } from './types';
@@ -53,21 +53,21 @@ export function useAttachmentMethods(
         await window.doru.deleteNote(projectPath, note);
         await refreshTree();
       },
-      getTodosFor: (targetType: string, targetId: string) =>
-        projectPath ? window.doru.getTodosFor(projectPath, targetType, targetId) : Promise.resolve([] as TodoRecord[]),
-      addTodo: async (todo: TodoRecord) => {
+      getTasksFor: (targetType: string, targetId: string) =>
+        projectPath ? window.doru.getTasksFor(projectPath, targetType, targetId) : Promise.resolve([] as TaskRecord[]),
+      addTask: async (task: TaskRecord) => {
         if (!projectPath) return;
-        await window.doru.addTodo(projectPath, todo);
+        await window.doru.addTask(projectPath, task);
         await refreshTree();
       },
-      updateTodo: async (before: TodoRecord, after: TodoRecord) => {
+      updateTask: async (before: TaskRecord, after: TaskRecord) => {
         if (!projectPath) return;
-        await window.doru.updateTodo(projectPath, before, after);
+        await window.doru.updateTask(projectPath, before, after);
         await refreshTree();
       },
-      deleteTodo: async (todo: TodoRecord) => {
+      deleteTask: async (task: TaskRecord) => {
         if (!projectPath) return;
-        await window.doru.deleteTodo(projectPath, todo);
+        await window.doru.deleteTask(projectPath, task);
         await refreshTree();
       },
       getCitations: (targetType: string, targetId: string) =>

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { AssociationRecord, TitleRecord, TodoRecord } from '../src/model/types';
+import type { AssociationRecord, TitleRecord, TaskRecord } from '../src/model/types';
 import { OpQueue } from '../src/ops/op';
 import { TreeService } from '../src/service/tree';
 import { cleanupRepo, makeRepo } from './helpers';
@@ -22,7 +22,7 @@ const association = (overrides: Partial<AssociationRecord> = {}): AssociationRec
   ...overrides,
 });
 
-const todo = (overrides: Partial<TodoRecord> = {}): TodoRecord => ({
+const task = (overrides: Partial<TaskRecord> = {}): TaskRecord => ({
   id: 'T1',
   text: 'Order the birth record',
   status: 'open',
@@ -77,30 +77,30 @@ describe('TreeService research layer', () => {
     }
   });
 
-  it('adds, updates, deletes and restores a todo with its attachments', () => {
+  it('adds, updates, deletes and restores a task with its attachments', () => {
     const { fixture, service } = makeService();
     try {
-      service.addTodo(todo());
-      expect(fixture.repo.listTodos()).toEqual([todo()]);
-      expect(service.listTodos()).toEqual([todo()]);
-      expect(fixture.repo.listTodosFor('person', 'P1')).toEqual([]);
-      service.addTodo(todo({ id: 'T2', targetType: 'person', targetId: 'P1' }));
-      expect(fixture.repo.listTodosFor('person', 'P1')).toEqual([
-        todo({ id: 'T2', targetType: 'person', targetId: 'P1' }),
+      service.addTask(task());
+      expect(fixture.repo.listTasks()).toEqual([task()]);
+      expect(service.listTasks()).toEqual([task()]);
+      expect(fixture.repo.listTasksFor('person', 'P1')).toEqual([]);
+      service.addTask(task({ id: 'T2', targetType: 'person', targetId: 'P1' }));
+      expect(fixture.repo.listTasksFor('person', 'P1')).toEqual([
+        task({ id: 'T2', targetType: 'person', targetId: 'P1' }),
       ]);
 
-      const after = todo({ status: 'done', closedDate: { quality: 'exact' as const, component: { year: 2026 } } });
-      service.updateTodo(todo(), after);
-      expect(fixture.repo.listTodos().find((entry) => entry.id === 'T1')).toMatchObject(after);
+      const after = task({ status: 'done', closedDate: { quality: 'exact' as const, component: { year: 2026 } } });
+      service.updateTask(task(), after);
+      expect(fixture.repo.listTasks().find((entry) => entry.id === 'T1')).toMatchObject(after);
 
-      service.deleteTodo(after);
-      expect(fixture.repo.listTodos().find((entry) => entry.id === 'T1')).toBeUndefined();
+      service.deleteTask(after);
+      expect(fixture.repo.listTasks().find((entry) => entry.id === 'T1')).toBeUndefined();
       service.undo();
-      expect(fixture.repo.listTodos().find((entry) => entry.id === 'T1')).toMatchObject(after);
+      expect(fixture.repo.listTasks().find((entry) => entry.id === 'T1')).toMatchObject(after);
 
       // Repo-level cascade helper.
       fixture.repo.deleteAttachmentsFor('person', 'P1');
-      expect(fixture.repo.listTodosFor('person', 'P1')).toEqual([]);
+      expect(fixture.repo.listTasksFor('person', 'P1')).toEqual([]);
     } finally {
       cleanupRepo(fixture);
     }
@@ -130,15 +130,15 @@ describe('TreeService research layer', () => {
     try {
       expect(service.undo()).toEqual({ canUndo: false, canRedo: false });
 
-      service.addTodo(todo());
-      const after = service.addTodo(todo({ id: 'T2' }));
+      service.addTask(task());
+      const after = service.addTask(task({ id: 'T2' }));
       expect(after).toEqual({ canUndo: true, canRedo: false });
 
       expect(service.undo()).toEqual({ canUndo: true, canRedo: true });
-      expect(fixture.repo.listTodos().map((entry) => entry.id)).toEqual(['T1']);
+      expect(fixture.repo.listTasks().map((entry) => entry.id)).toEqual(['T1']);
 
       expect(service.redo()).toEqual({ canUndo: true, canRedo: false });
-      expect(fixture.repo.listTodos().map((entry) => entry.id)).toEqual(['T1', 'T2']);
+      expect(fixture.repo.listTasks().map((entry) => entry.id)).toEqual(['T1', 'T2']);
     } finally {
       cleanupRepo(fixture);
     }

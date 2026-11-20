@@ -328,8 +328,8 @@ export function buildKitchenSinkTree(fixture: RepoFixture): void {
   repo.insertAssociation({ id: 'AS2', personId: 'P2', otherPersonId: 'P1', role: 'witness' });
   repo.insertAlias('AL1', 'P1', 'P3');
 
-  // Todos: free-standing and attached.
-  repo.insertTodo({
+  // Tasks: free-standing and attached.
+  repo.insertTask({
     id: 'TD1',
     text: 'Order the birth record',
     category: 'records',
@@ -340,7 +340,7 @@ export function buildKitchenSinkTree(fixture: RepoFixture): void {
     reminderDate: { quality: 'exact', component: { year: 2026, month: 2 } },
     closedDate: { quality: 'exact', component: { year: 2026, month: 3 } },
   });
-  repo.insertTodo({ id: 'TD2', text: 'Visit the cemetery', targetType: 'person', targetId: 'P1' });
+  repo.insertTask({ id: 'TD2', text: 'Visit the cemetery', targetType: 'person', targetId: 'P1' });
 
   // Submitter links on a person.
   repo.insertRecordSubmitter('RS1', 'SU1', 'person', 'P1');

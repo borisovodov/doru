@@ -229,15 +229,15 @@ describe('db cleanup paths', () => {
     }
   });
 
-  it('does not leak a date when a stale update targets a deleted todo', () => {
+  it('does not leak a date when a stale update targets a deleted task', () => {
     const fixture = makeRepo();
     try {
       const { repo } = fixture;
-      repo.insertTodo({ id: 'T1', text: 'Task' });
-      repo.deleteTodo('T1');
+      repo.insertTask({ id: 'T1', text: 'Task' });
+      repo.deleteTask('T1');
 
       expect(() =>
-        repo.updateTodo({
+        repo.updateTask({
           id: 'T1',
           text: 'Edited',
           createdDate: { quality: 'exact', component: { year: 2026, month: 1, day: 2 } },

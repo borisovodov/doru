@@ -82,7 +82,7 @@ test('attachments, addresses and task fields round-trip through the desktop IPC'
         throw new Error('address was not detached from the fact');
       }
 
-      await window.doru.addTodo(project, {
+      await window.doru.addTask(project, {
         id: 'AT1',
         text: 'Check the register',
         targetType: 'family',
@@ -90,26 +90,26 @@ test('attachments, addresses and task fields round-trip through the desktop IPC'
         createdDate: { quality: 'exact', component: { year: 2026 } },
         closedDate: { quality: 'exact', component: { year: 2026, month: 12 } },
       });
-      const todos = await window.doru.getTodos(project);
-      const todo = todos.find((entry) => entry.id === 'AT1');
+      const tasks = await window.doru.getTasks(project);
+      const task = tasks.find((entry) => entry.id === 'AT1');
       if (
-        todo === undefined ||
-        todo.targetType !== 'family' ||
-        todo.targetId !== 'F1' ||
-        todo.createdDate?.component?.year !== 2026 ||
-        todo.closedDate?.component?.month !== 12
+        task === undefined ||
+        task.targetType !== 'family' ||
+        task.targetId !== 'F1' ||
+        task.createdDate?.component?.year !== 2026 ||
+        task.closedDate?.component?.month !== 12
       ) {
         throw new Error('task fields missing');
       }
 
-      await window.doru.addTodo(project, {
+      await window.doru.addTask(project, {
         id: 'AT2',
         text: 'Check the register',
         targetType: 'person',
         targetId: 'I1',
       });
-      const personTodos = await window.doru.getTodosFor(project, 'person', 'I1');
-      if (personTodos.length !== 1 || personTodos[0]?.id !== 'AT2') {
+      const personTasks = await window.doru.getTasksFor(project, 'person', 'I1');
+      if (personTasks.length !== 1 || personTasks[0]?.id !== 'AT2') {
         throw new Error('per-target task query missing');
       }
       const associations = await window.doru.getAllAssociations(project);

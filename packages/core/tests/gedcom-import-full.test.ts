@@ -198,12 +198,12 @@ describe('importGedcomDataset (phase 4)', () => {
       // Change rows.
       expect(repo.listChangesFor('person', ivan.id).map((change) => change.kind)).toEqual(['changed']);
 
-      // Associations and todos.
+      // Associations and tasks.
       const maria = persons.find((person) => person.xref === '@I2@')!;
       expect(repo.listAssociationsFor(ivan.id)).toEqual([
         expect.objectContaining({ otherPersonId: maria.id, relationship: 'godfather' }),
       ]);
-      expect(repo.listTodosFor('person', ivan.id)).toEqual([
+      expect(repo.listTasksFor('person', ivan.id)).toEqual([
         expect.objectContaining({ text: 'check the archive', category: 'research' }),
       ]);
 

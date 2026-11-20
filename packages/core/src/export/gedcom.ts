@@ -58,7 +58,7 @@ import type {
   PlaceRecord,
   SourceRecord,
   TagRecord,
-  TodoRecord,
+  TaskRecord,
 } from '../model/types';
 
 /**
@@ -147,7 +147,7 @@ export function buildGedcomDataset(repo: TreeRepository): GedcomDataset {
   const media = repo.listAllMedia().filter((entry) => (entry.files ?? []).length > 0);
   const firstSubmitter = submitters[0];
   const notes = repo.listNotes().filter((note) => note.xref !== undefined || (note.links?.length ?? 0) > 1);
-  const todos = repo.listTodos().filter((todo) => todo.targetType === undefined && todo.targetId === undefined);
+  const tasks = repo.listTasks().filter((task) => task.targetType === undefined && task.targetId === undefined);
   const tags = repo.listTags();
 
   for (const person of persons) {
@@ -191,7 +191,7 @@ export function buildGedcomDataset(repo: TreeRepository): GedcomDataset {
     ...notes.map((note) => buildSharedNote(note, repo, xrefs)),
     ...persons.map((person) => buildPerson(person, repo, xrefs)),
     ...families.map((family) => buildFamily(family, repo, xrefs)),
-    ...todos.map((todo) => buildTodoRecord(todo, repo, xrefs)),
+    ...tasks.map((task) => buildGedcomTodoRecord(task, repo, xrefs)),
     ...tags.map((tag) => buildTagRecord(tag, xrefs)),
     ...buildAssociations(),
   ];
@@ -276,7 +276,7 @@ function buildPerson(person: PersonRecord, repo: TreeRepository, xrefs: Xrefs): 
     ...(ancestorInterests.length > 0 ? { ancestorInterests } : {}),
     ...(descendantInterests.length > 0 ? { descendantInterests } : {}),
     ...withTagLinks(repo, 'person', person.id, xrefs),
-    ...withTodoStructures(repo, 'person', person.id, xrefs),
+    ...withGedcomTodoStructures(repo, 'person', person.id, xrefs),
     ...withAssociations(repo, person.id, xrefs),
     ...withAliases(repo, person.id, xrefs),
     ...withChildFamilies(repo, person.id, xrefs),
@@ -586,7 +586,7 @@ function buildFamily(family: FamilyRecord, repo: TreeRepository, xrefs: Xrefs): 
     ...withMediaLinks(repo, 'family', family.id, xrefs),
     ...withSubmitterLinks(repo, 'family', family.id, xrefs),
     ...withTagLinks(repo, 'family', family.id, xrefs),
-    ...withTodoStructures(repo, 'family', family.id, xrefs),
+    ...withGedcomTodoStructures(repo, 'family', family.id, xrefs),
     ...withFamilyAssociations(repo, family.id, xrefs),
   };
 }
@@ -731,29 +731,29 @@ function buildSharedNote(note: NoteRecord, repo: TreeRepository, xrefs: Xrefs): 
   };
 }
 
-function buildTodoRecord(todo: TodoRecord, repo: TreeRepository, xrefs: Xrefs): GedcomRecord {
+function buildGedcomTodoRecord(task: TaskRecord, repo: TreeRepository, xrefs: Xrefs): GedcomRecord {
   const uids = repo
-    .listIdentifiersFor('todo', todo.id)
+    .listIdentifiersFor('task', task.id)
     .filter((identifier) => identifier.namespace === 'uid')
     .map((identifier) => identifier.value);
-  const createdDate = formatTodoDate(todo.createdDate);
+  const createdDate = formatGedcomTodoDate(task.createdDate);
   return {
     tag: '_TODO',
-    payload: todo.text,
-    ...(todo.category !== undefined ? { category: todo.category } : {}),
-    ...(todo.locality !== undefined ? { locality: todo.locality } : {}),
-    ...(todo.priority !== undefined ? { priority: todo.priority } : {}),
-    ...(todo.status !== undefined ? { status: todo.status } : {}),
+    payload: task.text,
+    ...(task.category !== undefined ? { category: task.category } : {}),
+    ...(task.locality !== undefined ? { locality: task.locality } : {}),
+    ...(task.priority !== undefined ? { priority: task.priority } : {}),
+    ...(task.status !== undefined ? { status: task.status } : {}),
     ...(createdDate !== undefined ? { createdDate } : {}),
-    ...(todo.repositoryId !== undefined ? { repository: xrefs.of(todo.repositoryId) } : {}),
+    ...(task.repositoryId !== undefined ? { repository: xrefs.of(task.repositoryId) } : {}),
     ...(uids.length > 0 ? { uids } : {}),
-    ...withNoteList(repo, 'todo', todo.id, xrefs),
-    ...withChanges(repo, 'todo', todo.id),
+    ...withNoteList(repo, 'task', task.id, xrefs),
+    ...withChanges(repo, 'task', task.id),
   };
 }
 
 /** The vendor `_TCDT` slot is free text: keep a simple ISO-ish date. */
-function formatTodoDate(date: DateValue | undefined): string | undefined {
+function formatGedcomTodoDate(date: DateValue | undefined): string | undefined {
   if (date === undefined) {
     return undefined;
   }
@@ -1273,29 +1273,29 @@ function withTagLinks(
   return links.length > 0 ? { tagLinks: links } : {};
 }
 
-function withTodoStructures(
+function withGedcomTodoStructures(
   repo: TreeRepository,
   targetType: string,
   targetId: string,
   xrefs: Xrefs,
 ): { todos?: Array<import('@doru/gedcom').TodoStructure> } {
-  const todos = repo.listTodosFor(targetType, targetId).map((todo) => {
-    const createdDate = formatTodoDate(todo.createdDate);
+  const structures = repo.listTasksFor(targetType, targetId).map((task) => {
+    const createdDate = formatGedcomTodoDate(task.createdDate);
     return {
       tag: '_TODO' as const,
-      payload: todo.text,
-      ...(todo.category !== undefined ? { category: todo.category } : {}),
-      ...(todo.locality !== undefined ? { locality: todo.locality } : {}),
-      ...(todo.priority !== undefined ? { priority: todo.priority } : {}),
-      ...(todo.status !== undefined ? { status: todo.status } : {}),
-      ...(todo.scheduledDate !== undefined ? { date: buildDate(todo.scheduledDate) } : {}),
+      payload: task.text,
+      ...(task.category !== undefined ? { category: task.category } : {}),
+      ...(task.locality !== undefined ? { locality: task.locality } : {}),
+      ...(task.priority !== undefined ? { priority: task.priority } : {}),
+      ...(task.status !== undefined ? { status: task.status } : {}),
+      ...(task.scheduledDate !== undefined ? { date: buildDate(task.scheduledDate) } : {}),
       ...(createdDate !== undefined ? { createdDate } : {}),
-      ...(todo.reminderDate !== undefined ? { reminderDate: buildDate(todo.reminderDate) } : {}),
-      ...(todo.closedDate !== undefined ? { closedDate: buildDate(todo.closedDate) } : {}),
-      ...(todo.repositoryId !== undefined ? { repository: xrefs.of(todo.repositoryId) } : {}),
+      ...(task.reminderDate !== undefined ? { reminderDate: buildDate(task.reminderDate) } : {}),
+      ...(task.closedDate !== undefined ? { closedDate: buildDate(task.closedDate) } : {}),
+      ...(task.repositoryId !== undefined ? { repository: xrefs.of(task.repositoryId) } : {}),
     } as import('@doru/gedcom').TodoStructure;
   });
-  return todos.length > 0 ? { todos } : {};
+  return structures.length > 0 ? { todos: structures } : {};
 }
 
 // ---------------------------------------------------------------------------

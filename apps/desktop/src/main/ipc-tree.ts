@@ -22,7 +22,7 @@ import type {
   TagLinkRecord,
   TagRecord,
   TitleRecord,
-  TodoRecord,
+  TaskRecord,
 } from '@doru/core';
 import {
   addFilesToMedia,
@@ -747,34 +747,34 @@ export function registerTreeIpc(): void {
     },
   );
 
-  ipcMain.handle('tree:todos', async (_event, options: { projectPath: string }) => {
+  ipcMain.handle('tree:tasks', async (_event, options: { projectPath: string }) => {
     const { runtime } = await ensureRuntime(options.projectPath);
-    return runtime.service.listTodos();
+    return runtime.service.listTasks();
   });
 
   ipcMain.handle(
-    'tree:todosFor',
+    'tree:tasksFor',
     async (_event, options: { projectPath: string; targetType: string; targetId: string }) => {
       const { runtime } = await ensureRuntime(options.projectPath);
-      return runtime.service.listTodosFor(options.targetType, options.targetId);
+      return runtime.service.listTasksFor(options.targetType, options.targetId);
     },
   );
 
-  ipcMain.handle('tree:addTodo', async (_event, options: { projectPath: string; todo: TodoRecord }) => {
+  ipcMain.handle('tree:addTask', async (_event, options: { projectPath: string; task: TaskRecord }) => {
     const { runtime } = await ensureRuntime(options.projectPath);
-    return runtime.service.addTodo(options.todo);
+    return runtime.service.addTask(options.task);
   });
 
   ipcMain.handle(
-    'tree:updateTodo',
-    async (_event, options: { projectPath: string; before: TodoRecord; after: TodoRecord }) => {
+    'tree:updateTask',
+    async (_event, options: { projectPath: string; before: TaskRecord; after: TaskRecord }) => {
       const { runtime } = await ensureRuntime(options.projectPath);
-      return runtime.service.updateTodo(options.before, options.after);
+      return runtime.service.updateTask(options.before, options.after);
     },
   );
 
-  ipcMain.handle('tree:deleteTodo', async (_event, options: { projectPath: string; todo: TodoRecord }) => {
+  ipcMain.handle('tree:deleteTask', async (_event, options: { projectPath: string; task: TaskRecord }) => {
     const { runtime } = await ensureRuntime(options.projectPath);
-    return runtime.service.deleteTodo(options.todo);
+    return runtime.service.deleteTask(options.task);
   });
 }

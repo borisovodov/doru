@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import type { RecordSubmitterLink, TodoRecord } from '@doru/core';
+import type { RecordSubmitterLink, TaskRecord } from '@doru/core';
 import type { MediaTargetApi, PersonEditorApi } from '@doru/features';
 import type { RefreshTree } from './types';
 
@@ -65,27 +65,27 @@ export function usePersonEditorApi(
         await window.doru.deleteNote(projectPath, note);
         await refreshTree();
       },
-      getTodosFor: (targetType, targetId) =>
-        projectPath ? window.doru.getTodosFor(projectPath, targetType, targetId) : Promise.resolve([] as TodoRecord[]),
-      addTodo: async (todo) => {
+      getTasksFor: (targetType, targetId) =>
+        projectPath ? window.doru.getTasksFor(projectPath, targetType, targetId) : Promise.resolve([] as TaskRecord[]),
+      addTask: async (task) => {
         if (!projectPath) {
           return;
         }
-        await window.doru.addTodo(projectPath, todo);
+        await window.doru.addTask(projectPath, task);
         await refreshTree();
       },
-      updateTodo: async (before, after) => {
+      updateTask: async (before, after) => {
         if (!projectPath) {
           return;
         }
-        await window.doru.updateTodo(projectPath, before, after);
+        await window.doru.updateTask(projectPath, before, after);
         await refreshTree();
       },
-      deleteTodo: async (todo) => {
+      deleteTask: async (task) => {
         if (!projectPath) {
           return;
         }
-        await window.doru.deleteTodo(projectPath, todo);
+        await window.doru.deleteTask(projectPath, task);
         await refreshTree();
       },
       getFamilies: () => (projectPath ? window.doru.getFamilies(projectPath) : Promise.resolve([])),

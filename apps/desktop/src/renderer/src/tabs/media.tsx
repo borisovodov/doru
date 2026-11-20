@@ -32,7 +32,7 @@ export const mediaTab: TabDescriptor = {
         submitters: context.tree.submitters,
         addresses: context.tree.addresses,
         associations: context.tree.associations,
-        todos: context.tree.todos,
+        tasks: context.tree.tasks,
       }}
       onClose={() => context.tabs.closeTab(id)}
     />

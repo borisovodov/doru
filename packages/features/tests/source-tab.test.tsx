@@ -117,7 +117,7 @@ describe('SourceTab', () => {
       getRecordSubmitters: async () => [],
       getMediaFor: async () => [],
       getAllMedia: async () => [],
-      getTodosFor: async () => [],
+      getTasksFor: async () => [],
     });
     const mediaApi = stubApi<MediaTargetApi>({ getMediaFor: async () => [], getAllMedia: async () => [] });
     const source = { id: 'S1', title: 'Old title', author: 'Alice' };
@@ -201,7 +201,7 @@ describe('SourceTab', () => {
       getRecordSubmitters: async () => [],
       getMediaFor: async () => [],
       getAllMedia: async () => [],
-      getTodosFor: async () => [],
+      getTasksFor: async () => [],
     });
     const mediaApi = stubApi<MediaTargetApi>({ getMediaFor: async () => [], getAllMedia: async () => [] });
     const source = { id: 'S1', title: 'Old', author: 'Alice' };
@@ -260,7 +260,7 @@ describe('SourceTab', () => {
       getRecordSubmitters: async () => [],
       getMediaFor: async () => [],
       getAllMedia: async () => [],
-      getTodosFor: async () => [],
+      getTasksFor: async () => [],
     });
     const mediaApi = stubApi<MediaTargetApi>({ getMediaFor: async () => [], getAllMedia: async () => [] });
     const renderSource = (author: string) => (

@@ -1,8 +1,8 @@
 import type { Demo, DemoMeta } from '../../../gallery/types';
-import type { TodoRecord } from '@doru/core';
+import type { TaskRecord } from '@doru/core';
 import { TasksSection } from './TasksSection';
 
-const tasks: TodoRecord[] = [
+const tasks: TaskRecord[] = [
   {
     id: 'T1',
     text: 'Find the parish register',
@@ -24,9 +24,9 @@ const tasks: TodoRecord[] = [
 ];
 
 const api = {
-  getTodosFor: async () => tasks,
-  addTodo: async () => undefined,
-  deleteTodo: async () => undefined,
+  getTasksFor: async () => tasks,
+  addTask: async () => undefined,
+  deleteTask: async () => undefined,
   openTask: () => undefined,
 };
 
@@ -56,7 +56,7 @@ export const Empty: DemoCase = {
   args: {
     api: {
       ...api,
-      getTodosFor: async () => [],
+      getTasksFor: async () => [],
     },
   },
 };

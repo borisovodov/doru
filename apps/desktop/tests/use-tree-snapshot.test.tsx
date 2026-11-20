@@ -60,7 +60,7 @@ function installDoru(all?: () => Promise<TreeData>) {
     getTags: async () => tags,
     getAllTagLinks: async () => tagLinks,
     listAddresses: empty,
-    getTodos: empty,
+    getTasks: empty,
     getTitles: empty,
     getAllAssociations: empty,
     onTreeExternalChange: (callback: () => void) => {

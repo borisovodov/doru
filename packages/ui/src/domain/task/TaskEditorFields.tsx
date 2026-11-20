@@ -8,10 +8,10 @@ import { Select } from '../../atoms/form/Select';
 import { DateEditor } from '../date/DateEditor';
 import type { TaskTargetData } from './taskTargets';
 import { taskTargetOptions } from './taskTargets';
-import type { TodoDraft } from './todoDraft';
+import type { TaskDraft } from './taskDraft';
 
 /**
- * The editable fields of a todo, shared by the task tab editor: the text,
+ * The editable fields of a task, shared by the task tab editor: the text,
  * the classification fields (category, locality, priority, status), the
  * repository and entity links, and the creation/scheduled/reminder/closed
  * dates. `data` carries every record type a task can be related to.
@@ -21,9 +21,9 @@ export function TaskEditorFields({
   data,
   onChange,
 }: {
-  edit: TodoDraft;
+  edit: TaskDraft;
   data: TaskTargetData;
-  onChange: (update: Partial<TodoDraft>) => void;
+  onChange: (update: Partial<TaskDraft>) => void;
 }) {
   const listId = useId();
   const categoryListId = `${listId}-categories`;
@@ -33,12 +33,12 @@ export function TaskEditorFields({
   const knownTargetId = targetOptions.some((option) => option.id === edit.targetId);
   const categories = [
     ...new Set(
-      data.todos.map((todo) => todo.category).filter((value): value is string => value !== undefined && value !== ''),
+      data.tasks.map((task) => task.category).filter((value): value is string => value !== undefined && value !== ''),
     ),
   ];
   const localities = [
     ...new Set(
-      data.todos.map((todo) => todo.locality).filter((value): value is string => value !== undefined && value !== ''),
+      data.tasks.map((task) => task.locality).filter((value): value is string => value !== undefined && value !== ''),
     ),
   ];
 

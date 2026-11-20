@@ -7,7 +7,7 @@ import { usePlaceEditorApi } from './tree/usePlaceEditorApi';
 import { useRegistriesEditorApi } from './tree/useRegistriesEditorApi';
 import { useSourceEditorApi } from './tree/useSourceEditorApi';
 import { useTitleEditorApi } from './tree/useTitleEditorApi';
-import { useTodoEditorApi } from './tree/useTodoEditorApi';
+import { useTaskEditorApi } from './tree/useTaskEditorApi';
 import { useTreeHistory } from './tree/useTreeHistory';
 import { useTreeSnapshot } from './tree/useTreeSnapshot';
 
@@ -24,7 +24,7 @@ export function useTreeData(projectPath: string | null | undefined) {
   const familyApi = useFamilyEditorApi(projectPath, refreshTree, attachmentMethods);
   const registriesApi = useRegistriesEditorApi(projectPath, refreshTree, attachmentMethods);
   const titlesApi = useTitleEditorApi(projectPath, refreshTree, attachmentMethods);
-  const todosApi = useTodoEditorApi(projectPath, refreshTree, attachmentMethods);
+  const tasksApi = useTaskEditorApi(projectPath, refreshTree, attachmentMethods);
 
   return {
     ...snapshot,
@@ -42,7 +42,7 @@ export function useTreeData(projectPath: string | null | undefined) {
     placeApi,
     familyApi,
     registriesApi,
-    todosApi,
+    tasksApi,
     titlesApi,
   };
 }

@@ -764,9 +764,9 @@ export interface AttachmentsSnapshot {
   restrictions: RestrictionRecord[];
   changes: ChangeRecord[];
   tagLinks: Array<{ tagId: string; link: TagLinkRecord }>;
-  todos: TodoRecord[];
-  /** Attachments of todos that would be deleted with this target. */
-  todoAttachments: NestedAttachmentSnapshot[];
+  tasks: TaskRecord[];
+  /** Attachments of tasks that would be deleted with this target. */
+  taskAttachments: NestedAttachmentSnapshot[];
   recordSubmitters: RecordSubmitterLink[];
 }
 
@@ -785,8 +785,8 @@ export function emptyAttachments(): AttachmentsSnapshot {
     restrictions: [],
     changes: [],
     tagLinks: [],
-    todos: [],
-    todoAttachments: [],
+    tasks: [],
+    taskAttachments: [],
     recordSubmitters: [],
   };
 }
@@ -814,7 +814,7 @@ export interface AssociationRecord {
 }
 
 /** A task, attached to some entity or free-standing. */
-export interface TodoRecord {
+export interface TaskRecord {
   id: string;
   text: string;
   targetType?: string | undefined;
@@ -877,7 +877,7 @@ export const TARGET_TYPES = [
   'address',
   'address_line',
   'association',
-  'todo',
+  'task',
   'title',
 ] as const;
 

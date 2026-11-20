@@ -43,7 +43,7 @@ export type {
   TargetType,
   TimeValue,
   TitleRecord,
-  TodoRecord,
+  TaskRecord,
   TreeDocument,
 } from './types';
 export {

@@ -167,15 +167,15 @@ const api = {
     ipcRenderer.invoke('tree:detachTag', { projectPath, link }),
   updateTagLink: (projectPath: string, before: unknown, after: unknown): Promise<unknown> =>
     ipcRenderer.invoke('tree:updateTagLink', { projectPath, before, after }),
-  getTodos: (projectPath: string): Promise<unknown> => ipcRenderer.invoke('tree:todos', { projectPath }),
-  getTodosFor: (projectPath: string, targetType: string, targetId: string): Promise<unknown> =>
-    ipcRenderer.invoke('tree:todosFor', { projectPath, targetType, targetId }),
-  addTodo: (projectPath: string, todo: unknown): Promise<unknown> =>
-    ipcRenderer.invoke('tree:addTodo', { projectPath, todo }),
-  updateTodo: (projectPath: string, before: unknown, after: unknown): Promise<unknown> =>
-    ipcRenderer.invoke('tree:updateTodo', { projectPath, before, after }),
-  deleteTodo: (projectPath: string, todo: unknown): Promise<unknown> =>
-    ipcRenderer.invoke('tree:deleteTodo', { projectPath, todo }),
+  getTasks: (projectPath: string): Promise<unknown> => ipcRenderer.invoke('tree:tasks', { projectPath }),
+  getTasksFor: (projectPath: string, targetType: string, targetId: string): Promise<unknown> =>
+    ipcRenderer.invoke('tree:tasksFor', { projectPath, targetType, targetId }),
+  addTask: (projectPath: string, task: unknown): Promise<unknown> =>
+    ipcRenderer.invoke('tree:addTask', { projectPath, task }),
+  updateTask: (projectPath: string, before: unknown, after: unknown): Promise<unknown> =>
+    ipcRenderer.invoke('tree:updateTask', { projectPath, before, after }),
+  deleteTask: (projectPath: string, task: unknown): Promise<unknown> =>
+    ipcRenderer.invoke('tree:deleteTask', { projectPath, task }),
   getChanges: (projectPath: string, targetType: string, targetId: string): Promise<unknown> =>
     ipcRenderer.invoke('tree:changes', { projectPath, targetType, targetId }),
   getSources: (projectPath: string): Promise<unknown> => ipcRenderer.invoke('tree:sources', { projectPath }),

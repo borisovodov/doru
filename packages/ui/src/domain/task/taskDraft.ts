@@ -1,8 +1,8 @@
-import type { TodoRecord } from '@doru/core';
+import type { TaskRecord } from '@doru/core';
 import { emptyDate, fromDateDraft, toDateDraft, type DateDraft } from '../person/draft';
 
-/** The editable form of a todo; `''` means "not set". */
-export interface TodoDraft {
+/** The editable form of a task; `''` means "not set". */
+export interface TaskDraft {
   text: string;
   category: string;
   locality: string;
@@ -17,7 +17,7 @@ export interface TodoDraft {
   targetId: string;
 }
 
-export function emptyTodoDraft(): TodoDraft {
+export function emptyTaskDraft(): TaskDraft {
   return {
     text: '',
     category: '',
@@ -34,34 +34,34 @@ export function emptyTodoDraft(): TodoDraft {
   };
 }
 
-export function todoToDraft(todo: TodoRecord): TodoDraft {
+export function taskToDraft(task: TaskRecord): TaskDraft {
   return {
-    text: todo.text,
-    category: todo.category ?? '',
-    locality: todo.locality ?? '',
-    priority: todo.priority ?? '',
-    status: todo.status ?? '',
-    created: toDateDraft(todo.createdDate),
-    scheduled: toDateDraft(todo.scheduledDate),
-    reminder: toDateDraft(todo.reminderDate),
-    closed: toDateDraft(todo.closedDate),
-    repositoryId: todo.repositoryId ?? '',
-    targetType: todo.targetType ?? '',
-    targetId: todo.targetId ?? '',
+    text: task.text,
+    category: task.category ?? '',
+    locality: task.locality ?? '',
+    priority: task.priority ?? '',
+    status: task.status ?? '',
+    created: toDateDraft(task.createdDate),
+    scheduled: toDateDraft(task.scheduledDate),
+    reminder: toDateDraft(task.reminderDate),
+    closed: toDateDraft(task.closedDate),
+    repositoryId: task.repositoryId ?? '',
+    targetType: task.targetType ?? '',
+    targetId: task.targetId ?? '',
   };
 }
 
-export function todoDraftToRecord(todo: TodoRecord, draft: TodoDraft): TodoRecord {
-  const next: TodoRecord = { ...todo };
+export function taskDraftToRecord(task: TaskRecord, draft: TaskDraft): TaskRecord {
+  const next: TaskRecord = { ...task };
   next.text = draft.text.trim();
   next.category = draft.category.trim() || undefined;
   next.locality = draft.locality.trim() || undefined;
   next.priority = draft.priority || undefined;
   next.status = draft.status || undefined;
-  next.createdDate = fromDateDraft(draft.created, todo.createdDate);
-  next.scheduledDate = fromDateDraft(draft.scheduled, todo.scheduledDate);
-  next.reminderDate = fromDateDraft(draft.reminder, todo.reminderDate);
-  next.closedDate = fromDateDraft(draft.closed, todo.closedDate);
+  next.createdDate = fromDateDraft(draft.created, task.createdDate);
+  next.scheduledDate = fromDateDraft(draft.scheduled, task.scheduledDate);
+  next.reminderDate = fromDateDraft(draft.reminder, task.reminderDate);
+  next.closedDate = fromDateDraft(draft.closed, task.closedDate);
   next.repositoryId = draft.repositoryId || undefined;
   if (draft.targetType !== '' && draft.targetId !== '') {
     next.targetType = draft.targetType;

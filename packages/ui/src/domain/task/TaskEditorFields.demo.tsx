@@ -2,7 +2,7 @@ import { useState, type ComponentProps } from 'react';
 import type { Demo, DemoMeta } from '../../../gallery/types';
 import { SectionCard } from '../../patterns/section-card/SectionCard';
 import { TaskEditorFields } from './TaskEditorFields';
-import { emptyTodoDraft } from './todoDraft';
+import { emptyTaskDraft } from './taskDraft';
 
 function StatefulTaskEditorFields(args: ComponentProps<typeof TaskEditorFields>) {
   const [edit, setEdit] = useState(args.edit);
@@ -21,7 +21,7 @@ const meta = {
   title: 'Domain/TaskEditorFields',
   component: TaskEditorFields,
   args: {
-    edit: { ...emptyTodoDraft(), text: 'Find the parish register' },
+    edit: { ...emptyTaskDraft(), text: 'Find the parish register' },
     data: {
       persons: [],
       families: [],
@@ -36,7 +36,7 @@ const meta = {
       submitters: [],
       addresses: [],
       associations: [],
-      todos: [],
+      tasks: [],
     },
     onChange: () => undefined,
   },

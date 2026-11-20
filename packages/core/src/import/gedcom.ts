@@ -56,7 +56,7 @@ import type {
   PlaceRecord,
   RestrictionRecord,
   Sex,
-  TodoRecord,
+  TaskRecord,
 } from '../model/types';
 
 /**
@@ -764,8 +764,8 @@ function importPerson(record: GedcomIndividualRecord, ctx: ImportContext): void 
   for (const tagLink of record.tagLinks ?? []) {
     importTagLink(tagLink, 'person', id, ctx);
   }
-  for (const todo of record.todos ?? []) {
-    importTodoStructure(todo, 'person', id, ctx);
+  for (const structure of record.todos ?? []) {
+    importGedcomTodoStructure(structure, 'person', id, ctx);
   }
   // Associations and aliases need the other persons — deferred
   // to importPersonRelations, resolved after every person and family exists.
@@ -1283,8 +1283,8 @@ function importFamily(record: GedcomFamilyRecord, ctx: ImportContext): void {
   for (const tagLink of record.tagLinks ?? []) {
     importTagLink(tagLink, 'family', id, ctx);
   }
-  for (const todo of record.todos ?? []) {
-    importTodoStructure(todo, 'family', id, ctx);
+  for (const structure of record.todos ?? []) {
+    importGedcomTodoStructure(structure, 'family', id, ctx);
   }
   for (const association of record.associations ?? []) {
     const otherPersonId = ctx.personIds.get(association.individual);
@@ -1413,7 +1413,7 @@ function importResearchRecords(records: GedcomRecord[], ctx: ImportContext): voi
         ctx.dropped += 1;
         break;
       case '_TODO':
-        importTodoRecord(record as GedcomTodoRecord, ctx);
+        importGedcomTodoRecord(record as GedcomTodoRecord, ctx);
         break;
       case '_EVENT_DEFN':
         // The Legacy custom event definitions stay in the @doru/gedcom
@@ -1446,22 +1446,22 @@ function importResearchRecords(records: GedcomRecord[], ctx: ImportContext): voi
   }
 }
 
-function importTodoRecord(record: GedcomTodoRecord, ctx: ImportContext): void {
+function importGedcomTodoRecord(record: GedcomTodoRecord, ctx: ImportContext): void {
   const id = crypto.randomUUID();
-  ctx.repo.insertTodo({
+  ctx.repo.insertTask({
     id,
     text: record.payload || record.title || '',
     category: record.category,
     locality: record.locality,
     priority: record.priority,
     status: record.status,
-    createdDate: parseTodoDate(record.createdDate),
+    createdDate: parseGedcomTodoDate(record.createdDate),
     ...(record.repository !== undefined ? { repositoryId: ctx.repositoryIds.get(record.repository) } : {}),
   });
   for (const uid of record.uids ?? []) {
     ctx.repo.insertIdentifier({
       id: crypto.randomUUID(),
-      targetType: 'todo',
+      targetType: 'task',
       targetId: id,
       namespace: 'uid',
       value: uid,
@@ -1547,7 +1547,7 @@ function parseStructuredTime(value: unknown): NonNullable<DateValue['time']> | n
 }
 
 /** The `_TCDT` slot is free text; parse the structured form the export writes. */
-function parseTodoDate(text: string | undefined): DateValue | undefined {
+function parseGedcomTodoDate(text: string | undefined): DateValue | undefined {
   if (text === undefined || text.trim() === '') {
     return undefined;
   }
@@ -1641,24 +1641,29 @@ function parseTodoDate(text: string | undefined): DateValue | undefined {
   };
 }
 
-function importTodoStructure(todo: TodoStructure, targetType: string, targetId: string, ctx: ImportContext): void {
-  const mapped: TodoRecord = {
+function importGedcomTodoStructure(
+  structure: TodoStructure,
+  targetType: string,
+  targetId: string,
+  ctx: ImportContext,
+): void {
+  const mapped: TaskRecord = {
     id: crypto.randomUUID(),
-    text: todo.payload ?? todo.description ?? '',
+    text: structure.payload ?? structure.description ?? '',
     targetType,
     targetId,
-    category: todo.category,
-    locality: todo.locality,
-    priority: todo.priority,
-    status: todo.status,
-    createdDate: parseTodoDate(todo.createdDate),
-    scheduledDate: mapDate(todo.date),
-    reminderDate: mapDate(todo.reminderDate),
-    closedDate: mapDate(todo.closedDate),
-    ...(todo.repository !== undefined ? { repositoryId: ctx.repositoryIds.get(todo.repository) } : {}),
+    category: structure.category,
+    locality: structure.locality,
+    priority: structure.priority,
+    status: structure.status,
+    createdDate: parseGedcomTodoDate(structure.createdDate),
+    scheduledDate: mapDate(structure.date),
+    reminderDate: mapDate(structure.reminderDate),
+    closedDate: mapDate(structure.closedDate),
+    ...(structure.repository !== undefined ? { repositoryId: ctx.repositoryIds.get(structure.repository) } : {}),
   };
-  ctx.repo.insertTodo(mapped);
-  importNotes(todo.notes, 'todo', mapped.id, ctx);
+  ctx.repo.insertTask(mapped);
+  importNotes(structure.notes, 'task', mapped.id, ctx);
 }
 
 function importOccurrence(record: GedcomOccurrenceRecord, ctx: ImportContext): void {

@@ -51,13 +51,13 @@ export {
   addAliasOp,
   addAssociationOp,
   addTitleOp,
-  addTodoOp,
+  addTaskOp,
   deleteAliasOp,
   deleteAssociationOp,
   deleteTitleOp,
-  deleteTodoOp,
+  deleteTaskOp,
   updateAssociationOp,
   updateTitleOp,
-  updateTodoOp,
+  updateTaskOp,
 } from './research';
 export { OpQueue, type MutationContext, type Op, type OpChange } from './op';

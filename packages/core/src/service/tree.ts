@@ -24,7 +24,7 @@ import type {
   TagLinkRecord,
   TagRecord,
   TitleRecord,
-  TodoRecord,
+  TaskRecord,
 } from '../model/types';
 import type { PersonQuery, TreeRepository } from '../db/repository';
 import { partsFromFlat } from '../db/nameRepo';
@@ -52,7 +52,7 @@ import {
   addRecordSubmitterOp,
   addTagOp,
   addTitleOp,
-  addTodoOp,
+  addTaskOp,
   attachCitationOp,
   attachMediaOp,
   attachTagOp,
@@ -77,7 +77,7 @@ import {
   deleteRecordSubmitterOp,
   deleteTagOp,
   deleteTitleOp,
-  deleteTodoOp,
+  deleteTaskOp,
   detachCitationOp,
   detachMediaOp,
   detachNoteOp,
@@ -98,7 +98,7 @@ import {
   updateSubmitterOp,
   updateTagOp,
   updateTitleOp,
-  updateTodoOp,
+  updateTaskOp,
   type FamilyLinkAttachments,
 } from '../ops';
 import { OpQueue, type NestedAttachments, type Op } from '../ops/op';
@@ -1222,7 +1222,7 @@ export class TreeService {
       const attachments = this.repo.listAttachmentsFor('repository', current.id);
       const consumers = {
         sourceRepositories: this.repo.listSourceRepositoriesFor(current.id),
-        todos: this.repo.listTodos().filter((todo) => todo.repositoryId === current.id),
+        tasks: this.repo.listTasks().filter((task) => task.repositoryId === current.id),
         titles: this.repo.listTitles().filter((title) => title.repositoryId === current.id),
       };
       return deleteRepositoryOp(current, attachments, consumers);
@@ -1372,30 +1372,30 @@ export class TreeService {
     return this.apply(deleteAliasOp(id, personId, aliasId));
   }
 
-  addTodo(todo: TodoRecord): UndoRedoState {
-    return this.apply(addTodoOp(todo));
+  addTask(task: TaskRecord): UndoRedoState {
+    return this.apply(addTaskOp(task));
   }
 
-  listTodos(): TodoRecord[] {
-    return this.repo.listTodos();
+  listTasks(): TaskRecord[] {
+    return this.repo.listTasks();
   }
 
-  listTodosFor(targetType: string, targetId: string): TodoRecord[] {
-    return this.repo.listTodosFor(targetType, targetId);
+  listTasksFor(targetType: string, targetId: string): TaskRecord[] {
+    return this.repo.listTasksFor(targetType, targetId);
   }
 
-  updateTodo(before: TodoRecord, after: TodoRecord): UndoRedoState {
-    return this.apply(updateTodoOp(before, after));
+  updateTask(before: TaskRecord, after: TaskRecord): UndoRedoState {
+    return this.apply(updateTaskOp(before, after));
   }
 
-  deleteTodo(todo: TodoRecord): UndoRedoState {
+  deleteTask(task: TaskRecord): UndoRedoState {
     return this.applyAfterCommit(() => {
-      const current = this.repo.getTodo(todo.id);
+      const current = this.repo.getTask(task.id);
       if (current === undefined) {
         return undefined;
       }
-      const attachments = this.repo.listAttachmentsFor('todo', current.id);
-      return deleteTodoOp(current, attachments);
+      const attachments = this.repo.listAttachmentsFor('task', current.id);
+      return deleteTaskOp(current, attachments);
     });
   }
 

@@ -45,10 +45,10 @@ export const DORU_APPLICATION_ID = 0x444f5255;
  * Bumped whenever the schema changes. There are no migrations before 1.0.0:
  * a newer version may simply not understand files written by older ones
  * (the store refuses to open them with a loud error). This schema uses
- * version 8, above every version written by an earlier build (the old model
+ * version 9, above every version written by an earlier build (the old model
  * reached 6), so the open guard cannot mistake an old file for this one.
  */
-export const SCHEMA_VERSION = 8;
+export const SCHEMA_VERSION = 9;
 
 export const SCHEMA_SQL = `
 CREATE TABLE IF NOT EXISTS person (
@@ -569,7 +569,7 @@ CREATE TABLE IF NOT EXISTS person_alias (
   UNIQUE (person_id, alias_id)
 );
 
-CREATE TABLE IF NOT EXISTS todo (
+CREATE TABLE IF NOT EXISTS task (
   id TEXT PRIMARY KEY,
   text TEXT NOT NULL,
   target_type TEXT, target_id TEXT,  -- may be a free-standing task
@@ -641,7 +641,7 @@ CREATE INDEX IF NOT EXISTS idx_association_person ON association(person_id);
 CREATE INDEX IF NOT EXISTS idx_association_other ON association(other_person_id);
 CREATE INDEX IF NOT EXISTS idx_person_alias_person ON person_alias(person_id);
 CREATE INDEX IF NOT EXISTS idx_person_alias_alias ON person_alias(alias_id);
-CREATE INDEX IF NOT EXISTS idx_todo_target ON todo(target_type, target_id);
+CREATE INDEX IF NOT EXISTS idx_task_target ON task(target_type, target_id);
 CREATE INDEX IF NOT EXISTS idx_date_owner ON date(owner_type, owner_id);
 
 -- Foreign-key child columns. SQLite does not index these automatically, so
@@ -657,7 +657,7 @@ CREATE INDEX IF NOT EXISTS idx_media_place ON media(place_id);
 CREATE INDEX IF NOT EXISTS idx_source_title ON source(title_id);
 CREATE INDEX IF NOT EXISTS idx_source_event_place ON source_data_event(place_id);
 CREATE INDEX IF NOT EXISTS idx_title_repository ON title(repository_id);
-CREATE INDEX IF NOT EXISTS idx_todo_repository ON todo(repository_id);
+CREATE INDEX IF NOT EXISTS idx_task_repository ON task(repository_id);
 
 -- Every date row belongs to one owner row. These triggers delete the date
 -- rows with their owner, including when a foreign-key cascade removes it.
@@ -726,9 +726,9 @@ BEGIN
   DELETE FROM date WHERE owner_type = 'tag_link' AND owner_id = OLD.id;
 END;
 
-CREATE TRIGGER IF NOT EXISTS date_todo_delete AFTER DELETE ON todo
+CREATE TRIGGER IF NOT EXISTS date_task_delete AFTER DELETE ON task
 BEGIN
-  DELETE FROM date WHERE owner_type = 'todo' AND owner_id = OLD.id;
+  DELETE FROM date WHERE owner_type = 'task' AND owner_id = OLD.id;
 END;
 
 CREATE TRIGGER IF NOT EXISTS date_association_delete AFTER DELETE ON association

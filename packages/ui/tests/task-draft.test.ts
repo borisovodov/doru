@@ -1,16 +1,16 @@
 import { describe, expect, it } from 'vitest';
-import type { TodoRecord } from '@doru/core';
-import { emptyTodoDraft, todoDraftToRecord, todoToDraft } from '../src/domain/task/todoDraft';
+import type { TaskRecord } from '@doru/core';
+import { emptyTaskDraft, taskDraftToRecord, taskToDraft } from '../src/domain/task/taskDraft';
 
-const todo = (overrides: Partial<TodoRecord> = {}): TodoRecord => ({
+const task = (overrides: Partial<TaskRecord> = {}): TaskRecord => ({
   id: 'T1',
   text: 'Order the birth record',
   ...overrides,
 });
 
-describe('todoDraft', () => {
-  it('round-trips a fully populated todo', () => {
-    const source: TodoRecord = {
+describe('taskDraft', () => {
+  it('round-trips a fully populated task', () => {
+    const source: TaskRecord = {
       id: 'T1',
       text: 'Order the birth record',
       targetType: 'person',
@@ -24,7 +24,7 @@ describe('todoDraft', () => {
       repositoryId: 'R1',
       createdDate: { quality: 'exact', component: { year: 2026 } },
     };
-    const draft = todoToDraft(source);
+    const draft = taskToDraft(source);
     expect(draft).toMatchObject({
       text: 'Order the birth record',
       category: 'records',
@@ -37,18 +37,18 @@ describe('todoDraft', () => {
       scheduled: { year: '2026', month: '3', day: '12', quality: 'exact' },
       created: { year: '2026' },
     });
-    expect(todoDraftToRecord(source, draft)).toEqual(source);
+    expect(taskDraftToRecord(source, draft)).toEqual(source);
   });
 
   it('writes the edited fields and clears emptied ones', () => {
-    const after = todoDraftToRecord(todo(), {
-      ...emptyTodoDraft(),
+    const after = taskDraftToRecord(task(), {
+      ...emptyTaskDraft(),
       text: ' Visit the cemetery ',
       priority: 'low',
       status: 'closed',
       targetType: 'person',
       targetId: 'P2',
-      scheduled: { ...emptyTodoDraft().scheduled, year: '2027' },
+      scheduled: { ...emptyTaskDraft().scheduled, year: '2027' },
     });
     expect(after).toEqual({
       id: 'T1',
@@ -61,9 +61,9 @@ describe('todoDraft', () => {
     });
   });
 
-  it('detaches a todo when the person is cleared', () => {
-    const after = todoDraftToRecord(todo({ targetType: 'person', targetId: 'P1' }), {
-      ...todoToDraft(todo({ targetType: 'person', targetId: 'P1' })),
+  it('detaches a task when the person is cleared', () => {
+    const after = taskDraftToRecord(task({ targetType: 'person', targetId: 'P1' }), {
+      ...taskToDraft(task({ targetType: 'person', targetId: 'P1' })),
       targetType: '',
       targetId: '',
     });

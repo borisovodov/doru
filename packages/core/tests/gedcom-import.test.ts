@@ -416,7 +416,7 @@ describe('importGedcomDataset', () => {
     }
   });
 
-  it('validates todo dates against the month and leap year', () => {
+  it('validates task dates against the month and leap year', () => {
     const gedcom = [
       '0 HEAD',
       '1 GEDC',
@@ -436,14 +436,14 @@ describe('importGedcomDataset', () => {
     const fixture = makeRepo();
     try {
       importGedcomDataset(result.value.dataset, fixture.repo);
-      const invalid = fixture.repo.listTodos().find((todo) => todo.text === 'Invalid date')!;
-      const leap = fixture.repo.listTodos().find((todo) => todo.text === 'Leap date')!;
+      const invalid = fixture.repo.listTasks().find((task) => task.text === 'Invalid date')!;
+      const leap = fixture.repo.listTasks().find((task) => task.text === 'Leap date')!;
       expect(invalid.createdDate).toMatchObject({ quality: 'unknown', text: '2026-02-31' });
       expect(leap.createdDate).toMatchObject({
         quality: 'exact',
         component: { year: 2024, month: 2, day: 29 },
       });
-      const bad = fixture.repo.listTodos().find((todo) => todo.text === 'Bad structured date')!;
+      const bad = fixture.repo.listTasks().find((task) => task.text === 'Bad structured date')!;
       expect(bad.createdDate).toMatchObject({
         quality: 'unknown',
         text: 'json:{"quality":"exact","text":{"bad":true}}',

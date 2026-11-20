@@ -16,7 +16,7 @@ import type {
   TagLinkRecord,
   TagRecord,
   TitleRecord,
-  TodoRecord,
+  TaskRecord,
 } from '../model/types';
 import { emptyAttachments } from '../model/types';
 import {
@@ -693,7 +693,7 @@ export function updateRepositoryOp(before: RepositoryRecord, after: RepositoryRe
   };
 }
 
-/** Source links, call numbers, todos and titles that the repository FK cascade removes. */
+/** Source links, call numbers, tasks and titles that the repository FK cascade removes. */
 export interface RepositoryConsumers {
   sourceRepositories?: Array<{
     id: string;
@@ -701,7 +701,7 @@ export interface RepositoryConsumers {
     repositoryId: string;
     callNumbers?: Array<{ id: string; value: string; medium?: string }>;
   }>;
-  todos?: TodoRecord[];
+  tasks?: TaskRecord[];
   titles?: TitleRecord[];
 }
 
@@ -711,7 +711,7 @@ export function deleteRepositoryOp(
   consumers: RepositoryConsumers = {},
 ): Op {
   let baselineSources = consumers.sourceRepositories ?? [];
-  let baselineTodos = consumers.todos ?? [];
+  let baselineTasks = consumers.tasks ?? [];
   let baselineTitles = consumers.titles ?? [];
   let baselineAttachments = attachments;
   return {
@@ -725,8 +725,8 @@ export function deleteRepositoryOp(
         for (const link of consumers.sourceRepositories ?? []) {
           restoreSourceRepository(ctx, link);
         }
-        for (const todo of consumers.todos ?? []) {
-          ctx.repo.setTodoRepositoryId(todo.id, repository.id);
+        for (const task of consumers.tasks ?? []) {
+          ctx.repo.setTaskRepositoryId(task.id, repository.id);
         }
         for (const title of consumers.titles ?? []) {
           ctx.repo.setTitleRepositoryId(title.id, repository.id);
@@ -735,7 +735,7 @@ export function deleteRepositoryOp(
         // repository; the inverse leaves those reassignments alone, so the
         // redo comparison must follow what was actually restored.
         baselineSources = ctx.repo.listSourceRepositoriesFor(repository.id);
-        baselineTodos = ctx.repo.listTodos().filter((todo) => todo.repositoryId === repository.id);
+        baselineTasks = ctx.repo.listTasks().filter((task) => task.repositoryId === repository.id);
         baselineTitles = ctx.repo.listTitles().filter((title) => title.repositoryId === repository.id);
         baselineAttachments = ctx.repo.listAttachmentsFor('repository', repository.id);
       },
@@ -756,13 +756,13 @@ export function deleteRepositoryOp(
       if (JSON.stringify(capturedSources) !== JSON.stringify(liveSources)) {
         return false;
       }
-      const capturedTodos = baselineTodos.map((todo) => todo.id).sort();
-      const liveTodos = ctx.repo
-        .listTodos()
-        .filter((todo) => todo.repositoryId === repository.id)
-        .map((todo) => todo.id)
+      const capturedTasks = baselineTasks.map((task) => task.id).sort();
+      const liveTasks = ctx.repo
+        .listTasks()
+        .filter((task) => task.repositoryId === repository.id)
+        .map((task) => task.id)
         .sort();
-      if (JSON.stringify(capturedTodos) !== JSON.stringify(liveTodos)) {
+      if (JSON.stringify(capturedTasks) !== JSON.stringify(liveTasks)) {
         return false;
       }
       const capturedTitles = baselineTitles.map((title) => title.id).sort();

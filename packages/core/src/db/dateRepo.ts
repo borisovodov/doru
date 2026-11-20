@@ -16,7 +16,7 @@ export type DateOwnerType =
   | 'media'
   | 'change_log'
   | 'tag_link'
-  | 'todo'
+  | 'task'
   | 'association';
 
 /** The date slot of an owner row. */

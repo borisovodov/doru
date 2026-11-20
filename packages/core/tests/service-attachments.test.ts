@@ -557,15 +557,15 @@ describe('TreeService attachments', () => {
       expect(fixture.repo.getPerson('P1')?.names[0]?.id).toBe('N2');
 
       service.addRepository(repository());
-      service.addTodo({ id: 'TD1', text: 'Old task', repositoryId: 'RP1' });
+      service.addTask({ id: 'TD1', text: 'Old task', repositoryId: 'RP1' });
       service.addTitle({ id: 'TT1', name: 'Old title', repositoryId: 'RP1' });
       service.deleteRepository(fixture.repo.getRepository('RP1')!);
 
-      fixture.repo.updateTodo({ ...fixture.repo.listTodos()[0]!, text: 'Edited task' });
+      fixture.repo.updateTask({ ...fixture.repo.listTasks()[0]!, text: 'Edited task' });
       fixture.repo.updateTitle({ ...fixture.repo.listTitles()[0]!, name: 'Edited title' });
       service.undo();
 
-      expect(fixture.repo.listTodos()[0]).toMatchObject({ text: 'Edited task', repositoryId: 'RP1' });
+      expect(fixture.repo.listTasks()[0]).toMatchObject({ text: 'Edited task', repositoryId: 'RP1' });
       expect(fixture.repo.listTitles()[0]).toMatchObject({ name: 'Edited title', repositoryId: 'RP1' });
     } finally {
       cleanupRepo(fixture);
