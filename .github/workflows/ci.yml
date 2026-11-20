@@ -32,14 +32,18 @@ jobs:
         run: npm run test:coverage
       - name: Upload coverage to Coveralls
         # Run even when the coverage gate fails, so a pull request that drops
-        # below the threshold still gets a Coveralls report. Tag builds are
-        # skipped: the commit was already reported by the push to main.
+        # below the threshold still gets a Coveralls report. The step is
+        # advisory: reporter failures exit 0, and the Coveralls status check is
+        # kept advisory by clearing "Coverage Decrease Threshold for Failure"
+        # in the Coveralls repository settings. Tag builds are skipped: the
+        # commit was already reported by the push to main.
         if: ${{ !cancelled() && runner.os == 'Linux' && !startsWith(github.ref, 'refs/tags/') }}
         continue-on-error: true
         uses: coverallsapp/github-action@v2
         with:
           file: coverage/lcov.info
           format: lcov
+          fail-on-error: false
           # Public repositories do not need a Coveralls token: the action's
           # `github-token` input is forwarded to the reporter as
           # COVERALLS_REPO_TOKEN, so the GitHub token verifies the repository
