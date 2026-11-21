@@ -88,6 +88,17 @@ describe('TreeService research layer', () => {
     }
   });
 
+  it('normalizes status and priority on task update', () => {
+    const { fixture, service } = makeService();
+    try {
+      service.addTask(task());
+      service.updateTask(task(), task({ status: 'Completed', priority: 'HIGH' }));
+      expect(fixture.repo.getTask('T1')).toMatchObject({ status: 'closed', priority: 'high' });
+    } finally {
+      cleanupRepo(fixture);
+    }
+  });
+
   it('adds, updates, deletes and restores a task with its attachments', () => {
     const { fixture, service } = makeService();
     try {
@@ -100,7 +111,7 @@ describe('TreeService research layer', () => {
         task({ id: 'T2', targetType: 'person', targetId: 'P1' }),
       ]);
 
-      const after = task({ status: 'done', closedDate: { quality: 'exact' as const, component: { year: 2026 } } });
+      const after = task({ status: 'closed', closedDate: { quality: 'exact' as const, component: { year: 2026 } } });
       service.updateTask(task(), after);
       expect(fixture.repo.listTasks().find((entry) => entry.id === 'T1')).toMatchObject(after);
 

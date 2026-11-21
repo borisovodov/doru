@@ -847,7 +847,7 @@ export function canonicalizeTaskStatus(status: string | undefined): TaskStatus |
     .trim()
     .toLowerCase()
     .replace(/[\s_-]+/g, '');
-  return TASK_STATUS_ALIASES[key];
+  return Object.prototype.hasOwnProperty.call(TASK_STATUS_ALIASES, key) ? TASK_STATUS_ALIASES[key] : undefined;
 }
 
 /** Unknown, empty, and missing statuses mean open. */

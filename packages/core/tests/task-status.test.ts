@@ -19,7 +19,9 @@ describe('task status mapping', () => {
 
   it('keeps unknown text unmapped and treats it as open for display', () => {
     expect(canonicalizeTaskStatus('needs review')).toBeUndefined();
+    expect(canonicalizeTaskStatus('constructor')).toBeUndefined();
     expect(normalizeTaskStatus('needs review')).toBe('open');
+    expect(normalizeTaskStatus('constructor')).toBe('open');
     expect(normalizeTaskStatus(undefined)).toBe('open');
     expect(normalizeTaskStatus('')).toBe('open');
   });

@@ -1445,6 +1445,9 @@ function importGedcomTodoRecord(record: GedcomTodoRecord, ctx: ImportContext): v
     priority: normalizeTaskPriority(record.priority),
     status: normalizeTaskStatus(record.status),
     createdDate: parseGedcomTodoDate(record.createdDate),
+    scheduledDate: parseGedcomTodoDate(record.scheduledDate),
+    reminderDate: parseGedcomTodoDate(record.reminderDate),
+    closedDate: parseGedcomTodoDate(record.closedDate),
   });
   for (const uid of record.uids ?? []) {
     ctx.repo.insertIdentifier({

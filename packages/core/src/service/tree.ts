@@ -1384,7 +1384,13 @@ export class TreeService {
   }
 
   updateTask(before: TaskRecord, after: TaskRecord): UndoRedoState {
-    return this.apply(updateTaskOp(before, after));
+    return this.apply(
+      updateTaskOp(before, {
+        ...after,
+        priority: normalizeTaskPriority(after.priority),
+        status: normalizeTaskStatus(after.status),
+      }),
+    );
   }
 
   deleteTask(task: TaskRecord): UndoRedoState {

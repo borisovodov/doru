@@ -31,13 +31,12 @@ jobs:
         if: runner.os == 'Linux'
         run: npm run test:coverage
       - name: Upload coverage to Coveralls
-        # Run even when the coverage gate fails, so a pull request that drops
-        # below the threshold still gets a Coveralls report. The step is
-        # advisory: reporter failures exit 0, and the Coveralls status check is
-        # kept advisory by clearing "Coverage Decrease Threshold for Failure"
-        # in the Coveralls repository settings. Tag builds are skipped: the
-        # commit was already reported by the push to main.
-        if: ${{ !cancelled() && runner.os == 'Linux' && !startsWith(github.ref, 'refs/tags/') }}
+        # Coveralls is trend-only: run it for pushes to main, where it records
+        # the project history. Pull requests are gated by the repository's own
+        # coverage check above; uploading from PRs would only add a second,
+        # advisory status that can turn red on a tiny decrease. Reporter
+        # failures stay non-fatal.
+        if: ${{ !cancelled() && runner.os == 'Linux' && github.event_name == 'push' && github.ref == 'refs/heads/main' }}
         continue-on-error: true
         uses: coverallsapp/github-action@v2
         with:
@@ -47,8 +46,7 @@ jobs:
           # Public repositories do not need a Coveralls token: the action's
           # `github-token` input is forwarded to the reporter as
           # COVERALLS_REPO_TOKEN, so the GitHub token verifies the repository
-          # at Coveralls. Secrets are not exposed to pull requests from forks,
-          # but `GITHUB_TOKEN` always is.
+          # at Coveralls.
           github-token: ${{ secrets.GITHUB_TOKEN }}
       - run: npm run typecheck
       - run: npm run check:nls

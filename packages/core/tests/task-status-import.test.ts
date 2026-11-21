@@ -20,6 +20,9 @@ const GEDCOM = [
   '0 @T5@ _TASK',
   '1 _TDSC Payload only',
   '1 _TTIL Ignored title',
+  '1 _TSDT 2026-01-02',
+  '1 _TRDT 2026-02-03',
+  '1 _CDATE 2026-03-04',
   '0 @I1@ INDI',
   '1 NAME Test /Person/',
   '1 _TODO Attached task',
@@ -66,6 +69,11 @@ describe('GEDCOM task status and priority import', () => {
         priority: 'high',
       });
       const titled = tasks.find((task) => task.text === 'Payload only')!;
+      expect(titled).toMatchObject({
+        scheduledDate: { quality: 'exact', component: { year: 2026, month: 1, day: 2 } },
+        reminderDate: { quality: 'exact', component: { year: 2026, month: 2, day: 3 } },
+        closedDate: { quality: 'exact', component: { year: 2026, month: 3, day: 4 } },
+      });
       expect(titled).not.toHaveProperty('title');
       expect(titled).not.toHaveProperty('type');
       expect(tasks.find((task) => task.text === 'Attached task')).not.toHaveProperty('type');
