@@ -332,7 +332,6 @@ export function buildKitchenSinkTree(fixture: RepoFixture): void {
   repo.insertTask({
     id: 'TD1',
     text: 'Order the birth record',
-    category: 'records',
     locality: 'archive',
     priority: 'high',
     status: 'open',

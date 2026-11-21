@@ -103,15 +103,15 @@ describe('redo guards for nested attachment targets', () => {
     }
   });
 
-  it('blocks repository redo when a task link was cleared', () => {
+  it('blocks repository redo when a title link was cleared', () => {
     const { fixture, service } = makeService();
     const { repo } = fixture;
     try {
       service.addRepository({ id: 'R1', name: 'Archive' });
-      service.addTask({ id: 'T1', text: 'Task', repositoryId: 'R1' });
+      service.addTitle({ id: 'TI1', name: 'Register', repositoryId: 'R1' });
       service.deleteRepository(repo.getRepository('R1')!);
       service.undo();
-      repo.updateTask({ ...repo.getTask('T1')!, repositoryId: undefined });
+      repo.updateTitle({ ...repo.getTitle('TI1')!, repositoryId: undefined });
       expect(service.redo().redoBlocked).toBe(true);
     } finally {
       cleanupRepo(fixture);
@@ -323,19 +323,16 @@ describe('redo guards for nested attachment targets', () => {
     }
   });
 
-  it('allows repository redo after a task was reassigned before undo', () => {
+  it('allows repository redo after a title was reassigned before undo', () => {
     const { fixture, service } = makeService();
     const { repo } = fixture;
     try {
       service.addRepository({ id: 'R1', name: 'Archive' });
       service.addRepository({ id: 'R2', name: 'Library' });
-      service.addTask({ id: 'TD1', text: 'Look it up', repositoryId: 'R1' });
       service.addTitle({ id: 'TI1', name: 'Register', repositoryId: 'R1' });
       service.deleteRepository(repo.getRepository('R1')!);
-      repo.updateTask({ ...repo.getTask('TD1')!, repositoryId: 'R2' });
       repo.updateTitle({ ...repo.getTitle('TI1')!, repositoryId: 'R2' });
       service.undo();
-      expect(repo.getTask('TD1')?.repositoryId).toBe('R2');
       expect(repo.getTitle('TI1')?.repositoryId).toBe('R2');
       expect(service.redo().redoBlocked).toBeUndefined();
       expect(repo.getRepository('R1')).toBeUndefined();

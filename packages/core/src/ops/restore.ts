@@ -214,9 +214,6 @@ export function restoreAlias(ctx: MutationContext, id: string, personId: string,
 
 export function restoreTask(ctx: MutationContext, task: TaskRecord): void {
   const clean: TaskRecord = { ...task };
-  if (clean.repositoryId !== undefined && ctx.repo.getRepository(clean.repositoryId) === undefined) {
-    delete clean.repositoryId;
-  }
   if (
     clean.targetType !== undefined &&
     clean.targetId !== undefined &&

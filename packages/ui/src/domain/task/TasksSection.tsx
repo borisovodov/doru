@@ -89,7 +89,6 @@ export function TasksSection({
                 <span className="tasks-section-meta">
                   <Chip variant="neutral">{statusLabel(task.status)}</Chip>
                   {task.priority !== undefined && <Chip variant="neutral">{priorityLabel(task.priority)}</Chip>}
-                  {task.category !== undefined && <Chip variant="neutral">{task.category}</Chip>}
                   {task.scheduledDate !== undefined && <Chip variant="neutral">{formatDate(task.scheduledDate)}</Chip>}
                 </span>
               </button>

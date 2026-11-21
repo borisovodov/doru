@@ -8,14 +8,12 @@ const tasks: TaskRecord[] = [
     text: 'Find the parish register',
     priority: 'high',
     status: 'open',
-    category: 'Research',
   },
   {
     id: 'T2',
     text: 'Translate the 1890 census',
     priority: 'medium',
     status: 'in-progress',
-    category: 'Translation',
   },
 ];
 

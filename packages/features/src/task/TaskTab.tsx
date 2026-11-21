@@ -158,7 +158,6 @@ function TaskTabBody({
   const [draft, setDraft] = useState<TaskDraft>(() => (isNew ? emptyTaskDraft() : taskToDraft(base)));
   const targetId = lastSaved?.id ?? record?.id;
 
-  const repositoryById = new Map(repositories.map((repository) => [repository.id, repository]));
   const patch = (update: Partial<TaskDraft>) => setDraft((current) => ({ ...current, ...update }));
 
   const targetData = useMemo(
@@ -197,17 +196,8 @@ function TaskTabBody({
   );
 
   const subtitleParts: string[] = [];
-  if (draft.category !== '') {
-    subtitleParts.push(draft.category);
-  }
   if (draft.targetType !== '' && draft.targetId !== '') {
     subtitleParts.push(taskTargetLabel(draft.targetType, draft.targetId, targetData));
-  }
-  if (draft.repositoryId !== '') {
-    const repository = repositoryById.get(draft.repositoryId);
-    if (repository) {
-      subtitleParts.push(repository.name);
-    }
   }
 
   const save = async () => {

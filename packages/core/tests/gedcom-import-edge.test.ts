@@ -216,11 +216,11 @@ describe('importGedcomDataset edge coverage', () => {
       expect(tasks).toHaveLength(1);
       expect(tasks[0]).toMatchObject({
         text: 'Order the record',
-        category: 'records',
         locality: 'archive',
         priority: 'high',
         status: 'open',
       });
+      expect(tasks[0]).not.toHaveProperty('category');
       expect(repo.listIdentifiersFor('task', tasks[0]!.id).map((identifier) => identifier.value)).toEqual(['task-uid']);
 
       // The occurrence became one fact per participant.

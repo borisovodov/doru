@@ -1213,7 +1213,7 @@ export class TreeService {
 
   deleteRepository(repository: RepositoryRecord): UndoRedoState {
     return this.applyAfterCommit(() => {
-      // Snapshot the consumers inside the delete transaction so a task added
+      // Snapshot the consumers inside the delete transaction so a title added
       // just before deletion is still restored on undo.
       const current = this.repo.getRepository(repository.id);
       if (current === undefined) {
@@ -1222,7 +1222,6 @@ export class TreeService {
       const attachments = this.repo.listAttachmentsFor('repository', current.id);
       const consumers = {
         sourceRepositories: this.repo.listSourceRepositoriesFor(current.id),
-        tasks: this.repo.listTasks().filter((task) => task.repositoryId === current.id),
         titles: this.repo.listTitles().filter((title) => title.repositoryId === current.id),
       };
       return deleteRepositoryOp(current, attachments, consumers);

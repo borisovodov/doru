@@ -15,23 +15,19 @@ describe('taskDraft', () => {
       text: 'Order the birth record',
       targetType: 'person',
       targetId: 'P1',
-      category: 'records',
       locality: 'archive',
       priority: 'high',
       status: 'in-progress',
       scheduledDate: { quality: 'exact', component: { year: 2026, month: 3, day: 12 } },
       reminderDate: { quality: 'about', component: { year: 2026, month: 3 } },
-      repositoryId: 'R1',
       createdDate: { quality: 'exact', component: { year: 2026 } },
     };
     const draft = taskToDraft(source);
     expect(draft).toMatchObject({
       text: 'Order the birth record',
-      category: 'records',
       locality: 'archive',
       priority: 'high',
       status: 'in-progress',
-      repositoryId: 'R1',
       targetType: 'person',
       targetId: 'P1',
       scheduled: { year: '2026', month: '3', day: '12', quality: 'exact' },

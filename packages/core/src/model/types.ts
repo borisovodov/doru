@@ -813,13 +813,19 @@ export interface AssociationRecord {
   periodEnd?: DateValue | undefined;
 }
 
-/** A task, attached to some entity or free-standing. */
+/**
+ * A task, attached to some entity or free-standing.
+ *
+ * Dóru deliberately has no direct task-to-repository field or task category:
+ * the GEDCOM-L `_TODO` `REPO` and `_CAT` slots are parsed by
+ * `@doru/gedcom` but ignored by the import/export boundary. A repository can
+ * still be the task's target.
+ */
 export interface TaskRecord {
   id: string;
   text: string;
   targetType?: string | undefined;
   targetId?: string | undefined;
-  category?: string | undefined;
   locality?: string | undefined;
   priority?: string | undefined;
   status?: string | undefined;
@@ -827,7 +833,6 @@ export interface TaskRecord {
   scheduledDate?: DateValue | undefined;
   reminderDate?: DateValue | undefined;
   closedDate?: DateValue | undefined;
-  repositoryId?: string | undefined;
 }
 
 /** A bibliographic work (GEDCOM 7.0 TITL record), cited by sources. */

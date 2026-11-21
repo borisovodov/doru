@@ -241,8 +241,6 @@ export interface TreeRepository {
   insertTask(task: TaskRecord): void;
   updateTask(task: TaskRecord): void;
   getTask(id: string): TaskRecord | undefined;
-  /** Reconnects a task to a repository without rewriting its other fields. */
-  setTaskRepositoryId(taskId: string, repositoryId: string | undefined): void;
   deleteTask(id: string): boolean;
   listTasks(): TaskRecord[];
   listTasksFor(targetType: string, targetId: string): TaskRecord[];
@@ -1183,10 +1181,6 @@ export class SqliteTreeRepository implements TreeRepository {
     return this.research.getTask(id);
   }
 
-  setTaskRepositoryId(taskId: string, repositoryId: string | undefined): void {
-    this.research.setTaskRepositoryId(taskId, repositoryId);
-  }
-
   deleteTask(id: string): boolean {
     return this.transactions.run(() => {
       this.deleteAttachmentsFor('task', id);
@@ -1527,9 +1521,7 @@ export class SqliteTreeRepository implements TreeRepository {
         if (removed.size > 0 && !removed.has(`task\u0000${task.id}`)) {
           continue;
         }
-        const repositoryMissing =
-          task.repositoryId !== undefined && this.getRepository(task.repositoryId) === undefined;
-        this.research.insertTask(repositoryMissing ? { ...task, repositoryId: undefined } : task);
+        this.research.insertTask(task);
       }
     }
     for (const nested of snapshot.taskAttachments) {

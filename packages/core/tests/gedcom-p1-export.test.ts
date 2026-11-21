@@ -80,7 +80,6 @@ describe('P1 GEDCOM export gaps', () => {
         id: 'T1',
         text: 'Free task',
         createdDate: { quality: 'exact', component: { year: 2026, month: 11, day: 17 } },
-        repositoryId: 'R1',
       });
       repo.insertTask({
         id: 'T2',
@@ -88,7 +87,6 @@ describe('P1 GEDCOM export gaps', () => {
         targetType: 'person',
         targetId: 'P1',
         createdDate: { quality: 'exact', component: { year: 2026, month: 11, day: 18 } },
-        repositoryId: 'R1',
       });
 
       for (const [serialize, hasPlaceCards, hasNonEvents] of [
@@ -117,7 +115,6 @@ describe('P1 GEDCOM export gaps', () => {
         }
         expect(text).toContain('_TCDT 2026-11-17');
         expect(text).toContain('_TCDT 2026-11-18');
-        expect(text).toContain('REPO @R1@');
 
         const target = makeRepo();
         try {
@@ -162,19 +159,16 @@ describe('P1 GEDCOM export gaps', () => {
             expect(target.repo.listChangesFor('place', place.id).some((entry) => entry.kind === 'changed')).toBe(true);
           }
 
-          const repository = target.repo.listRepositories()[0]!;
           const tasks = target.repo.listTasks();
           const freeTask = tasks.find((task) => task.text === 'Free task')!;
           const attachedTask = tasks.find((task) => task.text === 'Attached task')!;
           expect(freeTask).toMatchObject({
             createdDate: { quality: 'exact', component: { year: 2026, month: 11, day: 17 } },
-            repositoryId: repository.id,
           });
           expect(freeTask.targetType).toBeUndefined();
           expect(freeTask.targetId).toBeUndefined();
           expect(attachedTask).toMatchObject({
             createdDate: { quality: 'exact', component: { year: 2026, month: 11, day: 18 } },
-            repositoryId: repository.id,
             targetType: 'person',
             targetId: person.id,
           });

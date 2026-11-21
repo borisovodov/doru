@@ -203,9 +203,7 @@ describe('importGedcomDataset (phase 4)', () => {
       expect(repo.listAssociationsFor(ivan.id)).toEqual([
         expect.objectContaining({ otherPersonId: maria.id, relationship: 'godfather' }),
       ]);
-      expect(repo.listTasksFor('person', ivan.id)).toEqual([
-        expect.objectContaining({ text: 'check the archive', category: 'research' }),
-      ]);
+      expect(repo.listTasksFor('person', ivan.id)).toEqual([expect.objectContaining({ text: 'check the archive' })]);
 
       // Family with link details and a marriage fact with partner ages.
       const family = repo.listFamilies()[0]!;

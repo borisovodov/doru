@@ -276,7 +276,7 @@ function buildPerson(person: PersonRecord, repo: TreeRepository, xrefs: Xrefs): 
     ...(ancestorInterests.length > 0 ? { ancestorInterests } : {}),
     ...(descendantInterests.length > 0 ? { descendantInterests } : {}),
     ...withTagLinks(repo, 'person', person.id, xrefs),
-    ...withGedcomTodoStructures(repo, 'person', person.id, xrefs),
+    ...withGedcomTodoStructures(repo, 'person', person.id),
     ...withAssociations(repo, person.id, xrefs),
     ...withAliases(repo, person.id, xrefs),
     ...withChildFamilies(repo, person.id, xrefs),
@@ -586,7 +586,7 @@ function buildFamily(family: FamilyRecord, repo: TreeRepository, xrefs: Xrefs): 
     ...withMediaLinks(repo, 'family', family.id, xrefs),
     ...withSubmitterLinks(repo, 'family', family.id, xrefs),
     ...withTagLinks(repo, 'family', family.id, xrefs),
-    ...withGedcomTodoStructures(repo, 'family', family.id, xrefs),
+    ...withGedcomTodoStructures(repo, 'family', family.id),
     ...withFamilyAssociations(repo, family.id, xrefs),
   };
 }
@@ -732,6 +732,8 @@ function buildSharedNote(note: NoteRecord, repo: TreeRepository, xrefs: Xrefs): 
 }
 
 function buildGedcomTodoRecord(task: TaskRecord, repo: TreeRepository, xrefs: Xrefs): GedcomRecord {
+  // _TODO.REPO and _TODO._CAT are deliberately not written: Dóru has no
+  // task.repositoryId or task category.
   const uids = repo
     .listIdentifiersFor('task', task.id)
     .filter((identifier) => identifier.namespace === 'uid')
@@ -740,12 +742,10 @@ function buildGedcomTodoRecord(task: TaskRecord, repo: TreeRepository, xrefs: Xr
   return {
     tag: '_TODO',
     payload: task.text,
-    ...(task.category !== undefined ? { category: task.category } : {}),
     ...(task.locality !== undefined ? { locality: task.locality } : {}),
     ...(task.priority !== undefined ? { priority: task.priority } : {}),
     ...(task.status !== undefined ? { status: task.status } : {}),
     ...(createdDate !== undefined ? { createdDate } : {}),
-    ...(task.repositoryId !== undefined ? { repository: xrefs.of(task.repositoryId) } : {}),
     ...(uids.length > 0 ? { uids } : {}),
     ...withNoteList(repo, 'task', task.id, xrefs),
     ...withChanges(repo, 'task', task.id),
@@ -1277,14 +1277,14 @@ function withGedcomTodoStructures(
   repo: TreeRepository,
   targetType: string,
   targetId: string,
-  xrefs: Xrefs,
 ): { todos?: Array<import('@doru/gedcom').TodoStructure> } {
+  // _TODO.REPO and _TODO._CAT are deliberately not written: see
+  // buildGedcomTodoRecord.
   const structures = repo.listTasksFor(targetType, targetId).map((task) => {
     const createdDate = formatGedcomTodoDate(task.createdDate);
     return {
       tag: '_TODO' as const,
       payload: task.text,
-      ...(task.category !== undefined ? { category: task.category } : {}),
       ...(task.locality !== undefined ? { locality: task.locality } : {}),
       ...(task.priority !== undefined ? { priority: task.priority } : {}),
       ...(task.status !== undefined ? { status: task.status } : {}),
@@ -1292,7 +1292,6 @@ function withGedcomTodoStructures(
       ...(createdDate !== undefined ? { createdDate } : {}),
       ...(task.reminderDate !== undefined ? { reminderDate: buildDate(task.reminderDate) } : {}),
       ...(task.closedDate !== undefined ? { closedDate: buildDate(task.closedDate) } : {}),
-      ...(task.repositoryId !== undefined ? { repository: xrefs.of(task.repositoryId) } : {}),
     } as import('@doru/gedcom').TodoStructure;
   });
   return structures.length > 0 ? { todos: structures } : {};

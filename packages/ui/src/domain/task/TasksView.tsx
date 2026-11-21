@@ -81,7 +81,6 @@ export function TasksView({
   /** The task whose tab is active, highlighted as the current row. */
   selectedId?: string | undefined;
 }) {
-  const repositoryById = new Map(repositories.map((repository) => [repository.id, repository]));
   const targetData: TaskTargetData = {
     persons,
     families,
@@ -218,14 +217,10 @@ export function TasksView({
                                 : task.priority}
                         </Chip>
                       )}
-                      {task.category !== undefined && <Chip variant="neutral">{task.category}</Chip>}
                       {task.scheduledDate !== undefined && (
                         <Chip variant="neutral">{formatDate(task.scheduledDate)}</Chip>
                       )}
                       {task.closedDate !== undefined && <Chip variant="neutral">{formatDate(task.closedDate)}</Chip>}
-                      {task.repositoryId !== undefined && repositoryById.has(task.repositoryId) && (
-                        <Chip variant="neutral">{repositoryById.get(task.repositoryId)?.name}</Chip>
-                      )}
                       {related !== undefined && related.open === undefined && (
                         <Chip variant="neutral">{related.label}</Chip>
                       )}

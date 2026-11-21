@@ -214,13 +214,13 @@ describe('undo restore sanitizers', () => {
       const { repo } = fixture;
       const ctx = context(fixture);
       repo.insertRepository({ id: 'R1', name: 'Archive' });
-      restoreTask(ctx, { id: 'T1', text: 'Task', repositoryId: 'R1' });
-      restoreTask(ctx, { id: 'T2', text: 'Orphan task', repositoryId: 'missing' });
+      restoreTask(ctx, { id: 'T1', text: 'Task' });
+      restoreTask(ctx, { id: 'T2', text: 'Orphan task', targetType: 'person', targetId: 'missing' });
       restoreTask(ctx, { id: 'T3', text: 'Linked task', targetType: 'repository', targetId: 'R1' });
-      expect(repo.getTask('T1')?.repositoryId).toBe('R1');
+      expect(repo.getTask('T1')?.id).toBe('T1');
       expect(repo.getTask('T3')?.targetId).toBe('R1');
       expect(repo.getTask('T2')?.id).toBe('T2');
-      expect(repo.getTask('T2')?.repositoryId).toBeUndefined();
+      expect(repo.getTask('T2')?.targetType).toBeUndefined();
 
       restoreTitle(ctx, { id: 'TI1', name: 'Work', repositoryId: 'R1' });
       restoreTitle(ctx, { id: 'TI2', name: 'Orphan work', repositoryId: 'missing' });

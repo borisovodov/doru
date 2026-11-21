@@ -10,7 +10,6 @@ const tasks: TaskRecord[] = [
     targetId: 'I1',
     priority: 'high',
     status: 'open',
-    category: 'Research',
   },
   {
     id: 'T2',

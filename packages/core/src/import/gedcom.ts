@@ -1447,16 +1447,18 @@ function importResearchRecords(records: GedcomRecord[], ctx: ImportContext): voi
 }
 
 function importGedcomTodoRecord(record: GedcomTodoRecord, ctx: ImportContext): void {
+  // _TODO.REPO is deliberately ignored: a task has no direct repository
+  // field, and a repository can be selected as the task's target instead.
+  // _TODO._CAT (category) is deliberately ignored too: Dóru has no task
+  // categories.
   const id = crypto.randomUUID();
   ctx.repo.insertTask({
     id,
     text: record.payload || record.title || '',
-    category: record.category,
     locality: record.locality,
     priority: record.priority,
     status: record.status,
     createdDate: parseGedcomTodoDate(record.createdDate),
-    ...(record.repository !== undefined ? { repositoryId: ctx.repositoryIds.get(record.repository) } : {}),
   });
   for (const uid of record.uids ?? []) {
     ctx.repo.insertIdentifier({
@@ -1647,12 +1649,13 @@ function importGedcomTodoStructure(
   targetId: string,
   ctx: ImportContext,
 ): void {
+  // _TODO.REPO and _TODO._CAT are deliberately ignored: see
+  // importGedcomTodoRecord.
   const mapped: TaskRecord = {
     id: crypto.randomUUID(),
     text: structure.payload ?? structure.description ?? '',
     targetType,
     targetId,
-    category: structure.category,
     locality: structure.locality,
     priority: structure.priority,
     status: structure.status,
@@ -1660,7 +1663,6 @@ function importGedcomTodoStructure(
     scheduledDate: mapDate(structure.date),
     reminderDate: mapDate(structure.reminderDate),
     closedDate: mapDate(structure.closedDate),
-    ...(structure.repository !== undefined ? { repositoryId: ctx.repositoryIds.get(structure.repository) } : {}),
   };
   ctx.repo.insertTask(mapped);
   importNotes(structure.notes, 'task', mapped.id, ctx);

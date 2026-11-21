@@ -12,9 +12,9 @@ import type { TaskDraft } from './taskDraft';
 
 /**
  * The editable fields of a task, shared by the task tab editor: the text,
- * the classification fields (category, locality, priority, status), the
- * repository and entity links, and the creation/scheduled/reminder/closed
- * dates. `data` carries every record type a task can be related to.
+ * the classification fields (locality, priority, status), the entity links,
+ * and the creation/scheduled/reminder/closed dates. `data` carries every
+ * record type a task can be related to.
  */
 export function TaskEditorFields({
   edit,
@@ -26,16 +26,10 @@ export function TaskEditorFields({
   onChange: (update: Partial<TaskDraft>) => void;
 }) {
   const listId = useId();
-  const categoryListId = `${listId}-categories`;
   const localityListId = `${listId}-localities`;
   const knownTarget = (TARGET_TYPES as readonly string[]).includes(edit.targetType);
   const targetOptions = taskTargetOptions(edit.targetType, data);
   const knownTargetId = targetOptions.some((option) => option.id === edit.targetId);
-  const categories = [
-    ...new Set(
-      data.tasks.map((task) => task.category).filter((value): value is string => value !== undefined && value !== ''),
-    ),
-  ];
   const localities = [
     ...new Set(
       data.tasks.map((task) => task.locality).filter((value): value is string => value !== undefined && value !== ''),
@@ -52,14 +46,6 @@ export function TaskEditorFields({
         />
       </Field>
       <FieldGrid columns={2}>
-        <Field label={nls.t('features.tasks.category')}>
-          <Input
-            list={categoryListId}
-            placeholder={nls.t('features.tasks.category')}
-            value={edit.category}
-            onChange={(event) => onChange({ category: event.target.value })}
-          />
-        </Field>
         <Field label={nls.t('features.tasks.locality')}>
           <Input
             list={localityListId}
@@ -85,16 +71,6 @@ export function TaskEditorFields({
             <option value="in-progress">{nls.t('features.tasks.statusInProgress')}</option>
             <option value="closed">{nls.t('features.tasks.statusClosed')}</option>
             {!['', 'in-progress', 'closed'].includes(edit.status) && <option value={edit.status}>{edit.status}</option>}
-          </Select>
-        </Field>
-        <Field label={nls.t('features.tasks.repository')}>
-          <Select value={edit.repositoryId} onChange={(event) => onChange({ repositoryId: event.target.value })}>
-            <option value="">{nls.t('features.tasks.none')}</option>
-            {data.repositories.map((repository) => (
-              <option key={repository.id} value={repository.id}>
-                {repository.name}
-              </option>
-            ))}
           </Select>
         </Field>
       </FieldGrid>
@@ -158,11 +134,6 @@ export function TaskEditorFields({
         onChange={(value) => onChange({ closed: value })}
         hidePlace
       />
-      <datalist id={categoryListId}>
-        {categories.map((category) => (
-          <option key={category} value={category} />
-        ))}
-      </datalist>
       <datalist id={localityListId}>
         {localities.map((locality) => (
           <option key={locality} value={locality} />

@@ -45,10 +45,10 @@ export const DORU_APPLICATION_ID = 0x444f5255;
  * Bumped whenever the schema changes. There are no migrations before 1.0.0:
  * a newer version may simply not understand files written by older ones
  * (the store refuses to open them with a loud error). This schema uses
- * version 9, above every version written by an earlier build (the old model
+ * version 11, above every version written by an earlier build (the old model
  * reached 6), so the open guard cannot mistake an old file for this one.
  */
-export const SCHEMA_VERSION = 9;
+export const SCHEMA_VERSION = 11;
 
 export const SCHEMA_SQL = `
 CREATE TABLE IF NOT EXISTS person (
@@ -569,12 +569,13 @@ CREATE TABLE IF NOT EXISTS person_alias (
   UNIQUE (person_id, alias_id)
 );
 
+-- No repository_id or category on purpose: GEDCOM-L _TODO.REPO and _TODO._CAT
+-- are not imported.
 CREATE TABLE IF NOT EXISTS task (
   id TEXT PRIMARY KEY,
   text TEXT NOT NULL,
   target_type TEXT, target_id TEXT,  -- may be a free-standing task
-  category TEXT, locality TEXT, priority TEXT, status TEXT,
-  repository_id TEXT REFERENCES repository(id) ON DELETE SET NULL
+  locality TEXT, priority TEXT, status TEXT
 );
 
 CREATE TABLE IF NOT EXISTS title (
@@ -657,7 +658,6 @@ CREATE INDEX IF NOT EXISTS idx_media_place ON media(place_id);
 CREATE INDEX IF NOT EXISTS idx_source_title ON source(title_id);
 CREATE INDEX IF NOT EXISTS idx_source_event_place ON source_data_event(place_id);
 CREATE INDEX IF NOT EXISTS idx_title_repository ON title(repository_id);
-CREATE INDEX IF NOT EXISTS idx_task_repository ON task(repository_id);
 
 -- Every date row belongs to one owner row. These triggers delete the date
 -- rows with their owner, including when a foreign-key cascade removes it.
