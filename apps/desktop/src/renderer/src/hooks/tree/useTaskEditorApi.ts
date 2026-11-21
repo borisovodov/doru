@@ -1,18 +1,18 @@
 import { useMemo } from 'react';
-import type { TodoEditorApi } from '@doru/features';
+import type { TaskEditorApi } from '@doru/features';
 import type { RefreshTree } from './types';
 import type { useAttachmentMethods } from './useAttachmentMethods';
 
-export function useTodoEditorApi(
+export function useTaskEditorApi(
   projectPath: string | null | undefined,
   refreshTree: RefreshTree,
   attachmentMethods: ReturnType<typeof useAttachmentMethods>,
-): TodoEditorApi {
-  const todosApi = useMemo<TodoEditorApi>(
+): TaskEditorApi {
+  const tasksApi = useMemo<TaskEditorApi>(
     () => ({
       ...attachmentMethods,
     }),
     [projectPath, refreshTree, attachmentMethods],
   );
-  return todosApi;
+  return tasksApi;
 }

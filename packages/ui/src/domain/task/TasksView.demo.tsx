@@ -1,21 +1,19 @@
 import type { Demo, DemoMeta } from '../../../gallery/types';
-import type { PersonRecord, TodoRecord } from '@doru/core';
+import type { PersonRecord, TaskRecord } from '@doru/core';
 import { TasksView } from './TasksView';
 
-const todos: TodoRecord[] = [
+const tasks: TaskRecord[] = [
   {
     id: 'T1',
     text: 'Find the parish register',
     priority: 'high',
     status: 'open',
-    category: 'Research',
   },
   {
     id: 'T2',
     text: 'Translate the 1890 census',
     priority: 'medium',
     status: 'in-progress',
-    category: 'Translation',
   },
 ];
 
@@ -26,7 +24,7 @@ const relatedPerson: PersonRecord = {
   facts: [],
 };
 
-const relatedTodo: TodoRecord = {
+const relatedTask: TaskRecord = {
   id: 'T3',
   text: 'Check the census entry',
   status: 'open',
@@ -38,7 +36,7 @@ const meta = {
   title: 'Domain/TasksView',
   component: TasksView,
   args: {
-    todos,
+    tasks,
     persons: [],
     families: [],
     sources: [],
@@ -78,13 +76,13 @@ type DemoCase = Demo;
 export const Default: DemoCase = {};
 
 export const Empty: DemoCase = {
-  args: { todos: [] },
+  args: { tasks: [] },
 };
 
 export const RelatedRecord: DemoCase = {
   args: {
-    todos: [relatedTodo],
+    tasks: [relatedTask],
     persons: [relatedPerson],
-    selectedId: relatedTodo.id,
+    selectedId: relatedTask.id,
   },
 };

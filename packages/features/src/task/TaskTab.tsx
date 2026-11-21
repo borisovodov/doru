@@ -15,18 +15,18 @@ import type {
   SourceRecord,
   SubmitterRecord,
   TitleRecord,
-  TodoRecord,
+  TaskRecord,
 } from '@doru/core';
 import { AttachmentsPanel } from '../attachments';
 import { EntityTab } from '../sidebar';
-import type { TodoEditorApi } from '../person/types';
+import type { TaskEditorApi } from '../person/types';
 import {
   TaskEditorFields,
-  emptyTodoDraft,
+  emptyTaskDraft,
   taskTargetLabel,
-  todoDraftToRecord,
-  todoToDraft,
-  type TodoDraft,
+  taskDraftToRecord,
+  taskToDraft,
+  type TaskDraft,
 } from '@doru/ui/domain';
 import { nls } from '../nls';
 import { Button } from '@doru/ui';
@@ -34,7 +34,7 @@ import { EntityViewCard } from '@doru/ui';
 
 export function TaskTab({
   entityId,
-  todos,
+  tasks,
   persons,
   families,
   sources,
@@ -55,7 +55,7 @@ export function TaskTab({
   onCreated,
 }: {
   entityId: string;
-  todos: TodoRecord[];
+  tasks: TaskRecord[];
   persons: PersonRecord[];
   families: FamilyRecord[];
   sources: SourceRecord[];
@@ -69,7 +69,7 @@ export function TaskTab({
   submitters: SubmitterRecord[];
   addresses: AddressRecord[];
   associations: AssociationRecord[];
-  api: TodoEditorApi;
+  api: TaskEditorApi;
   onClose: () => void;
   onOpenMedia: (mediaId: string) => void;
   onOpenSource: (sourceId: string) => void;
@@ -77,7 +77,7 @@ export function TaskTab({
 }) {
   const taskId = entityId;
   const isNew = taskId.startsWith('new:');
-  const record = todos.find((todo) => todo.id === taskId);
+  const record = tasks.find((task) => task.id === taskId);
   if (!isNew && !record) {
     return <p className="person-missing">{nls.t('features.tasks.notFound')}</p>;
   }
@@ -85,7 +85,7 @@ export function TaskTab({
     <TaskTabBody
       record={record}
       isNew={isNew}
-      todos={todos}
+      tasks={tasks}
       persons={persons}
       families={families}
       sources={sources}
@@ -111,7 +111,7 @@ export function TaskTab({
 function TaskTabBody({
   record,
   isNew,
-  todos,
+  tasks,
   persons,
   families,
   sources,
@@ -131,9 +131,9 @@ function TaskTabBody({
   onOpenSource,
   onCreated,
 }: {
-  record: TodoRecord | undefined;
+  record: TaskRecord | undefined;
   isNew: boolean;
-  todos: TodoRecord[];
+  tasks: TaskRecord[];
   persons: PersonRecord[];
   families: FamilyRecord[];
   sources: SourceRecord[];
@@ -147,19 +147,18 @@ function TaskTabBody({
   submitters: SubmitterRecord[];
   addresses: AddressRecord[];
   associations: AssociationRecord[];
-  api: TodoEditorApi;
+  api: TaskEditorApi;
   onClose: () => void;
   onOpenMedia: (mediaId: string) => void;
   onOpenSource: (sourceId: string) => void;
   onCreated: (realId: string) => void;
 }) {
   const base = record ?? { id: crypto.randomUUID(), text: '' };
-  const [lastSaved, setLastSaved] = useState<TodoRecord | undefined>(record);
-  const [draft, setDraft] = useState<TodoDraft>(() => (isNew ? emptyTodoDraft() : todoToDraft(base)));
+  const [lastSaved, setLastSaved] = useState<TaskRecord | undefined>(record);
+  const [draft, setDraft] = useState<TaskDraft>(() => (isNew ? emptyTaskDraft() : taskToDraft(base)));
   const targetId = lastSaved?.id ?? record?.id;
 
-  const repositoryById = new Map(repositories.map((repository) => [repository.id, repository]));
-  const patch = (update: Partial<TodoDraft>) => setDraft((current) => ({ ...current, ...update }));
+  const patch = (update: Partial<TaskDraft>) => setDraft((current) => ({ ...current, ...update }));
 
   const targetData = useMemo(
     () => ({
@@ -176,7 +175,7 @@ function TaskTabBody({
       submitters,
       addresses,
       associations,
-      todos,
+      tasks,
     }),
     [
       persons,
@@ -192,41 +191,32 @@ function TaskTabBody({
       submitters,
       addresses,
       associations,
-      todos,
+      tasks,
     ],
   );
 
   const subtitleParts: string[] = [];
-  if (draft.category !== '') {
-    subtitleParts.push(draft.category);
-  }
   if (draft.targetType !== '' && draft.targetId !== '') {
     subtitleParts.push(taskTargetLabel(draft.targetType, draft.targetId, targetData));
-  }
-  if (draft.repositoryId !== '') {
-    const repository = repositoryById.get(draft.repositoryId);
-    if (repository) {
-      subtitleParts.push(repository.name);
-    }
   }
 
   const save = async () => {
     if (draft.text.trim() === '') {
       return;
     }
-    const after = todoDraftToRecord(base, draft);
+    const after = taskDraftToRecord(base, draft);
     if (isNew && lastSaved === undefined) {
-      await api.addTodo(after);
+      await api.addTask(after);
       onCreated(after.id);
     } else {
-      await api.updateTodo(lastSaved ?? base, after);
+      await api.updateTask(lastSaved ?? base, after);
     }
     setLastSaved(after);
   };
 
   const remove = async () => {
     const target = lastSaved ?? base;
-    await api.deleteTodo(target);
+    await api.deleteTask(target);
     onClose();
   };
 
@@ -255,7 +245,7 @@ function TaskTabBody({
       </SectionCard>
       {targetId !== undefined && (
         <AttachmentsPanel
-          targetType="todo"
+          targetType="task"
           targetId={targetId}
           api={api}
           sources={sources}

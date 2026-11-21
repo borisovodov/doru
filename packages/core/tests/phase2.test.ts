@@ -119,57 +119,6 @@ describe('Phase 2: attachments cascade and undo', () => {
   });
 });
 
-describe('Phase 2: change log', () => {
-  it('lists changes in insertion order', () => {
-    const fixture = makeRepo();
-    try {
-      const svc = service(fixture);
-      const p = person('P1');
-      svc.addPerson(p);
-      svc.updatePerson(p, { ...p, names: [{ id: 'N1', given: 'Ivan' }] });
-      expect(fixture.repo.listChangesFor('person', 'P1').map((change) => change.kind)).toEqual(['created', 'changed']);
-    } finally {
-      cleanupRepo(fixture);
-    }
-  });
-
-  it('records created/changed rows and forgets them with the entity', () => {
-    const fixture = makeRepo();
-    try {
-      const svc = service(fixture);
-      const repo = fixture.repo;
-      const p = person('P1');
-      svc.addPerson(p);
-      expect(repo.listChangesFor('person', 'P1').map((change) => change.kind)).toEqual(['created']);
-
-      svc.updatePerson(p, { ...p, names: [{ id: 'N1', given: 'Ivan' }] });
-      expect(
-        repo
-          .listChangesFor('person', 'P1')
-          .map((change) => change.kind)
-          .sort(),
-      ).toEqual(['changed', 'created']);
-
-      // Deleting the person removes its history; undo restores it.
-      const before = repo.listChangesFor('person', 'P1');
-      svc.deletePerson(repo.getPerson('P1')!);
-      expect(repo.listChangesFor('person', 'P1')).toEqual([]);
-
-      svc.undo();
-      // Undo restores the entity and its old history, then records its own
-      // 'changed' row — the history is honest.
-      expect(
-        repo
-          .listChangesFor('person', 'P1')
-          .map((change) => change.kind)
-          .sort(),
-      ).toEqual(['changed', ...before.map((change) => change.kind)].sort());
-    } finally {
-      cleanupRepo(fixture);
-    }
-  });
-});
-
 describe('Phase 2: fact details', () => {
   it('round-trips ages, participants and flags', () => {
     const fixture = makeRepo();

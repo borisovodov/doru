@@ -1,7 +1,7 @@
-import type { AssociationRecord, AttachmentsSnapshot, TitleRecord, TodoRecord } from '../model/types';
+import type { AssociationRecord, AttachmentsSnapshot, TitleRecord, TaskRecord } from '../model/types';
 import { emptyAttachments } from '../model/types';
 import type { Op } from './op';
-import { attachmentsMatch, restoreAlias, restoreAssociation, restoreTitle, restoreTodo, sameRecord } from './restore';
+import { attachmentsMatch, restoreAlias, restoreAssociation, restoreTitle, restoreTask, sameRecord } from './restore';
 
 function op(
   id: string,
@@ -128,42 +128,42 @@ export function deleteAliasOp(id: string, personId: string, aliasId: string): Op
   );
 }
 
-export function addTodoOp(todo: TodoRecord): Op {
+export function addTaskOp(task: TaskRecord): Op {
   return op(
     crypto.randomUUID(),
-    'todo.add',
-    (ctx) => ctx.repo.insertTodo(todo),
-    (ctx) => ctx.repo.deleteTodo(todo.id),
-    { targetType: 'todo', targetId: todo.id, kind: 'created' },
+    'task.add',
+    (ctx) => ctx.repo.insertTask(task),
+    (ctx) => ctx.repo.deleteTask(task.id),
+    { targetType: 'task', targetId: task.id, kind: 'created' },
   );
 }
 
-export function updateTodoOp(before: TodoRecord, after: TodoRecord): Op {
+export function updateTaskOp(before: TaskRecord, after: TaskRecord): Op {
   return op(
     crypto.randomUUID(),
-    'todo.update',
-    (ctx) => ctx.repo.updateTodo(after),
-    (ctx) => ctx.repo.updateTodo(before),
-    { targetType: 'todo', targetId: before.id, kind: 'changed' },
+    'task.update',
+    (ctx) => ctx.repo.updateTask(after),
+    (ctx) => ctx.repo.updateTask(before),
+    { targetType: 'task', targetId: before.id, kind: 'changed' },
   );
 }
 
-export function deleteTodoOp(todo: TodoRecord, attachments: AttachmentsSnapshot = emptyAttachments()): Op {
-  let baseline = todo;
+export function deleteTaskOp(task: TaskRecord, attachments: AttachmentsSnapshot = emptyAttachments()): Op {
+  let baseline = task;
   return op(
     crypto.randomUUID(),
-    'todo.delete',
-    (ctx) => ctx.repo.deleteTodo(todo.id),
+    'task.delete',
+    (ctx) => ctx.repo.deleteTask(task.id),
     (ctx) => {
-      restoreTodo(ctx, todo);
-      baseline = ctx.repo.getTodo(todo.id) ?? todo;
+      restoreTask(ctx, task);
+      baseline = ctx.repo.getTask(task.id) ?? task;
       ctx.repo.restoreAttachments(attachments);
     },
-    { targetType: 'todo', targetId: todo.id, kind: 'changed' },
+    { targetType: 'task', targetId: task.id, kind: 'changed' },
     (ctx) =>
-      ctx.repo.getTodo(todo.id) !== undefined &&
-      sameRecord(ctx.repo.getTodo(todo.id), baseline) &&
-      attachmentsMatch(ctx, 'todo', todo.id, attachments),
+      ctx.repo.getTask(task.id) !== undefined &&
+      sameRecord(ctx.repo.getTask(task.id), baseline) &&
+      attachmentsMatch(ctx, 'task', task.id, attachments),
     [attachments],
   );
 }

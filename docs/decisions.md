@@ -73,6 +73,30 @@ counts showed them in only a handful of files (or not at all); the standard
 are stored. `WILL.TEXT` is normalized into a note on the `WILL` fact and is
 exported as `NOTE`, not as the vendor `TEXT` tag.
 
+## GEDCOM task repositories, categories, localities, titles, and types
+
+The GEDCOM-L `_TODO` `REPO` slot is parsed by `@doru/gedcom` but deliberately
+not imported into the tree and not written on export. A task has no direct
+repository field: an archive is chosen either as the task's polymorphic
+target or through the source it concerns. Keeping a second, narrower
+task-to-repository link would duplicate those paths and produce data that the
+UI cannot interpret consistently.
+
+The `_TODO` `_CAT` category and `_LOCL` locality are dropped for the same
+reason: they have no shared vocabulary, no dictionary table, and no UI contract
+beyond free-text fields. A task is classified by its target, priority, and
+status instead. The record-form `_TTIL` title and the GEDCOM-L `TYPE` task kind and `DATA`
+solution text are dropped too: Dóru has one task text, no task-type taxonomy,
+and no separate task-result field.
+
+## No persistent change log
+
+There is no `change_log` table and no `CHAN`/`CREA` mapping. Undo/redo is an
+in-memory op queue; the database does not persist who changed what or when.
+This keeps the document model minimal and avoids duplicating GEDCOM's weakly
+typed change stamps. Revisit only when the product needs a real audit or
+history feature.
+
 ## Free-text family witnesses
 
 `family_witness` preserves the vendor `_WITN` and `_GODT` family witnesses

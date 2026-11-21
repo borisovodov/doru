@@ -16,7 +16,6 @@ import type {
   TagLinkRecord,
   TagRecord,
   TitleRecord,
-  TodoRecord,
 } from '../model/types';
 import { emptyAttachments } from '../model/types';
 import {
@@ -693,7 +692,7 @@ export function updateRepositoryOp(before: RepositoryRecord, after: RepositoryRe
   };
 }
 
-/** Source links, call numbers, todos and titles that the repository FK cascade removes. */
+/** Source links, call numbers and titles that the repository FK cascade removes. */
 export interface RepositoryConsumers {
   sourceRepositories?: Array<{
     id: string;
@@ -701,7 +700,6 @@ export interface RepositoryConsumers {
     repositoryId: string;
     callNumbers?: Array<{ id: string; value: string; medium?: string }>;
   }>;
-  todos?: TodoRecord[];
   titles?: TitleRecord[];
 }
 
@@ -711,7 +709,6 @@ export function deleteRepositoryOp(
   consumers: RepositoryConsumers = {},
 ): Op {
   let baselineSources = consumers.sourceRepositories ?? [];
-  let baselineTodos = consumers.todos ?? [];
   let baselineTitles = consumers.titles ?? [];
   let baselineAttachments = attachments;
   return {
@@ -725,17 +722,13 @@ export function deleteRepositoryOp(
         for (const link of consumers.sourceRepositories ?? []) {
           restoreSourceRepository(ctx, link);
         }
-        for (const todo of consumers.todos ?? []) {
-          ctx.repo.setTodoRepositoryId(todo.id, repository.id);
-        }
         for (const title of consumers.titles ?? []) {
           ctx.repo.setTitleRepositoryId(title.id, repository.id);
         }
-        // A concurrent writer may have moved a task or title to another
-        // repository; the inverse leaves those reassignments alone, so the
-        // redo comparison must follow what was actually restored.
+        // A concurrent writer may have moved a title to another repository;
+        // the inverse leaves that reassignment alone, so the redo comparison
+        // must follow what was actually restored.
         baselineSources = ctx.repo.listSourceRepositoriesFor(repository.id);
-        baselineTodos = ctx.repo.listTodos().filter((todo) => todo.repositoryId === repository.id);
         baselineTitles = ctx.repo.listTitles().filter((title) => title.repositoryId === repository.id);
         baselineAttachments = ctx.repo.listAttachmentsFor('repository', repository.id);
       },
@@ -754,15 +747,6 @@ export function deleteRepositoryOp(
         .map((link) => JSON.stringify(link))
         .sort();
       if (JSON.stringify(capturedSources) !== JSON.stringify(liveSources)) {
-        return false;
-      }
-      const capturedTodos = baselineTodos.map((todo) => todo.id).sort();
-      const liveTodos = ctx.repo
-        .listTodos()
-        .filter((todo) => todo.repositoryId === repository.id)
-        .map((todo) => todo.id)
-        .sort();
-      if (JSON.stringify(capturedTodos) !== JSON.stringify(liveTodos)) {
         return false;
       }
       const capturedTitles = baselineTitles.map((title) => title.id).sort();

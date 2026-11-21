@@ -58,13 +58,13 @@ describe('Phase 3: relations', () => {
 });
 
 describe('Phase 3: research layer', () => {
-  it('round-trips todos', () => {
+  it('round-trips tasks', () => {
     const fixture = makeRepo();
     try {
       const repo = fixture.repo;
       repo.insertPerson(person('P1'));
 
-      repo.insertTodo({
+      repo.insertTask({
         id: 'T1',
         text: 'check the archive',
         targetType: 'person',
@@ -73,7 +73,7 @@ describe('Phase 3: research layer', () => {
         status: 'open',
         createdDate: { quality: 'exact', component: { year: 2026 } },
       });
-      expect(repo.listTodosFor('person', 'P1')).toEqual([
+      expect(repo.listTasksFor('person', 'P1')).toEqual([
         expect.objectContaining({ id: 'T1', text: 'check the archive', status: 'open' }),
       ]);
     } finally {
@@ -97,7 +97,7 @@ describe('Phase 3: research layer', () => {
     }
   });
 
-  it('cascades todos and record submitters with the person and restores them on undo', () => {
+  it('cascades tasks and record submitters with the person and restores them on undo', () => {
     const fixture = makeRepo();
     try {
       const svc = service(fixture);
@@ -105,18 +105,18 @@ describe('Phase 3: research layer', () => {
       const p = person('P1');
       repo.insertPerson(p);
 
-      svc.addTodo({ id: 'T1', text: 'todo', targetType: 'person', targetId: 'P1' });
+      svc.addTask({ id: 'T1', text: 'task', targetType: 'person', targetId: 'P1' });
       repo.insertSubmitter({ id: 'S1', name: 'Sub' });
       repo.insertRecordSubmitter('RS1', 'S1', 'person', 'P1');
 
       svc.deletePerson(p);
-      expect(repo.listTodosFor('person', 'P1')).toEqual([]);
+      expect(repo.listTasksFor('person', 'P1')).toEqual([]);
       expect(repo.listSubmittersFor('person', 'P1')).toEqual([]);
       // The submitter survives; only the record link goes.
       expect(repo.getSubmitter('S1')).toBeDefined();
 
       svc.undo();
-      expect(repo.listTodosFor('person', 'P1').map((entry) => entry.id)).toEqual(['T1']);
+      expect(repo.listTasksFor('person', 'P1').map((entry) => entry.id)).toEqual(['T1']);
       expect(repo.listSubmittersFor('person', 'P1')).toEqual(['S1']);
     } finally {
       cleanupRepo(fixture);

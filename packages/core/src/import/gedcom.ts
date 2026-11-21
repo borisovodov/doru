@@ -10,8 +10,6 @@ import type {
 import type {
   AddressStructure,
   AgeStructure,
-  ChangeDate,
-  CreationDate,
   DateExactStructure,
   DatePeriodStructure,
   DateStructure,
@@ -39,6 +37,7 @@ import type {
   TodoStructure,
 } from '@doru/gedcom';
 import type { TreeRepository } from '../db/repository';
+import { normalizeTaskPriority, normalizeTaskStatus } from '../model/types';
 import { detectParentCycles } from '../validate/validator';
 import type {
   AssociationRecord,
@@ -56,7 +55,7 @@ import type {
   PlaceRecord,
   RestrictionRecord,
   Sex,
-  TodoRecord,
+  TaskRecord,
 } from '../model/types';
 
 /**
@@ -272,8 +271,6 @@ function importRepositories(records: GedcomRecord[], ctx: ImportContext): void {
       email?: string[];
       fax?: string[];
       www?: string[];
-      changeDate?: ChangeDate;
-      creationDate?: CreationDate;
       submitters?: string[];
       tagLinks?: GedcomTagLink[];
     };
@@ -299,7 +296,6 @@ function importRepositories(records: GedcomRecord[], ctx: ImportContext): void {
       ],
       ctx,
     );
-    importChanges(repository.changeDate, repository.creationDate, 'repository', id, ctx);
     importSubmitterLinks(repository.submitters, 'repository', id, ctx);
     for (const tagLink of repository.tagLinks ?? []) {
       importTagLink(tagLink, 'repository', id, ctx);
@@ -324,8 +320,6 @@ function importSubmitters(records: GedcomRecord[], ctx: ImportContext): void {
       email?: string[];
       fax?: string[];
       www?: string[];
-      changeDate?: ChangeDate;
-      creationDate?: CreationDate;
       submitters?: string[];
     };
     const id = crypto.randomUUID();
@@ -356,7 +350,6 @@ function importSubmitters(records: GedcomRecord[], ctx: ImportContext): void {
       ],
       ctx,
     );
-    importChanges(submitter.changeDate, submitter.creationDate, 'submitter', id, ctx);
     importSubmitterLinks(submitter.submitters, 'submitter', id, ctx);
   }
 }
@@ -384,7 +377,6 @@ function importTitles(records: GedcomRecord[], ctx: ImportContext): void {
       callNumber: title.callNumber,
       sequence: numericSequence(title.sequenceNumber),
     });
-    importChanges(title.changeDate, undefined, 'title', id, ctx);
   }
 }
 
@@ -458,8 +450,6 @@ function importSharedNotes(records: GedcomRecord[], ctx: ImportContext): void {
       translations?: Array<{ payload: string; mediaType?: string; language?: string }>;
       citations?: import('@doru/gedcom').SourceCitation[];
       identifiers?: IdentifierStructure[];
-      changeDate?: ChangeDate;
-      creationDate?: CreationDate;
       submitters?: string[];
       tagLinks?: GedcomTagLink[];
     };
@@ -483,7 +473,6 @@ function importSharedNotes(records: GedcomRecord[], ctx: ImportContext): void {
     });
     importCitations(note.citations, 'note', id, ctx);
     importIdentifiers(note.identifiers, 'note', id, ctx);
-    importChanges(note.changeDate, note.creationDate, 'note', id, ctx);
     importSubmitterLinks(note.submitters, 'note', id, ctx);
     for (const tagLink of note.tagLinks ?? []) {
       importTagLink(tagLink, 'note', id, ctx);
@@ -582,7 +571,6 @@ function importSources(records: GedcomRecord[], ctx: ImportContext): number {
     importNotes(source.notes, 'source', id, ctx);
     importIdentifiers(source.identifiers, 'source', id, ctx);
     importMediaLinks(source.media, 'source', id, ctx);
-    importChanges(source.changeDate, source.creationDate, 'source', id, ctx);
     importSubmitterLinks(source.submitters, 'source', id, ctx);
     for (const tagLink of source.tagLinks ?? []) {
       importTagLink(tagLink, 'source', id, ctx);
@@ -757,15 +745,14 @@ function importPerson(record: GedcomIndividualRecord, ctx: ImportContext): void 
     ctx,
   );
   importRestrictions(record.restriction, 'person', id, ctx);
-  importChanges(record.changeDate, record.creationDate, 'person', id, ctx);
   importSubmitterLinks(record.submitters, 'person', id, ctx);
   importSubmitterLinks(record.ancestorInterests, 'person', id, ctx, 'ancestor_interest');
   importSubmitterLinks(record.descendantInterests, 'person', id, ctx, 'descendant_interest');
   for (const tagLink of record.tagLinks ?? []) {
     importTagLink(tagLink, 'person', id, ctx);
   }
-  for (const todo of record.todos ?? []) {
-    importTodoStructure(todo, 'person', id, ctx);
+  for (const structure of record.todos ?? []) {
+    importGedcomTodoStructure(structure, 'person', id, ctx);
   }
   // Associations and aliases need the other persons — deferred
   // to importPersonRelations, resolved after every person and family exists.
@@ -859,7 +846,6 @@ function mapFact(
     ],
     ctx,
   );
-  importChanges(detail?.changeDate, detail?.creationDate, 'fact', base.id, ctx);
   return {
     id: base.id,
     personId: base.personId,
@@ -1278,13 +1264,12 @@ function importFamily(record: GedcomFamilyRecord, ctx: ImportContext): void {
   importIdentifiers(record.identifiers, 'family', id, ctx);
   importRestrictions(record.restriction, 'family', id, ctx);
   importMediaLinks(record.media, 'family', id, ctx);
-  importChanges(record.changeDate, record.creationDate, 'family', id, ctx);
   importSubmitterLinks(record.submitters, 'family', id, ctx);
   for (const tagLink of record.tagLinks ?? []) {
     importTagLink(tagLink, 'family', id, ctx);
   }
-  for (const todo of record.todos ?? []) {
-    importTodoStructure(todo, 'family', id, ctx);
+  for (const structure of record.todos ?? []) {
+    importGedcomTodoStructure(structure, 'family', id, ctx);
   }
   for (const association of record.associations ?? []) {
     const otherPersonId = ctx.personIds.get(association.individual);
@@ -1413,7 +1398,7 @@ function importResearchRecords(records: GedcomRecord[], ctx: ImportContext): voi
         ctx.dropped += 1;
         break;
       case '_TODO':
-        importTodoRecord(record as GedcomTodoRecord, ctx);
+        importGedcomTodoRecord(record as GedcomTodoRecord, ctx);
         break;
       case '_EVENT_DEFN':
         // The Legacy custom event definitions stay in the @doru/gedcom
@@ -1446,22 +1431,28 @@ function importResearchRecords(records: GedcomRecord[], ctx: ImportContext): voi
   }
 }
 
-function importTodoRecord(record: GedcomTodoRecord, ctx: ImportContext): void {
+function importGedcomTodoRecord(record: GedcomTodoRecord, ctx: ImportContext): void {
+  // _TODO.REPO is deliberately ignored: a task has no direct repository
+  // field, and a repository can be selected as the task's target instead.
+  // _TODO._CAT (category), _TODO._LOCL (locality), and _TODO._TTIL (title) are
+  // deliberately ignored too. Status and priority are normalized immediately;
+  // unknown values become open and medium rather than lingering in the
+  // database.
   const id = crypto.randomUUID();
-  ctx.repo.insertTodo({
+  ctx.repo.insertTask({
     id,
-    text: record.payload || record.title || '',
-    category: record.category,
-    locality: record.locality,
-    priority: record.priority,
-    status: record.status,
-    createdDate: parseTodoDate(record.createdDate),
-    ...(record.repository !== undefined ? { repositoryId: ctx.repositoryIds.get(record.repository) } : {}),
+    text: record.payload || '',
+    priority: normalizeTaskPriority(record.priority),
+    status: normalizeTaskStatus(record.status),
+    createdDate: parseGedcomTodoDate(record.createdDate),
+    scheduledDate: parseGedcomTodoDate(record.scheduledDate),
+    reminderDate: parseGedcomTodoDate(record.reminderDate),
+    closedDate: parseGedcomTodoDate(record.closedDate),
   });
   for (const uid of record.uids ?? []) {
     ctx.repo.insertIdentifier({
       id: crypto.randomUUID(),
-      targetType: 'todo',
+      targetType: 'task',
       targetId: id,
       namespace: 'uid',
       value: uid,
@@ -1547,7 +1538,7 @@ function parseStructuredTime(value: unknown): NonNullable<DateValue['time']> | n
 }
 
 /** The `_TCDT` slot is free text; parse the structured form the export writes. */
-function parseTodoDate(text: string | undefined): DateValue | undefined {
+function parseGedcomTodoDate(text: string | undefined): DateValue | undefined {
   if (text === undefined || text.trim() === '') {
     return undefined;
   }
@@ -1641,24 +1632,29 @@ function parseTodoDate(text: string | undefined): DateValue | undefined {
   };
 }
 
-function importTodoStructure(todo: TodoStructure, targetType: string, targetId: string, ctx: ImportContext): void {
-  const mapped: TodoRecord = {
+function importGedcomTodoStructure(
+  structure: TodoStructure,
+  targetType: string,
+  targetId: string,
+  ctx: ImportContext,
+): void {
+  // _TODO.REPO, _TODO._CAT, _TODO._LOCL, _TODO.TYPE, and _TODO.DATA are
+  // deliberately ignored: see importGedcomTodoRecord. Dóru has no task-type
+  // taxonomy or separate task-result field.
+  const mapped: TaskRecord = {
     id: crypto.randomUUID(),
-    text: todo.payload ?? todo.description ?? '',
+    text: structure.payload ?? structure.description ?? '',
     targetType,
     targetId,
-    category: todo.category,
-    locality: todo.locality,
-    priority: todo.priority,
-    status: todo.status,
-    createdDate: parseTodoDate(todo.createdDate),
-    scheduledDate: mapDate(todo.date),
-    reminderDate: mapDate(todo.reminderDate),
-    closedDate: mapDate(todo.closedDate),
-    ...(todo.repository !== undefined ? { repositoryId: ctx.repositoryIds.get(todo.repository) } : {}),
+    priority: normalizeTaskPriority(structure.priority),
+    status: normalizeTaskStatus(structure.status),
+    createdDate: parseGedcomTodoDate(structure.createdDate),
+    scheduledDate: mapDate(structure.date),
+    reminderDate: mapDate(structure.reminderDate),
+    closedDate: mapDate(structure.closedDate),
   };
-  ctx.repo.insertTodo(mapped);
-  importNotes(todo.notes, 'todo', mapped.id, ctx);
+  ctx.repo.insertTask(mapped);
+  importNotes(structure.notes, 'task', mapped.id, ctx);
 }
 
 function importOccurrence(record: GedcomOccurrenceRecord, ctx: ImportContext): void {
@@ -1862,34 +1858,6 @@ function importRestrictions(
       level: level.toLowerCase(),
     };
     ctx.repo.insertRestriction(mapped);
-  }
-}
-
-function importChanges(
-  changeDate: ChangeDate | undefined,
-  creationDate: CreationDate | undefined,
-  targetType: string,
-  targetId: string,
-  ctx: ImportContext,
-): void {
-  if (creationDate !== undefined) {
-    ctx.repo.insertChange({
-      id: crypto.randomUUID(),
-      targetType,
-      targetId,
-      kind: 'created',
-      date: mapDateExact(creationDate.date),
-    });
-  }
-  if (changeDate !== undefined) {
-    ctx.repo.insertChange({
-      id: crypto.randomUUID(),
-      targetType,
-      targetId,
-      kind: 'changed',
-      date: mapDateExact(changeDate.date),
-      user: changeDate.user,
-    });
   }
 }
 
@@ -2152,7 +2120,6 @@ function importMediaRecords(records: GedcomRecord[], ctx: ImportContext): void {
     importNotes(record.notes, 'media', id, ctx);
     importIdentifiers(record.identifiers, 'media', id, ctx);
     importRestrictions(record.restriction, 'media', id, ctx);
-    importChanges(record.changeDate, record.creationDate, 'media', id, ctx);
     importSubmitterLinks(record.submitters, 'media', id, ctx);
     for (const tagLink of record.tagLinks ?? []) {
       importTagLink(tagLink, 'media', id, ctx);
@@ -2307,7 +2274,6 @@ function importPlaceRecords(records: GedcomRecord[], ctx: ImportContext): void {
     importNotes(record.notes, 'place', id, ctx);
     importMediaLinks(record.media, 'place', id, ctx);
     importIdentifiers(record.identifiers, 'place', id, ctx);
-    importChanges(record.changeDate, undefined, 'place', id, ctx);
     if (record.parents !== undefined && record.parents.length > 0) {
       ctx.placeParents.set(
         id,

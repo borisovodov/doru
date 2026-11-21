@@ -32,6 +32,8 @@ decisions about what we deliberately do **not** build, see
   Save dialog asks about replacing an existing file (every OS does this), and
   the confirmed choice replaces the file with a new, empty project — like any
   document app. The media directory next to the file is left alone.
+- The field-level table reference, domain diagrams, and the attachment/date
+  conventions are in [db-schema.md](db-schema.md).
 
 ## Privacy
 

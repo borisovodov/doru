@@ -23,7 +23,7 @@ const data: TaskTargetData = {
   submitters: [],
   addresses: [],
   associations: [],
-  todos: [],
+  tasks: [],
 };
 
 describe('taskTargetLabel', () => {

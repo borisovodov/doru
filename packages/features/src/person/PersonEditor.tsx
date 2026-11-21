@@ -7,7 +7,6 @@ import { collectNameIds } from '@doru/core/model';
 import type {
   AddressRecord,
   AssociationRecord,
-  ChangeRecord,
   CitationRecord,
   ContactRecord,
   FactRecord,
@@ -29,7 +28,6 @@ import '../sidebar/sidebar.css';
 import { AssociationsSection } from '@doru/ui/domain';
 import { AliasesSection } from '@doru/ui/domain';
 import { ContactsSection, IdentifiersSection, RestrictionsSection } from '@doru/ui/domain';
-import { ChangesSection } from '@doru/ui/domain';
 import { ContributorsSection } from '@doru/ui/domain';
 import { DateEditor } from '@doru/ui/domain';
 import { FactsSection } from '@doru/ui/domain';
@@ -87,7 +85,6 @@ export function PersonEditor({
   const [restrictions, setRestrictions] = useState<RestrictionRecord[]>([]);
   const [tags, setTags] = useState<TagRecord[]>([]);
   const [tagLinks, setTagLinks] = useState<Array<{ tagId: string; link: TagLinkRecord }>>([]);
-  const [changes, setChanges] = useState<ChangeRecord[]>([]);
   const [places, setPlaces] = useState<PlaceRecord[]>([]);
   const [addresses, setAddresses] = useState<AddressRecord[]>([]);
   const [submitters, setSubmitters] = useState<SubmitterRecord[]>([]);
@@ -109,21 +106,18 @@ export function PersonEditor({
 
   /** Reloads every universal attachment list of the person. */
   const refreshAttachments = async () => {
-    const [loadedIdentifiers, loadedContacts, loadedRestrictions, loadedTags, loadedTagLinks, loadedChanges] =
-      await Promise.all([
-        api.getIdentifiers('person', draft.id),
-        api.getContacts('person', draft.id),
-        api.getRestrictions('person', draft.id),
-        api.getTags(),
-        api.getTagLinks('person', draft.id),
-        api.getChanges('person', draft.id),
-      ]);
+    const [loadedIdentifiers, loadedContacts, loadedRestrictions, loadedTags, loadedTagLinks] = await Promise.all([
+      api.getIdentifiers('person', draft.id),
+      api.getContacts('person', draft.id),
+      api.getRestrictions('person', draft.id),
+      api.getTags(),
+      api.getTagLinks('person', draft.id),
+    ]);
     setIdentifiers(loadedIdentifiers);
     setContacts(loadedContacts);
     setRestrictions(loadedRestrictions);
     setTags(loadedTags);
     setTagLinks(loadedTagLinks);
-    setChanges(loadedChanges);
   };
 
   const refreshNotes = async () => {
@@ -182,15 +176,13 @@ export function PersonEditor({
       api.getRestrictions('person', draft.id),
       api.getTags(),
       api.getTagLinks('person', draft.id),
-      api.getChanges('person', draft.id),
-    ]).then(([loadedIdentifiers, loadedContacts, loadedRestrictions, loadedTags, loadedTagLinks, loadedChanges]) => {
+    ]).then(([loadedIdentifiers, loadedContacts, loadedRestrictions, loadedTags, loadedTagLinks]) => {
       if (!cancelled) {
         setIdentifiers(loadedIdentifiers);
         setContacts(loadedContacts);
         setRestrictions(loadedRestrictions);
         setTags(loadedTags);
         setTagLinks(loadedTagLinks);
-        setChanges(loadedChanges);
       }
     });
     void Promise.all([api.getSubmitters(), api.getRecordSubmitters('person', draft.id)]).then(
@@ -313,7 +305,6 @@ export function PersonEditor({
                   'restrictions',
                   'contributors',
                   'tasks',
-                  'changes',
                 ]}
                 renderCitationAttachments={(citation) => (
                   <CitationAttachments
@@ -478,7 +469,6 @@ export function PersonEditor({
                   'restrictions',
                   'contributors',
                   'tasks',
-                  'changes',
                 ]}
                 renderCitationAttachments={(citation) => (
                   <CitationAttachments
@@ -663,7 +653,6 @@ export function PersonEditor({
             }}
           />
           <TasksSection targetType="person" targetId={draft.id} api={api} />
-          <ChangesSection changes={changes} />
         </>
       )}
     </EditorPage>

@@ -1,7 +1,6 @@
 import type {
   AddressRecord,
   AssociationRecord,
-  ChangeRecord,
   CitationRecord,
   ContactRecord,
   FactRecord,
@@ -24,11 +23,17 @@ import type {
   TagLinkRecord,
   TagRecord,
   TitleRecord,
-  TodoRecord,
+  TaskRecord,
 } from '../model/types';
 import type { PersonQuery, TreeRepository } from '../db/repository';
 import { partsFromFlat } from '../db/nameRepo';
-import { collectNameIds, collectNamePartIds, isProjectMediaPath } from '../model/types';
+import {
+  collectNameIds,
+  collectNamePartIds,
+  isProjectMediaPath,
+  normalizeTaskPriority,
+  normalizeTaskStatus,
+} from '../model/types';
 import {
   addAddressOp,
   addAliasOp,
@@ -52,7 +57,7 @@ import {
   addRecordSubmitterOp,
   addTagOp,
   addTitleOp,
-  addTodoOp,
+  addTaskOp,
   attachCitationOp,
   attachMediaOp,
   attachTagOp,
@@ -77,7 +82,7 @@ import {
   deleteRecordSubmitterOp,
   deleteTagOp,
   deleteTitleOp,
-  deleteTodoOp,
+  deleteTaskOp,
   detachCitationOp,
   detachMediaOp,
   detachNoteOp,
@@ -98,7 +103,7 @@ import {
   updateSubmitterOp,
   updateTagOp,
   updateTitleOp,
-  updateTodoOp,
+  updateTaskOp,
   type FamilyLinkAttachments,
 } from '../ops';
 import { OpQueue, type NestedAttachments, type Op } from '../ops/op';
@@ -150,8 +155,6 @@ export class TreeService {
   constructor(
     private readonly repo: TreeRepository,
     private readonly queue: OpQueue,
-    /** The local user stamped into change-log rows (the OS account in the desktop app). */
-    private readonly changeUser?: string,
   ) {}
 
   // --- queries -------------------------------------------------------------
@@ -251,9 +254,6 @@ export class TreeService {
     if (pending) {
       try {
         this.repo.transaction(() => {
-          // Record before the inverse mutates the tree: recording afterwards
-          // would leave a change row for a target the inverse just deleted.
-          this.recordChange(pending, 'changed', true);
           pending.inverse({ repo: this.repo });
         });
       } catch (error) {
@@ -283,7 +283,6 @@ export class TreeService {
         for (const snapshot of pending.snapshots ?? []) {
           this.repo.bindSnapshots(snapshot);
         }
-        this.recordChange(pending, 'changed', true);
         pending.apply({ repo: this.repo });
         return true;
       });
@@ -1188,11 +1187,6 @@ export class TreeService {
     return this.apply(updateTagLinkOp(before, after));
   }
 
-  /** The change-log rows of a target (created/changed history). */
-  listChangesFor(targetType: string, targetId: string): ChangeRecord[] {
-    return this.repo.listChangesFor(targetType, targetId);
-  }
-
   // --- registries: repositories, submitters, addresses, fact types, header ------
 
   listRepositories(): RepositoryRecord[] {
@@ -1213,7 +1207,7 @@ export class TreeService {
 
   deleteRepository(repository: RepositoryRecord): UndoRedoState {
     return this.applyAfterCommit(() => {
-      // Snapshot the consumers inside the delete transaction so a task added
+      // Snapshot the consumers inside the delete transaction so a title added
       // just before deletion is still restored on undo.
       const current = this.repo.getRepository(repository.id);
       if (current === undefined) {
@@ -1222,7 +1216,6 @@ export class TreeService {
       const attachments = this.repo.listAttachmentsFor('repository', current.id);
       const consumers = {
         sourceRepositories: this.repo.listSourceRepositoriesFor(current.id),
-        todos: this.repo.listTodos().filter((todo) => todo.repositoryId === current.id),
         titles: this.repo.listTitles().filter((title) => title.repositoryId === current.id),
       };
       return deleteRepositoryOp(current, attachments, consumers);
@@ -1372,30 +1365,42 @@ export class TreeService {
     return this.apply(deleteAliasOp(id, personId, aliasId));
   }
 
-  addTodo(todo: TodoRecord): UndoRedoState {
-    return this.apply(addTodoOp(todo));
+  addTask(task: TaskRecord): UndoRedoState {
+    return this.apply(
+      addTaskOp({
+        ...task,
+        priority: normalizeTaskPriority(task.priority),
+        status: normalizeTaskStatus(task.status),
+      }),
+    );
   }
 
-  listTodos(): TodoRecord[] {
-    return this.repo.listTodos();
+  listTasks(): TaskRecord[] {
+    return this.repo.listTasks();
   }
 
-  listTodosFor(targetType: string, targetId: string): TodoRecord[] {
-    return this.repo.listTodosFor(targetType, targetId);
+  listTasksFor(targetType: string, targetId: string): TaskRecord[] {
+    return this.repo.listTasksFor(targetType, targetId);
   }
 
-  updateTodo(before: TodoRecord, after: TodoRecord): UndoRedoState {
-    return this.apply(updateTodoOp(before, after));
+  updateTask(before: TaskRecord, after: TaskRecord): UndoRedoState {
+    return this.apply(
+      updateTaskOp(before, {
+        ...after,
+        priority: normalizeTaskPriority(after.priority),
+        status: normalizeTaskStatus(after.status),
+      }),
+    );
   }
 
-  deleteTodo(todo: TodoRecord): UndoRedoState {
+  deleteTask(task: TaskRecord): UndoRedoState {
     return this.applyAfterCommit(() => {
-      const current = this.repo.getTodo(todo.id);
+      const current = this.repo.getTask(task.id);
       if (current === undefined) {
         return undefined;
       }
-      const attachments = this.repo.listAttachmentsFor('todo', current.id);
-      return deleteTodoOp(current, attachments);
+      const attachments = this.repo.listAttachmentsFor('task', current.id);
+      return deleteTaskOp(current, attachments);
     });
   }
 
@@ -1889,10 +1894,9 @@ export class TreeService {
   }
 
   private apply(op: Op): UndoRedoState {
-    // The change-log row and the mutation must commit together; the op joins
-    // the undo stack only after COMMIT so a failed write leaves no history.
+    // The mutation and the undo entry must commit together; the op joins the
+    // undo stack only after COMMIT so a failed write leaves no phantom entry.
     this.repo.transaction(() => {
-      this.recordChange(op, op.change?.kind ?? 'changed');
       op.apply({ repo: this.repo });
     });
     this.queue.push(op);
@@ -1911,45 +1915,12 @@ export class TreeService {
       if (op === undefined) {
         return;
       }
-      this.recordChange(op, op.change?.kind ?? 'changed');
       op.apply({ repo: this.repo });
     });
     if (op !== undefined) {
       this.queue.push(op);
     }
     return this.historyState();
-  }
-
-  /**
-   * Records the change-log row for an op on the entity it touches. Runs
-   * before the mutation; the row disappears with the entity when the op
-   * deletes it and is restored from the op's attachment snapshot on undo.
-   */
-  private recordChange(op: Op, kind: 'created' | 'changed', replay = false): void {
-    if (!op.change) {
-      return;
-    }
-    const now = new Date();
-    const id = crypto.randomUUID();
-    this.repo.insertChange({
-      id,
-      targetType: op.change.targetType,
-      targetId: op.change.targetId,
-      kind,
-      user: this.changeUser,
-      date: {
-        quality: 'exact',
-        component: {
-          year: now.getFullYear(),
-          month: now.getMonth() + 1,
-          day: now.getDate(),
-        },
-        time: { hour: now.getHours(), minute: now.getMinutes(), second: now.getSeconds() },
-      },
-    });
-    if (replay) {
-      this.repo.markReplayChange(id);
-    }
   }
 
   private historyState(): UndoRedoState {

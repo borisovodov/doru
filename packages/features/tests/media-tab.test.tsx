@@ -29,7 +29,7 @@ const targetData = {
   submitters: [],
   addresses: [],
   associations: [],
-  todos: [],
+  tasks: [],
 };
 
 function attachmentsStub(overrides: Partial<AttachmentsPanelApi> = {}): AttachmentsPanelApi {
@@ -42,12 +42,11 @@ function attachmentsStub(overrides: Partial<AttachmentsPanelApi> = {}): Attachme
     getIdentifiers: async () => [],
     getContacts: async () => [],
     getRestrictions: async () => [],
-    getChanges: async () => [],
     getSubmitters: async () => [],
     getRecordSubmitters: async () => [],
     getMediaFor: async () => [],
     getAllMedia: async () => [],
-    getTodosFor: async () => [],
+    getTasksFor: async () => [],
     ...overrides,
   });
 }

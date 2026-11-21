@@ -1,18 +1,11 @@
 import type { DatabaseSync } from 'node:sqlite';
-import type {
-  ChangeRecord,
-  ContactRecord,
-  IdentifierRecord,
-  RestrictionRecord,
-  TagLinkRecord,
-  TagRecord,
-} from '../model/types';
+import type { ContactRecord, IdentifierRecord, RestrictionRecord, TagLinkRecord, TagRecord } from '../model/types';
 import type { DateRepo } from './dateRepo';
 
 /**
  * The universal attachment tables: identifiers, contacts, restrictions,
- * change log rows, tags and tag links — all sharing the polymorphic
- * `(target_type, target_id)` shape.
+ * tags and tag links — all sharing the polymorphic `(target_type, target_id)`
+ * shape.
  */
 export class AttachmentRepo {
   constructor(
@@ -151,41 +144,6 @@ export class AttachmentRepo {
     }));
   }
 
-  // change log --------------------------------------------------------------
-
-  insertChange(change: ChangeRecord): void {
-    this.db
-      .prepare('INSERT INTO change_log (id, target_type, target_id, kind, user) VALUES (?, ?, ?, ?, ?)')
-      .run(change.id, change.targetType, change.targetId, change.kind, change.user ?? null);
-    this.dates.upsertForOwner('change_log', change.id, 'date', change.date);
-  }
-
-  listChangesFor(targetType: string, targetId: string): ChangeRecord[] {
-    const rows = this.db
-      .prepare(
-        'SELECT id, target_type, target_id, kind, user FROM change_log WHERE target_type = ? AND target_id = ? ORDER BY rowid ASC',
-      )
-      .all(targetType, targetId) as unknown as {
-      id: string;
-      target_type: string;
-      target_id: string;
-      kind: string;
-      user: string | null;
-    }[];
-    const datesByOwner = this.dates.getManyForOwners(
-      'change_log',
-      rows.map((row) => row.id),
-    );
-    return rows.map((row) => ({
-      id: row.id,
-      targetType: row.target_type,
-      targetId: row.target_id,
-      kind: row.kind as ChangeRecord['kind'],
-      date: datesByOwner.get(row.id)?.get('date'),
-      user: row.user ?? undefined,
-    }));
-  }
-
   // tags ---------------------------------------------------------------------
 
   insertTag(tag: TagRecord): void {
@@ -321,7 +279,7 @@ export class AttachmentRepo {
 
   /** Deletes every attachment row of the target (except notes/citations/media, which own their links). */
   deleteAllFor(targetType: string, targetId: string): void {
-    for (const table of ['identifier', 'contact', 'restriction', 'tag_link', 'change_log'] as const) {
+    for (const table of ['identifier', 'contact', 'restriction', 'tag_link'] as const) {
       this.db.prepare(`DELETE FROM ${table} WHERE target_type = ? AND target_id = ?`).run(targetType, targetId);
     }
   }

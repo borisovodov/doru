@@ -13,13 +13,13 @@ export const taskTab: TabDescriptor = {
     if (taskId.startsWith('new:')) {
       return nls.t('features.tasks.newTask');
     }
-    const todo = context.todos.find((entry) => entry.id === taskId);
-    return todo?.text || '—';
+    const task = context.tasks.find((entry) => entry.id === taskId);
+    return task?.text || '—';
   },
   render: (id, context) => (
     <TaskTab
       entityId={id.slice(prefix.length)}
-      todos={context.tree.todos}
+      tasks={context.tree.tasks}
       persons={context.tree.persons}
       families={context.tree.families}
       sources={context.tree.sources}
@@ -33,7 +33,7 @@ export const taskTab: TabDescriptor = {
       submitters={context.tree.submitters}
       addresses={context.tree.addresses}
       associations={context.tree.associations}
-      api={{ ...context.tree.todosApi, openTask: context.tabs.open.task }}
+      api={{ ...context.tree.tasksApi, openTask: context.tabs.open.task }}
       onClose={() => context.tabs.closeTab(id)}
       onOpenMedia={context.tabs.open.media}
       onOpenSource={context.tabs.open.source}

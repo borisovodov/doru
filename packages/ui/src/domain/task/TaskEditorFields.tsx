@@ -1,5 +1,4 @@
-import { useId } from 'react';
-import { TARGET_TYPES } from '@doru/core/model';
+import { normalizeTaskPriority, normalizeTaskStatus, TARGET_TYPES } from '@doru/core/model';
 import { nls } from '../../nls';
 import { Field } from '../../atoms/field/Field';
 import { FieldGrid } from '../../atoms/field-grid/FieldGrid';
@@ -8,39 +7,26 @@ import { Select } from '../../atoms/form/Select';
 import { DateEditor } from '../date/DateEditor';
 import type { TaskTargetData } from './taskTargets';
 import { taskTargetOptions } from './taskTargets';
-import type { TodoDraft } from './todoDraft';
+import type { TaskDraft } from './taskDraft';
 
 /**
- * The editable fields of a todo, shared by the task tab editor: the text,
- * the classification fields (category, locality, priority, status), the
- * repository and entity links, and the creation/scheduled/reminder/closed
- * dates. `data` carries every record type a task can be related to.
+ * The editable fields of a task, shared by the task tab editor: the text,
+ * the classification fields (priority, status), the entity links, and the
+ * creation/scheduled/reminder/closed dates. `data` carries every record type
+ * a task can be related to.
  */
 export function TaskEditorFields({
   edit,
   data,
   onChange,
 }: {
-  edit: TodoDraft;
+  edit: TaskDraft;
   data: TaskTargetData;
-  onChange: (update: Partial<TodoDraft>) => void;
+  onChange: (update: Partial<TaskDraft>) => void;
 }) {
-  const listId = useId();
-  const categoryListId = `${listId}-categories`;
-  const localityListId = `${listId}-localities`;
   const knownTarget = (TARGET_TYPES as readonly string[]).includes(edit.targetType);
   const targetOptions = taskTargetOptions(edit.targetType, data);
   const knownTargetId = targetOptions.some((option) => option.id === edit.targetId);
-  const categories = [
-    ...new Set(
-      data.todos.map((todo) => todo.category).filter((value): value is string => value !== undefined && value !== ''),
-    ),
-  ];
-  const localities = [
-    ...new Set(
-      data.todos.map((todo) => todo.locality).filter((value): value is string => value !== undefined && value !== ''),
-    ),
-  ];
 
   return (
     <>
@@ -52,49 +38,25 @@ export function TaskEditorFields({
         />
       </Field>
       <FieldGrid columns={2}>
-        <Field label={nls.t('features.tasks.category')}>
-          <Input
-            list={categoryListId}
-            placeholder={nls.t('features.tasks.category')}
-            value={edit.category}
-            onChange={(event) => onChange({ category: event.target.value })}
-          />
-        </Field>
-        <Field label={nls.t('features.tasks.locality')}>
-          <Input
-            list={localityListId}
-            placeholder={nls.t('features.tasks.locality')}
-            value={edit.locality}
-            onChange={(event) => onChange({ locality: event.target.value })}
-          />
-        </Field>
         <Field label={nls.t('features.tasks.priority')}>
-          <Select value={edit.priority} onChange={(event) => onChange({ priority: event.target.value })}>
-            <option value="">{nls.t('features.tasks.none')}</option>
+          <Select
+            value={edit.priority}
+            onChange={(event) => onChange({ priority: normalizeTaskPriority(event.target.value) })}
+          >
             <option value="low">{nls.t('features.tasks.priorityLow')}</option>
             <option value="medium">{nls.t('features.tasks.priorityMedium')}</option>
             <option value="high">{nls.t('features.tasks.priorityHigh')}</option>
-            {!['', 'low', 'medium', 'high'].includes(edit.priority) && (
-              <option value={edit.priority}>{edit.priority}</option>
-            )}
           </Select>
         </Field>
         <Field label={nls.t('features.tasks.status')}>
-          <Select value={edit.status} onChange={(event) => onChange({ status: event.target.value })}>
-            <option value="">{nls.t('features.tasks.statusOpen')}</option>
+          <Select
+            value={edit.status}
+            onChange={(event) => onChange({ status: normalizeTaskStatus(event.target.value) })}
+          >
+            <option value="open">{nls.t('features.tasks.statusOpen')}</option>
+            <option value="waiting">{nls.t('features.tasks.statusWaiting')}</option>
             <option value="in-progress">{nls.t('features.tasks.statusInProgress')}</option>
             <option value="closed">{nls.t('features.tasks.statusClosed')}</option>
-            {!['', 'in-progress', 'closed'].includes(edit.status) && <option value={edit.status}>{edit.status}</option>}
-          </Select>
-        </Field>
-        <Field label={nls.t('features.tasks.repository')}>
-          <Select value={edit.repositoryId} onChange={(event) => onChange({ repositoryId: event.target.value })}>
-            <option value="">{nls.t('features.tasks.none')}</option>
-            {data.repositories.map((repository) => (
-              <option key={repository.id} value={repository.id}>
-                {repository.name}
-              </option>
-            ))}
           </Select>
         </Field>
       </FieldGrid>
@@ -158,16 +120,6 @@ export function TaskEditorFields({
         onChange={(value) => onChange({ closed: value })}
         hidePlace
       />
-      <datalist id={categoryListId}>
-        {categories.map((category) => (
-          <option key={category} value={category} />
-        ))}
-      </datalist>
-      <datalist id={localityListId}>
-        {localities.map((locality) => (
-          <option key={locality} value={locality} />
-        ))}
-      </datalist>
     </>
   );
 }

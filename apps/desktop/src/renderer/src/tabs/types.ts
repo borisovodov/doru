@@ -8,7 +8,7 @@ import type {
   SourceRecord,
   SubmitterRecord,
   TitleRecord,
-  TodoRecord,
+  TaskRecord,
 } from '@doru/core';
 import type { MediaWithPath } from '@doru/ui/domain';
 import type { TabInfo } from '@doru/workbench';
@@ -85,7 +85,7 @@ export interface TabLabelContext {
   repositories: RepositoryRecord[];
   submitters: SubmitterRecord[];
   addresses: AddressRecord[];
-  todos: TodoRecord[];
+  tasks: TaskRecord[];
   titles: TitleRecord[];
   media: MediaWithPath[];
 }

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { X } from 'lucide-react';
-import type { TodoRecord } from '@doru/core';
+import type { TaskRecord } from '@doru/core';
+import { normalizeTaskPriority, normalizeTaskStatus } from '@doru/core/model';
 import { Button } from '../../atoms/button/Button';
 import { Chip } from '../../atoms/display/Chip';
 import { EmptyText } from '../../atoms/feedback/EmptyText';
@@ -13,10 +14,10 @@ import './TasksSection.css';
 
 /** The task operations an entity editor needs for one target. */
 export interface TasksSectionApi {
-  getTodosFor(targetType: string, targetId: string): Promise<TodoRecord[]>;
-  addTodo(todo: TodoRecord): Promise<void>;
-  deleteTodo(todo: TodoRecord): Promise<void>;
-  openTask?: ((todoId: string) => void) | undefined;
+  getTasksFor(targetType: string, targetId: string): Promise<TaskRecord[]>;
+  addTask(task: TaskRecord): Promise<void>;
+  deleteTask(task: TaskRecord): Promise<void>;
+  openTask?: ((taskId: string) => void) | undefined;
 }
 
 /**
@@ -33,18 +34,18 @@ export function TasksSection({
   targetId: string;
   api: TasksSectionApi;
 }) {
-  const [todos, setTodos] = useState<TodoRecord[]>([]);
+  const [tasks, setTasks] = useState<TaskRecord[]>([]);
   const [draft, setDraft] = useState('');
 
   const reload = useCallback(async () => {
-    setTodos(await api.getTodosFor(targetType, targetId));
+    setTasks(await api.getTasksFor(targetType, targetId));
   }, [api, targetType, targetId]);
 
   useEffect(() => {
     let cancelled = false;
-    void api.getTodosFor(targetType, targetId).then((loaded) => {
+    void api.getTasksFor(targetType, targetId).then((loaded) => {
       if (!cancelled) {
-        setTodos(loaded);
+        setTasks(loaded);
       }
     });
     return () => {
@@ -57,47 +58,55 @@ export function TasksSection({
     if (text === '') {
       return;
     }
-    await api.addTodo({ id: crypto.randomUUID(), text, targetType, targetId });
+    await api.addTask({
+      id: crypto.randomUUID(),
+      text,
+      targetType,
+      targetId,
+      status: 'open',
+      priority: 'medium',
+    });
     setDraft('');
     await reload();
   };
 
-  const remove = async (todo: TodoRecord) => {
-    await api.deleteTodo(todo);
+  const remove = async (task: TaskRecord) => {
+    await api.deleteTask(task);
     await reload();
   };
 
-  const sorted = [...todos].sort((a, b) => Number(a.status === 'closed') - Number(b.status === 'closed'));
+  const sorted = [...tasks].sort(
+    (a, b) => Number(normalizeTaskStatus(a.status) === 'closed') - Number(normalizeTaskStatus(b.status) === 'closed'),
+  );
 
   return (
     <SectionCard title={nls.t('features.tasks.title')}>
       {sorted.length === 0 && <EmptyText>{nls.t('features.tasks.empty')}</EmptyText>}
       <ul className="tasks-section-list">
-        {sorted.map((todo) => (
-          <li key={todo.id} className="tasks-section-item">
+        {sorted.map((task) => (
+          <li key={task.id} className="tasks-section-item">
             <div className="tasks-section-row">
               <button
                 type="button"
                 className="tasks-section-open"
                 aria-label={nls.t('features.tasks.open')}
                 disabled={api.openTask === undefined}
-                onClick={() => api.openTask?.(todo.id)}
+                onClick={() => api.openTask?.(task.id)}
               >
-                <span className={todo.status === 'closed' ? 'tasks-section-text closed' : 'tasks-section-text'}>
-                  {todo.text}
+                <span className={task.status === 'closed' ? 'tasks-section-text closed' : 'tasks-section-text'}>
+                  {task.text}
                 </span>
                 <span className="tasks-section-meta">
-                  <Chip variant="neutral">{statusLabel(todo.status)}</Chip>
-                  {todo.priority !== undefined && <Chip variant="neutral">{priorityLabel(todo.priority)}</Chip>}
-                  {todo.category !== undefined && <Chip variant="neutral">{todo.category}</Chip>}
-                  {todo.scheduledDate !== undefined && <Chip variant="neutral">{formatDate(todo.scheduledDate)}</Chip>}
+                  <Chip variant="neutral">{statusLabel(task.status)}</Chip>
+                  <Chip variant="neutral">{priorityLabel(task.priority)}</Chip>
+                  {task.scheduledDate !== undefined && <Chip variant="neutral">{formatDate(task.scheduledDate)}</Chip>}
                 </span>
               </button>
               <IconButton
                 size="sm"
                 label={nls.t('features.tasks.delete')}
                 icon={<X size={13} aria-hidden="true" />}
-                onClick={() => void remove(todo)}
+                onClick={() => void remove(task)}
               />
             </div>
           </li>
@@ -123,24 +132,26 @@ export function TasksSection({
 }
 
 function statusLabel(status: string | undefined): string {
-  if (status === 'closed') {
+  const canonical = normalizeTaskStatus(status);
+  if (canonical === 'closed') {
     return nls.t('features.tasks.statusClosed');
   }
-  if (status === 'in-progress') {
+  if (canonical === 'waiting') {
+    return nls.t('features.tasks.statusWaiting');
+  }
+  if (canonical === 'in-progress') {
     return nls.t('features.tasks.statusInProgress');
   }
   return nls.t('features.tasks.statusOpen');
 }
 
-function priorityLabel(priority: string): string {
-  if (priority === 'low') {
+function priorityLabel(priority: string | undefined): string {
+  const canonical = normalizeTaskPriority(priority);
+  if (canonical === 'low') {
     return nls.t('features.tasks.priorityLow');
   }
-  if (priority === 'medium') {
-    return nls.t('features.tasks.priorityMedium');
-  }
-  if (priority === 'high') {
+  if (canonical === 'high') {
     return nls.t('features.tasks.priorityHigh');
   }
-  return priority;
+  return nls.t('features.tasks.priorityMedium');
 }

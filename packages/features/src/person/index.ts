@@ -9,5 +9,5 @@ export type {
   RegistriesEditorApi,
   SourceEditorApi,
   TitleEditorApi,
-  TodoEditorApi,
+  TaskEditorApi,
 } from './types';

@@ -539,7 +539,7 @@ describe('TreeService attachments', () => {
     }
   });
 
-  it('restores address and repository references without overwriting later edits', () => {
+  it('restores address and title references without overwriting later edits', () => {
     const { fixture, service } = makeService();
     try {
       service.addPerson({ id: 'P1', names: [{ id: 'N1', given: 'Ada' }], sex: 'U', facts: [] });
@@ -557,15 +557,12 @@ describe('TreeService attachments', () => {
       expect(fixture.repo.getPerson('P1')?.names[0]?.id).toBe('N2');
 
       service.addRepository(repository());
-      service.addTodo({ id: 'TD1', text: 'Old task', repositoryId: 'RP1' });
       service.addTitle({ id: 'TT1', name: 'Old title', repositoryId: 'RP1' });
       service.deleteRepository(fixture.repo.getRepository('RP1')!);
 
-      fixture.repo.updateTodo({ ...fixture.repo.listTodos()[0]!, text: 'Edited task' });
       fixture.repo.updateTitle({ ...fixture.repo.listTitles()[0]!, name: 'Edited title' });
       service.undo();
 
-      expect(fixture.repo.listTodos()[0]).toMatchObject({ text: 'Edited task', repositoryId: 'RP1' });
       expect(fixture.repo.listTitles()[0]).toMatchObject({ name: 'Edited title', repositoryId: 'RP1' });
     } finally {
       cleanupRepo(fixture);
@@ -758,37 +755,6 @@ describe('TreeService attachments', () => {
     }
   });
 
-  it('changes are recorded for the touched entity and cleaned with the entity', () => {
-    const { fixture, service } = makeService();
-    try {
-      service.addNote(note());
-      const changes = fixture.repo.listChangesFor('note', 'N1');
-      expect(changes).toHaveLength(1);
-      expect(changes[0]?.kind).toBe('created');
-
-      service.deleteNote(note());
-      expect(fixture.repo.listChangesFor('note', 'N1')).toEqual([]);
-      const ownerChanges = new Set(fixture.repo.listChangesFor('person', 'P1').map((change) => change.id));
-      expect(ownerChanges.size).toBeGreaterThan(0);
-
-      service.undo();
-      expect(
-        fixture.repo
-          .listChangesFor('note', 'N1')
-          .map((change) => change.kind)
-          .sort(),
-      ).toEqual(['created']);
-      // The note is attached to P1, so undo adds a new owner change row.
-      expect(
-        fixture.repo
-          .listChangesFor('person', 'P1')
-          .some((change) => !ownerChanges.has(change.id) && change.kind === 'changed'),
-      ).toBe(true);
-    } finally {
-      cleanupRepo(fixture);
-    }
-  });
-
   it('lists every tag link and submitter link for the global registries', () => {
     const { fixture, service } = makeService();
     try {
@@ -808,18 +774,6 @@ describe('TreeService attachments', () => {
           kind: 'ancestor_interest',
         }),
       ]);
-    } finally {
-      cleanupRepo(fixture);
-    }
-  });
-
-  it('stamps the change user into the change-log rows', () => {
-    const fixture = makeRepo();
-    const service = new TreeService(fixture.repo, new OpQueue(), 'boris');
-    try {
-      service.addNote(note());
-      const changes = fixture.repo.listChangesFor('note', 'N1');
-      expect(changes[0]?.user).toBe('boris');
     } finally {
       cleanupRepo(fixture);
     }

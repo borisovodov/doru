@@ -80,7 +80,7 @@ const GEDCOM = [
   '1 _LOCL archive',
   '1 _TPTY high',
   '1 _TSTS open',
-  '1 _UID todo-uid',
+  '1 _UID task-uid',
   '1 _CDATE 2026',
   '0 @O1@ _OCUR',
   '1 TYPE death',
@@ -186,9 +186,8 @@ describe('importGedcomDataset edge coverage', () => {
         .sort();
       expect(factKinds).toEqual(['email', 'fax', 'phone', 'www']);
 
-      // Restrictions, changes, submitter links and tag links.
+      // Restrictions, submitter links and tag links.
       expect(repo.listRestrictionsFor('person', ivan.id).map((entry) => entry.level)).toEqual(['confidential']);
-      expect(repo.listChangesFor('person', ivan.id)).toHaveLength(2);
       expect(repo.listSubmittersFor('person', ivan.id)).toHaveLength(1);
       expect(repo.listTagLinksFor('person', ivan.id)).toHaveLength(1);
 
@@ -211,17 +210,16 @@ describe('importGedcomDataset edge coverage', () => {
       // Tag without a name is skipped; the tag link to a missing tag is skipped.
       expect(repo.listTags()).toHaveLength(1);
 
-      // Free-standing todo with fields and uid.
-      const todos = repo.listTodos();
-      expect(todos).toHaveLength(1);
-      expect(todos[0]).toMatchObject({
+      // Free-standing task with fields and uid.
+      const tasks = repo.listTasks();
+      expect(tasks).toHaveLength(1);
+      expect(tasks[0]).toMatchObject({
         text: 'Order the record',
-        category: 'records',
-        locality: 'archive',
         priority: 'high',
         status: 'open',
       });
-      expect(repo.listIdentifiersFor('todo', todos[0]!.id).map((identifier) => identifier.value)).toEqual(['todo-uid']);
+      expect(tasks[0]).not.toHaveProperty('category');
+      expect(repo.listIdentifiersFor('task', tasks[0]!.id).map((identifier) => identifier.value)).toEqual(['task-uid']);
 
       // The occurrence became one fact per participant.
       const facts = repo.listAllFacts();
@@ -268,10 +266,10 @@ describe('importGedcomDataset edge coverage', () => {
       const note = repo.listNotesFor('person', ivan.id)[0]!;
       expect(note.translations?.[0]).toMatchObject({ text: 'переведено', language: 'ru' });
 
-      // The family tag link and attached todo imported.
+      // The family tag link and attached task imported.
       const family = repo.listFamilies()[0]!;
       expect(repo.listTagLinksFor('family', family.id)).toHaveLength(1);
-      expect(repo.listTodosFor('family', family.id)).toHaveLength(1);
+      expect(repo.listTasksFor('family', family.id)).toHaveLength(1);
     } finally {
       cleanupRepo(fixture);
     }

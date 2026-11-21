@@ -10,7 +10,7 @@ import type {
   PersonRecord,
   SourceRecord,
   TitleRecord,
-  TodoRecord,
+  TaskRecord,
 } from '../model/types';
 import type { MutationContext } from './op';
 
@@ -212,11 +212,8 @@ export function restoreAlias(ctx: MutationContext, id: string, personId: string,
   return true;
 }
 
-export function restoreTodo(ctx: MutationContext, todo: TodoRecord): void {
-  const clean: TodoRecord = { ...todo };
-  if (clean.repositoryId !== undefined && ctx.repo.getRepository(clean.repositoryId) === undefined) {
-    delete clean.repositoryId;
-  }
+export function restoreTask(ctx: MutationContext, task: TaskRecord): void {
+  const clean: TaskRecord = { ...task };
   if (
     clean.targetType !== undefined &&
     clean.targetId !== undefined &&
@@ -225,7 +222,7 @@ export function restoreTodo(ctx: MutationContext, todo: TodoRecord): void {
     delete clean.targetType;
     delete clean.targetId;
   }
-  ctx.repo.insertTodo(clean);
+  ctx.repo.insertTask(clean);
 }
 
 export function restoreTitle(ctx: MutationContext, title: TitleRecord): void {
@@ -307,15 +304,8 @@ export function attachmentsMatch(
     identifiers: snapshot.identifiers.map((entry) => JSON.stringify(entry)).sort(),
     contacts: snapshot.contacts.map((entry) => JSON.stringify(entry)).sort(),
     restrictions: snapshot.restrictions.map((entry) => JSON.stringify(entry)).sort(),
-    // Undo/redo record a change row on the replayed target itself; that
-    // bookkeeping must not block an otherwise unchanged redo. Every other
-    // change row is a real edit that the redo would delete.
-    changes: snapshot.changes
-      .filter((change) => !ctx.repo.isReplayChange(change.id))
-      .map((entry) => JSON.stringify(entry))
-      .sort(),
     tagLinks: snapshot.tagLinks.map((entry) => JSON.stringify(entry.link)).sort(),
-    todos: snapshot.todos.map((entry) => JSON.stringify(entry)).sort(),
+    tasks: snapshot.tasks.map((entry) => JSON.stringify(entry)).sort(),
     recordSubmitters: snapshot.recordSubmitters.map((entry) => JSON.stringify(entry)).sort(),
   });
   const flatten = (snapshot: AttachmentsSnapshot, rootKey: string): string => {
@@ -332,7 +322,7 @@ export function attachmentsMatch(
         ...node.mediaAttachments,
         ...node.mediaFileAttachments,
         ...node.mediaLinkAttachments,
-        ...node.todoAttachments,
+        ...node.taskAttachments,
       ]) {
         const childKey = `${nested.targetType}\u0000${nested.targetId}`;
         edges.push(`${key}>${childKey}`);
@@ -400,8 +390,8 @@ export function attachmentTargetExists(ctx: MutationContext, targetType: string,
       return ctx.repo.hasMediaLink(targetId);
     case 'note':
       return ctx.repo.getNote(targetId) !== undefined;
-    case 'todo':
-      return ctx.repo.getTodo(targetId) !== undefined;
+    case 'task':
+      return ctx.repo.getTask(targetId) !== undefined;
     case 'source':
       return ctx.repo.getSource(targetId) !== undefined;
     case 'repository':

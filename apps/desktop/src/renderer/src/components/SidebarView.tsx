@@ -17,7 +17,7 @@ import type {
   TagLinkRecord,
   TagRecord,
   TitleRecord,
-  TodoRecord,
+  TaskRecord,
 } from '@doru/core';
 import { PersonList, TasksView, type TaskTargetData } from '@doru/ui/domain';
 import {
@@ -60,7 +60,7 @@ export function SidebarView({
   tagLinks,
   addresses,
   titles,
-  todos,
+  tasks,
   associations,
   onOpenPerson,
   onOpenMedia,
@@ -104,7 +104,7 @@ export function SidebarView({
   tagLinks: TagLinkRecord[];
   addresses: AddressRecord[];
   titles: TitleRecord[];
-  todos: TodoRecord[];
+  tasks: TaskRecord[];
   associations: AssociationRecord[];
   onOpenPerson: (personId: string) => void;
   onOpenMedia: (mediaId: string) => void;
@@ -124,7 +124,7 @@ export function SidebarView({
   onNewRepository: () => void;
   onNewSubmitter: () => void;
   onNewAddress: () => void;
-  onOpenTask: (todoId: string) => void;
+  onOpenTask: (taskId: string) => void;
   onNewTask: () => void;
 }) {
   const targetData: TaskTargetData = {
@@ -141,7 +141,7 @@ export function SidebarView({
     submitters,
     addresses,
     associations,
-    todos,
+    tasks,
   };
   const selectedId = (kind: EntityTabKind): string | undefined => {
     if (activeTabId === null) {
@@ -258,7 +258,7 @@ export function SidebarView({
           actions={<AddButton label={nls.t('features.tasks.add')} onClick={onNewTask} disabled={!canCreate} />}
         >
           <TasksView
-            todos={todos}
+            tasks={tasks}
             persons={persons}
             families={families}
             sources={sources}

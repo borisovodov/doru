@@ -8,7 +8,7 @@ import type {
   SourceRecord,
   SubmitterRecord,
   TitleRecord,
-  TodoRecord,
+  TaskRecord,
 } from '@doru/core';
 import type { MediaWithPath } from '@doru/ui/domain';
 import type { TabInfo } from '@doru/workbench';
@@ -43,7 +43,7 @@ export function useTabs(
   repositories: RepositoryRecord[],
   submitters: SubmitterRecord[],
   addresses: AddressRecord[],
-  todos: TodoRecord[],
+  tasks: TaskRecord[],
   titles: TitleRecord[],
   media: MediaWithPath[],
 ): TabsApi {
@@ -140,7 +140,7 @@ export function useTabs(
     repositories,
     submitters,
     addresses,
-    todos,
+    tasks,
     titles,
     media,
   };

@@ -45,10 +45,10 @@ export const DORU_APPLICATION_ID = 0x444f5255;
  * Bumped whenever the schema changes. There are no migrations before 1.0.0:
  * a newer version may simply not understand files written by older ones
  * (the store refuses to open them with a loud error). This schema uses
- * version 8, above every version written by an earlier build (the old model
+ * version 13, above every version written by an earlier build (the old model
  * reached 6), so the open guard cannot mistake an old file for this one.
  */
-export const SCHEMA_VERSION = 8;
+export const SCHEMA_VERSION = 13;
 
 export const SCHEMA_SQL = `
 CREATE TABLE IF NOT EXISTS person (
@@ -499,14 +499,6 @@ CREATE TABLE IF NOT EXISTS restriction (
   level TEXT NOT NULL        -- confidential | locked | privacy
 );
 
-CREATE TABLE IF NOT EXISTS change_log (
-  id TEXT PRIMARY KEY,
-  target_type TEXT NOT NULL,
-  target_id TEXT NOT NULL,
-  kind TEXT NOT NULL,        -- created | changed
-  user TEXT
-);
-
 CREATE TABLE IF NOT EXISTS tag (
   id TEXT PRIMARY KEY,
   name TEXT NOT NULL
@@ -569,12 +561,14 @@ CREATE TABLE IF NOT EXISTS person_alias (
   UNIQUE (person_id, alias_id)
 );
 
-CREATE TABLE IF NOT EXISTS todo (
+-- No repository_id, category, locality, title, type, or result text on
+-- purpose: GEDCOM TODO REPO, _CAT, _LOCL, _TTIL, TYPE, and DATA are not
+-- imported.
+CREATE TABLE IF NOT EXISTS task (
   id TEXT PRIMARY KEY,
   text TEXT NOT NULL,
   target_type TEXT, target_id TEXT,  -- may be a free-standing task
-  category TEXT, locality TEXT, priority TEXT, status TEXT,
-  repository_id TEXT REFERENCES repository(id) ON DELETE SET NULL
+  priority TEXT, status TEXT
 );
 
 CREATE TABLE IF NOT EXISTS title (
@@ -634,14 +628,13 @@ CREATE INDEX IF NOT EXISTS idx_address_line_address ON address_line(address_id);
 CREATE INDEX IF NOT EXISTS idx_identifier_target ON identifier(target_type, target_id);
 CREATE INDEX IF NOT EXISTS idx_contact_target ON contact(target_type, target_id);
 CREATE INDEX IF NOT EXISTS idx_restriction_target ON restriction(target_type, target_id);
-CREATE INDEX IF NOT EXISTS idx_change_log_target ON change_log(target_type, target_id);
 CREATE INDEX IF NOT EXISTS idx_tag_link_tag ON tag_link(tag_id);
 CREATE INDEX IF NOT EXISTS idx_tag_link_target ON tag_link(target_type, target_id);
 CREATE INDEX IF NOT EXISTS idx_association_person ON association(person_id);
 CREATE INDEX IF NOT EXISTS idx_association_other ON association(other_person_id);
 CREATE INDEX IF NOT EXISTS idx_person_alias_person ON person_alias(person_id);
 CREATE INDEX IF NOT EXISTS idx_person_alias_alias ON person_alias(alias_id);
-CREATE INDEX IF NOT EXISTS idx_todo_target ON todo(target_type, target_id);
+CREATE INDEX IF NOT EXISTS idx_task_target ON task(target_type, target_id);
 CREATE INDEX IF NOT EXISTS idx_date_owner ON date(owner_type, owner_id);
 
 -- Foreign-key child columns. SQLite does not index these automatically, so
@@ -657,7 +650,6 @@ CREATE INDEX IF NOT EXISTS idx_media_place ON media(place_id);
 CREATE INDEX IF NOT EXISTS idx_source_title ON source(title_id);
 CREATE INDEX IF NOT EXISTS idx_source_event_place ON source_data_event(place_id);
 CREATE INDEX IF NOT EXISTS idx_title_repository ON title(repository_id);
-CREATE INDEX IF NOT EXISTS idx_todo_repository ON todo(repository_id);
 
 -- Every date row belongs to one owner row. These triggers delete the date
 -- rows with their owner, including when a foreign-key cascade removes it.
@@ -716,19 +708,14 @@ BEGIN
   DELETE FROM date WHERE owner_type = 'media' AND owner_id = OLD.id;
 END;
 
-CREATE TRIGGER IF NOT EXISTS date_change_log_delete AFTER DELETE ON change_log
-BEGIN
-  DELETE FROM date WHERE owner_type = 'change_log' AND owner_id = OLD.id;
-END;
-
 CREATE TRIGGER IF NOT EXISTS date_tag_link_delete AFTER DELETE ON tag_link
 BEGIN
   DELETE FROM date WHERE owner_type = 'tag_link' AND owner_id = OLD.id;
 END;
 
-CREATE TRIGGER IF NOT EXISTS date_todo_delete AFTER DELETE ON todo
+CREATE TRIGGER IF NOT EXISTS date_task_delete AFTER DELETE ON task
 BEGIN
-  DELETE FROM date WHERE owner_type = 'todo' AND owner_id = OLD.id;
+  DELETE FROM date WHERE owner_type = 'task' AND owner_id = OLD.id;
 END;
 
 CREATE TRIGGER IF NOT EXISTS date_association_delete AFTER DELETE ON association

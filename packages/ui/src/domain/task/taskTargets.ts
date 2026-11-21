@@ -13,7 +13,7 @@ import type {
   SourceRecord,
   SubmitterRecord,
   TitleRecord,
-  TodoRecord,
+  TaskRecord,
 } from '@doru/core';
 import { placeName } from '@doru/core/model';
 import { displayName, factOwnerName, familyLabel, formatAddress, formatDate } from '../format/format';
@@ -33,7 +33,7 @@ export interface TaskTargetData {
   submitters: SubmitterRecord[];
   addresses: AddressRecord[];
   associations: AssociationRecord[];
-  todos: TodoRecord[];
+  tasks: TaskRecord[];
 }
 
 export interface TaskTargetOption {
@@ -174,8 +174,8 @@ export function taskTargetOptions(type: string, data: TaskTargetData): TaskTarge
             .join(' · '),
         };
       });
-    case 'todo':
-      return data.todos.map((todo) => ({ id: todo.id, label: truncate(todo.text) }));
+    case 'task':
+      return data.tasks.map((task) => ({ id: task.id, label: truncate(task.text) }));
     case 'title':
       return data.titles.map((title) => ({ id: title.id, label: title.name ?? title.id }));
     default:

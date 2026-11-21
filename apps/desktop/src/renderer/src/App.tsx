@@ -46,7 +46,7 @@ export function App() {
     tree.repositories,
     tree.submitters,
     tree.addresses,
-    tree.todos,
+    tree.tasks,
     tree.titles,
     tree.media,
   );
@@ -233,7 +233,7 @@ export function App() {
             tagLinks={tree.tagLinks}
             addresses={tree.addresses}
             titles={tree.titles}
-            todos={tree.todos}
+            tasks={tree.tasks}
             associations={tree.associations}
             onOpenPerson={openPersonAndFocus}
             onOpenMedia={tabs.open.media}

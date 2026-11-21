@@ -6,7 +6,6 @@ import type { FamilyEditorApi, MediaTargetApi } from '../person/types';
 import { FamilyEditor } from './FamilyEditor';
 import type { MediaWithPath } from '@doru/ui/domain';
 import {
-  ChangesSection,
   ContactsSection,
   ContributorsSection,
   IdentifiersSection,
@@ -109,7 +108,6 @@ function FamilyTabBody({
     identifiers,
     contacts,
     restrictions,
-    changes,
     submitters,
     contributors,
     refresh: refreshAttachments,
@@ -310,7 +308,6 @@ function FamilyTabBody({
         onDelete={api.deleteRecordSubmitter}
       />
       <TasksSection targetType="family" targetId={record.id} api={api} />
-      <ChangesSection changes={changes} />
     </EntityTab>
   );
 }

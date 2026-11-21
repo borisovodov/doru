@@ -1,97 +1,86 @@
 import type { DatabaseSync } from 'node:sqlite';
-import type { TitleRecord, TodoRecord } from '../model/types';
+import type { TitleRecord, TaskRecord } from '../model/types';
 import type { DateRepo } from './dateRepo';
 
-/** The research layer: todos and titles. */
+/** The research layer: tasks and titles. */
 export class ResearchRepo {
   constructor(
     private readonly db: DatabaseSync,
     private readonly dates: DateRepo,
   ) {}
 
-  // todos -----------------------------------------------------------------------
+  // tasks -----------------------------------------------------------------------
 
-  insertTodo(todo: TodoRecord): void {
+  insertTask(task: TaskRecord): void {
     this.db
       .prepare(
-        `INSERT INTO todo (id, text, target_type, target_id, category, locality, priority, status,
-           repository_id)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        `INSERT INTO task (id, text, target_type, target_id, priority, status)
+         VALUES (?, ?, ?, ?, ?, ?)`,
       )
-      .run(...todoParams(todo));
-    this.replaceTodoDates(todo);
+      .run(...taskParams(task));
+    this.replaceTaskDates(task);
   }
 
-  updateTodo(todo: TodoRecord): void {
-    if (this.db.prepare('SELECT 1 FROM todo WHERE id = ?').get(todo.id) === undefined) {
-      throw new Error(`todo ${todo.id} no longer exists`);
+  updateTask(task: TaskRecord): void {
+    if (this.db.prepare('SELECT 1 FROM task WHERE id = ?').get(task.id) === undefined) {
+      throw new Error(`task ${task.id} no longer exists`);
     }
     this.db
       .prepare(
-        `UPDATE todo SET text = ?, target_type = ?, target_id = ?, category = ?, locality = ?, priority = ?,
-           status = ?, repository_id = ?
+        `UPDATE task SET text = ?, target_type = ?, target_id = ?, priority = ?, status = ?
          WHERE id = ?`,
       )
-      .run(...todoParams(todo).slice(1), todo.id);
-    this.replaceTodoDates(todo);
+      .run(...taskParams(task).slice(1), task.id);
+    this.replaceTaskDates(task);
   }
 
-  setTodoRepositoryId(id: string, repositoryId: string | undefined): void {
-    this.db
-      .prepare('UPDATE todo SET repository_id = ? WHERE id = ? AND repository_id IS NULL')
-      .run(repositoryId ?? null, id);
+  deleteTask(id: string): boolean {
+    return this.db.prepare('DELETE FROM task WHERE id = ?').run(id).changes > 0;
   }
 
-  deleteTodo(id: string): boolean {
-    return this.db.prepare('DELETE FROM todo WHERE id = ?').run(id).changes > 0;
+  getTask(id: string): TaskRecord | undefined {
+    const row = this.db.prepare(`${taskSelect} WHERE id = ?`).get(id) as TaskRow | undefined;
+    return row === undefined ? undefined : this.hydrateTask(row);
   }
 
-  getTodo(id: string): TodoRecord | undefined {
-    const row = this.db.prepare(`${todoSelect} WHERE id = ?`).get(id) as TodoRow | undefined;
-    return row === undefined ? undefined : this.hydrateTodo(row);
+  listTasks(): TaskRecord[] {
+    const rows = this.db.prepare(taskSelect).all() as unknown as TaskRow[];
+    return rows.map((row) => this.hydrateTask(row));
   }
 
-  listTodos(): TodoRecord[] {
-    const rows = this.db.prepare(todoSelect).all() as unknown as TodoRow[];
-    return rows.map((row) => this.hydrateTodo(row));
-  }
-
-  listTodosFor(targetType: string, targetId: string): TodoRecord[] {
+  listTasksFor(targetType: string, targetId: string): TaskRecord[] {
     const rows = this.db
-      .prepare(`${todoSelect} WHERE target_type = ? AND target_id = ? ORDER BY id`)
-      .all(targetType, targetId) as unknown as TodoRow[];
-    return rows.map((row) => this.hydrateTodo(row));
+      .prepare(`${taskSelect} WHERE target_type = ? AND target_id = ? ORDER BY id`)
+      .all(targetType, targetId) as unknown as TaskRow[];
+    return rows.map((row) => this.hydrateTask(row));
   }
 
-  deleteTodosFor(targetType: string, targetId: string): void {
-    this.db.prepare('DELETE FROM todo WHERE target_type = ? AND target_id = ?').run(targetType, targetId);
+  deleteTasksFor(targetType: string, targetId: string): void {
+    this.db.prepare('DELETE FROM task WHERE target_type = ? AND target_id = ?').run(targetType, targetId);
   }
 
-  private replaceTodoDates(todo: TodoRecord): void {
-    this.dates.replaceForOwner('todo', todo.id, {
-      created: todo.createdDate,
-      scheduled: todo.scheduledDate,
-      reminder: todo.reminderDate,
-      closed: todo.closedDate,
+  private replaceTaskDates(task: TaskRecord): void {
+    this.dates.replaceForOwner('task', task.id, {
+      created: task.createdDate,
+      scheduled: task.scheduledDate,
+      reminder: task.reminderDate,
+      closed: task.closedDate,
     });
   }
 
-  private hydrateTodo(row: TodoRow): TodoRecord {
-    const dates = this.dates.getManyForOwners('todo', [row.id]).get(row.id);
+  private hydrateTask(row: TaskRow): TaskRecord {
+    const dates = this.dates.getManyForOwners('task', [row.id]).get(row.id);
     return {
       id: row.id,
       text: row.text,
       targetType: row.target_type ?? undefined,
       targetId: row.target_id ?? undefined,
-      category: row.category ?? undefined,
-      locality: row.locality ?? undefined,
       priority: row.priority ?? undefined,
       status: row.status ?? undefined,
       createdDate: dates?.get('created'),
       scheduledDate: dates?.get('scheduled'),
       reminderDate: dates?.get('reminder'),
       closedDate: dates?.get('closed'),
-      repositoryId: row.repository_id ?? undefined,
     };
   }
 
@@ -147,16 +136,13 @@ export class ResearchRepo {
   }
 }
 
-interface TodoRow {
+interface TaskRow {
   id: string;
   text: string;
   target_type: string | null;
   target_id: string | null;
-  category: string | null;
-  locality: string | null;
   priority: string | null;
   status: string | null;
-  repository_id: string | null;
 }
 
 interface TitleRow {
@@ -172,21 +158,17 @@ interface TitleRow {
   sequence: number | null;
 }
 
-const todoSelect = `SELECT id, text, target_type, target_id, category, locality, priority, status,
-  repository_id
-  FROM todo`;
+const taskSelect = `SELECT id, text, target_type, target_id, priority, status
+  FROM task`;
 
-function todoParams(todo: TodoRecord): Array<string | number | null> {
+function taskParams(task: TaskRecord): Array<string | number | null> {
   return [
-    todo.id,
-    todo.text,
-    todo.targetType ?? null,
-    todo.targetId ?? null,
-    todo.category ?? null,
-    todo.locality ?? null,
-    todo.priority ?? null,
-    todo.status ?? null,
-    todo.repositoryId ?? null,
+    task.id,
+    task.text,
+    task.targetType ?? null,
+    task.targetId ?? null,
+    task.priority ?? null,
+    task.status ?? null,
   ];
 }
 

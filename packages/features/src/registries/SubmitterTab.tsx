@@ -11,7 +11,6 @@ import type { MediaTargetApi, RegistriesEditorApi } from '../person/types';
 import type { MediaWithPath, TaskTargetData } from '@doru/ui/domain';
 import {
   AddressLinkField,
-  ChangesSection,
   ContactsSection,
   ContributorsSection,
   IdentifiersSection,
@@ -142,7 +141,6 @@ function SubmitterTabBody({
     identifiers,
     contacts,
     restrictions,
-    changes,
     submitters: contributorOptions,
     contributors,
     refresh: refreshAttachments,
@@ -205,7 +203,7 @@ function SubmitterTabBody({
     return labels;
   }, [referencedBy, targetData]);
   const openableTarget = (targetType: string): boolean =>
-    ['person', 'family', 'source', 'place', 'repository', 'submitter', 'address', 'todo', 'media', 'title'].includes(
+    ['person', 'family', 'source', 'place', 'repository', 'submitter', 'address', 'task', 'media', 'title'].includes(
       targetType,
     );
 
@@ -439,7 +437,6 @@ function SubmitterTabBody({
             onDelete={api.deleteRecordSubmitter}
           />
           <TasksSection targetType="submitter" targetId={targetId} api={api} />
-          <ChangesSection changes={changes} />
         </>
       )}
     </EntityTab>

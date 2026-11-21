@@ -19,7 +19,7 @@ const targetData: TaskTargetData = {
   submitters: [],
   addresses: [],
   associations: [],
-  todos: [],
+  tasks: [],
 };
 
 describe('registry sidebar lists', () => {

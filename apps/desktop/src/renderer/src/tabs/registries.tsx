@@ -76,7 +76,7 @@ export const submitterTab: TabDescriptor = {
         submitters: context.tree.submitters,
         addresses: context.tree.addresses,
         associations: context.tree.associations,
-        todos: context.tree.todos,
+        tasks: context.tree.tasks,
       }}
       onOpenSource={context.tabs.open.source}
       onOpenMedia={context.tabs.open.media}
@@ -104,7 +104,7 @@ export const submitterTab: TabDescriptor = {
           case 'address':
             context.tabs.open.address(targetId);
             break;
-          case 'todo':
+          case 'task':
             context.tabs.open.task(targetId);
             break;
           case 'media':

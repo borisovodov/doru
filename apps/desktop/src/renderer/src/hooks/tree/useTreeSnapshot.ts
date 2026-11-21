@@ -15,7 +15,7 @@ import type {
   TagLinkRecord,
   TagRecord,
   TitleRecord,
-  TodoRecord,
+  TaskRecord,
 } from '@doru/core';
 import type { MediaWithPath } from '@doru/ui/domain';
 
@@ -34,7 +34,7 @@ export function useTreeSnapshot(projectPath: string | null | undefined) {
   const [tags, setTags] = useState<TagRecord[]>([]);
   const [tagLinks, setTagLinks] = useState<TagLinkRecord[]>([]);
   const [addresses, setAddresses] = useState<AddressRecord[]>([]);
-  const [todos, setTodos] = useState<TodoRecord[]>([]);
+  const [tasks, setTasks] = useState<TaskRecord[]>([]);
   const [titles, setTitles] = useState<TitleRecord[]>([]);
   const [associations, setAssociations] = useState<AssociationRecord[]>([]);
   const requestRef = useRef(0);
@@ -60,7 +60,7 @@ export function useTreeSnapshot(projectPath: string | null | undefined) {
       allTags,
       allTagLinks,
       allAddresses,
-      allTodos,
+      allTasks,
       allTitles,
       allAssociations,
     ] = await Promise.all([
@@ -77,7 +77,7 @@ export function useTreeSnapshot(projectPath: string | null | undefined) {
       window.doru.getTags(path),
       window.doru.getAllTagLinks(path),
       window.doru.listAddresses(path),
-      window.doru.getTodos(path),
+      window.doru.getTasks(path),
       window.doru.getTitles(path),
       window.doru.getAllAssociations(path),
     ]);
@@ -99,7 +99,7 @@ export function useTreeSnapshot(projectPath: string | null | undefined) {
     setTags(allTags);
     setTagLinks(allTagLinks);
     setAddresses(allAddresses);
-    setTodos(allTodos);
+    setTasks(allTasks);
     setTitles(allTitles);
     setAssociations(allAssociations);
   }, []);
@@ -122,7 +122,7 @@ export function useTreeSnapshot(projectPath: string | null | undefined) {
       setTags([]);
       setTagLinks([]);
       setAddresses([]);
-      setTodos([]);
+      setTasks([]);
       setTitles([]);
       setAssociations([]);
       return;
@@ -163,7 +163,7 @@ export function useTreeSnapshot(projectPath: string | null | undefined) {
     tags,
     tagLinks,
     addresses,
-    todos,
+    tasks,
     titles,
     associations,
     refreshTree,

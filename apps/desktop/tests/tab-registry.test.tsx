@@ -11,7 +11,7 @@ const context: TabLabelContext = {
   repositories: [],
   submitters: [],
   addresses: [],
-  todos: [{ id: 't1', text: 'Check the census' }],
+  tasks: [{ id: 't1', text: 'Check the census' }],
   titles: [],
   media: [
     { id: 'm1', title: 'Portrait', absolutePath: '/tmp/portrait.jpg' },

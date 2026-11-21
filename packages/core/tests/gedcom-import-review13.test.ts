@@ -95,7 +95,7 @@ describe('GEDCOM import edge slots', () => {
       '1 _TCDT json:{"quality":"exact","component":{"month":5,"day":0}}',
     ]);
     try {
-      expect(fixture.repo.listTodos()[0]?.createdDate?.quality).toBe('unknown');
+      expect(fixture.repo.listTasks()[0]?.createdDate?.quality).toBe('unknown');
     } finally {
       cleanupRepo(fixture);
     }
@@ -108,7 +108,7 @@ describe('GEDCOM import edge slots', () => {
       '1 _TCDT json:{"quality":"exact","component":{"year":1900,"month":2.5,"day":10}}',
     ]);
     try {
-      expect(fixture.repo.listTodos()[0]?.createdDate?.quality).toBe('unknown');
+      expect(fixture.repo.listTasks()[0]?.createdDate?.quality).toBe('unknown');
     } finally {
       cleanupRepo(fixture);
     }
@@ -121,8 +121,8 @@ describe('GEDCOM import edge slots', () => {
       '1 _TCDT json:{"quality":"exact","component":{"year":1900,"month":13}}',
     ]);
     try {
-      const todo = fixture.repo.listTodos()[0]!;
-      expect(todo.createdDate?.quality).toBe('unknown');
+      const task = fixture.repo.listTasks()[0]!;
+      expect(task.createdDate?.quality).toBe('unknown');
     } finally {
       cleanupRepo(fixture);
     }

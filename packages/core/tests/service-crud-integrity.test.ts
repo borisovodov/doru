@@ -7,7 +7,6 @@ import type {
   PlaceRecord,
   RepositoryRecord,
   SourceRecord,
-  TodoRecord,
   TitleRecord,
 } from '../src/model/types';
 import { OpQueue } from '../src/ops/op';
@@ -271,27 +270,22 @@ describe('TreeService CRUD integrity', () => {
     }
   });
 
-  it('restores todo and title repository links on undo', () => {
+  it('restores title repository links on undo', () => {
     const { fixture, service } = makeService();
     const { repo } = fixture;
     try {
       const repository: RepositoryRecord = { id: 'RP1', name: 'State Archive' };
-      const todo: TodoRecord = { id: 'T1', text: 'Order the record', repositoryId: 'RP1' };
       const title: TitleRecord = { id: 'TL1', name: 'The Parish Registers', repositoryId: 'RP1' };
       service.addRepository(repository);
-      service.addTodo(todo);
       service.addTitle(title);
 
       service.deleteRepository(repository);
 
-      expect(repo.getTodo('T1')).toBeDefined();
-      expect(repo.listTodos().find((entry) => entry.id === 'T1')?.repositoryId).toBeUndefined();
       expect(repo.getTitle('TL1')).toBeDefined();
       expect(repo.listTitles().find((entry) => entry.id === 'TL1')?.repositoryId).toBeUndefined();
 
       service.undo();
 
-      expect(repo.listTodos().find((entry) => entry.id === 'T1')?.repositoryId).toBe('RP1');
       expect(repo.listTitles().find((entry) => entry.id === 'TL1')?.repositoryId).toBe('RP1');
     } finally {
       cleanupRepo(fixture);
@@ -1034,7 +1028,7 @@ describe('TreeService CRUD integrity', () => {
     }
   });
 
-  it('does not overwrite a later assignment when undoing an address or repository deletion', () => {
+  it('does not overwrite a later assignment when undoing an address or title deletion', () => {
     const { fixture, service } = makeService();
     const { repo } = fixture;
     try {
@@ -1049,12 +1043,12 @@ describe('TreeService CRUD integrity', () => {
       expect(repo.getPerson('P1')?.addressId).toBe('A2');
 
       service.addRepository({ id: 'RP1', name: 'Archive' });
-      service.addTodo({ id: 'TD1', text: 'Task', repositoryId: 'RP1' });
+      service.addTitle({ id: 'TI1', name: 'Register', repositoryId: 'RP1' });
       service.deleteRepository(repo.getRepository('RP1')!);
       repo.insertRepository({ id: 'RP2', name: 'Other archive' });
-      repo.setTodoRepositoryId('TD1', 'RP2');
+      repo.setTitleRepositoryId('TI1', 'RP2');
       service.undo();
-      expect(repo.getTodo('TD1')?.repositoryId).toBe('RP2');
+      expect(repo.getTitle('TI1')?.repositoryId).toBe('RP2');
     } finally {
       cleanupRepo(fixture);
     }
@@ -1242,24 +1236,6 @@ describe('TreeService CRUD integrity', () => {
       expect(refused.redoBlocked).toBe(true);
       expect(refused.canRedo).toBe(false);
       expect(repo.getNote('N1')).toBeDefined();
-    } finally {
-      cleanupRepo(fixture);
-    }
-  });
-
-  it('restores a task without a repository that vanished', () => {
-    const { fixture, service } = makeService();
-    const { repo } = fixture;
-    try {
-      service.addRepository({ id: 'R1', name: 'Archive' });
-      service.addTodo({ id: 'T1', text: 'Task', repositoryId: 'R1' });
-      service.deleteTodo(repo.getTodo('T1')!);
-      repo.deleteRepository('R1');
-
-      service.undo();
-      const restored = repo.getTodo('T1')!;
-      expect(restored.text).toBe('Task');
-      expect(restored.repositoryId).toBeUndefined();
     } finally {
       cleanupRepo(fixture);
     }
@@ -1629,20 +1605,6 @@ describe('TreeService CRUD integrity', () => {
       expect(blocked.undoBlocked).toBe(true);
       expect(service.undo().canUndo).toBe(true);
       expect(repo.getPerson('P2')).toBeUndefined();
-    } finally {
-      cleanupRepo(fixture);
-    }
-  });
-
-  it('does not leave a change-log row when a stale update fails', () => {
-    const { fixture, service } = makeService();
-    const { repo } = fixture;
-    try {
-      service.addPerson(person('P1'));
-      expect(() =>
-        service.updateFact({ id: 'F404', personId: 'P1', tag: 'BIRT' }, { id: 'F404', personId: 'P1', tag: 'DEAT' }),
-      ).toThrow(/no longer exists/);
-      expect(repo.listChangesFor('fact', 'F404')).toEqual([]);
     } finally {
       cleanupRepo(fixture);
     }

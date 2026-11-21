@@ -12,8 +12,9 @@ import type {
   SourceRecord,
   SubmitterRecord,
   TitleRecord,
-  TodoRecord,
+  TaskRecord,
 } from '@doru/core';
+import { normalizeTaskPriority, normalizeTaskStatus } from '@doru/core/model';
 import { formatDate } from '../format/format';
 import { Chip } from '../../atoms/display/Chip';
 import { cx } from '../../lib/cx';
@@ -28,7 +29,7 @@ import styles from './TasksView.module.css';
  * tab; the plus button opens the new-task tab.
  */
 export function TasksView({
-  todos,
+  tasks,
   persons,
   families,
   sources,
@@ -54,7 +55,7 @@ export function TasksView({
   onOpenTitle,
   selectedId,
 }: {
-  todos: TodoRecord[];
+  tasks: TaskRecord[];
   persons: PersonRecord[];
   families: FamilyRecord[];
   sources: SourceRecord[];
@@ -68,7 +69,7 @@ export function TasksView({
   submitters: SubmitterRecord[];
   addresses: AddressRecord[];
   associations: AssociationRecord[];
-  onOpenTask: (todoId: string) => void;
+  onOpenTask: (taskId: string) => void;
   onOpenPerson: (personId: string) => void;
   onOpenFamily: (familyId: string) => void;
   onOpenSource: (sourceId: string) => void;
@@ -81,7 +82,6 @@ export function TasksView({
   /** The task whose tab is active, highlighted as the current row. */
   selectedId?: string | undefined;
 }) {
-  const repositoryById = new Map(repositories.map((repository) => [repository.id, repository]));
   const targetData: TaskTargetData = {
     persons,
     families,
@@ -96,19 +96,19 @@ export function TasksView({
     submitters,
     addresses,
     associations,
-    todos,
+    tasks,
   };
   const targetLabel = createTaskTargetLabeler(targetData);
-  const isClosed = (todo: TodoRecord) => todo.status === 'closed';
-  const sorted = [...todos].sort((a, b) => Number(isClosed(a)) - Number(isClosed(b)));
+  const isClosed = (task: TaskRecord) => normalizeTaskStatus(task.status) === 'closed';
+  const sorted = [...tasks].sort((a, b) => Number(isClosed(a)) - Number(isClosed(b)));
 
-  const target = (todo: TodoRecord): { label: string; open: (() => void) | undefined } | undefined => {
-    if (todo.targetType === undefined || todo.targetId === undefined) {
+  const target = (task: TaskRecord): { label: string; open: (() => void) | undefined } | undefined => {
+    if (task.targetType === undefined || task.targetId === undefined) {
       return undefined;
     }
-    const id = todo.targetId;
+    const id = task.targetId;
     let open: (() => void) | undefined;
-    switch (todo.targetType) {
+    switch (task.targetType) {
       case 'person':
         open = () => onOpenPerson(id);
         break;
@@ -176,7 +176,7 @@ export function TasksView({
         open = personId !== undefined ? () => onOpenPerson(personId) : undefined;
         break;
       }
-      case 'todo':
+      case 'task':
         open = () => onOpenTask(id);
         break;
       case 'title':
@@ -185,7 +185,7 @@ export function TasksView({
       default:
         open = undefined;
     }
-    return { label: targetLabel(todo.targetType, id), open };
+    return { label: targetLabel(task.targetType, id), open };
   };
 
   return (
@@ -194,38 +194,24 @@ export function TasksView({
         <SideBarEmpty>{nls.t('features.tasks.empty')}</SideBarEmpty>
       ) : (
         <SideBarList>
-          {sorted.map((todo) => {
-            const related = target(todo);
+          {sorted.map((task) => {
+            const related = target(task);
             return (
-              <li key={todo.id} className={cx(styles['taskItem'], todo.id === selectedId && styles['selected'])}>
+              <li key={task.id} className={cx(styles['taskItem'], task.id === selectedId && styles['selected'])}>
                 <div className={styles['taskRow']}>
                   <button
                     type="button"
                     className={styles['taskOpen']}
-                    aria-current={todo.id === selectedId ? 'true' : undefined}
-                    onClick={() => onOpenTask(todo.id)}
+                    aria-current={task.id === selectedId ? 'true' : undefined}
+                    onClick={() => onOpenTask(task.id)}
                   >
-                    <span className={cx(styles['taskRowText'], isClosed(todo) && styles['closed'])}>{todo.text}</span>
+                    <span className={cx(styles['taskRowText'], isClosed(task) && styles['closed'])}>{task.text}</span>
                     <span className={styles['taskRowMeta']}>
-                      {todo.priority !== undefined && (
-                        <Chip variant="neutral">
-                          {todo.priority === 'low'
-                            ? nls.t('features.tasks.priorityLow')
-                            : todo.priority === 'medium'
-                              ? nls.t('features.tasks.priorityMedium')
-                              : todo.priority === 'high'
-                                ? nls.t('features.tasks.priorityHigh')
-                                : todo.priority}
-                        </Chip>
+                      <Chip variant="neutral">{priorityLabel(task.priority)}</Chip>
+                      {task.scheduledDate !== undefined && (
+                        <Chip variant="neutral">{formatDate(task.scheduledDate)}</Chip>
                       )}
-                      {todo.category !== undefined && <Chip variant="neutral">{todo.category}</Chip>}
-                      {todo.scheduledDate !== undefined && (
-                        <Chip variant="neutral">{formatDate(todo.scheduledDate)}</Chip>
-                      )}
-                      {todo.closedDate !== undefined && <Chip variant="neutral">{formatDate(todo.closedDate)}</Chip>}
-                      {todo.repositoryId !== undefined && repositoryById.has(todo.repositoryId) && (
-                        <Chip variant="neutral">{repositoryById.get(todo.repositoryId)?.name}</Chip>
-                      )}
+                      {task.closedDate !== undefined && <Chip variant="neutral">{formatDate(task.closedDate)}</Chip>}
                       {related !== undefined && related.open === undefined && (
                         <Chip variant="neutral">{related.label}</Chip>
                       )}
@@ -248,6 +234,17 @@ export function TasksView({
       )}
     </div>
   );
+}
+
+function priorityLabel(priority: string | undefined): string {
+  const canonical = normalizeTaskPriority(priority);
+  if (canonical === 'low') {
+    return nls.t('features.tasks.priorityLow');
+  }
+  if (canonical === 'high') {
+    return nls.t('features.tasks.priorityHigh');
+  }
+  return nls.t('features.tasks.priorityMedium');
 }
 
 function hasName(person: PersonRecord, nameId: string): boolean {

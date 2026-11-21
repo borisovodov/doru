@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
 import type {
-  ChangeRecord,
   CitationRecord,
   ContactRecord,
   IdentifierRecord,
@@ -22,7 +21,6 @@ export interface AttachmentApi {
   getIdentifiers(targetType: string, targetId: string): Promise<IdentifierRecord[]>;
   getContacts(targetType: string, targetId: string): Promise<ContactRecord[]>;
   getRestrictions(targetType: string, targetId: string): Promise<RestrictionRecord[]>;
-  getChanges(targetType: string, targetId: string): Promise<ChangeRecord[]>;
 }
 
 /** The read and write contract every editor with contributors shares. */
@@ -56,7 +54,6 @@ export interface AttachmentData {
   identifiers: IdentifierRecord[];
   contacts: ContactRecord[];
   restrictions: RestrictionRecord[];
-  changes: ChangeRecord[];
   submitters: SubmitterRecord[];
   contributors: RecordSubmitterLink[];
 }
@@ -70,7 +67,6 @@ const emptyAttachments = (): AttachmentData => ({
   identifiers: [],
   contacts: [],
   restrictions: [],
-  changes: [],
   submitters: [],
   contributors: [],
 });
@@ -105,18 +101,16 @@ export function useAttachments(
     if (targetId === undefined) {
       return emptyAttachments();
     }
-    const [notes, allNotes, citations, tags, tagLinks, identifiers, contacts, restrictions, changes] =
-      await Promise.all([
-        api.getNotes(targetType, targetId),
-        api.getAllNotes(),
-        api.getCitations(targetType, targetId),
-        api.getTags(),
-        api.getTagLinks(targetType, targetId),
-        api.getIdentifiers(targetType, targetId),
-        api.getContacts(targetType, targetId),
-        api.getRestrictions(targetType, targetId),
-        api.getChanges(targetType, targetId),
-      ]);
+    const [notes, allNotes, citations, tags, tagLinks, identifiers, contacts, restrictions] = await Promise.all([
+      api.getNotes(targetType, targetId),
+      api.getAllNotes(),
+      api.getCitations(targetType, targetId),
+      api.getTags(),
+      api.getTagLinks(targetType, targetId),
+      api.getIdentifiers(targetType, targetId),
+      api.getContacts(targetType, targetId),
+      api.getRestrictions(targetType, targetId),
+    ]);
     if (!withSubmitters) {
       return {
         ...emptyAttachments(),
@@ -128,7 +122,6 @@ export function useAttachments(
         identifiers,
         contacts,
         restrictions,
-        changes,
       };
     }
     const submitterApi = api as SubmitterAttachmentApi;
@@ -145,7 +138,6 @@ export function useAttachments(
       identifiers,
       contacts,
       restrictions,
-      changes,
       submitters,
       contributors,
     };
