@@ -1610,20 +1610,6 @@ describe('TreeService CRUD integrity', () => {
     }
   });
 
-  it('does not leave a change-log row when a stale update fails', () => {
-    const { fixture, service } = makeService();
-    const { repo } = fixture;
-    try {
-      service.addPerson(person('P1'));
-      expect(() =>
-        service.updateFact({ id: 'F404', personId: 'P1', tag: 'BIRT' }, { id: 'F404', personId: 'P1', tag: 'DEAT' }),
-      ).toThrow(/no longer exists/);
-      expect(repo.listChangesFor('fact', 'F404')).toEqual([]);
-    } finally {
-      cleanupRepo(fixture);
-    }
-  });
-
   it('uses the persisted source for the delete and undo snapshot', () => {
     const { fixture, service } = makeService();
     const { repo } = fixture;

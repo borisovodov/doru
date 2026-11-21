@@ -704,15 +704,6 @@ export interface RestrictionRecord {
   level: string;
 }
 
-export interface ChangeRecord {
-  id: string;
-  targetType: string;
-  targetId: string;
-  kind: 'created' | 'changed';
-  date?: DateValue | undefined;
-  user?: string | undefined;
-}
-
 /** A named label attached to any target (no color — presentation lives in themes). */
 export interface TagRecord {
   id: string;
@@ -762,7 +753,6 @@ export interface AttachmentsSnapshot {
   identifiers: IdentifierRecord[];
   contacts: ContactRecord[];
   restrictions: RestrictionRecord[];
-  changes: ChangeRecord[];
   tagLinks: Array<{ tagId: string; link: TagLinkRecord }>;
   tasks: TaskRecord[];
   /** Attachments of tasks that would be deleted with this target. */
@@ -783,7 +773,6 @@ export function emptyAttachments(): AttachmentsSnapshot {
     identifiers: [],
     contacts: [],
     restrictions: [],
-    changes: [],
     tagLinks: [],
     tasks: [],
     taskAttachments: [],
@@ -813,21 +802,114 @@ export interface AssociationRecord {
   periodEnd?: DateValue | undefined;
 }
 
+/** The canonical task statuses, in UI order. */
+export const TASK_STATUSES = ['open', 'waiting', 'in-progress', 'closed'] as const;
+
+export type TaskStatus = (typeof TASK_STATUSES)[number];
+
+/**
+ * Vendor spellings mapped onto the canonical statuses. The key is the
+ * lowercased value with spaces, hyphens, and underscores removed, so
+ * `InProgress`, `in-progress`, and `in progress` share one entry. The
+ * GEDCOM corpus uses `Open`, `Completed`, `INPROGRESS`, and `InProgress`.
+ */
+const TASK_STATUS_ALIASES: Readonly<Record<string, TaskStatus>> = {
+  open: 'open',
+  opened: 'open',
+  new: 'open',
+  notstarted: 'open',
+  waiting: 'waiting',
+  pending: 'waiting',
+  onhold: 'waiting',
+  hold: 'waiting',
+  deferred: 'waiting',
+  blocked: 'waiting',
+  inprogress: 'in-progress',
+  progress: 'in-progress',
+  started: 'in-progress',
+  active: 'in-progress',
+  wip: 'in-progress',
+  working: 'in-progress',
+  closed: 'closed',
+  completed: 'closed',
+  complete: 'closed',
+  done: 'closed',
+  finished: 'closed',
+  resolved: 'closed',
+};
+
+/** Map a known vendor spelling to a canonical status; unknown text has no mapping. */
+export function canonicalizeTaskStatus(status: string | undefined): TaskStatus | undefined {
+  if (status === undefined) {
+    return undefined;
+  }
+  const key = status
+    .trim()
+    .toLowerCase()
+    .replace(/[\s_-]+/g, '');
+  return TASK_STATUS_ALIASES[key];
+}
+
+/** Unknown, empty, and missing statuses mean open. */
+export function normalizeTaskStatus(status: string | undefined): TaskStatus {
+  return canonicalizeTaskStatus(status) ?? 'open';
+}
+
+/** The canonical task priorities, in UI order. */
+export const TASK_PRIORITIES = ['low', 'medium', 'high'] as const;
+
+export type TaskPriority = (typeof TASK_PRIORITIES)[number];
+
+/**
+ * Unknown, empty, and missing priorities mean medium. The GEDCOM corpus uses
+ * both words (`HIGH`, `High`, `normal`) and the numeric 1–9 scale, where 1 is
+ * the highest priority and 9 the lowest.
+ */
+export function normalizeTaskPriority(priority: string | undefined): TaskPriority {
+  const trimmed = priority?.trim();
+  if (trimmed === undefined || trimmed === '') {
+    return 'medium';
+  }
+  if (/^\d+$/.test(trimmed)) {
+    const value = Number(trimmed);
+    if (value === 0) {
+      return 'medium';
+    }
+    if (value <= 3) {
+      return 'high';
+    }
+    if (value <= 6) {
+      return 'medium';
+    }
+    return 'low';
+  }
+  const key = trimmed.toLowerCase().replace(/[\s_-]+/g, '');
+  if (key === 'low' || key === 'minor') {
+    return 'low';
+  }
+  if (key === 'high' || key === 'urgent' || key === 'critical') {
+    return 'high';
+  }
+  return 'medium';
+}
+
 /**
  * A task, attached to some entity or free-standing.
  *
- * Dóru deliberately has no direct task-to-repository field or task category:
- * the GEDCOM-L `_TODO` `REPO` and `_CAT` slots are parsed by
- * `@doru/gedcom` but ignored by the import/export boundary. A repository can
- * still be the task's target.
+ * Dóru deliberately has no direct task-to-repository field, task category,
+ * task locality, task title, task type, or task-result text: the GEDCOM
+ * `TODO` `REPO`, `_CAT`, `_LOCL`, `_TTIL`, `TYPE`, and `DATA` slots are parsed
+ * by `@doru/gedcom` but ignored by the import/export boundary. A repository
+ * can still be the task's target.
  */
 export interface TaskRecord {
   id: string;
   text: string;
   targetType?: string | undefined;
   targetId?: string | undefined;
-  locality?: string | undefined;
+  /** Canonical priorities; unknown, empty, and missing values mean medium. */
   priority?: string | undefined;
+  /** Canonical statuses; unknown, empty, and missing values mean open. */
   status?: string | undefined;
   createdDate?: DateValue | undefined;
   scheduledDate?: DateValue | undefined;

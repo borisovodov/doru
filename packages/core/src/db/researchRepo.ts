@@ -14,8 +14,8 @@ export class ResearchRepo {
   insertTask(task: TaskRecord): void {
     this.db
       .prepare(
-        `INSERT INTO task (id, text, target_type, target_id, locality, priority, status)
-         VALUES (?, ?, ?, ?, ?, ?, ?)`,
+        `INSERT INTO task (id, text, target_type, target_id, priority, status)
+         VALUES (?, ?, ?, ?, ?, ?)`,
       )
       .run(...taskParams(task));
     this.replaceTaskDates(task);
@@ -27,7 +27,7 @@ export class ResearchRepo {
     }
     this.db
       .prepare(
-        `UPDATE task SET text = ?, target_type = ?, target_id = ?, locality = ?, priority = ?, status = ?
+        `UPDATE task SET text = ?, target_type = ?, target_id = ?, priority = ?, status = ?
          WHERE id = ?`,
       )
       .run(...taskParams(task).slice(1), task.id);
@@ -75,7 +75,6 @@ export class ResearchRepo {
       text: row.text,
       targetType: row.target_type ?? undefined,
       targetId: row.target_id ?? undefined,
-      locality: row.locality ?? undefined,
       priority: row.priority ?? undefined,
       status: row.status ?? undefined,
       createdDate: dates?.get('created'),
@@ -142,7 +141,6 @@ interface TaskRow {
   text: string;
   target_type: string | null;
   target_id: string | null;
-  locality: string | null;
   priority: string | null;
   status: string | null;
 }
@@ -160,7 +158,7 @@ interface TitleRow {
   sequence: number | null;
 }
 
-const taskSelect = `SELECT id, text, target_type, target_id, locality, priority, status
+const taskSelect = `SELECT id, text, target_type, target_id, priority, status
   FROM task`;
 
 function taskParams(task: TaskRecord): Array<string | number | null> {
@@ -169,7 +167,6 @@ function taskParams(task: TaskRecord): Array<string | number | null> {
     task.text,
     task.targetType ?? null,
     task.targetId ?? null,
-    task.locality ?? null,
     task.priority ?? null,
     task.status ?? null,
   ];

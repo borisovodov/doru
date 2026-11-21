@@ -8,7 +8,6 @@ import { PlaceFactsList } from './PlaceFactsList';
 import { emptyPlaceDraft, mergePlaceDraft, placeDraftToRecord, placeToDraft, type PlaceDraft } from './placeDraft';
 import type { MediaWithPath } from '@doru/ui/domain';
 import {
-  ChangesSection,
   ContactsSection,
   ContributorsSection,
   IdentifiersSection,
@@ -137,7 +136,6 @@ function PlaceTabBody({
     identifiers,
     contacts,
     restrictions,
-    changes,
     submitters,
     contributors,
     refresh: refreshAttachments,
@@ -385,7 +383,6 @@ function PlaceTabBody({
                 onDelete={api.deleteRecordSubmitter}
               />
               <TasksSection targetType="place" targetId={targetId} api={api} />
-              <ChangesSection changes={changes} />
             </>
           )}
         </>

@@ -195,9 +195,6 @@ describe('importGedcomDataset (phase 4)', () => {
       // The shared note keeps its record identity.
       expect(repo.listNotes().find((note) => note.text === 'shared note text')?.xref).toBe('@N1@');
 
-      // Change rows.
-      expect(repo.listChangesFor('person', ivan.id).map((change) => change.kind)).toEqual(['changed']);
-
       // Associations and tasks.
       const maria = persons.find((person) => person.xref === '@I2@')!;
       expect(repo.listAssociationsFor(ivan.id)).toEqual([

@@ -1,8 +1,6 @@
 import { ADOPTION_PHRASE_TAG } from '../gedcomPhraseMarker';
 import type {
   Calendar,
-  ChangeDate,
-  CreationDate,
   DateExact,
   DateExactStructure,
   DateFields,
@@ -43,6 +41,7 @@ import type {
   PedigreeEnum,
 } from '@doru/gedcom';
 import type { TreeRepository } from '../db/repository';
+import { normalizeTaskPriority, normalizeTaskStatus } from '../model/types';
 import type {
   AssociationRecord,
   DateComponent,
@@ -245,7 +244,6 @@ function buildPerson(person: PersonRecord, repo: TreeRepository, xrefs: Xrefs): 
   const restriction = repo
     .listRestrictionsFor('person', person.id)
     .map((entry) => entry.level.toUpperCase()) as ListEnum<RestrictionEnum>;
-  const changes = withChanges(repo, 'person', person.id);
   const submitterLinks = repo.listRecordSubmittersFor('person', person.id);
   const ancestorInterests = submitterLinks
     .filter((link) => link.kind === 'ancestor_interest')
@@ -266,7 +264,6 @@ function buildPerson(person: PersonRecord, repo: TreeRepository, xrefs: Xrefs): 
     ...(sosaNumber !== undefined ? { sosaNumber } : {}),
     ...(sosaDAboville !== undefined ? { sosaDAboville } : {}),
     ...(restriction.length > 0 ? { restriction } : {}),
-    ...changes,
     ...contacts,
     ...(addressRecord !== undefined ? { address: buildAddress(addressRecord, repo, xrefs) } : {}),
     ...withCitationList(repo, 'person', person.id, xrefs),
@@ -580,7 +577,6 @@ function buildFamily(family: FamilyRecord, repo: TreeRepository, xrefs: Xrefs): 
     ...(nonEvents.length > 0 ? { nonEvents } : {}),
     ...(identifiers.length > 0 ? { identifiers } : {}),
     ...(restriction.length > 0 ? { restriction } : {}),
-    ...withChanges(repo, 'family', family.id),
     ...withCitationList(repo, 'family', family.id, xrefs),
     ...withNoteList(repo, 'family', family.id, xrefs),
     ...withMediaLinks(repo, 'family', family.id, xrefs),
@@ -657,7 +653,6 @@ function buildRepository(
       ? { identifiers: withIdentifiers(repo, 'repository', repository.id) }
       : {}),
     ...withContacts(repo, 'repository', repository.id),
-    ...withChanges(repo, 'repository', repository.id),
     ...withNoteList(repo, 'repository', repository.id, xrefs),
     ...withSubmitterLinks(repo, 'repository', repository.id, xrefs),
     ...withTagLinks(repo, 'repository', repository.id, xrefs),
@@ -681,7 +676,6 @@ function buildSubmitter(
       ? { identifiers: withIdentifiers(repo, 'submitter', submitter.id) }
       : {}),
     ...withContacts(repo, 'submitter', submitter.id),
-    ...withChanges(repo, 'submitter', submitter.id),
     ...withNoteList(repo, 'submitter', submitter.id, xrefs),
     ...withSubmitterLinks(repo, 'submitter', submitter.id, xrefs),
   };
@@ -699,7 +693,6 @@ function buildTitle(title: import('../model/types').TitleRecord, repo: TreeRepos
     ...(title.repositoryId !== undefined ? { repository: xrefs.of(title.repositoryId) } : {}),
     ...(title.callNumber !== undefined ? { callNumber: title.callNumber } : {}),
     ...(title.sequence !== undefined ? { sequenceNumber: String(title.sequence) } : {}),
-    ...withChanges(repo, 'title', title.id),
     ...withNoteList(repo, 'title', title.id, xrefs),
   };
 }
@@ -724,16 +717,21 @@ function buildSharedNote(note: NoteRecord, repo: TreeRepository, xrefs: Xrefs): 
     ...(withIdentifiers(repo, 'note', note.id).length > 0
       ? { identifiers: withIdentifiers(repo, 'note', note.id) }
       : {}),
-    ...withChanges(repo, 'note', note.id),
     ...withCitationList(repo, 'note', note.id, xrefs),
     ...withSubmitterLinks(repo, 'note', note.id, xrefs),
     ...withTagLinks(repo, 'note', note.id, xrefs),
   };
 }
 
+/** Both GEDCOM-L `STAT` and Legacy `_TSTS` are text slots, so Waiting survives. */
+function gedcomTaskStatus(status: string | undefined): string {
+  const normalized = normalizeTaskStatus(status);
+  return normalized === 'waiting' ? 'Waiting' : normalized;
+}
+
 function buildGedcomTodoRecord(task: TaskRecord, repo: TreeRepository, xrefs: Xrefs): GedcomRecord {
-  // _TODO.REPO and _TODO._CAT are deliberately not written: Dóru has no
-  // task.repositoryId or task category.
+  // _TODO.REPO, _TODO._CAT, and _TODO._LOCL are deliberately not written:
+  // Dóru has no task repository, category, or locality fields.
   const uids = repo
     .listIdentifiersFor('task', task.id)
     .filter((identifier) => identifier.namespace === 'uid')
@@ -742,13 +740,11 @@ function buildGedcomTodoRecord(task: TaskRecord, repo: TreeRepository, xrefs: Xr
   return {
     tag: '_TODO',
     payload: task.text,
-    ...(task.locality !== undefined ? { locality: task.locality } : {}),
-    ...(task.priority !== undefined ? { priority: task.priority } : {}),
-    ...(task.status !== undefined ? { status: task.status } : {}),
+    priority: normalizeTaskPriority(task.priority),
+    status: gedcomTaskStatus(task.status),
     ...(createdDate !== undefined ? { createdDate } : {}),
     ...(uids.length > 0 ? { uids } : {}),
     ...withNoteList(repo, 'task', task.id, xrefs),
-    ...withChanges(repo, 'task', task.id),
   };
 }
 
@@ -1016,7 +1012,6 @@ function buildMediaRecord(media: MediaRecord, repo: TreeRepository, xrefs: Xrefs
       ? { identifiers: withIdentifiers(repo, 'media', media.id) }
       : {}),
     ...(restriction.length > 0 ? { restriction } : {}),
-    ...withChanges(repo, 'media', media.id),
     ...withCitationList(repo, 'media', media.id, xrefs),
     ...withNoteList(repo, 'media', media.id, xrefs),
     ...withSubmitterLinks(repo, 'media', media.id, xrefs),
@@ -1107,30 +1102,6 @@ function withContacts(
     ...(ofKind('fax').length > 0 ? { fax: ofKind('fax') } : {}),
     ...(ofKind('url').length > 0 ? { url: ofKind('url')[0] } : {}),
     ...(ofKind('www').length > 0 ? { www: ofKind('www') } : {}),
-  };
-}
-
-function withChanges(
-  repo: TreeRepository,
-  targetType: string,
-  targetId: string,
-): { changeDate?: ChangeDate; creationDate?: CreationDate } {
-  const changes = repo.listChangesFor(targetType, targetId);
-  const created = changes.find((change) => change.kind === 'created');
-  const changed = changes.find((change) => change.kind === 'changed');
-  return {
-    ...(changed?.date !== undefined
-      ? {
-          changeDate: {
-            tag: 'CHAN',
-            date: buildDateExactStructure(changed.date),
-            ...(changed.user !== undefined ? { user: changed.user } : {}),
-          },
-        }
-      : {}),
-    ...(created?.date !== undefined
-      ? { creationDate: { tag: 'CREA', date: buildDateExactStructure(created.date) } }
-      : {}),
   };
 }
 
@@ -1278,16 +1249,15 @@ function withGedcomTodoStructures(
   targetType: string,
   targetId: string,
 ): { todos?: Array<import('@doru/gedcom').TodoStructure> } {
-  // _TODO.REPO and _TODO._CAT are deliberately not written: see
-  // buildGedcomTodoRecord.
+  // _TODO.REPO, _TODO._CAT, and _TODO._LOCL are deliberately not written:
+  // see buildGedcomTodoRecord.
   const structures = repo.listTasksFor(targetType, targetId).map((task) => {
     const createdDate = formatGedcomTodoDate(task.createdDate);
     return {
       tag: '_TODO' as const,
       payload: task.text,
-      ...(task.locality !== undefined ? { locality: task.locality } : {}),
-      ...(task.priority !== undefined ? { priority: task.priority } : {}),
-      ...(task.status !== undefined ? { status: task.status } : {}),
+      priority: normalizeTaskPriority(task.priority),
+      status: gedcomTaskStatus(task.status),
       ...(task.scheduledDate !== undefined ? { date: buildDate(task.scheduledDate) } : {}),
       ...(createdDate !== undefined ? { createdDate } : {}),
       ...(task.reminderDate !== undefined ? { reminderDate: buildDate(task.reminderDate) } : {}),
@@ -1389,7 +1359,6 @@ function buildSource(source: SourceRecord, repo: TreeRepository, xrefs: Xrefs): 
       : {}),
     ...withNoteList(repo, 'source', source.id, xrefs),
     ...withMediaLinks(repo, 'source', source.id, xrefs),
-    ...withChanges(repo, 'source', source.id),
     ...withSubmitterLinks(repo, 'source', source.id, xrefs),
     ...withTagLinks(repo, 'source', source.id, xrefs),
   };
@@ -1449,7 +1418,6 @@ function buildDetail(fact: FactRecord, repo: TreeRepository, xrefs: Xrefs): Even
     .filter((identifier) => identifier.namespace === 'uid')
     .map((identifier) => identifier.value);
   const contacts = withContacts(repo, 'fact', fact.id);
-  const changes = withChanges(repo, 'fact', fact.id);
   const flags =
     fact.flags !== undefined && fact.flags.length > 0
       ? fact.flags.map((flag) => CORE_TO_GEDCOM_FACT_FLAG[flag])
@@ -1482,8 +1450,6 @@ function buildDetail(fact: FactRecord, repo: TreeRepository, xrefs: Xrefs): Even
     contacts.phone === undefined &&
     contacts.fax === undefined &&
     contacts.www === undefined &&
-    changes.changeDate === undefined &&
-    changes.creationDate === undefined &&
     fact.sortDate === undefined &&
     fact.agency === undefined &&
     fact.religiousAffiliation === undefined &&
@@ -1541,7 +1507,6 @@ function buildDetail(fact: FactRecord, repo: TreeRepository, xrefs: Xrefs): Even
     ...(restriction.length > 0 ? { restriction } : {}),
     ...(uniqueIds.length > 0 ? { uniqueIds } : {}),
     ...contacts,
-    ...changes,
   };
 }
 
@@ -1635,7 +1600,6 @@ function buildPlace(repo: TreeRepository, placeId: string, xrefs: Xrefs): PlaceS
 
 function buildPlaceRecord(place: PlaceRecord, repo: TreeRepository, xrefs: Xrefs): GedcomPlaceRecord {
   const identifiers = withIdentifiers(repo, 'place', place.id);
-  const changes = withChanges(repo, 'place', place.id);
   const names = [...place.names]
     .sort((a, b) => a.position - b.position)
     .map((name) => ({
@@ -1697,7 +1661,6 @@ function buildPlaceRecord(place: PlaceRecord, repo: TreeRepository, xrefs: Xrefs
     ...(parents.length > 0 ? { parents } : {}),
     ...(postalCodes.length > 0 ? { postalCodes } : {}),
     ...(identifiers.length > 0 ? { identifiers } : {}),
-    ...(changes.changeDate !== undefined ? { changeDate: changes.changeDate } : {}),
     ...(place.verified === true ? { extensions: [{ tag: '_VERI', payload: 'Y', children: [] }] } : {}),
     ...withCitationList(repo, 'place', place.id, xrefs),
     ...withNoteList(repo, 'place', place.id, xrefs),

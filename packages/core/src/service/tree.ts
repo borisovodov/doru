@@ -1,7 +1,6 @@
 import type {
   AddressRecord,
   AssociationRecord,
-  ChangeRecord,
   CitationRecord,
   ContactRecord,
   FactRecord,
@@ -28,7 +27,13 @@ import type {
 } from '../model/types';
 import type { PersonQuery, TreeRepository } from '../db/repository';
 import { partsFromFlat } from '../db/nameRepo';
-import { collectNameIds, collectNamePartIds, isProjectMediaPath } from '../model/types';
+import {
+  collectNameIds,
+  collectNamePartIds,
+  isProjectMediaPath,
+  normalizeTaskPriority,
+  normalizeTaskStatus,
+} from '../model/types';
 import {
   addAddressOp,
   addAliasOp,
@@ -150,8 +155,6 @@ export class TreeService {
   constructor(
     private readonly repo: TreeRepository,
     private readonly queue: OpQueue,
-    /** The local user stamped into change-log rows (the OS account in the desktop app). */
-    private readonly changeUser?: string,
   ) {}
 
   // --- queries -------------------------------------------------------------
@@ -251,9 +254,6 @@ export class TreeService {
     if (pending) {
       try {
         this.repo.transaction(() => {
-          // Record before the inverse mutates the tree: recording afterwards
-          // would leave a change row for a target the inverse just deleted.
-          this.recordChange(pending, 'changed', true);
           pending.inverse({ repo: this.repo });
         });
       } catch (error) {
@@ -283,7 +283,6 @@ export class TreeService {
         for (const snapshot of pending.snapshots ?? []) {
           this.repo.bindSnapshots(snapshot);
         }
-        this.recordChange(pending, 'changed', true);
         pending.apply({ repo: this.repo });
         return true;
       });
@@ -1188,11 +1187,6 @@ export class TreeService {
     return this.apply(updateTagLinkOp(before, after));
   }
 
-  /** The change-log rows of a target (created/changed history). */
-  listChangesFor(targetType: string, targetId: string): ChangeRecord[] {
-    return this.repo.listChangesFor(targetType, targetId);
-  }
-
   // --- registries: repositories, submitters, addresses, fact types, header ------
 
   listRepositories(): RepositoryRecord[] {
@@ -1372,7 +1366,13 @@ export class TreeService {
   }
 
   addTask(task: TaskRecord): UndoRedoState {
-    return this.apply(addTaskOp(task));
+    return this.apply(
+      addTaskOp({
+        ...task,
+        priority: normalizeTaskPriority(task.priority),
+        status: normalizeTaskStatus(task.status),
+      }),
+    );
   }
 
   listTasks(): TaskRecord[] {
@@ -1888,10 +1888,9 @@ export class TreeService {
   }
 
   private apply(op: Op): UndoRedoState {
-    // The change-log row and the mutation must commit together; the op joins
-    // the undo stack only after COMMIT so a failed write leaves no history.
+    // The mutation and the undo entry must commit together; the op joins the
+    // undo stack only after COMMIT so a failed write leaves no phantom entry.
     this.repo.transaction(() => {
-      this.recordChange(op, op.change?.kind ?? 'changed');
       op.apply({ repo: this.repo });
     });
     this.queue.push(op);
@@ -1910,45 +1909,12 @@ export class TreeService {
       if (op === undefined) {
         return;
       }
-      this.recordChange(op, op.change?.kind ?? 'changed');
       op.apply({ repo: this.repo });
     });
     if (op !== undefined) {
       this.queue.push(op);
     }
     return this.historyState();
-  }
-
-  /**
-   * Records the change-log row for an op on the entity it touches. Runs
-   * before the mutation; the row disappears with the entity when the op
-   * deletes it and is restored from the op's attachment snapshot on undo.
-   */
-  private recordChange(op: Op, kind: 'created' | 'changed', replay = false): void {
-    if (!op.change) {
-      return;
-    }
-    const now = new Date();
-    const id = crypto.randomUUID();
-    this.repo.insertChange({
-      id,
-      targetType: op.change.targetType,
-      targetId: op.change.targetId,
-      kind,
-      user: this.changeUser,
-      date: {
-        quality: 'exact',
-        component: {
-          year: now.getFullYear(),
-          month: now.getMonth() + 1,
-          day: now.getDate(),
-        },
-        time: { hour: now.getHours(), minute: now.getMinutes(), second: now.getSeconds() },
-      },
-    });
-    if (replay) {
-      this.repo.markReplayChange(id);
-    }
   }
 
   private historyState(): UndoRedoState {

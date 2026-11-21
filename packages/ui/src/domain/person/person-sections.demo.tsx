@@ -1,6 +1,4 @@
 import type { Demo, DemoMeta } from '../../../gallery/types';
-import type { ChangeRecord } from '@doru/core';
-import { ChangesSection } from './ChangesSection';
 import { MediaSection } from './MediaSection';
 
 const meta = {
@@ -9,28 +7,6 @@ const meta = {
 
 export default meta;
 type DemoCase = Demo;
-
-const changes: ChangeRecord[] = [
-  {
-    id: 'C1',
-    kind: 'created',
-    targetType: 'person',
-    targetId: 'P1',
-    date: { quality: 'exact', component: { year: 2024 } },
-    user: 'Ivan',
-  },
-  {
-    id: 'C2',
-    kind: 'changed',
-    targetType: 'person',
-    targetId: 'P1',
-    date: { quality: 'exact', component: { year: 2025 } },
-  },
-];
-
-export const ChangeLog: DemoCase = {
-  render: () => <ChangesSection changes={changes} />,
-};
 
 export const Media: DemoCase = {
   render: () => (

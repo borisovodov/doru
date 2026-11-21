@@ -25,6 +25,7 @@ const association = (overrides: Partial<AssociationRecord> = {}): AssociationRec
 const task = (overrides: Partial<TaskRecord> = {}): TaskRecord => ({
   id: 'T1',
   text: 'Order the birth record',
+  priority: 'medium',
   status: 'open',
   ...overrides,
 });
@@ -72,6 +73,16 @@ describe('TreeService research layer', () => {
 
       service.undo();
       expect(fixture.repo.listAliasesFor('P1')).toHaveLength(1);
+    } finally {
+      cleanupRepo(fixture);
+    }
+  });
+
+  it('stores explicit open and medium defaults when a new task has neither', () => {
+    const { fixture, service } = makeService();
+    try {
+      service.addTask({ id: 'T1', text: 'Task' });
+      expect(fixture.repo.getTask('T1')).toMatchObject({ status: 'open', priority: 'medium' });
     } finally {
       cleanupRepo(fixture);
     }

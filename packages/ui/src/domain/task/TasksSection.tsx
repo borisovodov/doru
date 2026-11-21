@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { X } from 'lucide-react';
 import type { TaskRecord } from '@doru/core';
+import { normalizeTaskPriority, normalizeTaskStatus } from '@doru/core/model';
 import { Button } from '../../atoms/button/Button';
 import { Chip } from '../../atoms/display/Chip';
 import { EmptyText } from '../../atoms/feedback/EmptyText';
@@ -57,7 +58,14 @@ export function TasksSection({
     if (text === '') {
       return;
     }
-    await api.addTask({ id: crypto.randomUUID(), text, targetType, targetId });
+    await api.addTask({
+      id: crypto.randomUUID(),
+      text,
+      targetType,
+      targetId,
+      status: 'open',
+      priority: 'medium',
+    });
     setDraft('');
     await reload();
   };
@@ -67,7 +75,9 @@ export function TasksSection({
     await reload();
   };
 
-  const sorted = [...tasks].sort((a, b) => Number(a.status === 'closed') - Number(b.status === 'closed'));
+  const sorted = [...tasks].sort(
+    (a, b) => Number(normalizeTaskStatus(a.status) === 'closed') - Number(normalizeTaskStatus(b.status) === 'closed'),
+  );
 
   return (
     <SectionCard title={nls.t('features.tasks.title')}>
@@ -88,7 +98,7 @@ export function TasksSection({
                 </span>
                 <span className="tasks-section-meta">
                   <Chip variant="neutral">{statusLabel(task.status)}</Chip>
-                  {task.priority !== undefined && <Chip variant="neutral">{priorityLabel(task.priority)}</Chip>}
+                  <Chip variant="neutral">{priorityLabel(task.priority)}</Chip>
                   {task.scheduledDate !== undefined && <Chip variant="neutral">{formatDate(task.scheduledDate)}</Chip>}
                 </span>
               </button>
@@ -122,24 +132,26 @@ export function TasksSection({
 }
 
 function statusLabel(status: string | undefined): string {
-  if (status === 'closed') {
+  const canonical = normalizeTaskStatus(status);
+  if (canonical === 'closed') {
     return nls.t('features.tasks.statusClosed');
   }
-  if (status === 'in-progress') {
+  if (canonical === 'waiting') {
+    return nls.t('features.tasks.statusWaiting');
+  }
+  if (canonical === 'in-progress') {
     return nls.t('features.tasks.statusInProgress');
   }
   return nls.t('features.tasks.statusOpen');
 }
 
-function priorityLabel(priority: string): string {
-  if (priority === 'low') {
+function priorityLabel(priority: string | undefined): string {
+  const canonical = normalizeTaskPriority(priority);
+  if (canonical === 'low') {
     return nls.t('features.tasks.priorityLow');
   }
-  if (priority === 'medium') {
-    return nls.t('features.tasks.priorityMedium');
-  }
-  if (priority === 'high') {
+  if (canonical === 'high') {
     return nls.t('features.tasks.priorityHigh');
   }
-  return priority;
+  return nls.t('features.tasks.priorityMedium');
 }

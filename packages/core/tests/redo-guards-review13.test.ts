@@ -385,24 +385,6 @@ describe('redo guards for nested attachment targets', () => {
     }
   });
 
-  it('blocks place redo when a nested row gained a change record', () => {
-    const { fixture, service } = makeService();
-    const { repo } = fixture;
-    try {
-      service.addPlace({
-        id: 'PL1',
-        names: [{ id: 'PN1', kind: 'official', position: 0, value: 'Moscow' }],
-      });
-      repo.insertNote({ id: 'N1', text: 'note', targetType: 'place_name', targetId: 'PN1' });
-      service.deletePlace(repo.getPlace('PL1')!);
-      service.undo();
-      repo.insertChange({ id: 'CH1', targetType: 'note', targetId: 'N1', kind: 'changed' });
-      expect(service.redo().redoBlocked).toBe(true);
-    } finally {
-      cleanupRepo(fixture);
-    }
-  });
-
   it('blocks alias redo when the same pair already exists under another id', () => {
     const { fixture, service } = makeService();
     const { repo } = fixture;
@@ -466,20 +448,6 @@ describe('redo guards for nested attachment targets', () => {
       expect(service.redo().redoBlocked).toBeUndefined();
       expect(repo.getPlace('PL1')).toBeUndefined();
       expect(repo.getFact('F1')?.placeId).toBe('PL2');
-    } finally {
-      cleanupRepo(fixture);
-    }
-  });
-
-  it('blocks place redo when a newer change row was recorded after undo', () => {
-    const { fixture, service } = makeService();
-    const { repo } = fixture;
-    try {
-      service.addPlace({ id: 'PL1', names: [{ id: 'PN1', kind: 'official', position: 0, value: 'A' }] });
-      service.deletePlace(repo.getPlace('PL1')!);
-      service.undo();
-      repo.insertChange({ id: 'CH1', targetType: 'place', targetId: 'PL1', kind: 'changed' });
-      expect(service.redo().redoBlocked).toBe(true);
     } finally {
       cleanupRepo(fixture);
     }

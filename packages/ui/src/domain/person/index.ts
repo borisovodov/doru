@@ -1,6 +1,5 @@
 export * from './draft';
 export * from './associationDraft';
-export { ChangesSection } from './ChangesSection';
 export { MediaSection } from './MediaSection';
 export { AliasesSection } from './AliasesSection';
 export { AssociationsSection } from './AssociationsSection';

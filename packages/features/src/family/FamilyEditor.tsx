@@ -545,7 +545,6 @@ export function FamilyEditor({
               'restrictions',
               'contributors',
               'tasks',
-              'changes',
             ]}
             renderCitationAttachments={(citation) => (
               <CitationAttachments citation={citation} api={api} sources={sources} onOpenSource={onOpenSource} />

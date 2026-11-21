@@ -1,7 +1,6 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import type { CitationRecord, SourceRecord } from '@doru/core';
 import {
-  ChangesSection,
   ContactsSection,
   ContributorsSection,
   IdentifiersSection,
@@ -25,8 +24,7 @@ export type AttachmentSection =
   | 'contacts'
   | 'restrictions'
   | 'contributors'
-  | 'tasks'
-  | 'changes';
+  | 'tasks';
 
 export type AttachmentsPanelApi = AttachmentsApi & ContributorApi;
 
@@ -40,7 +38,6 @@ const ALL_SECTIONS: readonly AttachmentSection[] = [
   'restrictions',
   'contributors',
   'tasks',
-  'changes',
 ];
 
 /**
@@ -76,7 +73,6 @@ export function AttachmentsPanel({
     identifiers,
     contacts,
     restrictions,
-    changes,
     submitters,
     contributors,
     refresh,
@@ -248,7 +244,6 @@ export function AttachmentsPanel({
         />
       )}
       {include.has('tasks') && <TasksSection targetType={targetType} targetId={targetId} api={api} />}
-      {include.has('changes') && <ChangesSection changes={changes} />}
     </>
   );
 }

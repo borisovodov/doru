@@ -14,7 +14,6 @@ export type DateOwnerType =
   | 'source_data_event'
   | 'citation'
   | 'media'
-  | 'change_log'
   | 'tag_link'
   | 'task'
   | 'association';

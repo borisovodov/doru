@@ -176,8 +176,6 @@ const api = {
     ipcRenderer.invoke('tree:updateTask', { projectPath, before, after }),
   deleteTask: (projectPath: string, task: unknown): Promise<unknown> =>
     ipcRenderer.invoke('tree:deleteTask', { projectPath, task }),
-  getChanges: (projectPath: string, targetType: string, targetId: string): Promise<unknown> =>
-    ipcRenderer.invoke('tree:changes', { projectPath, targetType, targetId }),
   getSources: (projectPath: string): Promise<unknown> => ipcRenderer.invoke('tree:sources', { projectPath }),
   addSource: (projectPath: string, source: unknown, targetType?: string, targetId?: string): Promise<unknown> =>
     ipcRenderer.invoke('tree:addSource', { projectPath, source, targetType, targetId }),

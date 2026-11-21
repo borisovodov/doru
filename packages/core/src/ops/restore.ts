@@ -304,13 +304,6 @@ export function attachmentsMatch(
     identifiers: snapshot.identifiers.map((entry) => JSON.stringify(entry)).sort(),
     contacts: snapshot.contacts.map((entry) => JSON.stringify(entry)).sort(),
     restrictions: snapshot.restrictions.map((entry) => JSON.stringify(entry)).sort(),
-    // Undo/redo record a change row on the replayed target itself; that
-    // bookkeeping must not block an otherwise unchanged redo. Every other
-    // change row is a real edit that the redo would delete.
-    changes: snapshot.changes
-      .filter((change) => !ctx.repo.isReplayChange(change.id))
-      .map((entry) => JSON.stringify(entry))
-      .sort(),
     tagLinks: snapshot.tagLinks.map((entry) => JSON.stringify(entry.link)).sort(),
     tasks: snapshot.tasks.map((entry) => JSON.stringify(entry)).sort(),
     recordSubmitters: snapshot.recordSubmitters.map((entry) => JSON.stringify(entry)).sort(),

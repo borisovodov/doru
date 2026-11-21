@@ -16,7 +16,6 @@ import type { MediaTargetApi, SourceEditorApi } from '../person/types';
 import { SourceEditor } from './SourceEditor';
 import type { MediaWithPath } from '@doru/ui/domain';
 import {
-  ChangesSection,
   ContactsSection,
   ContributorsSection,
   IdentifiersSection,
@@ -165,7 +164,6 @@ function SourceTabBody({
     identifiers,
     contacts,
     restrictions,
-    changes,
     submitters,
     contributors,
     refresh: refreshAttachments,
@@ -467,7 +465,6 @@ function SourceTabBody({
                 onDelete={api.deleteRecordSubmitter}
               />
               <TasksSection targetType="source" targetId={targetId} api={api} />
-              <ChangesSection changes={changes} />
             </>
           )}
         </>

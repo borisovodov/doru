@@ -42,7 +42,6 @@ function attachmentsStub(overrides: Partial<AttachmentsPanelApi> = {}): Attachme
     getIdentifiers: async () => [],
     getContacts: async () => [],
     getRestrictions: async () => [],
-    getChanges: async () => [],
     getSubmitters: async () => [],
     getRecordSubmitters: async () => [],
     getMediaFor: async () => [],

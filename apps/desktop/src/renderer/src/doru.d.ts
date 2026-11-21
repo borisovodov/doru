@@ -1,7 +1,6 @@
 import type {
   AddressRecord,
   AssociationRecord,
-  ChangeRecord,
   CitationRecord,
   ContactRecord,
   FactRecord,
@@ -166,7 +165,6 @@ declare global {
       addTask(projectPath: string, task: TaskRecord): Promise<UndoRedoState>;
       updateTask(projectPath: string, before: TaskRecord, after: TaskRecord): Promise<UndoRedoState>;
       deleteTask(projectPath: string, task: TaskRecord): Promise<UndoRedoState>;
-      getChanges(projectPath: string, targetType: string, targetId: string): Promise<ChangeRecord[]>;
       getSources(projectPath: string): Promise<SourceRecord[]>;
       addSource(
         projectPath: string,

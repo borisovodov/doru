@@ -392,14 +392,6 @@ export function registerTreeIpc(): void {
     },
   );
 
-  ipcMain.handle(
-    'tree:changes',
-    async (_event, options: { projectPath: string; targetType: string; targetId: string }) => {
-      const { runtime } = await ensureRuntime(options.projectPath);
-      return runtime.service.listChangesFor(options.targetType, options.targetId);
-    },
-  );
-
   ipcMain.handle('tree:sources', async (_event, options: { projectPath: string }) => {
     const { runtime } = await ensureRuntime(options.projectPath);
     return runtime.service.listSources();

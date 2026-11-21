@@ -4,25 +4,6 @@ import { OpQueue } from '../src/ops/op';
 import { cleanupRepo, makeRepo } from './helpers';
 
 describe('db cleanup paths', () => {
-  it('deletes change rows with their dates through the cascade', () => {
-    const fixture = makeRepo();
-    try {
-      const { repo } = fixture;
-      repo.insertChange({
-        id: 'CH1',
-        targetType: 'person',
-        targetId: 'P1',
-        kind: 'created',
-        date: { quality: 'exact', component: { year: 2026, month: 1, day: 2 } },
-      });
-      expect(repo.listChangesFor('person', 'P1')).toHaveLength(1);
-      repo.deleteAttachmentsFor('person', 'P1');
-      expect(repo.listChangesFor('person', 'P1')).toEqual([]);
-    } finally {
-      cleanupRepo(fixture);
-    }
-  });
-
   it('restores file evidence for a snapshot captured outside a transaction', () => {
     const fixture = makeRepo();
     try {

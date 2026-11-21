@@ -3,7 +3,6 @@ import type {
   AddressRecord,
   AssociationRecord,
   AttachmentsSnapshot,
-  ChangeRecord,
   CitationRecord,
   ContactRecord,
   DateValue,
@@ -202,11 +201,6 @@ export interface TreeRepository {
   deleteIdentifier(id: string): boolean;
   updateIdentifier(identifier: IdentifierRecord): void;
   listIdentifiersFor(targetType: string, targetId: string): IdentifierRecord[];
-  insertChange(change: ChangeRecord): void;
-  listChangesFor(targetType: string, targetId: string): ChangeRecord[];
-  /** Marks a change row written by an undo/redo replay, not by a user edit. */
-  markReplayChange(id: string): void;
-  isReplayChange(id: string): boolean;
   insertContact(contact: ContactRecord): void;
   deleteContact(id: string): boolean;
   updateContact(contact: ContactRecord): void;
@@ -272,7 +266,6 @@ export interface TreeRepository {
 export class SqliteTreeRepository implements TreeRepository {
   private readonly transactions: TransactionScope;
   private readonly snapshotMarkers = new WeakMap<object, Set<string>>();
-  private readonly replayChangeIds = new Set<string>();
   private readonly transactionFrames: Set<string>[] = [];
   private readonly restoreScopes: Set<AttachmentsSnapshot>[] = [];
   private readonly persons: PersonRepo;
@@ -1028,22 +1021,6 @@ export class SqliteTreeRepository implements TreeRepository {
     return this.attachments.listIdentifiersFor(targetType, targetId);
   }
 
-  insertChange(change: ChangeRecord): void {
-    this.attachments.insertChange(change);
-  }
-
-  listChangesFor(targetType: string, targetId: string): ChangeRecord[] {
-    return this.attachments.listChangesFor(targetType, targetId);
-  }
-
-  markReplayChange(id: string): void {
-    this.replayChangeIds.add(id);
-  }
-
-  isReplayChange(id: string): boolean {
-    return this.replayChangeIds.has(id);
-  }
-
   insertContact(contact: ContactRecord): void {
     this.attachments.insertContact(contact);
   }
@@ -1288,7 +1265,6 @@ export class SqliteTreeRepository implements TreeRepository {
       identifiers: this.attachments.listIdentifiersFor(targetType, targetId),
       contacts: this.attachments.listContactsFor(targetType, targetId),
       restrictions: this.attachments.listRestrictionsFor(targetType, targetId),
-      changes: this.attachments.listChangesFor(targetType, targetId),
       tagLinks: this.attachments.listTagLinksFor(targetType, targetId),
       tasks,
       taskAttachments: tasks.map((task) => ({
@@ -1485,18 +1461,6 @@ export class SqliteTreeRepository implements TreeRepository {
       if (!restrictionIds.has(restriction.id)) {
         this.attachments.insertRestriction(restriction);
         restrictionIds.add(restriction.id);
-      }
-    }
-    const changeIds = new Set(
-      [...new Set(snapshot.changes.map((entry) => `${entry.targetType}:${entry.targetId}`))].flatMap((key) => {
-        const [targetType, targetId] = key.split(':');
-        return this.attachments.listChangesFor(targetType as string, targetId as string).map((entry) => entry.id);
-      }),
-    );
-    for (const change of snapshot.changes) {
-      if (!changeIds.has(change.id)) {
-        this.attachments.insertChange(change);
-        changeIds.add(change.id);
       }
     }
     const tags = new Set(this.listTags().map((tag) => tag.id));

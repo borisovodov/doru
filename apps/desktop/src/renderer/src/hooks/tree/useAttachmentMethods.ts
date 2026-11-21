@@ -1,7 +1,6 @@
 import { useMemo } from 'react';
 import type {
   CitationRecord,
-  ChangeRecord,
   ContactRecord,
   IdentifierRecord,
   NoteLinkRecord,
@@ -187,8 +186,6 @@ export function useAttachmentMethods(
         await window.doru.updateTagLink(projectPath, before, after);
         await refreshTree();
       },
-      getChanges: (targetType: string, targetId: string) =>
-        projectPath ? window.doru.getChanges(projectPath, targetType, targetId) : Promise.resolve([] as ChangeRecord[]),
       getSubmitters: () =>
         projectPath ? window.doru.getSubmitters(projectPath) : Promise.resolve([] as SubmitterRecord[]),
       getRecordSubmitters: (targetType: string, targetId: string): Promise<RecordSubmitterLink[]> =>

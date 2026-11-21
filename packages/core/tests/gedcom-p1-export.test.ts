@@ -31,13 +31,6 @@ describe('P1 GEDCOM export gaps', () => {
         type: 'register',
         value: 'PLACE-1',
       });
-      repo.insertChange({
-        id: 'PC1',
-        targetType: 'place',
-        targetId: 'PL1',
-        kind: 'changed',
-        date: { quality: 'exact', component: { year: 2020 } },
-      });
       repo.insertPerson({
         id: 'P1',
         names: [{ id: 'N1', given: 'Ivan' }],
@@ -79,6 +72,7 @@ describe('P1 GEDCOM export gaps', () => {
       repo.insertTask({
         id: 'T1',
         text: 'Free task',
+        status: 'waiting',
         createdDate: { quality: 'exact', component: { year: 2026, month: 11, day: 17 } },
       });
       repo.insertTask({
@@ -86,6 +80,7 @@ describe('P1 GEDCOM export gaps', () => {
         text: 'Attached task',
         targetType: 'person',
         targetId: 'P1',
+        status: 'waiting',
         createdDate: { quality: 'exact', component: { year: 2026, month: 11, day: 18 } },
       });
 
@@ -108,13 +103,14 @@ describe('P1 GEDCOM export gaps', () => {
         expect(text).toContain('__PRIVATE Private');
         expect(text).toContain('1 _QUAY 2');
         if (hasPlaceCards) {
-          // 5.5.1 has no place-card record: the identifiers and CHAN have
-          // no slot and only the 7.0 `_PLAC` record can carry them.
+          // 5.5.1 has no place-card record: the identifiers have no slot and
+          // only the 7.0 `_PLAC` record can carry them.
           expect(text).toContain('1 REFN PLACE-1');
-          expect(text).toContain('1 CHAN');
         }
         expect(text).toContain('_TCDT 2026-11-17');
         expect(text).toContain('_TCDT 2026-11-18');
+        expect(text).toContain('_TSTS Waiting');
+        expect(text).toContain('STAT Waiting');
 
         const target = makeRepo();
         try {
@@ -156,7 +152,6 @@ describe('P1 GEDCOM export gaps', () => {
             expect(target.repo.listIdentifiersFor('place', place.id)).toEqual(
               expect.arrayContaining([expect.objectContaining({ namespace: 'refn', value: 'PLACE-1' })]),
             );
-            expect(target.repo.listChangesFor('place', place.id).some((entry) => entry.kind === 'changed')).toBe(true);
           }
 
           const tasks = target.repo.listTasks();

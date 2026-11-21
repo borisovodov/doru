@@ -346,8 +346,6 @@ export function usePersonEditorApi(
         await window.doru.deleteTag(projectPath, tag);
         await refreshTree();
       },
-      getChanges: (targetType, targetId) =>
-        projectPath ? window.doru.getChanges(projectPath, targetType, targetId) : Promise.resolve([]),
       getPlaces: () => (projectPath ? window.doru.getPlaces(projectPath) : Promise.resolve([])),
       getAddresses: () => (projectPath ? window.doru.listAddresses(projectPath) : Promise.resolve([])),
       addAddress: async (address) => {

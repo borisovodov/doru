@@ -14,6 +14,7 @@ import type {
   TitleRecord,
   TaskRecord,
 } from '@doru/core';
+import { normalizeTaskPriority, normalizeTaskStatus } from '@doru/core/model';
 import { formatDate } from '../format/format';
 import { Chip } from '../../atoms/display/Chip';
 import { cx } from '../../lib/cx';
@@ -98,7 +99,7 @@ export function TasksView({
     tasks,
   };
   const targetLabel = createTaskTargetLabeler(targetData);
-  const isClosed = (task: TaskRecord) => task.status === 'closed';
+  const isClosed = (task: TaskRecord) => normalizeTaskStatus(task.status) === 'closed';
   const sorted = [...tasks].sort((a, b) => Number(isClosed(a)) - Number(isClosed(b)));
 
   const target = (task: TaskRecord): { label: string; open: (() => void) | undefined } | undefined => {
@@ -206,17 +207,7 @@ export function TasksView({
                   >
                     <span className={cx(styles['taskRowText'], isClosed(task) && styles['closed'])}>{task.text}</span>
                     <span className={styles['taskRowMeta']}>
-                      {task.priority !== undefined && (
-                        <Chip variant="neutral">
-                          {task.priority === 'low'
-                            ? nls.t('features.tasks.priorityLow')
-                            : task.priority === 'medium'
-                              ? nls.t('features.tasks.priorityMedium')
-                              : task.priority === 'high'
-                                ? nls.t('features.tasks.priorityHigh')
-                                : task.priority}
-                        </Chip>
-                      )}
+                      <Chip variant="neutral">{priorityLabel(task.priority)}</Chip>
                       {task.scheduledDate !== undefined && (
                         <Chip variant="neutral">{formatDate(task.scheduledDate)}</Chip>
                       )}
@@ -243,6 +234,17 @@ export function TasksView({
       )}
     </div>
   );
+}
+
+function priorityLabel(priority: string | undefined): string {
+  const canonical = normalizeTaskPriority(priority);
+  if (canonical === 'low') {
+    return nls.t('features.tasks.priorityLow');
+  }
+  if (canonical === 'high') {
+    return nls.t('features.tasks.priorityHigh');
+  }
+  return nls.t('features.tasks.priorityMedium');
 }
 
 function hasName(person: PersonRecord, nameId: string): boolean {

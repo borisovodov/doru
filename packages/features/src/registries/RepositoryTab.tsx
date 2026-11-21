@@ -10,7 +10,6 @@ import type { MediaTargetApi, RegistriesEditorApi } from '../person/types';
 import type { MediaWithPath } from '@doru/ui/domain';
 import {
   AddressLinkField,
-  ChangesSection,
   ContactsSection,
   ContributorsSection,
   IdentifiersSection,
@@ -133,7 +132,6 @@ function RepositoryTabBody({
     identifiers,
     contacts,
     restrictions,
-    changes,
     submitters,
     contributors,
     refresh: refreshAttachments,
@@ -395,7 +393,6 @@ function RepositoryTabBody({
             onDelete={api.deleteRecordSubmitter}
           />
           <TasksSection targetType="repository" targetId={targetId} api={api} />
-          <ChangesSection changes={changes} />
         </>
       )}
     </EntityTab>

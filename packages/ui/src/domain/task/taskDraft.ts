@@ -1,12 +1,12 @@
-import type { TaskRecord } from '@doru/core';
+import type { TaskPriority, TaskRecord, TaskStatus } from '@doru/core';
+import { normalizeTaskPriority, normalizeTaskStatus } from '@doru/core/model';
 import { emptyDate, fromDateDraft, toDateDraft, type DateDraft } from '../person/draft';
 
-/** The editable form of a task; `''` means "not set". */
+/** The editable form of a task; empty strings mean "not set". */
 export interface TaskDraft {
   text: string;
-  locality: string;
-  priority: string;
-  status: string;
+  priority: TaskPriority;
+  status: TaskStatus;
   created: DateDraft;
   scheduled: DateDraft;
   reminder: DateDraft;
@@ -18,9 +18,8 @@ export interface TaskDraft {
 export function emptyTaskDraft(): TaskDraft {
   return {
     text: '',
-    locality: '',
-    priority: '',
-    status: '',
+    priority: 'medium',
+    status: 'open',
     created: emptyDate(),
     scheduled: emptyDate(),
     reminder: emptyDate(),
@@ -33,9 +32,8 @@ export function emptyTaskDraft(): TaskDraft {
 export function taskToDraft(task: TaskRecord): TaskDraft {
   return {
     text: task.text,
-    locality: task.locality ?? '',
-    priority: task.priority ?? '',
-    status: task.status ?? '',
+    priority: normalizeTaskPriority(task.priority),
+    status: normalizeTaskStatus(task.status),
     created: toDateDraft(task.createdDate),
     scheduled: toDateDraft(task.scheduledDate),
     reminder: toDateDraft(task.reminderDate),
@@ -48,9 +46,8 @@ export function taskToDraft(task: TaskRecord): TaskDraft {
 export function taskDraftToRecord(task: TaskRecord, draft: TaskDraft): TaskRecord {
   const next: TaskRecord = { ...task };
   next.text = draft.text.trim();
-  next.locality = draft.locality.trim() || undefined;
-  next.priority = draft.priority || undefined;
-  next.status = draft.status || undefined;
+  next.priority = normalizeTaskPriority(draft.priority);
+  next.status = normalizeTaskStatus(draft.status);
   next.createdDate = fromDateDraft(draft.created, task.createdDate);
   next.scheduledDate = fromDateDraft(draft.scheduled, task.scheduledDate);
   next.reminderDate = fromDateDraft(draft.reminder, task.reminderDate);
