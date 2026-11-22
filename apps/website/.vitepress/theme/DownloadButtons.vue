@@ -2,7 +2,7 @@
 import { onMounted, ref } from 'vue';
 import { useData } from 'vitepress';
 
-const { lang } = useData();
+const { lang, localeIndex } = useData();
 
 // The hero button names the visitor's operating system and jumps straight to
 // the matching section of the installation guide. The OS is detected in the
@@ -121,7 +121,8 @@ function label(): string {
 }
 
 function href(): string {
-  return os.value ? `/docs/installation#${ANCHORS[os.value]}` : '/docs/installation';
+  const prefix = localeIndex.value === 'root' ? '' : `/${localeIndex.value}`;
+  return os.value ? `${prefix}/docs/installation#${ANCHORS[os.value]}` : `${prefix}/docs/installation`;
 }
 </script>
 

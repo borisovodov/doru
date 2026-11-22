@@ -1,4 +1,5 @@
 ---
+source-hash: afdcd6785cee
 layout: home
 
 hero:
@@ -33,5 +34,5 @@ features:
 ---
 
 <div class="doru-read-docs">
-  <a href="/docs/">閱讀文件 →</a>
+  <a href="/zh-tw/docs/">閱讀文件 →</a>
 </div>

@@ -38,7 +38,7 @@ npm run e2e         # Playwright smoke test against the built app
 ## Repository layout
 
 - `apps/desktop` — Electron shell: main process, preload, renderer bootstrap
-- `apps/website` — VitePress site (landing + synced user guide)
+- `apps/website` — VitePress site (landing + user guide)
 - `packages/platform` — base services: DI, commands, events, config, theming,
   localization (nls)
 - `packages/core` — genealogy domain: GEDCOM, ops, SQLite tree store, project
@@ -48,14 +48,35 @@ npm run e2e         # Playwright smoke test against the built app
 - `packages/features` — domain UI
 - `packages/ai` — agent layer: connectors, tools
 
-Note: `apps/website/docs/` and `apps/website/public/icon.png` are generated
-from `docs/guide/` and the app icon by the sync script (part of
-`npm run site:build`) — edit the sources, not the generated files.
+Note: `apps/website/public/icon.png` is generated from the app icon by the
+sync script (part of `npm run site:build`) — edit the icon source, not the
+generated file.
 
 Note: `apps/desktop/build` holds the app icons — the Icon Composer project
 `Icon.icon` plus the generated `icon.icns` (DMG volume icon) and
 `icon-dev.png` (macOS dev dock icon). After editing `Icon.icon`, regenerate
 and commit both with `npm run icon:mac -w @doru/desktop` (macOS, Xcode 26+).
+
+## Documentation translations
+
+The English user guide lives in `apps/website/docs/`; translations live in
+`apps/website/<locale>/docs/`, mirroring the English filenames. The landing
+pages are `apps/website/<locale>/index.md`.
+
+- Translate headings, prose, tables and link labels. Keep code, commands,
+  paths, filenames, MCP tool names, product names and relative link targets
+  unchanged.
+- Keep the stable installation anchors `{#macos}`, `{#linux}` and
+  `{#windows-experimental}`.
+- Every translated page and landing page carries a `source-hash` in its
+  frontmatter. After updating a translation, stamp the current English source:
+  `npm run stamp:site-i18n -- <locale> <page>` (for example,
+  `npm run stamp:site-i18n -- ru installation.md`). Omit the page only after
+  reviewing the whole locale.
+- `npm run check:site-i18n` is a blocking CI check: it verifies that every
+  locale has the full page set, that none are extra, and that every
+  `source-hash` matches the current English source. Run it with `--report`
+  while a translation set is still being assembled.
 
 ## Troubleshooting
 

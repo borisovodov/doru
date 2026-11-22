@@ -162,6 +162,11 @@ non-goals: [docs/decisions.md](docs/decisions.md).
   (`npm run build` first, then `npm run e2e`).
 - Localization guard: `npm run check:nls` (runs in CI). Fails on incomplete
   locale bundles or hardcoded user-facing UI strings.
+- Documentation translations: `npm run check:site-i18n` (runs in CI). English
+  user docs live in `apps/website/docs/`; translations mirror them under
+  `apps/website/<locale>/docs/`. After updating a translation, run
+  `npm run stamp:site-i18n -- <locale> <page>` to record the current English
+  source hash; stale hashes fail CI.
 - Schema guard: `npm run check:schemas` (runs in CI). Changing the settings or
   theme zod schema in `apps/desktop/src/main/schemas.ts` requires regenerating
   the published schemas first: `node scripts/generate-schemas.ts` — the

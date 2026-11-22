@@ -10,7 +10,6 @@ coverage/
 playwright-report/
 test-results/
 *.tsbuildinfo
-apps/website/docs/
 apps/website/public/icon.png
 apps/website/.vitepress/cache/
 apps/website/.vitepress/dist/

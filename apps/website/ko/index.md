@@ -1,4 +1,5 @@
 ---
+source-hash: afdcd6785cee
 layout: home
 
 hero:
@@ -33,5 +34,5 @@ features:
 ---
 
 <div class="doru-read-docs">
-  <a href="/docs/">문서 읽기 →</a>
+  <a href="/ko/docs/">문서 읽기 →</a>
 </div>

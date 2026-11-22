@@ -22,7 +22,6 @@
     "**/playwright-report/**",
     "**/test-results/**",
     "**/corpus-run/**",
-    "apps/website/docs/**",
     "apps/desktop/build/llama/**",
     "apps/desktop/build/Icon.icon/**",
     "packages/features/src/notices/generated.ts"

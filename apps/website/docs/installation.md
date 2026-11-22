@@ -2,7 +2,7 @@
 
 Dóru is installed from your platform's app store or package manager.
 
-## macOS
+## macOS {#macos}
 
 Dóru on macOS is distributed through **Homebrew**, a package manager that
 installs and updates applications for you. If you don't have Homebrew yet,
@@ -28,7 +28,7 @@ brew install --cask doru
 Dóru now appears in your Applications. To update it later, run
 `brew upgrade --cask doru` in Terminal from time to time.
 
-## Linux
+## Linux {#linux}
 
 Dóru on Linux runs on x86-64 and arm64 machines. It requires
 **Ubuntu 22.04 LTS** or later, or **Fedora 41** or later; it is tested on
@@ -82,7 +82,7 @@ brew install --cask doru
 Dóru now appears in your applications menu. To update it later, run
 `brew upgrade --cask doru` in a terminal from time to time.
 
-## Windows (experimental)
+## Windows (experimental) {#windows-experimental}
 
 Dóru on Windows is distributed through **Scoop**, a command-line installer
 that keeps applications up to date. If you don't have Scoop yet, install it
