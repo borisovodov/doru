@@ -33,6 +33,13 @@ test('Search stays hidden until the feature is ready', async () => {
   await app.close();
 });
 
+test('Media stays hidden until the feature is ready', async () => {
+  const { app, page } = await launchApp();
+
+  await expect(page.getByRole('button', { name: 'Media', exact: true })).toHaveCount(0);
+  await app.close();
+});
+
 test('settings link opens the third-party notices tab', async () => {
   const { app, page } = await launchApp();
   await page.getByRole('button', { name: 'Settings', exact: true }).click();

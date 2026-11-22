@@ -1,4 +1,5 @@
 import { IconButton, SegmentedControl, SideBarEmpty, SideBarLayout } from '@doru/ui';
+import { MEDIA_VISIBLE } from '@doru/platform';
 import { isVisibleMedia } from '@doru/core/model';
 import { useState } from 'react';
 import { Plus } from 'lucide-react';
@@ -204,6 +205,9 @@ export function SidebarView({
         </SideBarLayout>
       );
     case 'media': {
+      if (!MEDIA_VISIBLE) {
+        return null;
+      }
       const visibleMedia = media.filter(isVisibleMedia);
       return (
         <SideBarLayout
@@ -269,6 +273,7 @@ export function SidebarView({
             citations={citations}
             notes={notes}
             media={media}
+            mediaVisible={MEDIA_VISIBLE}
             submitters={submitters}
             addresses={addresses}
             associations={associations}

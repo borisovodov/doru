@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import type { FactRecord, FamilyRecord, PersonRecord, PlaceRecord, SourceRecord } from '@doru/core';
 import { AttachmentsPanel, CitationAttachments, NoteAttachments, useAttachments } from '../attachments';
+import { MediaSection } from '../media/MediaSection';
 import { EntityTab } from '../sidebar';
 import type { MediaTargetApi, PlaceEditorApi } from '../person/types';
 import { PlaceEditor } from './PlaceEditor';
@@ -15,7 +16,6 @@ import {
   RestrictionsSection,
   SourcesSection,
   TagsSection,
-  MediaSection,
   TasksSection,
 } from '@doru/ui/domain';
 import { nls } from '../nls';

@@ -25,6 +25,8 @@ export function App() {
 
   const tree = useTreeData(projectPath);
 
+  // Media editing is hidden behind MEDIA_VISIBLE; the primary photo stays a
+  // read-only avatar on the tree cards.
   const personPhotos = useMemo(() => {
     const photos = new Map<string, string>();
     for (const media of tree.media) {

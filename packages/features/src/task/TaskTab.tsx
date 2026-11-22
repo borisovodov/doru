@@ -1,5 +1,7 @@
 import { useMemo, useState } from 'react';
 import { Button, EntityViewCard, InlineError, SectionCard } from '@doru/ui';
+import { TARGET_TYPES } from '@doru/core/model';
+import { MEDIA_VISIBLE } from '@doru/platform';
 import { ListTodo } from 'lucide-react';
 import type {
   AddressRecord,
@@ -30,6 +32,11 @@ import {
   type TaskDraft,
 } from '@doru/ui/domain';
 import { nls } from '../nls';
+
+/** Media targets stay out of the picker while media editing is hidden. */
+const VISIBLE_TARGET_TYPES = MEDIA_VISIBLE
+  ? TARGET_TYPES
+  : TARGET_TYPES.filter((type) => type !== 'media' && type !== 'media_file' && type !== 'media_link');
 
 export function TaskTab({
   entityId,
@@ -246,7 +253,7 @@ function TaskTabBody({
       />
 
       <SectionCard title={nls.t('features.tree.details')}>
-        <TaskEditorFields edit={draft} data={targetData} onChange={patch} />
+        <TaskEditorFields edit={draft} data={targetData} onChange={patch} targetTypes={VISIBLE_TARGET_TYPES} />
         {invalidTimestamp ? <InlineError>{nls.t('features.tasks.invalidTimestamp')}</InlineError> : null}
       </SectionCard>
       {targetId !== undefined && (

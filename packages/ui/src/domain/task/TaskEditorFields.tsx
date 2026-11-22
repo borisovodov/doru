@@ -1,11 +1,11 @@
-import { normalizeTaskPriority, normalizeTaskStatus, TARGET_TYPES } from '@doru/core/model';
+import { normalizeTaskPriority, normalizeTaskStatus, TARGET_TYPES, type TargetType } from '@doru/core/model';
 import { nls } from '../../nls';
 import { Field } from '../../atoms/field/Field';
 import { FieldGrid } from '../../atoms/field-grid/FieldGrid';
 import { Input } from '../../atoms/form/Input';
 import { Select } from '../../atoms/form/Select';
 import type { TaskTargetData } from './taskTargets';
-import { taskTargetOptions } from './taskTargets';
+import { taskTargetLabel, taskTargetOptions } from './taskTargets';
 import type { TaskDraft } from './taskDraft';
 
 /**
@@ -18,13 +18,18 @@ export function TaskEditorFields({
   edit,
   data,
   onChange,
+  targetTypes = TARGET_TYPES,
 }: {
   edit: TaskDraft;
   data: TaskTargetData;
   onChange: (update: Partial<TaskDraft>) => void;
+  /** The target types offered by the picker; stored targets outside it stay visible. */
+  targetTypes?: readonly TargetType[];
 }) {
-  const knownTarget = (TARGET_TYPES as readonly string[]).includes(edit.targetType);
-  const targetOptions = taskTargetOptions(edit.targetType, data);
+  const knownTarget = (targetTypes as readonly string[]).includes(edit.targetType);
+  // A stored target outside the offered types (e.g. media while its editor is
+  // hidden) stays visible as a single read-only reference.
+  const targetOptions = knownTarget ? taskTargetOptions(edit.targetType, data) : [];
   const knownTargetId = targetOptions.some((option) => option.id === edit.targetId);
 
   return (
@@ -71,7 +76,7 @@ export function TaskEditorFields({
             }
           >
             <option value="">{nls.t('features.tasks.none')}</option>
-            {TARGET_TYPES.map((type) => (
+            {targetTypes.map((type) => (
               <option key={type} value={type}>
                 {nls.t(`features.tasks.target.${type}`)}
               </option>
@@ -82,11 +87,16 @@ export function TaskEditorFields({
         <Field label={nls.t('features.tasks.targetRecord')}>
           <Select
             value={edit.targetId}
-            disabled={edit.targetType === ''}
+            disabled={edit.targetType === '' || !knownTarget}
             onChange={(event) => onChange({ targetId: event.target.value })}
           >
             <option value="">{nls.t('features.tasks.none')}</option>
-            {edit.targetId !== '' && !knownTargetId && <option value={edit.targetId}>{edit.targetId}</option>}
+            {!knownTarget && edit.targetId !== '' && (
+              <option value={edit.targetId}>{taskTargetLabel(edit.targetType, edit.targetId, data)}</option>
+            )}
+            {knownTarget && edit.targetId !== '' && !knownTargetId && (
+              <option value={edit.targetId}>{edit.targetId}</option>
+            )}
             {targetOptions.map((option) => (
               <option key={option.id} value={option.id}>
                 {option.label}
