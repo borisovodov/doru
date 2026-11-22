@@ -166,8 +166,8 @@ interface ImportContext {
 
 /**
  * Writes the dataset into the repository in one transaction. Record ids are
- * fresh UUIDs; the GEDCOM cross-reference lands in `xref` for round-trip
- * export provenance.
+ * fresh UUIDs; the GEDCOM cross-reference lands in `xref` for export
+ * provenance.
  */
 export function importGedcomDataset(
   dataset: GedcomDataset,

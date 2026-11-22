@@ -63,6 +63,19 @@ concrete feature needs the wire metadata. The same applies to the LDS,
 research, census, event-definition, duplicate-candidate, published-site,
 group, tree-tag and GenoPro record families listed in `import/gedcom.ts`.
 
+## GEDCOM round-trip is not an application requirement
+
+`@doru/gedcom` models and serializes the GEDCOM wire format; faithful
+round-trips are a requirement for that package. Dóru's `.doru` schema is a
+separate domain model. Import maps the GEDCOM data the model represents, and
+export writes that model back; fields outside the model are dropped and
+export synthesizes a fresh header. A `.ged → .doru → .ged` cycle is therefore
+not required to be lossless.
+
+Schema and UI decisions should stand on the app's own domain needs. Do not
+justify a decision by GEDCOM round-trip fidelity alone: wire-format fidelity
+belongs to the format package, not to the application.
+
 ## GEDCOM legacy identifiers and FAMC/FAMS vendor details
 
 `RFN` and `AFN` are GEDCOM 5.5.1 identifiers with no 7.0 spelling; Dóru does
@@ -124,8 +137,8 @@ verbatim as text. They are names, not person pointers, and are deliberately
 not an attachment target: notes, sources, tasks and media belong on a
 standard GEDCOM `ASSO` association row (`association`), which points at a
 person and carries a role. Giving the free-text rows stable ids and
-attachment panels would create `.doru`-only evidence that cannot survive a
-GEDCOM round-trip.
+attachment panels would make them look like first-class entities that Dóru
+does not model.
 
 ## GEDCOM media
 
@@ -174,7 +187,7 @@ here:
 
 - Source-level certainty from Heredis is written as the extension-safe
   `_QUAY` at the `SOUR` record level. The parser accepts both `QUAY` and
-  `_QUAY`, so existing Heredis files still round-trip.
+  `_QUAY`, so older Heredis exports import under either spelling.
 - Citations attached to the `SEX` fact are written as `SOUR` children of
   `SEX`. GEDCOM 5.5.1 and 7.0 do not define that substructure, but the
   alternative record-level placement loses the link to the sex fact. When no

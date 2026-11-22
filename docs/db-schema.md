@@ -10,6 +10,9 @@ the domain shapes that the repositories map onto the rows live in
 The schema is deliberately Dóru's own domain model, not a mirror of the GEDCOM
 wire format. GEDCOM HEAD/SUBN metadata and raw vendor records are not stored;
 they are counted as dropped on import, and export synthesizes a fresh header.
+Round-trip fidelity is not an application requirement: the schema stores what
+Dóru models, and import/export maps that subset. `@doru/gedcom` keeps the wire
+model faithful; that guarantee does not extend to the tree database.
 
 ## At a glance
 

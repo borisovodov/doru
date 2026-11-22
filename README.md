@@ -75,8 +75,8 @@ The name comes from Proto-Indo-European _\*dóru_ — “tree”.
 ### Import and export
 
 - **GEDCOM 5.5 / 5.5.1 import** and **GEDCOM 7.0 export** (plus `.gdz`
-  archives). Hundreds of vendor tags from real-world software are recognized,
-  so nothing important is lost on the way in.
+  archives). Hundreds of vendor tags from real-world software are recognized
+  and imported where the tree model supports them.
 - **Tabs** — a project opens in its own window, and entities (persons, the
   tree editor, settings) open as tabs inside it. Recent projects are listed on
   the start page, open project windows are restored on launch, and
