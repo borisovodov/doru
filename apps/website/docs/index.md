@@ -1,0 +1,34 @@
+# Intro
+
+Dóru is genealogy for the AI era, a desktop app for your family tree. Your
+tree lives in a plain folder on your disk, works fully offline, and is
+driven by AI agents — through the built-in chat or any MCP/ACP client.
+
+- **Local-first.** A project is a single `.doru` file; photos live in a
+  `media/` folder next to it. No accounts, no cloud, no telemetry. Your data
+  stays on your computer unless you configure a remote AI provider — then chat
+  messages and the tree records the assistant retrieves through its tools are
+  sent to that provider. Local providers run fully offline.
+- **Open source.** The whole app is MIT-licensed — free for any use,
+  modification, and redistribution, with the full source available.
+- **AI-native.** The built-in assistant, Dóru AI, runs entirely on your
+  machine. The in-app chat reads and edits the tree, and external tools
+  (Claude Desktop, Cursor, coding agents) work with it over MCP/ACP.
+- **Themes.** Nine built-in themes, each with dark and light palettes that
+  follow your OS appearance.
+
+## Browse the guide
+
+| Page | What it covers |
+|---|---|
+| [Installation and updates](installation.md) | Install Dóru from your platform's app store and keep it updated. |
+| [Quick start](getting-started.md) | Create your first project, understand the `.doru` file, add your first persons. |
+| [Working with the tree](tree.md) | The interactive tree canvas: charts, focus navigation, editing, families, sources, notes. |
+| [Keyboard shortcuts](shortcuts.md) | The full list of keyboard shortcuts for macOS, Linux, and Windows. |
+| [Settings](settings.md) | The full `settings.json` reference and environment variables. |
+| [AI and agents](agents.md) | The in-app chat, ACP agents, MCP server mode, example prompts. |
+| [Themes](themes.md) | Nine built-in themes with dark and light palettes per OS appearance — plus your own theme files. |
+| [Data and backups](data-backups.md) | Data ownership, privacy, backing up and restoring projects. |
+| [Troubleshooting](troubleshooting.md) | Common problems and their fixes. |
+
+New here? Start with [Quick start](getting-started.md).

@@ -25,6 +25,8 @@
     "e2e": "playwright test",
     "site:dev": "npm run dev --workspace @doru/website",
     "site:build": "npm run build --workspace @doru/website",
+    "check:site-i18n": "node apps/website/scripts/check-site-i18n.ts",
+    "stamp:site-i18n": "node apps/website/scripts/stamp-site-i18n.ts",
     "gallery": "npm run gallery --workspace @doru/ui",
     "postinstall": "node node_modules/electron/install.js"
   },

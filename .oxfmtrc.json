@@ -10,7 +10,6 @@
   "sortPackageJson": false,
   "ignorePatterns": [
     "package-lock.json",
-    "apps/website/docs/",
     "apps/website/public/settings.json",
     "apps/website/public/theme.json",
     "packages/features/src/notices/generated.ts",
@@ -26,6 +25,7 @@
     "corpus-run/",
     ".vite/",
     "apps/website/.vitepress/cache/",
+    "apps/website/.vitepress/.temp/",
     "apps/website/.vitepress/dist/",
     "*.md"
   ]

@@ -8,7 +8,7 @@ hero:
 features:
   - icon: 🗂️
     title: Local-first
-    details: "A project is a single .doru file (SQLite); photos live in a media folder next to it. Nothing is hidden, nothing is uploaded. Back up by copying a folder."
+    details: "A project is a single .doru file (SQLite); photos live in a media folder next to it. Nothing is hidden, and Dóru has no cloud service. Back up by copying a folder."
   - icon: 🤖
     title: AI-native
     details: "The whole app is AI-native. Dóru AI, the built-in assistant, runs locally and offline — no account needed. Or connect any provider you like — Ollama, LM Studio, a cloud API, an ACP agent."

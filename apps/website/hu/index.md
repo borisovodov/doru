@@ -1,4 +1,5 @@
 ---
+source-hash: 2512c57f34c8
 layout: home
 
 hero:
@@ -8,7 +9,7 @@ hero:
 features:
   - icon: 🗂️
     title: Helyi adatok
-    details: "A projekt egyetlen .doru fájl (SQLite); a fényképek a mellette lévő media mappában élnek. Semmi sincs elrejtve, semmi sincs feltöltve. Biztonsági mentés egy mappa másolásával."
+    details: "Egy projekt egyetlen .doru fájl (SQLite); a fényképek a mellette lévő media mappában élnek. Semmi sincs elrejtve, és a Dórunak nincs felhőszolgáltatása. Biztonsági mentés egy mappa másolásával."
   - icon: 🤖
     title: MI-natív
     details: "Az egész alkalmazás MI-natív. A Dóru AI, a beépített asszisztens, helyben és offline fut — fiók nélkül. Vagy csatlakoztasson bármilyen szolgáltatót — Ollama, LM Studio, felhő API, ACP-ügynök."
@@ -33,5 +34,5 @@ features:
 ---
 
 <div class="doru-read-docs">
-  <a href="/docs/">Dokumentáció megnyitása →</a>
+  <a href="/hu/docs/">Dokumentáció megnyitása →</a>
 </div>

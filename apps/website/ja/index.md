@@ -1,4 +1,5 @@
 ---
+source-hash: 2512c57f34c8
 layout: home
 
 hero:
@@ -8,7 +9,7 @@ hero:
 features:
   - icon: 🗂️
     title: ローカルファースト
-    details: "プロジェクトは1つの.doruファイル（SQLite）です。写真は隣のmediaフォルダーに置かれます。隠されるものもアップロードされるものもありません。フォルダーをコピーするだけでバックアップできます。"
+    details: "プロジェクトは1つの.doruファイル（SQLite）です。写真は隣のmediaフォルダーに置かれます。隠されるものはなく、Dóruにクラウドサービスはありません。フォルダーをコピーするだけでバックアップできます。"
   - icon: 🤖
     title: AIネイティブ
     details: "アプリ全体がAIネイティブです。組み込みアシスタントのDóru AIはローカルでオフライン動作——アカウント不要。またはお好みのプロバイダーを接続——Ollama、LM Studio、クラウドAPI、ACPエージェント。"
@@ -33,5 +34,5 @@ features:
 ---
 
 <div class="doru-read-docs">
-  <a href="/docs/">ドキュメントを読む →</a>
+  <a href="/ja/docs/">ドキュメントを読む →</a>
 </div>

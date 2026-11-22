@@ -33,7 +33,8 @@ The name comes from Proto-Indo-European _\*dóru_ — “tree”.
   file (a SQLite database); photos and scans live in a `media/` folder next
   to it. Nothing is hidden; everything is editable by hand or by agents.
   There are no accounts, no cloud, no telemetry: nothing leaves your machine
-  unless you explicitly send it to an AI provider you configured yourself.
+  unless you configure an AI provider — and then the chat messages and the tree
+  records the assistant retrieves through its tools are sent to that provider.
 - **Genuinely open source.** The whole app is MIT-licensed: free to use,
   modify, and redistribute, for any purpose. What you run is what is in the
   repo — no source-available bait, no proprietary parts.
