@@ -607,7 +607,7 @@ function factValueParams(fact: FactRecord): Array<string | number | null> {
   ];
 }
 
-/** The year the fact sorts by: the date's sort year, falling back to the sort date's. */
+/** The comparable key for ordering facts by their effective sort date. */
 interface DateSortKey {
   year: number;
   month: number;
@@ -719,6 +719,9 @@ function monthPosition(calendar: string | undefined, year: number, month: number
     const leap = (7 * year + 1) % 19 < 7;
     const index = (leap ? HEBREW_LEAP_MONTHS : HEBREW_COMMON_MONTHS).indexOf(code);
     return index === -1 ? 1 : index + 1;
+  }
+  if (calendar !== undefined && calendar !== 'julian') {
+    return 1;
   }
   const index = GREGORIAN_MONTHS.indexOf(code);
   return index === -1 ? 1 : index + 1;
