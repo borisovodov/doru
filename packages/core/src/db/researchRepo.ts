@@ -1,37 +1,41 @@
 import type { DatabaseSync } from 'node:sqlite';
 import type { TitleRecord, TaskRecord } from '../model/types';
-import type { DateRepo } from './dateRepo';
+import type { TransactionScope } from './transaction';
 
 /** The research layer: tasks and titles. */
 export class ResearchRepo {
   constructor(
     private readonly db: DatabaseSync,
-    private readonly dates: DateRepo,
+    private readonly transactions: TransactionScope,
   ) {}
 
   // tasks -----------------------------------------------------------------------
 
   insertTask(task: TaskRecord): void {
-    this.db
-      .prepare(
-        `INSERT INTO task (id, text, target_type, target_id, priority, status)
-         VALUES (?, ?, ?, ?, ?, ?)`,
-      )
-      .run(...taskParams(task));
-    this.replaceTaskDates(task);
+    this.transactions.run(() => {
+      this.db
+        .prepare(
+          `INSERT INTO task (id, text, target_type, target_id, priority, status,
+             created_at, scheduled_at, reminder_at, closed_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        )
+        .run(...taskParams(task));
+    });
   }
 
   updateTask(task: TaskRecord): void {
-    if (this.db.prepare('SELECT 1 FROM task WHERE id = ?').get(task.id) === undefined) {
-      throw new Error(`task ${task.id} no longer exists`);
-    }
-    this.db
-      .prepare(
-        `UPDATE task SET text = ?, target_type = ?, target_id = ?, priority = ?, status = ?
-         WHERE id = ?`,
-      )
-      .run(...taskParams(task).slice(1), task.id);
-    this.replaceTaskDates(task);
+    this.transactions.run(() => {
+      const changed = this.db
+        .prepare(
+          `UPDATE task SET text = ?, target_type = ?, target_id = ?, priority = ?, status = ?,
+             created_at = ?, scheduled_at = ?, reminder_at = ?, closed_at = ?
+           WHERE id = ?`,
+        )
+        .run(...taskParams(task).slice(1), task.id).changes;
+      if (changed === 0) {
+        throw new Error(`task ${task.id} no longer exists`);
+      }
+    });
   }
 
   deleteTask(id: string): boolean {
@@ -40,48 +44,38 @@ export class ResearchRepo {
 
   getTask(id: string): TaskRecord | undefined {
     const row = this.db.prepare(`${taskSelect} WHERE id = ?`).get(id) as TaskRow | undefined;
-    return row === undefined ? undefined : this.hydrateTask(row);
+    return row === undefined ? undefined : this.hydrateTasks([row])[0];
   }
 
   listTasks(): TaskRecord[] {
     const rows = this.db.prepare(taskSelect).all() as unknown as TaskRow[];
-    return rows.map((row) => this.hydrateTask(row));
+    return this.hydrateTasks(rows);
   }
 
   listTasksFor(targetType: string, targetId: string): TaskRecord[] {
     const rows = this.db
       .prepare(`${taskSelect} WHERE target_type = ? AND target_id = ? ORDER BY id`)
       .all(targetType, targetId) as unknown as TaskRow[];
-    return rows.map((row) => this.hydrateTask(row));
+    return this.hydrateTasks(rows);
   }
 
   deleteTasksFor(targetType: string, targetId: string): void {
     this.db.prepare('DELETE FROM task WHERE target_type = ? AND target_id = ?').run(targetType, targetId);
   }
 
-  private replaceTaskDates(task: TaskRecord): void {
-    this.dates.replaceForOwner('task', task.id, {
-      created: task.createdDate,
-      scheduled: task.scheduledDate,
-      reminder: task.reminderDate,
-      closed: task.closedDate,
-    });
-  }
-
-  private hydrateTask(row: TaskRow): TaskRecord {
-    const dates = this.dates.getManyForOwners('task', [row.id]).get(row.id);
-    return {
+  private hydrateTasks(rows: TaskRow[]): TaskRecord[] {
+    return rows.map((row) => ({
       id: row.id,
       text: row.text,
       targetType: row.target_type ?? undefined,
       targetId: row.target_id ?? undefined,
       priority: row.priority ?? undefined,
       status: row.status ?? undefined,
-      createdDate: dates?.get('created'),
-      scheduledDate: dates?.get('scheduled'),
-      reminderDate: dates?.get('reminder'),
-      closedDate: dates?.get('closed'),
-    };
+      createdAt: row.created_at ?? undefined,
+      scheduledAt: row.scheduled_at ?? undefined,
+      reminderAt: row.reminder_at ?? undefined,
+      closedAt: row.closed_at ?? undefined,
+    }));
   }
 
   // titles ---------------------------------------------------------------------------
@@ -143,6 +137,10 @@ interface TaskRow {
   target_id: string | null;
   priority: string | null;
   status: string | null;
+  created_at: number | null;
+  scheduled_at: number | null;
+  reminder_at: number | null;
+  closed_at: number | null;
 }
 
 interface TitleRow {
@@ -158,7 +156,8 @@ interface TitleRow {
   sequence: number | null;
 }
 
-const taskSelect = `SELECT id, text, target_type, target_id, priority, status
+const taskSelect = `SELECT id, text, target_type, target_id, priority, status,
+  created_at, scheduled_at, reminder_at, closed_at
   FROM task`;
 
 function taskParams(task: TaskRecord): Array<string | number | null> {
@@ -169,6 +168,10 @@ function taskParams(task: TaskRecord): Array<string | number | null> {
     task.targetId ?? null,
     task.priority ?? null,
     task.status ?? null,
+    task.createdAt ?? null,
+    task.scheduledAt ?? null,
+    task.reminderAt ?? null,
+    task.closedAt ?? null,
   ];
 }
 

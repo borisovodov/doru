@@ -1,43 +1,8 @@
 import type { DatabaseSync } from 'node:sqlite';
 import type { DateComponent, DateValue } from '../model/types';
 
-/** Tables whose rows can own date rows. */
-export type DateOwnerType =
-  | 'person_name'
-  | 'family_partner'
-  | 'family_marriage_status'
-  | 'fact'
-  | 'place_name'
-  | 'place_hierarchy'
-  | 'place_postal_code'
-  | 'source'
-  | 'source_data_event'
-  | 'citation'
-  | 'media'
-  | 'tag_link'
-  | 'task'
-  | 'association';
-
-/** The date slot of an owner row. */
-export type DateRole =
-  | 'period'
-  | 'date'
-  | 'event'
-  | 'end'
-  | 'sort'
-  | 'publication'
-  | 'created'
-  | 'scheduled'
-  | 'reminder'
-  | 'closed'
-  | 'period_start'
-  | 'period_end';
-
 interface DateRow {
   id: string;
-  owner_type: string;
-  owner_id: string;
-  role: string;
   quality: string;
   modifier: string | null;
   calendar: string | null;
@@ -58,88 +23,85 @@ interface DateRow {
   utc: number;
 }
 
+/** The date ids written for one row and the ids that row stopped using. */
+export interface PreparedDates {
+  /** `null` for an empty slot, otherwise the date row id. */
+  ids: Array<string | null>;
+  /** Dates that were owned only by the row and must be deleted after it is updated. */
+  obsolete: string[];
+}
+
+/** Date id → the owner key that must keep it when a row is rewritten. */
+export type DateReservations = ReadonlyMap<string, string>;
+
+/** A reservation the writer may use when filling one empty date slot. */
+export interface DateSlotReservation {
+  ownerKey: string;
+  reserved: DateReservations;
+}
+
+/** A stable owner key; prefixed by table so ids from different tables cannot collide. */
+export function dateOwnerKey(table: string, id: string, slot?: string): string {
+  return slot === undefined ? `${table}:${id}` : `${table}:${id}:${slot}`;
+}
+
 /**
- * The single writer of the `date` table. Every date row belongs to exactly
- * one owner row and one role (`owner_type`, `owner_id`, `role`); the owner's
- * lifecycle governs the date. Schema triggers delete the date rows when the
- * owner row is deleted, including through foreign-key cascades.
+ * The `date` table is a value store: it has no owner columns. Owner rows
+ * reference their dates through forward foreign keys (`ON DELETE RESTRICT`),
+ * and repositories delete the date rows explicitly after the owner row is
+ * gone. `prepareSlots` centralizes the update sequence — write the surviving
+ * dates, keep the ids of occupied slots, and report the old ids to release.
  */
 export class DateRepo {
   constructor(private readonly db: DatabaseSync) {}
 
-  /** Replaces every date of one owner, keeping the ids of roles that survive. */
-  replaceForOwner(
-    ownerType: DateOwnerType,
-    ownerId: string,
-    dates: Partial<Record<DateRole, DateValue | undefined>>,
-    reserved?: ReadonlyMap<string, string>,
-  ): void {
-    const existing = this.db
-      .prepare('SELECT role, id FROM date WHERE owner_type = ? AND owner_id = ?')
-      .all(ownerType, ownerId) as unknown as Array<{ role: string; id: string }>;
-    const idByRole = new Map(existing.map((row) => [row.role, row.id]));
-    const kept = new Set<string>();
-    for (const [role, date] of Object.entries(dates)) {
-      if (date === undefined) {
-        continue;
-      }
-      kept.add(role);
-      const id =
-        idByRole.get(role) ?? this.freeId(date.id, dateOwnerKey(ownerType, ownerId, role as DateRole), reserved);
-      this.write(id, ownerType, ownerId, role as DateRole, date);
-    }
-    for (const [role, id] of idByRole) {
-      if (!kept.has(role)) {
-        this.delete(id);
-      }
-    }
-  }
-
-  /** Writes one date of an owner, replacing the existing role; undefined clears it. */
-  upsertForOwner(
-    ownerType: DateOwnerType,
-    ownerId: string,
-    role: DateRole,
-    date: DateValue | undefined,
-    reserved?: ReadonlyMap<string, string>,
-  ): string | undefined {
-    const existing = this.db
-      .prepare('SELECT id FROM date WHERE owner_type = ? AND owner_id = ? AND role = ?')
-      .get(ownerType, ownerId, role) as { id: string } | undefined;
-    if (date === undefined) {
-      if (existing !== undefined) {
-        this.delete(existing.id);
-      }
-      return undefined;
-    }
-    const id = existing?.id ?? this.freeId(date.id, dateOwnerKey(ownerType, ownerId, role), reserved);
-    this.write(id, ownerType, ownerId, role, date);
-    return id;
-  }
-
   /**
-   * Date ids claimed by surviving owner rows, keyed by id and owner role.
-   * Repositories running a delete-and-reinsert pass this to `upsertForOwner`
-   * so an existing owner keeps its date id and a copied date gets a new one.
+   * Writes the desired dates for one row. `currentIds` and `dates` describe
+   * the same slots in the same order. Existing slots keep their ids; empty
+   * slots get `null`; new dates use their captured id when it is free and not
+   * reserved for another owner, and a fresh UUID otherwise. The caller
+   * updates the owner row with `ids` and then deletes `obsolete`.
    */
-  reservationsFor(ownerType: DateOwnerType, ownerIds: string[]): Map<string, string> {
-    const reservations = new Map<string, string>();
-    if (ownerIds.length === 0) {
-      return reservations;
+  prepareSlots(
+    currentIds: ReadonlyArray<string | null | undefined>,
+    dates: ReadonlyArray<DateValue | undefined>,
+    reservations?: ReadonlyArray<DateSlotReservation | undefined>,
+  ): PreparedDates {
+    if (currentIds.length !== dates.length) {
+      throw new Error('date slots and current ids must have the same length');
     }
-    // Stay below SQLite's bound-parameter limit for large listings.
-    const chunkSize = 500;
-    for (let start = 0; start < ownerIds.length; start += chunkSize) {
-      const chunk = ownerIds.slice(start, start + chunkSize);
-      const placeholders = chunk.map(() => '?').join(', ');
-      const rows = this.db
-        .prepare(`SELECT id, owner_id, role FROM date WHERE owner_type = ? AND owner_id IN (${placeholders})`)
-        .all(ownerType, ...chunk) as unknown as Array<{ id: string; owner_id: string; role: string }>;
-      for (const row of rows) {
-        reservations.set(row.id, dateOwnerKey(ownerType, row.owner_id, row.role as DateRole));
+    if (reservations !== undefined && reservations.length !== dates.length) {
+      throw new Error('date slots and reservations must have the same length');
+    }
+    const kept = new Set<string>();
+    const ids = dates.map((date, index) => {
+      const current = currentIds[index] ?? undefined;
+      if (date === undefined) {
+        return null;
+      }
+      if (current !== undefined) {
+        this.write(current, date);
+        kept.add(current);
+        return current;
+      }
+      const id = this.create(date, reservations?.[index]);
+      kept.add(id);
+      return id;
+    });
+    const obsolete: string[] = [];
+    for (const id of currentIds) {
+      if (id !== null && id !== undefined && !kept.has(id)) {
+        obsolete.push(id);
       }
     }
-    return reservations;
+    return { ids, obsolete };
+  }
+
+  /** Inserts a fresh date, preferring the captured id when it is still free. */
+  create(date: DateValue, reservation?: DateSlotReservation): string {
+    const id = this.freeId(date.id, reservation);
+    this.write(id, date);
+    return id;
   }
 
   get(id: string): DateValue | undefined {
@@ -147,65 +109,44 @@ export class DateRepo {
     return row ? rowToDate(row) : undefined;
   }
 
-  getForOwner(ownerType: DateOwnerType, ownerId: string, role: DateRole): DateValue | undefined {
-    const row = this.db
-      .prepare(`SELECT ${DATE_COLUMNS} FROM date WHERE owner_type = ? AND owner_id = ? AND role = ?`)
-      .get(ownerType, ownerId, role) as DateRow | undefined;
-    return row ? rowToDate(row) : undefined;
-  }
-
-  /** Every date of one owner, keyed by role. */
-  getAllForOwner(ownerType: DateOwnerType, ownerId: string): Map<string, DateValue> {
-    const rows = this.db
-      .prepare(`SELECT ${DATE_COLUMNS} FROM date WHERE owner_type = ? AND owner_id = ?`)
-      .all(ownerType, ownerId) as unknown as DateRow[];
-    return new Map(rows.map((row) => [row.role, rowToDate(row)]));
-  }
-
-  /** Dates of many owners of one type, keyed by owner id and then by role. */
-  getManyForOwners(ownerType: DateOwnerType, ownerIds: string[]): Map<string, Map<string, DateValue>> {
-    const byOwner = new Map<string, Map<string, DateValue>>();
-    if (ownerIds.length === 0) {
-      return byOwner;
-    }
-    // Stay below SQLite's bound-parameter limit for large listings.
-    const chunkSize = 500;
-    for (let start = 0; start < ownerIds.length; start += chunkSize) {
-      const chunk = ownerIds.slice(start, start + chunkSize);
+  /** Dates by id in one query, chunked below SQLite's bound-parameter limit. */
+  getMany(ids: ReadonlyArray<string | null | undefined>): Map<string, DateValue> {
+    const dates = new Map<string, DateValue>();
+    const unique = [...new Set(ids.filter((id): id is string => id !== null && id !== undefined))];
+    for (let start = 0; start < unique.length; start += 500) {
+      const chunk = unique.slice(start, start + 500);
       const placeholders = chunk.map(() => '?').join(', ');
       const rows = this.db
-        .prepare(`SELECT ${DATE_COLUMNS} FROM date WHERE owner_type = ? AND owner_id IN (${placeholders})`)
-        .all(ownerType, ...chunk) as unknown as DateRow[];
+        .prepare(`SELECT ${DATE_COLUMNS} FROM date WHERE id IN (${placeholders})`)
+        .all(...chunk) as unknown as DateRow[];
       for (const row of rows) {
-        const dates = byOwner.get(row.owner_id) ?? new Map<string, DateValue>();
-        dates.set(row.role, rowToDate(row));
-        byOwner.set(row.owner_id, dates);
+        dates.set(row.id, rowToDate(row));
       }
     }
-    return byOwner;
+    return dates;
   }
 
-  /** Deletes every date of one owner, or one specific role of it. */
-  deleteForOwner(ownerType: DateOwnerType, ownerId: string, role?: DateRole): void {
-    if (role === undefined) {
-      this.db.prepare('DELETE FROM date WHERE owner_type = ? AND owner_id = ?').run(ownerType, ownerId);
-    } else {
-      this.db
-        .prepare('DELETE FROM date WHERE owner_type = ? AND owner_id = ? AND role = ?')
-        .run(ownerType, ownerId, role);
-    }
-  }
-
-  private delete(id: string): boolean {
+  /** Deletes one date; `ON DELETE RESTRICT` rejects a still-referenced row. */
+  delete(id: string): boolean {
     return this.db.prepare('DELETE FROM date WHERE id = ?').run(id).changes > 0;
   }
 
-  /** A restored date keeps its captured id when that id is still free. */
-  private freeId(preferred: string | undefined, ownerKey: string, reserved?: ReadonlyMap<string, string>): string {
+  /** Deletes the dates of a removed row; a still-referenced id aborts the transaction. */
+  deleteMany(ids: ReadonlyArray<string | null | undefined>): void {
+    const unique = [...new Set(ids.filter((id): id is string => id !== null && id !== undefined))];
+    for (let start = 0; start < unique.length; start += 500) {
+      const chunk = unique.slice(start, start + 500);
+      const placeholders = chunk.map(() => '?').join(', ');
+      this.db.prepare(`DELETE FROM date WHERE id IN (${placeholders})`).run(...chunk);
+    }
+  }
+
+  /** A restored date keeps its captured id when it is free and not reserved for another owner. */
+  private freeId(preferred: string | undefined, reservation?: DateSlotReservation): string {
     if (preferred !== undefined) {
-      const reservedOwner = reserved?.get(preferred);
+      const reservedOwner = reservation?.reserved.get(preferred);
       if (
-        (reservedOwner === undefined || reservedOwner === ownerKey) &&
+        (reservation === undefined || reservedOwner === undefined || reservedOwner === reservation.ownerKey) &&
         this.db.prepare('SELECT 1 FROM date WHERE id = ?').get(preferred) === undefined
       ) {
         return preferred;
@@ -214,23 +155,22 @@ export class DateRepo {
     return crypto.randomUUID();
   }
 
-  private write(id: string, ownerType: DateOwnerType, ownerId: string, role: DateRole, date: DateValue): void {
-    this.db.prepare(upsertSql).run(...dateParams(id, ownerType, ownerId, role, date));
+  private write(id: string, date: DateValue): void {
+    this.db.prepare(upsertSql).run(id, ...dateParams(date));
   }
 }
 
-const DATE_COLUMNS = `id, owner_type, owner_id, role, quality, modifier, calendar, year, month, day, epoch,
+const DATE_COLUMNS = `id, quality, modifier, calendar, year, month, day, epoch,
   end_calendar, end_year, end_month, end_day, end_epoch, text,
   time_hour, time_minute, time_second, time_fraction, utc`;
 
 const selectSql = `SELECT ${DATE_COLUMNS} FROM date WHERE id = ?`;
 
-const upsertSql = `INSERT INTO date (id, owner_type, owner_id, role, quality, modifier, calendar, year, month, day, epoch,
+const upsertSql = `INSERT INTO date (id, quality, modifier, calendar, year, month, day, epoch,
   end_calendar, end_year, end_month, end_day, end_epoch, text,
   time_hour, time_minute, time_second, time_fraction, utc)
-  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   ON CONFLICT (id) DO UPDATE SET
-    owner_type = excluded.owner_type, owner_id = excluded.owner_id, role = excluded.role,
     quality = excluded.quality, modifier = excluded.modifier,
     calendar = excluded.calendar, year = excluded.year, month = excluded.month,
     day = excluded.day, epoch = excluded.epoch,
@@ -241,25 +181,11 @@ const upsertSql = `INSERT INTO date (id, owner_type, owner_id, role, quality, mo
     time_second = excluded.time_second, time_fraction = excluded.time_fraction,
     utc = excluded.utc`;
 
-function dateOwnerKey(ownerType: DateOwnerType, ownerId: string, role: DateRole): string {
-  return `${ownerType}\u0000${ownerId}\u0000${role}`;
-}
-
-function dateParams(
-  id: string,
-  ownerType: DateOwnerType,
-  ownerId: string,
-  role: DateRole,
-  date: DateValue,
-): Array<string | number | null> {
+function dateParams(date: DateValue): Array<string | number | null> {
   const component = date.component;
   const end = date.end;
   const time = date.time;
   return [
-    id,
-    ownerType,
-    ownerId,
-    role,
     date.quality,
     date.modifier ?? null,
     component?.calendar ?? null,

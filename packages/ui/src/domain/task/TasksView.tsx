@@ -15,7 +15,7 @@ import type {
   TaskRecord,
 } from '@doru/core';
 import { normalizeTaskPriority, normalizeTaskStatus } from '@doru/core/model';
-import { formatDate } from '../format/format';
+import { formatTimestamp } from '../format/format';
 import { Chip } from '../../atoms/display/Chip';
 import { cx } from '../../lib/cx';
 import { SideBarEmpty } from '../../patterns/side-bar-empty/SideBarEmpty';
@@ -208,10 +208,10 @@ export function TasksView({
                     <span className={cx(styles['taskRowText'], isClosed(task) && styles['closed'])}>{task.text}</span>
                     <span className={styles['taskRowMeta']}>
                       <Chip variant="neutral">{priorityLabel(task.priority)}</Chip>
-                      {task.scheduledDate !== undefined && (
-                        <Chip variant="neutral">{formatDate(task.scheduledDate)}</Chip>
+                      {task.scheduledAt !== undefined && (
+                        <Chip variant="neutral">{formatTimestamp(task.scheduledAt)}</Chip>
                       )}
-                      {task.closedDate !== undefined && <Chip variant="neutral">{formatDate(task.closedDate)}</Chip>}
+                      {task.closedAt !== undefined && <Chip variant="neutral">{formatTimestamp(task.closedAt)}</Chip>}
                       {related !== undefined && related.open === undefined && (
                         <Chip variant="neutral">{related.label}</Chip>
                       )}

@@ -198,6 +198,13 @@ describe('value formatting', () => {
     expect(formatDateValue70({ kind: 'period', to: { calendar: 'GREGORIAN', year: 1900 } })).toBe('TO 1900');
     expect(formatDateValue70({ kind: 'period' })).toBe('');
     expect(formatDateValue70({ kind: 'unknown' })).toBe('');
+    expect(
+      formatDateValue70({
+        kind: 'range',
+        start: { calendar: 'GREGORIAN', year: 1900 },
+        end: { day: 2, month: 'JAN' },
+      }),
+    ).toBe('FROM 1900');
   });
 
   test('formatDateValue551 covers every variant', () => {
@@ -226,6 +233,13 @@ describe('value formatting', () => {
     expect(formatDateValue551({ kind: 'period', to: { calendar: 'GREGORIAN', year: 1900 } })).toBe('TO 1900');
     expect(formatDateValue551({ kind: 'period' })).toBe('');
     expect(formatDateValue551({ kind: 'unknown' })).toBe('');
+    expect(
+      formatDateValue551({
+        kind: 'range',
+        start: { calendar: 'GREGORIAN', year: 1900 },
+        end: { calendar: '_EXT', year: 1910 },
+      }),
+    ).toBe('FROM 1900');
   });
 
   test('formatDateExact', () => {

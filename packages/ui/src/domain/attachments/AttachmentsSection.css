@@ -88,26 +88,6 @@
   gap: 4px;
 }
 
-.tag-chip-date {
-  font-size: 11px;
-  color: var(--doru-fg-muted);
-}
-
-.tag-date-editor {
-  display: flex;
-  gap: 6px;
-  align-items: center;
-  padding: 6px;
-  background: var(--doru-bg-input);
-  border: 1px solid var(--doru-border);
-  border-radius: var(--doru-radius-md);
-}
-
-.tag-date-editor .date-editor {
-  flex: 1;
-  min-width: 0;
-}
-
 .tag-chip {
   display: inline-flex;
   align-items: center;

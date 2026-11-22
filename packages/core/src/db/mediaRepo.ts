@@ -12,6 +12,7 @@ interface MediaRow {
   object_type: string | null;
   description: string | null;
   keywords: string | null;
+  date_id: string | null;
 }
 
 interface FileRow {
@@ -57,7 +58,7 @@ interface LinkRow {
  * The flat `path`/`targetType`/`targetId` on the model are projections of
  * the first file and the first link.
  */
-const MEDIA_COLUMNS = `id, xref, title, place_id, place_text, object_type, description, keywords`;
+const MEDIA_COLUMNS = `id, xref, title, place_id, place_text, object_type, description, keywords, date_id`;
 
 export class MediaRepo {
   constructor(
@@ -69,13 +70,13 @@ export class MediaRepo {
   /** Inserts the record with its files and links (or the flat projection as one file+link). */
   insertMedia(media: MediaRecord): void {
     this.transactions.run(() => {
+      const dateId = media.date !== undefined ? this.dates.create(media.date) : null;
       this.db
         .prepare(
-          `INSERT INTO media (id, xref, title, place_id, place_text, object_type, description, keywords)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+          `INSERT INTO media (id, xref, title, place_id, place_text, object_type, description, keywords, date_id)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         )
-        .run(...mediaParams(media));
-      this.dates.upsertForOwner('media', media.id, 'date', media.date);
+        .run(...mediaParams(media), dateId);
       this.replaceFiles(media);
       this.replaceLinks(media);
     });
@@ -83,16 +84,20 @@ export class MediaRepo {
 
   updateMedia(media: MediaRecord): void {
     this.transactions.run(() => {
-      if (this.db.prepare('SELECT 1 FROM media WHERE id = ?').get(media.id) === undefined) {
+      const current = this.db.prepare('SELECT date_id FROM media WHERE id = ?').get(media.id) as
+        | { date_id: string | null }
+        | undefined;
+      if (current === undefined) {
         throw new Error(`media ${media.id} no longer exists`);
       }
+      const prepared = this.dates.prepareSlots([current.date_id], [media.date]);
       this.db
         .prepare(
           `UPDATE media SET xref = ?, title = ?, place_id = ?, place_text = ?,
-             object_type = ?, description = ?, keywords = ? WHERE id = ?`,
+             object_type = ?, description = ?, keywords = ?, date_id = ? WHERE id = ?`,
         )
-        .run(...mediaParams(media).slice(1), media.id);
-      this.dates.upsertForOwner('media', media.id, 'date', media.date);
+        .run(...mediaParams(media).slice(1), prepared.ids[0] ?? null, media.id);
+      this.dates.deleteMany(prepared.obsolete);
       this.replaceFiles(media);
     });
   }
@@ -215,44 +220,55 @@ export class MediaRepo {
   }
 
   removeMediaLink(id: string): boolean {
-    const link = this.db.prepare('SELECT media_id FROM media_link WHERE id = ?').get(id) as
-      | { media_id: string }
-      | undefined;
-    const result = this.db.prepare('DELETE FROM media_link WHERE id = ?').run(id);
-    if (result.changes > 0 && link) {
-      const remaining = this.db
-        .prepare('SELECT COUNT(*) AS n FROM media_link WHERE media_id = ?')
-        .get(link.media_id) as {
-        n: number;
-      };
-      if (remaining.n === 0) {
-        this.deleteMediaRow(link.media_id);
+    return this.transactions.run(() => {
+      const link = this.db.prepare('SELECT media_id FROM media_link WHERE id = ?').get(id) as
+        | { media_id: string }
+        | undefined;
+      const result = this.db.prepare('DELETE FROM media_link WHERE id = ?').run(id);
+      if (result.changes > 0 && link) {
+        const remaining = this.db
+          .prepare('SELECT COUNT(*) AS n FROM media_link WHERE media_id = ?')
+          .get(link.media_id) as {
+          n: number;
+        };
+        if (remaining.n === 0) {
+          this.deleteMediaRow(link.media_id);
+        }
       }
-    }
-    return result.changes > 0;
+      return result.changes > 0;
+    });
   }
 
   /** Removes every link to the target, deleting records left with no links. */
   deleteLinksFor(targetType: string, targetId: string): void {
-    const links = this.db
-      .prepare('SELECT id, media_id FROM media_link WHERE target_type = ? AND target_id = ?')
-      .all(targetType, targetId) as unknown as { id: string; media_id: string }[];
-    this.db.prepare('DELETE FROM media_link WHERE target_type = ? AND target_id = ?').run(targetType, targetId);
-    for (const link of links) {
-      const remaining = this.db
-        .prepare('SELECT COUNT(*) AS n FROM media_link WHERE media_id = ?')
-        .get(link.media_id) as {
-        n: number;
-      };
-      if (remaining.n === 0) {
-        this.deleteMediaRow(link.media_id);
+    this.transactions.run(() => {
+      const links = this.db
+        .prepare('SELECT id, media_id FROM media_link WHERE target_type = ? AND target_id = ?')
+        .all(targetType, targetId) as unknown as { id: string; media_id: string }[];
+      this.db.prepare('DELETE FROM media_link WHERE target_type = ? AND target_id = ?').run(targetType, targetId);
+      for (const link of links) {
+        const remaining = this.db
+          .prepare('SELECT COUNT(*) AS n FROM media_link WHERE media_id = ?')
+          .get(link.media_id) as {
+          n: number;
+        };
+        if (remaining.n === 0) {
+          this.deleteMediaRow(link.media_id);
+        }
       }
-    }
+    });
   }
 
-  /** Deletes one media row; the owner trigger deletes its date row. */
+  /** Deletes one media row and the date it owned. */
   private deleteMediaRow(id: string): boolean {
-    return this.db.prepare('DELETE FROM media WHERE id = ?').run(id).changes > 0;
+    const current = this.db.prepare('SELECT date_id FROM media WHERE id = ?').get(id) as
+      | { date_id: string | null }
+      | undefined;
+    const changed = this.db.prepare('DELETE FROM media WHERE id = ?').run(id).changes > 0;
+    if (changed) {
+      this.dates.deleteMany([current?.date_id]);
+    }
+    return changed;
   }
 
   private replaceFiles(media: MediaRecord): void {
@@ -334,7 +350,7 @@ export class MediaRepo {
     const translationsByFile = this.translationsForFiles(files.map((file) => file.id));
     const firstFile = files[0];
     const firstLink = links[0];
-    const date = this.dates.getForOwner('media', row.id, 'date');
+    const date = row.date_id !== null ? this.dates.get(row.date_id) : undefined;
     return {
       id: row.id,
       xref: row.xref ?? undefined,

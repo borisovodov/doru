@@ -291,7 +291,6 @@ export function buildKitchenSinkTree(fixture: RepoFixture): void {
     tagId: 'TG1',
     targetType: 'person',
     targetId: 'P1',
-    date: { quality: 'exact', component: { year: 2026 } },
   });
 
   // Associations and aliases.
@@ -305,8 +304,7 @@ export function buildKitchenSinkTree(fixture: RepoFixture): void {
     primary: true,
     specificType: 'comrade',
     confidence: 'high',
-    periodStart: { quality: 'exact', component: { year: 1940 } },
-    periodEnd: { quality: 'exact', component: { year: 1950 } },
+    period: { quality: 'range', component: { year: 1940 }, end: { year: 1950 } },
   });
   repo.insertAssociation({ id: 'AS2', personId: 'P2', otherPersonId: 'P1', role: 'witness' });
   repo.insertAlias('AL1', 'P1', 'P3');
@@ -316,10 +314,10 @@ export function buildKitchenSinkTree(fixture: RepoFixture): void {
     id: 'TD1',
     text: 'Order the birth record',
     priority: 'high',
-    status: 'open',
-    scheduledDate: { quality: 'exact', component: { year: 2026 } },
-    reminderDate: { quality: 'exact', component: { year: 2026, month: 2 } },
-    closedDate: { quality: 'exact', component: { year: 2026, month: 3 } },
+    status: 'closed',
+    scheduledAt: new Date(2026, 0, 2).getTime(),
+    reminderAt: new Date(2026, 1, 3).getTime(),
+    closedAt: new Date(2026, 2, 4).getTime(),
   });
   repo.insertTask({ id: 'TD2', text: 'Visit the cemetery', targetType: 'person', targetId: 'P1' });
 

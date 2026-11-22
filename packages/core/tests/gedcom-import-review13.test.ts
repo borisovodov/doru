@@ -87,44 +87,4 @@ describe('GEDCOM import edge slots', () => {
       cleanupRepo(fixture);
     }
   });
-
-  it('rejects a zero day in a partial structured task date', () => {
-    const fixture = importText([
-      ...HEAD,
-      '0 @T1@ _TODO Task',
-      '1 _TCDT json:{"quality":"exact","component":{"month":5,"day":0}}',
-    ]);
-    try {
-      expect(fixture.repo.listTasks()[0]?.createdDate?.quality).toBe('unknown');
-    } finally {
-      cleanupRepo(fixture);
-    }
-  });
-
-  it('rejects a fractional structured task month', () => {
-    const fixture = importText([
-      ...HEAD,
-      '0 @T1@ _TODO Task',
-      '1 _TCDT json:{"quality":"exact","component":{"year":1900,"month":2.5,"day":10}}',
-    ]);
-    try {
-      expect(fixture.repo.listTasks()[0]?.createdDate?.quality).toBe('unknown');
-    } finally {
-      cleanupRepo(fixture);
-    }
-  });
-
-  it('rejects an out-of-range structured task month even without a day', () => {
-    const fixture = importText([
-      ...HEAD,
-      '0 @T1@ _TODO Task',
-      '1 _TCDT json:{"quality":"exact","component":{"year":1900,"month":13}}',
-    ]);
-    try {
-      const task = fixture.repo.listTasks()[0]!;
-      expect(task.createdDate?.quality).toBe('unknown');
-    } finally {
-      cleanupRepo(fixture);
-    }
-  });
 });

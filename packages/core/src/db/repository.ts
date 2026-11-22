@@ -15,6 +15,7 @@ import type {
   MediaRecord,
   NoteLinkRecord,
   NoteRecord,
+  PersonName,
   PersonRecord,
   PlaceRecord,
   RecordSubmitterLink,
@@ -31,7 +32,7 @@ import type {
 import { collectNameIds, collectNamePartIds, emptyAttachments } from '../model/types';
 import { AddressRepo } from './addressRepo';
 import { AttachmentRepo } from './attachmentRepo';
-import { DateRepo } from './dateRepo';
+import { dateOwnerKey, DateRepo, type DateReservations } from './dateRepo';
 import { FactRepo } from './factRepo';
 import { FamilyRepo } from './familyRepo';
 import { MediaRepo } from './mediaRepo';
@@ -287,17 +288,17 @@ export class SqliteTreeRepository implements TreeRepository {
     this.transactions = new TransactionScope(db);
     const dates = new DateRepo(db);
     this.persons = new PersonRepo(db, this.transactions);
-    this.names = new NameRepo(db, dates);
+    this.names = new NameRepo(db, dates, this.transactions);
     this.families = new FamilyRepo(db, this.transactions, dates);
     this.facts = new FactRepo(db, dates, this.transactions);
     this.places = new PlaceRepo(db, dates, this.transactions);
-    this.sources = new SourceRepo(db, dates);
+    this.sources = new SourceRepo(db, dates, this.transactions);
     this.notes = new NoteRepo(db);
     this.media = new MediaRepo(db, dates, this.transactions);
-    this.attachments = new AttachmentRepo(db, dates);
+    this.attachments = new AttachmentRepo(db);
     this.repositories = new RepositoryRepo(db);
-    this.relations = new RelationRepo(db, dates);
-    this.research = new ResearchRepo(db, dates);
+    this.relations = new RelationRepo(db, dates, this.transactions);
+    this.research = new ResearchRepo(db, this.transactions);
     this.submitters = new SubmitterRepo(db);
     this.addresses = new AddressRepo(db);
   }
@@ -330,6 +331,7 @@ export class SqliteTreeRepository implements TreeRepository {
     this.transactions.run(() => {
       const oldNames = this.names.listNamesForPerson(person.id);
       const oldFacts = this.facts.listFactsForPerson(person.id);
+      const reservedDates = personDateReservations(oldNames, oldFacts);
       this.persons.updatePerson({
         id: person.id,
         xref: person.xref,
@@ -337,7 +339,7 @@ export class SqliteTreeRepository implements TreeRepository {
         deathStatus: person.deathStatus,
         addressId: person.addressId,
       });
-      const newParts = this.names.replaceNamesForPerson(person.id, person.names);
+      const newParts = this.names.replaceNamesForPerson(person.id, person.names, reservedDates);
       const newNames = new Set(collectNameIds(person.names));
       for (const nameId of collectNameIds(oldNames)) {
         if (!newNames.has(nameId)) {
@@ -352,9 +354,9 @@ export class SqliteTreeRepository implements TreeRepository {
       const incoming = new Map(person.facts.map((fact) => [fact.id, fact]));
       for (const fact of person.facts) {
         if (oldFacts.some((entry) => entry.id === fact.id)) {
-          this.facts.updateFact(fact);
+          this.facts.updateFact(fact, reservedDates);
         } else {
-          this.facts.insertFact(fact);
+          this.facts.insertFact(fact, reservedDates);
         }
       }
       for (const old of oldFacts) {
@@ -515,6 +517,7 @@ export class SqliteTreeRepository implements TreeRepository {
       }
       this.deleteAttachmentsFor('family', id);
       this.facts.deleteFactsForFamily(id);
+      this.relations.deleteAssociationsForFamily(id);
       return this.families.deleteFamily(id);
     });
   }
@@ -1572,6 +1575,35 @@ export class SqliteTreeRepository implements TreeRepository {
   private removedTargets(snapshot: AttachmentsSnapshot): Set<string> {
     return this.snapshotMarkers.get(snapshot) ?? new Set();
   }
+}
+
+/**
+ * All date ids owned by a person aggregate before an update. Reserving them
+ * for the whole operation keeps a copy written into another slot (a fact
+ * copied from a removed name, or a date moved between facts) on a fresh id.
+ */
+function personDateReservations(names: PersonName[], facts: FactRecord[]): DateReservations {
+  const reserved = new Map<string, string>();
+  const visit = (name: PersonName): void => {
+    if (name.date?.id !== undefined) {
+      reserved.set(name.date.id, dateOwnerKey('person_name', name.id));
+    }
+    for (const variant of name.variants ?? []) {
+      visit(variant);
+    }
+  };
+  for (const name of names) {
+    visit(name);
+  }
+  for (const fact of facts) {
+    if (fact.date?.id !== undefined) {
+      reserved.set(fact.date.id, dateOwnerKey('fact', fact.id, 'date'));
+    }
+    if (fact.sortDate?.id !== undefined) {
+      reserved.set(fact.sortDate.id, dateOwnerKey('fact', fact.id, 'sortDate'));
+    }
+  }
+  return reserved;
 }
 
 export function emptyAttachmentsSnapshot(): AttachmentsSnapshot {

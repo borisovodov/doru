@@ -9,7 +9,7 @@ import { IconButton } from '../../atoms/icon-button/IconButton';
 import { Input } from '../../atoms/form/Input';
 import { SectionCard } from '../../patterns/section-card/SectionCard';
 import { nls } from '../../nls';
-import { formatDate } from '../format/format';
+import { formatTimestamp } from '../format/format';
 import './TasksSection.css';
 
 /** The task operations an entity editor needs for one target. */
@@ -99,7 +99,7 @@ export function TasksSection({
                 <span className="tasks-section-meta">
                   <Chip variant="neutral">{statusLabel(task.status)}</Chip>
                   <Chip variant="neutral">{priorityLabel(task.priority)}</Chip>
-                  {task.scheduledDate !== undefined && <Chip variant="neutral">{formatDate(task.scheduledDate)}</Chip>}
+                  {task.scheduledAt !== undefined && <Chip variant="neutral">{formatTimestamp(task.scheduledAt)}</Chip>}
                 </span>
               </button>
               <IconButton

@@ -1,5 +1,5 @@
 ---
-source-hash: 2512c57f34c8
+source-hash: 3bbc12ca0a98
 layout: home
 
 hero:
@@ -18,7 +18,7 @@ features:
     details: "Quatro visões — ancestrais, descendentes, ampulheta, família — em uma única tela com zoom. Adicione pessoas no lugar, arraste para trocar de pais e abra editores completos de datas, fontes e notas."
   - icon: 💾
     title: Importação e exportação GEDCOM
-    details: "Importe GEDCOM 5.5 e 5.5.1, exporte GEDCOM 7.0 — arquivos .gdz incluídos. Centenas de tags de fornecedores de software real são reconhecidas: nada importante se perde na entrada."
+    details: "Importe GEDCOM 5.5 e 5.5.1, exporte GEDCOM 7.0 — arquivos .gdz incluídos. Centenas de tags de fornecedores de software real são reconhecidas e mapeadas para o modelo do Dóru."
   - icon: 🔒
     title: Privacidade por design
     details: "Sem contas, sem nuvem, sem telemetria. Nada sai da sua máquina a menos que você diga."

@@ -1,6 +1,12 @@
 import type { DatabaseSync } from 'node:sqlite';
 import type { ContactRecord, IdentifierRecord, RestrictionRecord, TagLinkRecord, TagRecord } from '../model/types';
-import type { DateRepo } from './dateRepo';
+
+interface TagLinkRow {
+  id: string;
+  tag_id: string;
+  target_type: string;
+  target_id: string;
+}
 
 /**
  * The universal attachment tables: identifiers, contacts, restrictions,
@@ -8,10 +14,7 @@ import type { DateRepo } from './dateRepo';
  * shape.
  */
 export class AttachmentRepo {
-  constructor(
-    private readonly db: DatabaseSync,
-    private readonly dates: DateRepo,
-  ) {}
+  constructor(private readonly db: DatabaseSync) {}
 
   // identifiers -------------------------------------------------------------
 
@@ -170,7 +173,6 @@ export class AttachmentRepo {
     this.db
       .prepare('INSERT INTO tag_link (id, tag_id, target_type, target_id) VALUES (?, ?, ?, ?)')
       .run(link.id, link.tagId, link.targetType, link.targetId);
-    this.dates.upsertForOwner('tag_link', link.id, 'date', link.date);
   }
 
   deleteTagLink(id: string): boolean {
@@ -178,13 +180,12 @@ export class AttachmentRepo {
   }
 
   updateTagLink(link: TagLinkRecord): void {
-    if (this.db.prepare('SELECT 1 FROM tag_link WHERE id = ?').get(link.id) === undefined) {
+    const changed = this.db
+      .prepare('UPDATE tag_link SET tag_id = ?, target_type = ?, target_id = ? WHERE id = ?')
+      .run(link.tagId, link.targetType, link.targetId, link.id).changes;
+    if (changed === 0) {
       throw new Error(`tag_link ${link.id} no longer exists`);
     }
-    this.db
-      .prepare('UPDATE tag_link SET tag_id = ?, target_type = ?, target_id = ? WHERE id = ?')
-      .run(link.tagId, link.targetType, link.targetId, link.id);
-    this.dates.upsertForOwner('tag_link', link.id, 'date', link.date);
   }
 
   listTagLinksFor(targetType: string, targetId: string): Array<{ tagId: string; link: TagLinkRecord }> {
@@ -192,16 +193,7 @@ export class AttachmentRepo {
       .prepare(
         'SELECT id, tag_id, target_type, target_id FROM tag_link WHERE target_type = ? AND target_id = ? ORDER BY id',
       )
-      .all(targetType, targetId) as unknown as {
-      id: string;
-      tag_id: string;
-      target_type: string;
-      target_id: string;
-    }[];
-    const datesByOwner = this.dates.getManyForOwners(
-      'tag_link',
-      rows.map((row) => row.id),
-    );
+      .all(targetType, targetId) as unknown as TagLinkRow[];
     return rows.map((row) => ({
       tagId: row.tag_id,
       link: {
@@ -209,14 +201,13 @@ export class AttachmentRepo {
         tagId: row.tag_id,
         targetType: row.target_type,
         targetId: row.target_id,
-        date: datesByOwner.get(row.id)?.get('date'),
       },
     }));
   }
 
   getTagLink(id: string): TagLinkRecord | undefined {
     const row = this.db.prepare('SELECT id, tag_id, target_type, target_id FROM tag_link WHERE id = ?').get(id) as
-      | { id: string; tag_id: string; target_type: string; target_id: string }
+      | TagLinkRow
       | undefined;
     if (row === undefined) {
       return undefined;
@@ -226,29 +217,18 @@ export class AttachmentRepo {
       tagId: row.tag_id,
       targetType: row.target_type,
       targetId: row.target_id,
-      date: this.dates.getForOwner('tag_link', row.id, 'date'),
     };
   }
 
   listTagLinksByTag(tagId: string): TagLinkRecord[] {
     const rows = this.db
       .prepare('SELECT id, tag_id, target_type, target_id FROM tag_link WHERE tag_id = ? ORDER BY id')
-      .all(tagId) as unknown as {
-      id: string;
-      tag_id: string;
-      target_type: string;
-      target_id: string;
-    }[];
-    const datesByOwner = this.dates.getManyForOwners(
-      'tag_link',
-      rows.map((row) => row.id),
-    );
+      .all(tagId) as unknown as TagLinkRow[];
     return rows.map((row) => ({
       id: row.id,
       tagId: row.tag_id,
       targetType: row.target_type,
       targetId: row.target_id,
-      date: datesByOwner.get(row.id)?.get('date'),
     }));
   }
 
@@ -256,22 +236,12 @@ export class AttachmentRepo {
   listAllTagLinks(): TagLinkRecord[] {
     const rows = this.db
       .prepare('SELECT id, tag_id, target_type, target_id FROM tag_link ORDER BY id')
-      .all() as unknown as {
-      id: string;
-      tag_id: string;
-      target_type: string;
-      target_id: string;
-    }[];
-    const datesByOwner = this.dates.getManyForOwners(
-      'tag_link',
-      rows.map((row) => row.id),
-    );
+      .all() as unknown as TagLinkRow[];
     return rows.map((row) => ({
       id: row.id,
       tagId: row.tag_id,
       targetType: row.target_type,
       targetId: row.target_id,
-      date: datesByOwner.get(row.id)?.get('date'),
     }));
   }
 

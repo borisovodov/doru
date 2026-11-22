@@ -26,8 +26,7 @@ describe('Phase 3: relations', () => {
         otherPersonId: 'P2',
         role: 'GODP',
         relationship: 'godparent',
-        periodStart: { quality: 'exact', component: { year: 1900 } },
-        periodEnd: { quality: 'exact', component: { year: 1905 } },
+        period: { quality: 'range', component: { year: 1900 }, end: { year: 1905 } },
       });
       expect(repo.listAssociationsFor('P1')).toEqual([
         expect.objectContaining({ id: 'A1', otherPersonId: 'P2', relationship: 'godparent' }),
@@ -71,7 +70,7 @@ describe('Phase 3: research layer', () => {
         targetId: 'P1',
         priority: 'high',
         status: 'open',
-        createdDate: { quality: 'exact', component: { year: 2026 } },
+        createdAt: new Date(2026, 0, 2).getTime(),
       });
       expect(repo.listTasksFor('person', 'P1')).toEqual([
         expect.objectContaining({ id: 'T1', text: 'check the archive', status: 'open' }),

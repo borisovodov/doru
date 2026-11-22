@@ -4,20 +4,16 @@ import { IconButton } from '../../atoms/icon-button/IconButton';
 import { Input } from '../../atoms/form/Input';
 import { SectionCard } from '../../patterns/section-card/SectionCard';
 import { useRef, useState } from 'react';
-import { CalendarDays, Trash2, X } from 'lucide-react';
+import { Trash2, X } from 'lucide-react';
 import type { TagLinkRecord, TagRecord } from '@doru/core';
 import { foldCase } from '@doru/core/model';
 import { nls } from '../../nls';
-import { DateEditor } from '../date/DateEditor';
-import { emptyDate, fromDateDraft, toDateDraft, type DateDraft } from '../person/draft';
-import { formatDate } from '../format/format';
 import '../attachments/AttachmentsSection.css';
 
 /**
  * The tags attached to the person, with create-and-attach. A tag name
  * click renames the tag (everywhere it is used); the trash removes the
- * tag from the whole tree, links included. The calendar button edits the
- * attachment date of the link.
+ * tag from the whole tree, links included.
  */
 export function TagsSection({
   targetType,
@@ -29,7 +25,6 @@ export function TagsSection({
   onDeleteTag,
   onAttachTag,
   onDetachTag,
-  onUpdateTagLink,
 }: {
   targetType: string;
   targetId: string;
@@ -40,13 +35,10 @@ export function TagsSection({
   onDeleteTag: (tag: TagRecord) => Promise<void>;
   onAttachTag: (link: TagLinkRecord) => Promise<void>;
   onDetachTag: (link: TagLinkRecord) => Promise<void>;
-  onUpdateTagLink: (before: TagLinkRecord, after: TagLinkRecord) => Promise<void>;
 }) {
   const [input, setInput] = useState('');
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editValue, setEditValue] = useState('');
-  const [editingDateId, setEditingDateId] = useState<string | null>(null);
-  const [dateDraft, setDateDraft] = useState<DateDraft>(() => emptyDate());
   // Guards the rename against double commits (Enter followed by the
   // input's blur, or Escape followed by the unmount blur).
   const renameDoneRef = useRef(false);
@@ -90,19 +82,6 @@ export function TagsSection({
     setEditingId(null);
   };
 
-  const startDateEdit = (link: TagLinkRecord) => {
-    setEditingDateId(link.id);
-    setDateDraft(toDateDraft(link.date));
-  };
-
-  const saveDateEdit = async (link: TagLinkRecord) => {
-    const date = fromDateDraft(dateDraft, link.date);
-    if (link.date !== date) {
-      await onUpdateTagLink(link, { ...link, date });
-    }
-    setEditingDateId(null);
-  };
-
   return (
     <SectionCard title={nls.t('features.tree.tags.title')}>
       {tagLinks.length === 0 && <EmptyText>{nls.t('features.tree.tags.empty')}</EmptyText>}
@@ -135,13 +114,6 @@ export function TagsSection({
                   {byId.get(tagId)?.name ?? tagId}
                 </button>
               )}
-              {link.date !== undefined && <span className="tag-chip-date">{formatDate(link.date)}</span>}
-              <IconButton
-                size="sm"
-                label={nls.t('features.tree.tags.date.edit')}
-                icon={<CalendarDays size={12} aria-hidden="true" />}
-                onClick={() => startDateEdit(link)}
-              />
               <IconButton
                 size="sm"
                 label={nls.t('features.tree.tags.detach')}
@@ -160,22 +132,6 @@ export function TagsSection({
                 }}
               />
             </span>
-            {editingDateId === link.id && (
-              <span className="tag-date-editor">
-                <DateEditor
-                  label={nls.t('features.tree.tags.date')}
-                  value={dateDraft}
-                  onChange={setDateDraft}
-                  hidePlace
-                />
-                <Button variant="primary" size="sm" onClick={() => void saveDateEdit(link)}>
-                  {nls.t('features.tree.save')}
-                </Button>
-                <Button variant="secondary" size="sm" onClick={() => setEditingDateId(null)}>
-                  {nls.t('features.tree.fact.cancel')}
-                </Button>
-              </span>
-            )}
           </span>
         ))}
       </div>

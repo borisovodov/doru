@@ -92,7 +92,14 @@ export function formatDateValue70(value: DateValue): string | undefined {
     case 'range': {
       const start = formatDateFields(value.start, '7.0');
       const end = formatDateFields(value.end, '7.0');
-      return start === undefined || end === undefined ? undefined : `BET ${start} AND ${end}`;
+      if (start !== undefined && end !== undefined) {
+        return `BET ${start} AND ${end}`;
+      }
+      // A bound the target grammar cannot spell must not drop the other one.
+      if (start !== undefined) {
+        return `FROM ${start}`;
+      }
+      return end === undefined ? undefined : `TO ${end}`;
     }
     case 'bound': {
       const date = formatDateFields(value.date, '7.0');
@@ -133,7 +140,14 @@ export function formatDateValue551(value: DateValue): string | undefined {
     case 'range': {
       const start = formatDateFields(value.start, '5.5.1');
       const end = formatDateFields(value.end, '5.5.1');
-      return start === undefined || end === undefined ? undefined : `BET ${start} AND ${end}`;
+      if (start !== undefined && end !== undefined) {
+        return `BET ${start} AND ${end}`;
+      }
+      // A bound the target grammar cannot spell must not drop the other one.
+      if (start !== undefined) {
+        return `FROM ${start}`;
+      }
+      return end === undefined ? undefined : `TO ${end}`;
     }
     case 'bound': {
       const date = formatDateFields(value.date, '5.5.1');

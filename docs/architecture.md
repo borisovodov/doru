@@ -91,6 +91,9 @@ decisions about what we deliberately do **not** build, see
   on 5.x import), kept free of runtime dependencies and of Electron. The
   desktop import/export layer maps the GEDCOM dataset to and from the tree
   database in `@doru/core`; the format package itself stays storage-free.
+  The mapping is intentionally lossy: fields the tree model does not
+  represent are dropped. The format package, not the tree database, owns
+  wire-level fidelity.
 - The app registers `.ged`/`.gdz` file associations (next to `.doru`) and
   routes every opened file by extension. Opening a GEDCOM file imports it
   into a new **not-yet-saved project**: the data lives in a temporary

@@ -1,5 +1,5 @@
 ---
-source-hash: 2512c57f34c8
+source-hash: 3bbc12ca0a98
 layout: home
 
 hero:
@@ -18,7 +18,7 @@ features:
     details: "Négy nézet — ősök, leszármazottak, homokóra, család — egyetlen nagyítható vásznon. Adjon hozzá embereket helyben, húzással rendezze át a szülőket, nyisson teljes szerkesztőket dátumokhoz, forrásokhoz és jegyzetekhez."
   - icon: 💾
     title: GEDCOM import és export
-    details: "GEDCOM 5.5 és 5.5.1 import, GEDCOM 7.0 export — a .gdz archívumokat is beleértve. Valódi szoftverek több száz gyártói tagjét ismeri fel, így semmi fontos nem vész el beolvasáskor."
+    details: "GEDCOM 5.5 és 5.5.1 import, GEDCOM 7.0 export — a .gdz archívumokat is beleértve. Valódi szoftverek több száz gyártói tagját ismeri fel, és a Dóru modelljébe képezi le őket."
   - icon: 🔒
     title: Alapból privát
     details: "Nincs fiók, nincs felhő, nincs telemetria. Semmi sem hagyja el a gépét, amíg Ön nem mondja."

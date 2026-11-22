@@ -248,15 +248,9 @@ function AssociationFields({
         onChange={(event) => set({ primary: event.target.checked })}
       />
       <DateEditor
-        label={nls.t('features.tree.associations.periodStart')}
-        value={draft.periodStart}
-        onChange={(periodStart) => set({ periodStart })}
-        hidePlace
-      />
-      <DateEditor
-        label={nls.t('features.tree.associations.periodEnd')}
-        value={draft.periodEnd}
-        onChange={(periodEnd) => set({ periodEnd })}
+        label={nls.t('features.tree.associations.period')}
+        value={draft.period}
+        onChange={(period) => set({ period })}
         hidePlace
       />
     </div>

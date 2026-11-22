@@ -4,7 +4,6 @@ import { Field } from '../../atoms/field/Field';
 import { FieldGrid } from '../../atoms/field-grid/FieldGrid';
 import { Input } from '../../atoms/form/Input';
 import { Select } from '../../atoms/form/Select';
-import { DateEditor } from '../date/DateEditor';
 import type { TaskTargetData } from './taskTargets';
 import { taskTargetOptions } from './taskTargets';
 import type { TaskDraft } from './taskDraft';
@@ -12,8 +11,8 @@ import type { TaskDraft } from './taskDraft';
 /**
  * The editable fields of a task, shared by the task tab editor: the text,
  * the classification fields (priority, status), the entity links, and the
- * creation/scheduled/reminder/closed dates. `data` carries every record type
- * a task can be related to.
+ * scheduled/reminder instants. `data` carries every record type a task can
+ * be related to. Creation and closing timestamps are managed by the service.
  */
 export function TaskEditorFields({
   edit,
@@ -96,30 +95,22 @@ export function TaskEditorFields({
           </Select>
         </Field>
       </FieldGrid>
-      <DateEditor
-        label={nls.t('features.tasks.created')}
-        value={edit.created}
-        onChange={(value) => onChange({ created: value })}
-        hidePlace
-      />
-      <DateEditor
-        label={nls.t('features.tasks.scheduled')}
-        value={edit.scheduled}
-        onChange={(value) => onChange({ scheduled: value })}
-        hidePlace
-      />
-      <DateEditor
-        label={nls.t('features.tasks.reminder')}
-        value={edit.reminder}
-        onChange={(value) => onChange({ reminder: value })}
-        hidePlace
-      />
-      <DateEditor
-        label={nls.t('features.tasks.closed')}
-        value={edit.closed}
-        onChange={(value) => onChange({ closed: value })}
-        hidePlace
-      />
+      <FieldGrid columns={2}>
+        <Field label={nls.t('features.tasks.scheduled')}>
+          <Input
+            type="datetime-local"
+            value={edit.scheduledAt}
+            onChange={(event) => onChange({ scheduledAt: event.target.value })}
+          />
+        </Field>
+        <Field label={nls.t('features.tasks.reminder')}>
+          <Input
+            type="datetime-local"
+            value={edit.reminderAt}
+            onChange={(event) => onChange({ reminderAt: event.target.value })}
+          />
+        </Field>
+      </FieldGrid>
     </>
   );
 }

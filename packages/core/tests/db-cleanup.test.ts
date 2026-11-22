@@ -210,22 +210,15 @@ describe('db cleanup paths', () => {
     }
   });
 
-  it('does not leak a date when a stale update targets a deleted task', () => {
+  it('rejects an update for a deleted task', () => {
     const fixture = makeRepo();
     try {
       const { repo } = fixture;
       repo.insertTask({ id: 'T1', text: 'Task' });
       repo.deleteTask('T1');
 
-      expect(() =>
-        repo.updateTask({
-          id: 'T1',
-          text: 'Edited',
-          createdDate: { quality: 'exact', component: { year: 2026, month: 1, day: 2 } },
-        }),
-      ).toThrow(/no longer exists/);
-      const { n } = fixture.store.db.prepare('SELECT COUNT(*) AS n FROM date').get() as { n: number };
-      expect(n).toBe(0);
+      expect(() => repo.updateTask({ id: 'T1', text: 'Edited', createdAt: 1 })).toThrow(/no longer exists/);
+      expect(repo.listTasks()).toEqual([]);
     } finally {
       cleanupRepo(fixture);
     }
@@ -290,8 +283,7 @@ describe('date cleanup on delete/update', () => {
         id: 'A1',
         personId: 'P1',
         otherPersonId: 'P2',
-        periodStart: { quality: 'exact', component: { year: 1920 } },
-        periodEnd: { quality: 'exact', component: { year: 1930 } },
+        period: { quality: 'range', component: { year: 1920 }, end: { year: 1930 } },
       });
       repo.deletePerson('P1');
       const count = (fixture.store.db.prepare('SELECT COUNT(*) AS n FROM date').get() as { n: number }).n;
@@ -334,33 +326,6 @@ describe('date cleanup on delete/update', () => {
       });
       const count = (fixture.store.db.prepare('SELECT COUNT(*) AS n FROM date').get() as { n: number }).n;
       expect(count).toBe(1);
-    } finally {
-      cleanupRepo(fixture);
-    }
-  });
-
-  it('replaces and deletes tag-link dates', () => {
-    const fixture = makeRepo();
-    try {
-      const { repo } = fixture;
-      repo.insertTag({ id: 'T1', name: 'favorites' });
-      repo.insertTagLink({
-        id: 'TL1',
-        tagId: 'T1',
-        targetType: 'person',
-        targetId: 'P1',
-        date: { quality: 'exact', component: { year: 1920 } },
-      });
-      repo.updateTagLink({
-        id: 'TL1',
-        tagId: 'T1',
-        targetType: 'person',
-        targetId: 'P1',
-        date: { quality: 'exact', component: { year: 1921 } },
-      });
-      expect((fixture.store.db.prepare('SELECT COUNT(*) AS n FROM date').get() as { n: number }).n).toBe(1);
-      repo.deleteTagLink('TL1');
-      expect((fixture.store.db.prepare('SELECT COUNT(*) AS n FROM date').get() as { n: number }).n).toBe(0);
     } finally {
       cleanupRepo(fixture);
     }

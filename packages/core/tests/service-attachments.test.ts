@@ -476,15 +476,6 @@ describe('TreeService attachments', () => {
       service.undo();
       expect(fixture.repo.listTags()).toEqual([tag()]);
 
-      const datedLink = tagLink({ date: { quality: 'exact', component: { year: 2021 } } });
-      service.updateTagLink(tagLink(), datedLink);
-      expect(fixture.repo.listTagLinksFor('person', 'P1')[0]?.link.date?.component?.year).toBe(2021);
-      service.undo();
-      expect(fixture.repo.listTagLinksFor('person', 'P1')[0]?.link.date).toBeUndefined();
-      service.redo();
-      expect(fixture.repo.listTagLinksFor('person', 'P1')[0]?.link.date?.component?.year).toBe(2021);
-      service.undo();
-
       service.deleteTag(tag());
       expect(fixture.repo.listTags()).toEqual([]);
       // The FK cascade removes the links; the undo restores them too.

@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { SectionCard } from '@doru/ui';
+import { Button, EntityViewCard, InlineError, SectionCard } from '@doru/ui';
 import { ListTodo } from 'lucide-react';
 import type {
   AddressRecord,
@@ -24,13 +24,12 @@ import {
   TaskEditorFields,
   emptyTaskDraft,
   taskTargetLabel,
+  taskDraftHasInvalidTimestamp,
   taskDraftToRecord,
   taskToDraft,
   type TaskDraft,
 } from '@doru/ui/domain';
 import { nls } from '../nls';
-import { Button } from '@doru/ui';
-import { EntityViewCard } from '@doru/ui';
 
 export function TaskTab({
   entityId,
@@ -156,6 +155,7 @@ function TaskTabBody({
   const base = record ?? { id: crypto.randomUUID(), text: '' };
   const [lastSaved, setLastSaved] = useState<TaskRecord | undefined>(record);
   const [draft, setDraft] = useState<TaskDraft>(() => (isNew ? emptyTaskDraft() : taskToDraft(base)));
+  const invalidTimestamp = taskDraftHasInvalidTimestamp(draft);
   const targetId = lastSaved?.id ?? record?.id;
 
   const patch = (update: Partial<TaskDraft>) => setDraft((current) => ({ ...current, ...update }));
@@ -201,7 +201,7 @@ function TaskTabBody({
   }
 
   const save = async () => {
-    if (draft.text.trim() === '') {
+    if (draft.text.trim() === '' || invalidTimestamp) {
       return;
     }
     const after = taskDraftToRecord(base, draft);
@@ -228,7 +228,12 @@ function TaskTabBody({
         subtitle={subtitleParts.length > 0 ? subtitleParts.join(' · ') : null}
         actions={
           <>
-            <Button variant="primary" size="sm" disabled={draft.text.trim() === ''} onClick={() => void save()}>
+            <Button
+              variant="primary"
+              size="sm"
+              disabled={draft.text.trim() === '' || invalidTimestamp}
+              onClick={() => void save()}
+            >
               {nls.t('features.tree.save')}
             </Button>
             {(!isNew || lastSaved !== undefined) && (
@@ -242,6 +247,7 @@ function TaskTabBody({
 
       <SectionCard title={nls.t('features.tree.details')}>
         <TaskEditorFields edit={draft} data={targetData} onChange={patch} />
+        {invalidTimestamp ? <InlineError>{nls.t('features.tasks.invalidTimestamp')}</InlineError> : null}
       </SectionCard>
       {targetId !== undefined && (
         <AttachmentsPanel

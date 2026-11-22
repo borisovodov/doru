@@ -67,6 +67,22 @@ concrete feature needs the wire metadata. The same applies to the LDS,
 research, census, event-definition, duplicate-candidate, published-site,
 group, tree-tag and GenoPro record families listed in `import/gedcom.ts`.
 
+## GEDCOM round-trip is not an application requirement
+
+`@doru/gedcom` models and serializes the GEDCOM wire format. Same-version
+round-trips are required for the structures that package models, except for
+the drops documented in `packages/gedcom/README.md` — for example
+non-underscore top-level vendor extensions and generic extension records,
+which neither target grammar can spell. Cross-version round-trips are lossy
+by design. Dóru's `.doru` schema is a separate domain model. Import maps the
+GEDCOM data the model represents, and export writes that model back; fields
+outside the model are dropped and export synthesizes a fresh header. A
+`.ged → .doru → .ged` cycle is therefore not required to be lossless.
+
+Schema and UI decisions should stand on the app's own domain needs. Do not
+justify a decision by GEDCOM round-trip fidelity alone: wire-format fidelity
+belongs to the format package, not to the application.
+
 ## GEDCOM legacy identifiers and FAMC/FAMS vendor details
 
 `RFN` and `AFN` are GEDCOM 5.5.1 identifiers with no 7.0 spelling; Dóru does
@@ -93,6 +109,51 @@ status instead. The record-form `_TTIL` title and the GEDCOM-L `TYPE` task kind 
 solution text are dropped too: Dóru has one task text, no task-type taxonomy,
 and no separate task-result field.
 
+## Dates are forward-referenced values
+
+A date is a value row in `date`, not a child row with a polymorphic owner.
+Each owner row has one column per date slot (`fact.date_id`,
+`association.period_date_id`, …) pointing at the value with
+`ON DELETE RESTRICT`. The column name is the role; there is no
+`owner_type`/`role` vocabulary. A period is one `range` value: the import
+layer folds two-slot wire dates (`_DATE2`, `_PERIOD`) into it, and export
+splits them back where the target format needs two slots.
+
+This gives the schema real foreign keys and makes a fact's dates visible on
+the fact row. The trade-off is that SQLite cannot express "exactly one owner"
+across twelve referencing tables. Repositories keep that invariant: a date
+row is created for one owner and never shared, and a copied row gets a fresh
+date id. `ON DELETE RESTRICT` turns a leaked share into a loud failure.
+
+There are no date-delete triggers. Repositories delete the dates explicitly
+after the owner row is gone, including for cascaded children (a deleted
+person's names, facts and family links; a deleted source's events and
+citations). The update path writes surviving slots first, updates the owner,
+then releases the old ids; aggregate updates reserve every old date id for
+the whole operation so a copy into another slot gets a fresh id. Tests assert
+that no date rows are left orphaned.
+
+## Task times are Unix instants
+
+Task lifecycle times are operational instants, not genealogical assertions.
+They are stored as epoch-millisecond integers: `created_at`, `scheduled_at`,
+`reminder_at`, and `closed_at`. They do not use the `date` table.
+
+`created_at` is set once when the app creates a task. `closed_at` is set when
+the status becomes `closed` and cleared when the task is reopened. The UI uses
+a date-and-time control, not the GEDCOM date editor.
+
+GEDCOM task dates are imported only when they are complete exact dates:
+My Family Tree's encoded `DDMMYYYY` text in the record form, and exact GEDCOM
+dates in the `_TODO` structure form. Date-only values become local midnight.
+Partial, approximate, range, or otherwise unparseable task dates are dropped
+rather than inventing an instant.
+
+`tag_link.date` is dropped entirely. The tag-application date is rare in the
+corpus (a handful of modern dates in the tag-extension examples) and Dóru's
+tag model does not need it; `@doru/gedcom` still parses and serializes the wire
+field, but the tree database does not store it.
+
 ## No persistent change log
 
 There is no `change_log` table and no `CHAN`/`CREA` mapping. Undo/redo is an
@@ -108,8 +169,8 @@ verbatim as text. They are names, not person pointers, and are deliberately
 not an attachment target: notes, sources, tasks and media belong on a
 standard GEDCOM `ASSO` association row (`association`), which points at a
 person and carries a role. Giving the free-text rows stable ids and
-attachment panels would create `.doru`-only evidence that cannot survive a
-GEDCOM round-trip.
+attachment panels would make them look like first-class entities that Dóru
+does not model.
 
 ## GEDCOM media
 
@@ -158,7 +219,7 @@ here:
 
 - Source-level certainty from Heredis is written as the extension-safe
   `_QUAY` at the `SOUR` record level. The parser accepts both `QUAY` and
-  `_QUAY`, so existing Heredis files still round-trip.
+  `_QUAY`, so older Heredis exports import under either spelling.
 - Citations attached to the `SEX` fact are written as `SOUR` children of
   `SEX`. GEDCOM 5.5.1 and 7.0 do not define that substructure, but the
   alternative record-level placement loses the link to the sex fact. When no

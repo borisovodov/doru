@@ -41,7 +41,7 @@ import type {
   PedigreeEnum,
 } from '@doru/gedcom';
 import type { TreeRepository } from '../db/repository';
-import { normalizeTaskPriority, normalizeTaskStatus } from '../model/types';
+import { normalizeTaskPriority, normalizeTaskStatus, splitDateBounds } from '../model/types';
 import type {
   AssociationRecord,
   DateComponent,
@@ -736,70 +736,58 @@ function buildGedcomTodoRecord(task: TaskRecord, repo: TreeRepository, xrefs: Xr
     .listIdentifiersFor('task', task.id)
     .filter((identifier) => identifier.namespace === 'uid')
     .map((identifier) => identifier.value);
-  const createdDate = formatGedcomTodoDate(task.createdDate);
+  const createdDate = formatTaskTimestamp(task.createdAt);
+  const scheduledDate = formatTaskTimestamp(task.scheduledAt);
+  const reminderDate = formatTaskTimestamp(task.reminderAt);
+  const closedDate = formatTaskTimestamp(task.closedAt);
   return {
     tag: '_TODO',
     payload: task.text,
     priority: normalizeTaskPriority(task.priority),
     status: gedcomTaskStatus(task.status),
     ...(createdDate !== undefined ? { createdDate } : {}),
+    ...(scheduledDate !== undefined ? { scheduledDate } : {}),
+    ...(reminderDate !== undefined ? { reminderDate } : {}),
+    ...(closedDate !== undefined ? { closedDate } : {}),
     ...(uids.length > 0 ? { uids } : {}),
     ...withNoteList(repo, 'task', task.id, xrefs),
   };
 }
 
-/** The vendor `_TCDT` slot is free text: keep a simple ISO-ish date. */
-function formatGedcomTodoDate(date: DateValue | undefined): string | undefined {
-  if (date === undefined) {
+/** The task parser reads four-digit UTC years only; expanded years would not re-import. */
+function isExportableTaskDate(date: Date): boolean {
+  const year = date.getUTCFullYear();
+  return !Number.isNaN(date.getTime()) && year >= 0 && year <= 9999;
+}
+
+/** The vendor text slots carry a zone-qualified ISO timestamp. */
+function formatTaskTimestamp(value: number | undefined): string | undefined {
+  if (value === undefined || !Number.isFinite(value)) {
     return undefined;
   }
-  const component = date.component;
-  const iso = (value: NonNullable<typeof component>): string => {
-    const year = String(value.year).padStart(4, '0');
-    if (value.month === undefined) {
-      return year;
-    }
-    const month = String(value.month).padStart(2, '0');
-    if (value.day === undefined) {
-      return `${year}-${month}`;
-    }
-    return `${year}-${month}-${String(value.day).padStart(2, '0')}`;
+  const date = new Date(value);
+  return isExportableTaskDate(date) ? date.toISOString() : undefined;
+}
+
+function taskTimestampToDateValue(value: number | undefined): DateValue | undefined {
+  if (value === undefined || !Number.isFinite(value)) {
+    return undefined;
+  }
+  const date = new Date(value);
+  if (!isExportableTaskDate(date)) {
+    return undefined;
+  }
+  return {
+    quality: 'exact',
+    component: { year: date.getUTCFullYear(), month: date.getUTCMonth() + 1, day: date.getUTCDate() },
+    time: {
+      hour: date.getUTCHours(),
+      minute: date.getUTCMinutes(),
+      second: date.getUTCSeconds(),
+      ...(date.getUTCMilliseconds() !== 0 ? { fraction: String(date.getUTCMilliseconds()).padStart(3, '0') } : {}),
+      utc: true,
+    },
   };
-  const complexComponent = (value: NonNullable<typeof component>): boolean =>
-    value.calendar !== undefined ||
-    value.epoch !== undefined ||
-    (value.month !== undefined && typeof value.month !== 'number');
-  // The compact `YYYY[-MM[-DD]]` form drops any part it cannot render, so
-  // every partial shape (a day without a month, a month without a year)
-  // needs the structured JSON branch.
-  const partial = (value: NonNullable<typeof component>): boolean =>
-    value.year === undefined
-      ? value.month !== undefined || value.day !== undefined
-      : value.month === undefined && value.day !== undefined;
-  if (
-    (component !== undefined && (complexComponent(component) || partial(component))) ||
-    (date.end !== undefined && (complexComponent(date.end) || partial(date.end))) ||
-    (date.text !== undefined && date.quality !== 'unknown' && component === undefined && date.end === undefined) ||
-    (component?.year !== undefined && (component.year < 0 || component.year > 9999)) ||
-    (date.end?.year !== undefined && (date.end.year < 0 || date.end.year > 9999)) ||
-    date.time !== undefined ||
-    date.modifier !== undefined ||
-    (date.text !== undefined && date.text !== date.text.trimEnd())
-  ) {
-    const { id: _id, ...structured } = date;
-    return `json:${JSON.stringify(structured)}`;
-  }
-  const start = component?.year !== undefined ? iso(component) : '';
-  const end = date.end?.year !== undefined ? iso(date.end) : '';
-  if (start === '' && end === '') {
-    if (date.text === undefined) {
-      return undefined;
-    }
-    return date.quality === 'unknown' ? `unknown:|${date.text}` : date.text;
-  }
-  const quality = date.quality === 'exact' ? '' : `${date.quality}:`;
-  const range = end !== '' ? `..${end}` : '';
-  return `${quality}${start}${range}${date.text !== undefined ? `|${date.text}` : ''}`;
 }
 
 function buildTagRecord(tag: TagRecord, xrefs: Xrefs): GedcomRecord {
@@ -843,6 +831,9 @@ function buildAssociation(
   repo: TreeRepository,
   xrefs: Xrefs,
 ): import('@doru/gedcom').AssociationStructure {
+  const bounds = association.period !== undefined ? splitDateBounds(association.period) : undefined;
+  const periodStart = bounds?.start !== undefined ? buildDate(bounds.start) : undefined;
+  const periodEnd = bounds?.end !== undefined ? buildDate(bounds.end) : undefined;
   return {
     tag: 'ASSO',
     individual: xrefs.of(association.otherPersonId),
@@ -854,12 +845,12 @@ function buildAssociation(
     ...(association.primary === true ? { primary: true } : {}),
     ...(association.specificType !== undefined ? { specificType: association.specificType } : {}),
     ...(association.confidence !== undefined ? { confidence: association.confidence } : {}),
-    ...(association.periodStart !== undefined || association.periodEnd !== undefined
+    ...(periodStart !== undefined || periodEnd !== undefined
       ? {
           period: {
             tag: '_PERIOD',
-            ...(association.periodStart !== undefined ? { start: buildDate(association.periodStart) } : {}),
-            ...(association.periodEnd !== undefined ? { end: buildDate(association.periodEnd) } : {}),
+            ...(periodStart !== undefined ? { start: periodStart } : {}),
+            ...(periodEnd !== undefined ? { end: periodEnd } : {}),
           },
         }
       : {}),
@@ -868,7 +859,7 @@ function buildAssociation(
       : {}),
     ...withCitationList(repo, 'association', association.id, xrefs),
     ...withNoteList(repo, 'association', association.id, xrefs),
-  } as import('@doru/gedcom').AssociationStructure;
+  };
 }
 
 function withAliases(
@@ -1232,15 +1223,11 @@ function withTagLinks(
   targetType: string,
   targetId: string,
   xrefs: Xrefs,
-): { tagLinks?: Array<{ tag: '_TAG'; target: string; date?: DateStructure }> } {
-  const links = repo.listTagLinksFor(targetType, targetId).map(
-    (entry) =>
-      ({
-        tag: '_TAG',
-        target: xrefs.of(entry.tagId),
-        ...(entry.link.date !== undefined ? { date: buildDate(entry.link.date) } : {}),
-      }) as import('@doru/gedcom').TagLink,
-  );
+): { tagLinks?: Array<{ tag: '_TAG'; target: string }> } {
+  const links = repo.listTagLinksFor(targetType, targetId).map((entry) => ({
+    tag: '_TAG' as const,
+    target: xrefs.of(entry.tagId),
+  }));
   return links.length > 0 ? { tagLinks: links } : {};
 }
 
@@ -1252,16 +1239,19 @@ function withGedcomTodoStructures(
   // _TODO.REPO, _TODO._CAT, and _TODO._LOCL are deliberately not written:
   // see buildGedcomTodoRecord.
   const structures = repo.listTasksFor(targetType, targetId).map((task) => {
-    const createdDate = formatGedcomTodoDate(task.createdDate);
+    const createdDate = formatTaskTimestamp(task.createdAt);
+    const scheduledDate = taskTimestampToDateValue(task.scheduledAt);
+    const reminderDate = taskTimestampToDateValue(task.reminderAt);
+    const closedDate = taskTimestampToDateValue(task.closedAt);
     return {
       tag: '_TODO' as const,
       payload: task.text,
       priority: normalizeTaskPriority(task.priority),
       status: gedcomTaskStatus(task.status),
-      ...(task.scheduledDate !== undefined ? { date: buildDate(task.scheduledDate) } : {}),
+      ...(scheduledDate !== undefined ? { date: buildDate(scheduledDate) } : {}),
       ...(createdDate !== undefined ? { createdDate } : {}),
-      ...(task.reminderDate !== undefined ? { reminderDate: buildDate(task.reminderDate) } : {}),
-      ...(task.closedDate !== undefined ? { closedDate: buildDate(task.closedDate) } : {}),
+      ...(reminderDate !== undefined ? { reminderDate: buildDate(reminderDate) } : {}),
+      ...(closedDate !== undefined ? { closedDate: buildDate(closedDate) } : {}),
     } as import('@doru/gedcom').TodoStructure;
   });
   return structures.length > 0 ? { todos: structures } : {};
@@ -1370,7 +1360,6 @@ function buildSource(source: SourceRecord, repo: TreeRepository, xrefs: Xrefs): 
 
 function buildDetail(fact: FactRecord, repo: TreeRepository, xrefs: Xrefs): EventDetail | undefined {
   const date = buildDate(fact.date);
-  const endDate = fact.endDate !== undefined ? buildDate(fact.endDate) : undefined;
   const additionalPlaces =
     fact.additionalPlaceIds !== undefined && fact.additionalPlaceIds.length > 0
       ? fact.additionalPlaceIds.map((placeId) => buildPlace(repo, placeId, xrefs))
@@ -1425,7 +1414,6 @@ function buildDetail(fact: FactRecord, repo: TreeRepository, xrefs: Xrefs): Even
   const primary = fact.primary === true;
   if (
     date === undefined &&
-    endDate === undefined &&
     place === undefined &&
     additionalPlaces === undefined &&
     address === undefined &&
@@ -1464,7 +1452,6 @@ function buildDetail(fact: FactRecord, repo: TreeRepository, xrefs: Xrefs): Even
   const firstAge = ages?.[0];
   return {
     ...(date !== undefined ? { date } : {}),
-    ...(endDate !== undefined ? { endDate } : {}),
     ...(fact.sortDate !== undefined ? { sortDate: buildSortDate(fact.sortDate) } : {}),
     ...(place !== undefined ? { place } : {}),
     ...(additionalPlaces !== undefined ? { additionalPlaces } : {}),
@@ -1742,13 +1729,15 @@ function buildDateValue(date: DateValue): GedcomDateValue | undefined {
       return component !== undefined ? { kind: 'bound', modifier: 'AFT', date: component } : undefined;
     case 'range': {
       const end = date.end !== undefined ? buildDateFields(date.end) : undefined;
-      if (component !== undefined && end !== undefined) {
+      if (component !== undefined && end !== undefined && component.year !== undefined && end.year !== undefined) {
         return { kind: 'range', start: component, end };
       }
-      if (component !== undefined) {
+      // A bound without a year has no GEDCOM spelling; keep the exportable
+      // side instead of dropping the whole range.
+      if (component !== undefined && component.year !== undefined) {
         return { kind: 'period', from: component };
       }
-      if (end !== undefined) {
+      if (end !== undefined && end.year !== undefined) {
         return { kind: 'period', to: end };
       }
       return { kind: 'unknown' };

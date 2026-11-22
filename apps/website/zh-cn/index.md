@@ -1,5 +1,5 @@
 ---
-source-hash: 2512c57f34c8
+source-hash: 3bbc12ca0a98
 layout: home
 
 hero:
@@ -18,7 +18,7 @@ features:
     details: "四种视图——祖先、后代、沙漏、家庭——汇聚在一张可缩放的画布上。就地添加人物，拖拽即可更换父母，打开完整的日期、来源与笔记编辑器。"
   - icon: 💾
     title: GEDCOM 导入导出
-    details: "导入 GEDCOM 5.5 和 5.5.1，导出 GEDCOM 7.0——包括 .gdz 归档。识别真实软件中的数百种厂商标签，导入时不会丢失重要信息。"
+    details: "导入 GEDCOM 5.5 和 5.5.1，导出 GEDCOM 7.0——包括 .gdz 归档。识别真实软件中的数百种厂商标签，并映射到 Dóru 模型中。"
   - icon: 🔒
     title: 隐私优先
     details: "没有账户，没有云端，没有遥测。未经您的允许，任何数据都不会离开您的电脑。"

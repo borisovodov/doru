@@ -76,6 +76,110 @@ export function signedYear(component: DateComponent | undefined): number | undef
   return component.epoch === 'BCE' ? 1 - component.year : component.year;
 }
 
+/**
+ * Merges two independently stored date bounds into one range value. Used by
+ * the GEDCOM import layer: `_DATE2` and the extension `_PERIOD` bounds become
+ * ordinary `range` dates in the tree model. When only the end survives, the
+ * result is an open-ended range (`TO end`).
+ */
+export function mergeDateBounds(start?: DateValue, end?: DateValue): DateValue | undefined {
+  if (start === undefined) {
+    if (end === undefined) {
+      return undefined;
+    }
+    const endComponent = end.component ?? end.end;
+    return {
+      quality: 'range',
+      ...(endComponent !== undefined ? { end: endComponent } : {}),
+      ...(end.text !== undefined ? { text: end.text } : {}),
+      ...(end.time !== undefined ? { time: end.time } : {}),
+    };
+  }
+  if (end === undefined) {
+    return start;
+  }
+  if (end.component === undefined && end.end === undefined) {
+    if (start.quality !== 'range' || start.end === undefined) {
+      // A phrase-only secondary date adds no bound; keep the primary qualifier
+      // (BEF stays BEF instead of becoming an open-ended FROM range).
+      return start.text === undefined && end.text !== undefined ? { ...start, text: end.text } : start;
+    }
+    return {
+      quality: 'range',
+      ...(start.component !== undefined ? { component: start.component } : {}),
+      end: start.end,
+      ...(start.text !== undefined ? { text: start.text } : end.text !== undefined ? { text: end.text } : {}),
+      ...(start.time !== undefined ? { time: start.time } : {}),
+    };
+  }
+  const endComponent = end.component ?? end.end;
+  // The time belongs to the value that supplies the sortable date: the start
+  // when it has a year, otherwise the end. A yearless start cannot position
+  // the range, so its time must not drag the end's date to another hour.
+  const time =
+    start.component?.year !== undefined
+      ? start.time
+      : endComponent?.year !== undefined
+        ? end.time
+        : (start.time ?? end.time);
+  // A phrase from the end bound cannot be attached to the range: the split
+  // would put it on the start bound. Keep it only when the start is a phrase.
+  const text = start.text ?? (start.component === undefined ? end.text : undefined);
+  return {
+    quality: 'range',
+    ...(start.component !== undefined ? { component: start.component } : {}),
+    end: endComponent,
+    ...(text !== undefined ? { text } : {}),
+    ...(time !== undefined ? { time } : {}),
+  };
+}
+
+/**
+ * Splits a range value back into its two bounds for consumers that still
+ * have two slots (the GEDCOM `_PERIOD` extension). A non-range date becomes
+ * the start bound; a range with one bound yields only that bound.
+ */
+export function splitDateBounds(date?: DateValue): { start?: DateValue; end?: DateValue } {
+  if (date === undefined) {
+    return {};
+  }
+  if (date.quality !== 'range') {
+    return { start: date };
+  }
+  // The time belongs to the endpoint that supplies the sortable year: the
+  // start when it has one, otherwise the end. A yearless start must not
+  // steal the end's time.
+  const startCarriesTime =
+    date.component !== undefined && (date.component.year !== undefined || date.end?.year === undefined);
+  const start =
+    date.component !== undefined
+      ? {
+          // A range without an end is open-ended: keep the FROM qualifier
+          // in the start slot so it survives a round trip.
+          quality: date.end === undefined ? ('range' as const) : ('exact' as const),
+          component: date.component,
+          ...(date.text !== undefined ? { text: date.text } : {}),
+          ...(startCarriesTime && date.time !== undefined ? { time: date.time } : {}),
+        }
+      : undefined;
+  const end =
+    date.end !== undefined
+      ? {
+          quality: 'exact' as const,
+          component: date.end,
+          ...(start === undefined && date.text !== undefined ? { text: date.text } : {}),
+          ...(!startCarriesTime && date.time !== undefined ? { time: date.time } : {}),
+        }
+      : undefined;
+  if (start === undefined && end === undefined && date.text !== undefined) {
+    return { start: { quality: 'unknown', text: date.text } };
+  }
+  return {
+    ...(start !== undefined ? { start } : {}),
+    ...(end !== undefined ? { end } : {}),
+  };
+}
+
 // ---------------------------------------------------------------------------
 // Persons, families, facts
 // ---------------------------------------------------------------------------
@@ -207,9 +311,8 @@ export interface FactRecord {
   value?: string | undefined;
   /** The fact asserts the event did NOT happen (GEDCOM NO). */
   negation?: boolean | undefined;
+  /** The event date; a period is a `range` value with `component` and `end`. */
   date?: DateValue | undefined;
-  /** The end date of a period (vendor `_DATE2`). */
-  endDate?: DateValue | undefined;
   /** Sort date (GEDCOM SDATE): orders the fact when the display date cannot. */
   sortDate?: DateValue | undefined;
   /** The place entity this fact happened at; the raw string stays in `place`. */
@@ -715,7 +818,6 @@ export interface TagLinkRecord {
   tagId: string;
   targetType: string;
   targetId: string;
-  date?: DateValue | undefined;
 }
 
 /** A submitter link: contributor or an ANCI/DESI research interest. */
@@ -798,8 +900,8 @@ export interface AssociationRecord {
   primary?: boolean | undefined;
   specificType?: string | undefined;
   confidence?: string | undefined;
-  periodStart?: DateValue | undefined;
-  periodEnd?: DateValue | undefined;
+  /** The period of the association; a range value when both bounds are known. */
+  period?: DateValue | undefined;
 }
 
 /** The canonical task statuses, in UI order. */
@@ -911,10 +1013,14 @@ export interface TaskRecord {
   priority?: string | undefined;
   /** Canonical statuses; unknown, empty, and missing values mean open. */
   status?: string | undefined;
-  createdDate?: DateValue | undefined;
-  scheduledDate?: DateValue | undefined;
-  reminderDate?: DateValue | undefined;
-  closedDate?: DateValue | undefined;
+  /** Creation instant, epoch milliseconds. Set once when the task is created. */
+  createdAt?: number | undefined;
+  /** Scheduled instant, epoch milliseconds. */
+  scheduledAt?: number | undefined;
+  /** Reminder instant, epoch milliseconds. */
+  reminderAt?: number | undefined;
+  /** Closing instant, epoch milliseconds; cleared when the task is reopened. */
+  closedAt?: number | undefined;
 }
 
 /** A bibliographic work (GEDCOM 7.0 TITL record), cited by sources. */

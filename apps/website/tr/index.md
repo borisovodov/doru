@@ -1,5 +1,5 @@
 ---
-source-hash: 2512c57f34c8
+source-hash: 3bbc12ca0a98
 layout: home
 
 hero:
@@ -18,7 +18,7 @@ features:
     details: "Dört görünüm — atalar, torunlar, kum saati, aile — tek bir yakınlaştırılabilir tuvalde. Kişileri yerinde ekleyin, ebeveyn değiştirmek için sürükleyin, tarihler, kaynaklar ve notlar için tam editörler açın."
   - icon: 💾
     title: GEDCOM içe ve dışa aktarma
-    details: "GEDCOM 5.5 ve 5.5.1 içe aktarma, GEDCOM 7.0 dışa aktarma — .gdz arşivleri dahil. Gerçek yazılımlardan yüzlerce satıcı etiketi tanınır, böylece içe aktarırken önemli hiçbir şey kaybolmaz."
+    details: "GEDCOM 5.5 ve 5.5.1 içe aktarma, GEDCOM 7.0 dışa aktarma — .gdz arşivleri dahil. Gerçek yazılımlardan yüzlerce satıcı etiketi tanınır ve Dóru modeline eşlenir."
   - icon: 🔒
     title: Tasarım gereği gizli
     details: "Hesap yok, bulut yok, telemetri yok. Siz söylemedikçe hiçbir şey makinenizden ayrılmaz."

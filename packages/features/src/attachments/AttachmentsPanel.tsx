@@ -164,10 +164,6 @@ export function AttachmentsPanel({
             await api.detachTag(link);
             await refresh();
           }}
-          onUpdateTagLink={async (before, after) => {
-            await api.updateTagLink(before, after);
-            await refresh();
-          }}
         />
       )}
       {include.has('identifiers') && (

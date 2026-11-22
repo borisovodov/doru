@@ -14,8 +14,8 @@ built-in chat or any MCP/ACP client.
 - **Themes.** Nine built-in themes — from One Dark to Rosé Pine — each with
   dark and light palettes that follow your OS appearance.
 - **GEDCOM.** Import GEDCOM 5.5 and 5.5.1, export GEDCOM 7.0 — .gdz archives
-  included. Hundreds of vendor tags from real-world software are recognized,
-  so nothing important is lost on the way in.
+  included. Hundreds of vendor tags from real-world software are recognized
+  and mapped into Dóru's model.
 - **Portable & localized.** Back up by copying a folder; open it on macOS,
   Linux, or Windows. The interface is fully localized in 17 languages.
 

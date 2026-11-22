@@ -17,7 +17,7 @@ features:
     details: "Four views — ancestors, descendants, hourglass, family — on one zoomable canvas. Add people in place, drag to reparent, and open full editors for dates, sources, and notes."
   - icon: 💾
     title: GEDCOM import & export
-    details: "Import GEDCOM 5.5 and 5.5.1, export GEDCOM 7.0 — .gdz archives included. Hundreds of vendor tags from real-world software are recognized, so nothing important is lost on the way in."
+    details: "Import GEDCOM 5.5 and 5.5.1, export GEDCOM 7.0 — .gdz archives included. Hundreds of vendor tags from real-world software are recognized and mapped into Dóru's model."
   - icon: 🔒
     title: Private by design
     details: "No accounts, no cloud, no telemetry. Nothing leaves your machine unless you say so."

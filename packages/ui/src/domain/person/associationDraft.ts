@@ -19,8 +19,7 @@ export interface AssociationDraft {
   primary: boolean;
   specificType: string;
   confidence: string;
-  periodStart: DateDraft;
-  periodEnd: DateDraft;
+  period: DateDraft;
 }
 
 export function emptyAssociationDraft(owner: AssociationOwner): AssociationDraft {
@@ -34,8 +33,7 @@ export function emptyAssociationDraft(owner: AssociationOwner): AssociationDraft
     primary: false,
     specificType: '',
     confidence: '',
-    periodStart: emptyDate(),
-    periodEnd: emptyDate(),
+    period: emptyDate(),
   };
 }
 
@@ -51,8 +49,7 @@ export function associationToDraft(association: AssociationRecord): AssociationD
     primary: association.primary === true,
     specificType: association.specificType ?? '',
     confidence: association.confidence ?? '',
-    periodStart: toDateDraft(association.periodStart),
-    periodEnd: toDateDraft(association.periodEnd),
+    period: toDateDraft(association.period),
   };
 }
 
@@ -68,8 +65,7 @@ export function associationDraftToRecord(draft: AssociationDraft, existing?: Ass
     primary: draft.primary || undefined,
     specificType: draft.specificType.trim() || undefined,
     confidence: draft.confidence.trim() || undefined,
-    periodStart: fromDateDraft(draft.periodStart, existing?.periodStart),
-    periodEnd: fromDateDraft(draft.periodEnd, existing?.periodEnd),
+    period: fromDateDraft(draft.period, existing?.period),
   };
 }
 

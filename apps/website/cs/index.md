@@ -1,5 +1,5 @@
 ---
-source-hash: 2512c57f34c8
+source-hash: 3bbc12ca0a98
 layout: home
 
 hero:
@@ -18,7 +18,7 @@ features:
     details: "Čtyři pohledy — předci, potomci, přesýpací hodiny, rodina — na jednom přibližitelném plátně. Přidávejte lidi přímo na místě, přetažením změňte rodiče, otevírejte plné editory dat, zdrojů a poznámek."
   - icon: 💾
     title: Import a export GEDCOM
-    details: "Import GEDCOM 5.5 a 5.5.1, export GEDCOM 7.0 — včetně archivů .gdz. Rozpoznávány jsou stovky tagů výrobců z reálného softwaru, takže se při importu nic důležitého neztratí."
+    details: "Import GEDCOM 5.5 a 5.5.1, export GEDCOM 7.0 — včetně archivů .gdz. Rozpoznávány jsou stovky tagů výrobců z reálného softwaru a mapují se do modelu Dóru."
   - icon: 🔒
     title: Soukromí z podstaty
     details: "Žádné účty, žádný cloud, žádná telemetrie. Nic neopustí váš počítač, dokud to sami nepovolíte."

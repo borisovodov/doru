@@ -136,7 +136,7 @@ describe('schema v3 extra structures', () => {
         id: 'E1',
         personId: 'P1',
         tag: 'RESI',
-        endDate: { quality: 'exact', component: { year: 1920 } },
+        date: { quality: 'range', component: { year: 1910 }, end: { year: 1920 } },
         additionalPlaceIds: ['PL2'],
         placePrefix: 'near',
         eventNumber: '7',
@@ -187,7 +187,7 @@ describe('schema v3 extra structures', () => {
       });
       expect(repo.getPlace('PL1')?.hierarchy?.[0]).toMatchObject({ id: 'PH1', parentId: 'PL2', type: 'poli' });
       expect(repo.getPerson('P1')?.facts[0]).toMatchObject({
-        endDate: expect.objectContaining({ component: { year: 1920 } }),
+        date: expect.objectContaining({ quality: 'range', end: { year: 1920 } }),
         additionalPlaceIds: ['PL2'],
         placePrefix: 'near',
         eventNumber: '7',

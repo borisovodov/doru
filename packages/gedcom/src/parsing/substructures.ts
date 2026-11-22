@@ -391,7 +391,11 @@ export function parseDateStructure(node: RawNode, ctx: Ctx): DateStructure {
     out.value = { kind: 'unknown' };
   } else {
     try {
-      applyDateValue551(out, parseDateValue(raw, node.position, tagResolver(ctx)), raw);
+      const parsed = parseDateValue(raw, node.position, tagResolver(ctx));
+      if (parsed.interpreted === true) {
+        out.interpreted = true;
+      }
+      applyDateValue551(out, parsed, raw);
     } catch (error) {
       const code = (error as { code?: string }).code;
       if (code !== undefined && code.startsWith('date.')) {

@@ -37,7 +37,7 @@ import type {
   TodoStructure,
 } from '@doru/gedcom';
 import type { TreeRepository } from '../db/repository';
-import { normalizeTaskPriority, normalizeTaskStatus } from '../model/types';
+import { mergeDateBounds, normalizeTaskPriority, normalizeTaskStatus } from '../model/types';
 import { detectParentCycles } from '../validate/validator';
 import type {
   AssociationRecord,
@@ -122,7 +122,7 @@ interface ImportContext {
   /** Place-card xref → place id. */
   placeCardIds: Map<string, string>;
   /** Place id → parent links resolved after all cards are imported. */
-  placeParents: Map<string, Array<{ parentXref: string; type?: string | undefined }>>;
+  placeParents: Map<string, Array<{ parentXref: string; type?: string | undefined; date?: DateValue | undefined }>>;
   /** Media record xref → media id. */
   mediaIds: Map<string, string>;
   /** Media id → historical place text, resolved after place records exist. */
@@ -166,8 +166,8 @@ interface ImportContext {
 
 /**
  * Writes the dataset into the repository in one transaction. Record ids are
- * fresh UUIDs; the GEDCOM cross-reference lands in `xref` for round-trip
- * export provenance.
+ * fresh UUIDs; the GEDCOM cross-reference lands in `xref` for export
+ * provenance.
  */
 export function importGedcomDataset(
   dataset: GedcomDataset,
@@ -853,8 +853,7 @@ function mapFact(
     tag: base.tag,
     type: base.type,
     value: base.payload === undefined || base.payload === 'Y' ? undefined : String(base.payload),
-    date: mapDate(detail?.date),
-    endDate: mapDate(detail?.endDate),
+    date: mergeDateBounds(mapDate(detail?.date), mapDate(detail?.endDate)),
     sortDate: mapSortDate(detail?.sortDate),
     placeId: detail?.place ? importPlace(detail.place, ctx) : undefined,
     place: mapPlaceText(detail?.place),
@@ -1287,8 +1286,7 @@ function importFamily(record: GedcomFamilyRecord, ctx: ImportContext): void {
       primary: association.primary,
       specificType: association.specificType,
       confidence: association.confidence,
-      periodStart: mapDate(association.period?.start),
-      periodEnd: mapDate(association.period?.end),
+      period: mergeDateBounds(mapDate(association.period?.start), mapDate(association.period?.end)),
     });
     importCitations(association.citations, 'association', associationId, ctx);
     importNotes(association.notes, 'association', associationId, ctx);
@@ -1363,8 +1361,7 @@ function importPersonRelations(records: GedcomRecord[], ctx: ImportContext): voi
         primary: association.primary,
         specificType: association.specificType,
         confidence: association.confidence,
-        periodStart: mapDate(association.period?.start),
-        periodEnd: mapDate(association.period?.end),
+        period: mergeDateBounds(mapDate(association.period?.start), mapDate(association.period?.end)),
       };
       ctx.repo.insertAssociation(mapped);
       importCitations(association.citations, 'association', mapped.id, ctx);
@@ -1439,15 +1436,16 @@ function importGedcomTodoRecord(record: GedcomTodoRecord, ctx: ImportContext): v
   // unknown values become open and medium rather than lingering in the
   // database.
   const id = crypto.randomUUID();
+  const status = normalizeTaskStatus(record.status);
   ctx.repo.insertTask({
     id,
     text: record.payload || '',
     priority: normalizeTaskPriority(record.priority),
-    status: normalizeTaskStatus(record.status),
-    createdDate: parseGedcomTodoDate(record.createdDate),
-    scheduledDate: parseGedcomTodoDate(record.scheduledDate),
-    reminderDate: parseGedcomTodoDate(record.reminderDate),
-    closedDate: parseGedcomTodoDate(record.closedDate),
+    status,
+    createdAt: parseTaskTextDate(record.createdDate),
+    scheduledAt: parseTaskTextDate(record.scheduledDate),
+    reminderAt: parseTaskTextDate(record.reminderDate),
+    closedAt: status === 'closed' ? parseTaskTextDate(record.closedDate) : undefined,
   });
   for (const uid of record.uids ?? []) {
     ctx.repo.insertIdentifier({
@@ -1460,176 +1458,149 @@ function importGedcomTodoRecord(record: GedcomTodoRecord, ctx: ImportContext): v
   }
 }
 
-function parseStructuredComponent(value: unknown): NonNullable<DateValue['component']> | null | undefined {
-  if (value === undefined) {
-    return undefined;
-  }
-  if (typeof value !== 'object' || value === null) {
-    return null;
-  }
-  const record = value as Record<string, unknown>;
-  if (
-    (record['calendar'] !== undefined && typeof record['calendar'] !== 'string') ||
-    (record['year'] !== undefined && (typeof record['year'] !== 'number' || !Number.isInteger(record['year']))) ||
-    (record['month'] !== undefined &&
-      ((typeof record['month'] !== 'number' && typeof record['month'] !== 'string') ||
-        (typeof record['month'] === 'number' && !Number.isInteger(record['month'])))) ||
-    (record['day'] !== undefined && (typeof record['day'] !== 'number' || !Number.isInteger(record['day']))) ||
-    (record['epoch'] !== undefined && record['epoch'] !== 'BCE')
-  ) {
-    return null;
-  }
-  return {
-    ...(record['calendar'] !== undefined ? { calendar: record['calendar'] } : {}),
-    ...(record['year'] !== undefined ? { year: record['year'] } : {}),
-    ...(record['month'] !== undefined ? { month: record['month'] } : {}),
-    ...(record['day'] !== undefined ? { day: record['day'] } : {}),
-    ...(record['epoch'] !== undefined ? { epoch: 'BCE' as const } : {}),
-  };
-}
-
-function validStructuredComponent(component: NonNullable<DateValue['component']> | undefined): boolean {
-  if (typeof component?.month === 'number' && (component.month < 1 || component.month > 12)) {
-    return false;
-  }
-  if (component?.day !== undefined && (component.day < 1 || component.day > 31)) {
-    return false;
-  }
-  if (component?.year === undefined || typeof component.month !== 'number' || component.day === undefined) {
-    return true;
-  }
-  if (component.calendar !== undefined && component.calendar !== '' && component.calendar !== 'julian') {
-    return true;
-  }
-  // Julian leap years are every fourth year; the Gregorian century
-  // exception applies only to Gregorian dates (1900-02-29 stays invalid there).
-  const leap =
-    component.calendar === 'julian'
-      ? component.year % 4 === 0
-      : component.year % 4 === 0 && (component.year % 100 !== 0 || component.year % 400 === 0);
-  const days = [31, leap ? 29 : 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31][component.month - 1] ?? 31;
-  return component.day >= 1 && component.day <= days;
-}
-
-function parseStructuredTime(value: unknown): NonNullable<DateValue['time']> | null | undefined {
-  if (value === undefined) {
-    return undefined;
-  }
-  if (typeof value !== 'object' || value === null) {
-    return null;
-  }
-  const record = value as Record<string, unknown>;
-  if (
-    typeof record['hour'] !== 'number' ||
-    typeof record['minute'] !== 'number' ||
-    (record['second'] !== undefined && typeof record['second'] !== 'number') ||
-    (record['fraction'] !== undefined && typeof record['fraction'] !== 'string') ||
-    (record['utc'] !== undefined && typeof record['utc'] !== 'boolean')
-  ) {
-    return null;
-  }
-  return {
-    hour: record['hour'],
-    minute: record['minute'],
-    ...(record['second'] !== undefined ? { second: record['second'] } : {}),
-    ...(record['fraction'] !== undefined ? { fraction: record['fraction'] } : {}),
-    ...(record['utc'] !== undefined ? { utc: record['utc'] } : {}),
-  };
-}
-
-/** The `_TCDT` slot is free text; parse the structured form the export writes. */
-function parseGedcomTodoDate(text: string | undefined): DateValue | undefined {
+/**
+ * Task dates are operational instants, not genealogical dates. The record
+ * form carries My Family Tree's encoded strings (`V05T00S0001DDMMYYYY…` and
+ * `V02C0000S01DDMMYYYY…`); date-only values become local midnight. Anything
+ * that is not a complete exact date is dropped.
+ */
+function parseTaskTextDate(text: string | undefined): number | undefined {
   if (text === undefined || text.trim() === '') {
     return undefined;
   }
-  if (text.startsWith('json:')) {
-    try {
-      const parsed = JSON.parse(text.slice('json:'.length)) as unknown;
-      const record = typeof parsed === 'object' && parsed !== null ? (parsed as Record<string, unknown>) : undefined;
-      const quality = record?.['quality'];
-      const qualities = ['exact', 'about', 'before', 'after', 'range', 'unknown'];
-      const component = parseStructuredComponent(record?.['component']);
-      const end = parseStructuredComponent(record?.['end']);
-      const time = parseStructuredTime(record?.['time']);
-      const modifier = record?.['modifier'];
-      const parsedText = record?.['text'];
-      if (
-        record !== undefined &&
-        typeof quality === 'string' &&
-        qualities.includes(quality) &&
-        component !== null &&
-        end !== null &&
-        time !== null &&
-        validStructuredComponent(component) &&
-        validStructuredComponent(end) &&
-        (modifier === undefined || modifier === 'ABT' || modifier === 'CAL' || modifier === 'EST') &&
-        (parsedText === undefined || typeof parsedText === 'string')
-      ) {
-        return {
-          quality: quality as DateValue['quality'],
-          ...(modifier !== undefined ? { modifier: modifier } : {}),
-          ...(component !== undefined ? { component } : {}),
-          ...(end !== undefined ? { end } : {}),
-          ...(time !== undefined ? { time } : {}),
-          ...(parsedText !== undefined ? { text: parsedText } : {}),
-        };
-      }
-    } catch {
-      // Fall through to the unknown-text fallback.
-    }
-    return { quality: 'unknown', text };
+  return parseEncodedTaskDate(text.trim()) ?? parseIsoTaskDate(text.trim());
+}
+
+function parseEncodedTaskDate(text: string): number | undefined {
+  // My Family Tree writes one of these vendor prefixes followed by DDMMYYYY.
+  const match = /^(?:V05T00S0001|V02C0000S01)(\d{2})(\d{2})(\d{4})/.exec(text);
+  if (match === null) {
+    return undefined;
   }
+  return localTimestamp(Number(match[3]), Number(match[2]), Number(match[1]), 0, 0);
+}
+
+function parseIsoTaskDate(text: string): number | undefined {
   const match =
-    /^(?:(exact|about|before|after|range|unknown):)?(?:(\d{4})(?:-(\d{2}))?(?:-(\d{2}))?)?(?:\.\.(\d{4})(?:-(\d{2}))?(?:-(\d{2}))?)?(?:\|([\s\S]*))?$/.exec(
-      text.trim(),
-    );
-  const valid = (year: number, month: number | undefined, day: number | undefined): boolean => {
-    if (month !== undefined && (month < 1 || month > 12)) {
-      return false;
-    }
-    if (day === undefined) {
-      return true;
-    }
-    if (month === undefined) {
-      return false;
-    }
-    const leap = year % 4 === 0 && (year % 100 !== 0 || year % 400 === 0);
-    const daysInMonth = [31, leap ? 29 : 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31][month - 1] ?? 31;
-    return day >= 1 && day <= daysInMonth;
-  };
-  const year = match?.[2] !== undefined ? Number(match[2]) : undefined;
-  const month = match?.[3] !== undefined ? Number(match[3]) : undefined;
-  const day = match?.[4] !== undefined ? Number(match[4]) : undefined;
-  const endYear = match?.[5] !== undefined ? Number(match[5]) : undefined;
-  const endMonth = match?.[6] !== undefined ? Number(match[6]) : undefined;
-  const endDay = match?.[7] !== undefined ? Number(match[7]) : undefined;
-  const hasDate = year !== undefined || endYear !== undefined;
-  if (
-    match === null ||
-    (!hasDate && !(match[1] === 'unknown' && match[8] !== undefined)) ||
-    (year !== undefined && !valid(year, month, day)) ||
-    (endYear !== undefined && !valid(endYear, endMonth, endDay))
-  ) {
-    return { quality: 'unknown', text };
+    /^(\d{4})-(\d{2})-(\d{2})(?:[T ](\d{2}):(\d{2})(?::(\d{2})(?:\.(\d{1,9}))?)?(Z|[+-]\d{2}:?\d{2})?)?$/.exec(text);
+  if (match === null) {
+    return undefined;
   }
-  const component =
-    year !== undefined
-      ? { year, ...(month !== undefined ? { month } : {}), ...(day !== undefined ? { day } : {}) }
-      : undefined;
-  const end =
-    endYear !== undefined
-      ? {
-          year: endYear,
-          ...(endMonth !== undefined ? { month: endMonth } : {}),
-          ...(endDay !== undefined ? { day: endDay } : {}),
-        }
-      : undefined;
-  return {
-    quality: (match[1] ?? 'exact') as DateValue['quality'],
-    ...(component !== undefined ? { component } : {}),
-    ...(end !== undefined ? { end } : {}),
-    ...(match[8] !== undefined ? { text: match[8] } : {}),
-  };
+  const year = Number(match[1]);
+  const month = Number(match[2]);
+  const day = Number(match[3]);
+  const hour = match[4] !== undefined ? Number(match[4]) : 0;
+  const minute = match[5] !== undefined ? Number(match[5]) : 0;
+  const second = match[6] !== undefined ? Number(match[6]) : 0;
+  const millisecond = fractionToMilliseconds(match[7]);
+  const zone = match[8];
+  if (zone === undefined) {
+    return localTimestamp(year, month, day, hour, minute, second, false, millisecond);
+  }
+  const timestamp = Date.parse(text);
+  if (Number.isNaN(timestamp)) {
+    return undefined;
+  }
+  const offsetMinutes =
+    zone === 'Z' ? 0 : (zone.startsWith('-') ? -1 : 1) * (Number(zone.slice(1, 3)) * 60 + Number(zone.slice(-2)));
+  const wall = new Date(timestamp + offsetMinutes * 60_000);
+  if (
+    wall.getUTCFullYear() !== year ||
+    wall.getUTCMonth() !== month - 1 ||
+    wall.getUTCDate() !== day ||
+    wall.getUTCHours() !== hour ||
+    wall.getUTCMinutes() !== minute ||
+    wall.getUTCSeconds() !== second
+  ) {
+    return undefined;
+  }
+  return isExportableTaskInstant(timestamp) ? timestamp : undefined;
+}
+
+/**
+ * `toISOString()` writes an expanded year (`+010000`) outside 0000-9999,
+ * which the anchored task-date parser cannot read back.
+ */
+function isExportableTaskInstant(timestamp: number): boolean {
+  const year = new Date(timestamp).getUTCFullYear();
+  return year >= 0 && year <= 9999;
+}
+
+function taskDateValueToTimestamp(date: DateValue | undefined, interpreted = false): number | undefined {
+  if (interpreted || date === undefined || date.quality !== 'exact') {
+    return undefined;
+  }
+  const component = date.component;
+  if (
+    component === undefined ||
+    component.year === undefined ||
+    typeof component.month !== 'number' ||
+    component.day === undefined
+  ) {
+    return undefined;
+  }
+  if (component.calendar !== undefined || component.epoch === 'BCE') {
+    return undefined;
+  }
+  return localTimestamp(
+    component.year,
+    component.month,
+    component.day,
+    date.time?.hour ?? 0,
+    date.time?.minute ?? 0,
+    date.time?.second ?? 0,
+    date.time?.utc === true,
+    fractionToMilliseconds(date.time?.fraction),
+  );
+}
+
+function fractionToMilliseconds(fraction: string | undefined): number {
+  return fraction === undefined || fraction === '' ? 0 : Number(fraction.slice(0, 3).padEnd(3, '0'));
+}
+
+function localTimestamp(
+  year: number,
+  month: number,
+  day: number,
+  hour: number,
+  minute: number,
+  second = 0,
+  utc = false,
+  millisecond = 0,
+): number | undefined {
+  // The Date constructor maps years 0-99 to 1900-1999; setFullYear keeps the
+  // actual year. The component checks below still reject impossible dates.
+  const value = new Date(0);
+  if (utc) {
+    value.setUTCFullYear(year, month - 1, day);
+    value.setUTCHours(hour, minute, second, millisecond);
+  } else {
+    value.setFullYear(year, month - 1, day);
+    value.setHours(hour, minute, second, millisecond);
+  }
+  if (Number.isNaN(value.getTime())) {
+    return undefined;
+  }
+  const actualYear = utc ? value.getUTCFullYear() : value.getFullYear();
+  const actualMonth = utc ? value.getUTCMonth() : value.getMonth();
+  const actualDay = utc ? value.getUTCDate() : value.getDate();
+  const actualHour = utc ? value.getUTCHours() : value.getHours();
+  const actualMinute = utc ? value.getUTCMinutes() : value.getMinutes();
+  const actualSecond = utc ? value.getUTCSeconds() : value.getSeconds();
+  const actualMillisecond = utc ? value.getUTCMilliseconds() : value.getMilliseconds();
+  if (
+    actualYear !== year ||
+    actualMonth !== month - 1 ||
+    actualDay !== day ||
+    actualHour !== hour ||
+    actualMinute !== minute ||
+    actualSecond !== second ||
+    actualMillisecond !== millisecond
+  ) {
+    return undefined;
+  }
+  const timestamp = value.getTime();
+  return isExportableTaskInstant(timestamp) ? timestamp : undefined;
 }
 
 function importGedcomTodoStructure(
@@ -1641,17 +1612,21 @@ function importGedcomTodoStructure(
   // _TODO.REPO, _TODO._CAT, _TODO._LOCL, _TODO.TYPE, and _TODO.DATA are
   // deliberately ignored: see importGedcomTodoRecord. Dóru has no task-type
   // taxonomy or separate task-result field.
+  const status = normalizeTaskStatus(structure.status);
   const mapped: TaskRecord = {
     id: crypto.randomUUID(),
     text: structure.payload ?? structure.description ?? '',
     targetType,
     targetId,
     priority: normalizeTaskPriority(structure.priority),
-    status: normalizeTaskStatus(structure.status),
-    createdDate: parseGedcomTodoDate(structure.createdDate),
-    scheduledDate: mapDate(structure.date),
-    reminderDate: mapDate(structure.reminderDate),
-    closedDate: mapDate(structure.closedDate),
+    status,
+    createdAt: parseTaskTextDate(structure.createdDate),
+    scheduledAt: taskDateValueToTimestamp(mapDate(structure.date), structure.date?.interpreted),
+    reminderAt: taskDateValueToTimestamp(mapDate(structure.reminderDate), structure.reminderDate?.interpreted),
+    closedAt:
+      status === 'closed'
+        ? taskDateValueToTimestamp(mapDate(structure.closedDate), structure.closedDate?.interpreted)
+        : undefined,
   };
   ctx.repo.insertTask(mapped);
   importNotes(structure.notes, 'task', mapped.id, ctx);
@@ -1886,7 +1861,6 @@ function importTagLink(tagLink: GedcomTagLink, targetType: string, targetId: str
     tagId,
     targetType,
     targetId,
-    date: mapDate(tagLink.date),
   });
 }
 
@@ -2280,6 +2254,7 @@ function importPlaceRecords(records: GedcomRecord[], ctx: ImportContext): void {
         record.parents.map((parent) => ({
           parentXref: parent.parent,
           ...(parent.type !== undefined ? { type: parent.type.toLowerCase() } : {}),
+          ...(parent.date !== undefined ? { date: mapDate(parent.date) } : {}),
         })),
       );
     }
@@ -2296,7 +2271,14 @@ function linkPlaceHierarchy(ctx: ImportContext): void {
     const hierarchy = parents.flatMap((parent) => {
       const parentId = ctx.placeCardIds.get(parent.parentXref);
       return parentId !== undefined
-        ? [{ id: crypto.randomUUID(), parentId, ...(parent.type !== undefined ? { type: parent.type } : {}) }]
+        ? [
+            {
+              id: crypto.randomUUID(),
+              parentId,
+              ...(parent.type !== undefined ? { type: parent.type } : {}),
+              ...(parent.date !== undefined ? { date: parent.date } : {}),
+            },
+          ]
         : [];
     });
     if (hierarchy.length > 0) {
