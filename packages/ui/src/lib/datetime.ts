@@ -81,15 +81,16 @@ export function sameLocalDay(left: Date, right: Date): boolean {
 }
 
 /** The time of an input value, or 09:00 when the field has no clock time. */
-export function timeOfInput(value: string): { hours: number; minutes: number } {
+export function timeOfInput(value: string): { hours: number; minutes: number; seconds?: number } {
   // Read the clock components even when the full date-time is invalid (for
   // example a daylight-saving gap): correcting the day must keep the time.
-  const match = /^\d{4}-\d{2}-\d{2}T(\d{2}):(\d{2})/.exec(value.trim());
+  const match = /^\d{4}-\d{2}-\d{2}T(\d{2}):(\d{2})(?::(\d{2}))?/.exec(value.trim());
   if (match !== null) {
     const hours = Number(match[1]);
     const minutes = Number(match[2]);
-    if (hours <= 23 && minutes <= 59) {
-      return { hours, minutes };
+    const seconds = match[3] !== undefined ? Number(match[3]) : undefined;
+    if (hours <= 23 && minutes <= 59 && (seconds === undefined || seconds <= 59)) {
+      return seconds === undefined ? { hours, minutes } : { hours, minutes, seconds };
     }
   }
   return { hours: 9, minutes: 0 };
@@ -104,7 +105,8 @@ export function timeOfInput(value: string): { hours: number; minutes: number } {
 export function replaceInputDay(value: string, day: Date): string {
   const time = timeOfInput(value);
   const pad = (part: number): string => String(part).padStart(2, '0');
-  return `${localDayKey(day)}T${pad(time.hours)}:${pad(time.minutes)}`;
+  const seconds = time.seconds === undefined ? '' : `:${pad(time.seconds)}`;
+  return `${localDayKey(day)}T${pad(time.hours)}:${pad(time.minutes)}${seconds}`;
 }
 
 /** Adds calendar days without leaving local noon. */

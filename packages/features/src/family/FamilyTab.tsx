@@ -24,10 +24,23 @@ import {
 } from '@doru/ui/domain';
 import { nls } from '../nls';
 
-/** Keeps fields edited after submission, accepts refreshed values for the rest. */
-function mergeFamilyDraft(current: FamilyDraft, submitted: FamilyDraft, refreshed: FamilyDraft): FamilyDraft {
-  const field = <K extends keyof FamilyDraft>(key: K): FamilyDraft[K] =>
-    JSON.stringify(current[key]) === JSON.stringify(submitted[key]) ? refreshed[key] : current[key];
+/**
+ * Keeps fields edited after submission, accepts refreshed values for the rest.
+ * `protectedDraft` marks fields touched by an in-flight write: those always
+ * keep the current (possibly reverted) value until the write is confirmed.
+ */
+function mergeFamilyDraft(
+  current: FamilyDraft,
+  base: FamilyDraft,
+  refreshed: FamilyDraft,
+  protectedDraft?: FamilyDraft,
+): FamilyDraft {
+  const field = <K extends keyof FamilyDraft>(key: K): FamilyDraft[K] => {
+    if (protectedDraft !== undefined && JSON.stringify(protectedDraft[key]) !== JSON.stringify(base[key])) {
+      return current[key];
+    }
+    return JSON.stringify(current[key]) === JSON.stringify(base[key]) ? refreshed[key] : current[key];
+  };
   return {
     id: current.id,
     xref: field('xref'),
@@ -158,11 +171,12 @@ function FamilyTabBody({
     // draft as its base; an unrelated refresh must compare against the
     // previous stored snapshot.
     const base = submitted !== undefined && confirmed ? submitted : familyToDraft(previous);
+    const protectedDraft = submitted !== undefined && !confirmed ? submitted : undefined;
     setDraft((current) => {
       if (submitted === undefined && familyDraftMatches(current, previous)) {
         return familyToDraft(record);
       }
-      return mergeFamilyDraft(current, base, familyToDraft(record));
+      return mergeFamilyDraft(current, base, familyToDraft(record), protectedDraft);
     });
   }, [record]);
 

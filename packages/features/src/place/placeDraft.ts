@@ -273,12 +273,24 @@ export function mergePlaceDraft(
   previous: PlaceRecord,
   refreshed: PlaceRecord,
   submitted?: PlaceDraft,
+  pending?: PlaceDraft,
 ): PlaceDraft {
   const previousDraft = placeToDraft(previous);
   const base = submitted ?? previousDraft;
   const next = placeToDraft(refreshed);
-  const scalar = <K extends keyof PlaceDraft>(key: K): PlaceDraft[K] =>
-    draft[key] === base[key] ? next[key] : draft[key];
+  const scalar = <K extends keyof PlaceDraft>(key: K): PlaceDraft[K] => {
+    // A field touched by an in-flight write keeps the current (possibly
+    // reverted) value until the write is confirmed.
+    if (pending !== undefined && JSON.stringify(pending[key]) !== JSON.stringify(previousDraft[key])) {
+      return draft[key];
+    }
+    return draft[key] === base[key] ? next[key] : draft[key];
+  };
+  const pendingNames = pending !== undefined && JSON.stringify(pending.names) !== JSON.stringify(previousDraft.names);
+  const pendingPostalCodes =
+    pending !== undefined && JSON.stringify(pending.postalCodes) !== JSON.stringify(previousDraft.postalCodes);
+  const pendingHierarchy =
+    pending !== undefined && JSON.stringify(pending.hierarchy) !== JSON.stringify(previousDraft.hierarchy);
   return {
     id: draft.id,
     xref: scalar('xref'),
@@ -291,11 +303,17 @@ export function mergePlaceDraft(
     govId: scalar('govId'),
     maidenhead: scalar('maidenhead'),
     placeType: scalar('placeType'),
-    names: mergePlaceRows(draft.names, base.names, previousDraft.names, next.names).sort(
-      (left, right) => left.position - right.position,
-    ),
-    postalCodes: mergePlaceRows(draft.postalCodes, base.postalCodes, previousDraft.postalCodes, next.postalCodes),
-    hierarchy: mergePlaceRows(draft.hierarchy, base.hierarchy, previousDraft.hierarchy, next.hierarchy),
+    names: pendingNames
+      ? draft.names
+      : mergePlaceRows(draft.names, base.names, previousDraft.names, next.names).sort(
+          (left, right) => left.position - right.position,
+        ),
+    postalCodes: pendingPostalCodes
+      ? draft.postalCodes
+      : mergePlaceRows(draft.postalCodes, base.postalCodes, previousDraft.postalCodes, next.postalCodes),
+    hierarchy: pendingHierarchy
+      ? draft.hierarchy
+      : mergePlaceRows(draft.hierarchy, base.hierarchy, previousDraft.hierarchy, next.hierarchy),
   };
 }
 

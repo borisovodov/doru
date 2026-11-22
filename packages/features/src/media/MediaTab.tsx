@@ -347,8 +347,9 @@ function MediaTabBody({
         savedRef.current = next;
         savedMetadataRef.current = next;
       } else {
-        savedRef.current = recordRef.current;
-        savedMetadataRef.current = reconcileAfterRefresh(recordRef.current, base, dirty, submission, next);
+        const refreshed = reconcileAfterRefresh(recordRef.current, base, dirty, submission, next);
+        savedRef.current = refreshed;
+        savedMetadataRef.current = refreshed;
       }
     }
   };

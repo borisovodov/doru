@@ -173,14 +173,18 @@ function PlaceTabBody({
       const confirms =
         submittedRecord !== undefined &&
         JSON.stringify(placeToDraft(record)) === JSON.stringify(placeToDraft(submittedRecord));
-      const submitted = confirms ? submittedRef.current : undefined;
+      const pending = submittedRef.current;
+      const submitted = confirms ? pending : undefined;
+      const protectedDraft = pending !== undefined && !confirms ? pending : undefined;
       if (confirms) {
         submittedRef.current = undefined;
         submittedRecordRef.current = undefined;
       }
-      baselineRef.current = record;
-      setDraft(mergePlaceDraft(draftRef.current, previous, record, submitted));
-      setLastSaved(record);
+      if (pending === undefined || confirms) {
+        baselineRef.current = record;
+        setLastSaved(record);
+      }
+      setDraft(mergePlaceDraft(draftRef.current, previous, record, submitted, protectedDraft));
     }
   }, [record, isNew]);
 

@@ -28,7 +28,7 @@ import {
   taskTargetLabel,
 } from '@doru/ui/domain';
 import { nls } from '../nls';
-import { Button, DangerZone, useAutoSaveOnBlur } from '@doru/ui';
+import { Button, DangerZone, InlineError, useAutoSaveOnBlur } from '@doru/ui';
 import { EntityCard, EntityViewCard } from '@doru/ui';
 import { useRegistryAddress } from './useRegistryAddress';
 
@@ -151,36 +151,47 @@ function SubmitterTabBody({
     refresh: refreshAttachments,
   } = useAttachments('submitter', targetId, api, true);
 
+  const [saveError, setSaveError] = useState(false);
+
   const selectAddress = (addressId: string | undefined) => {
+    setSaveError(false);
     setLinkedAddressId(addressId);
     if (addressId === undefined) {
       unlinkAddress();
     }
   };
 
-  const patchLanguage = (index: number, value: string) =>
+  const patchLanguage = (index: number, value: string) => {
+    setSaveError(false);
     setLanguages(languages.map((language, i) => (i === index ? value : language)));
+  };
 
   const save = async () => {
-    const next: SubmitterRecord = {
-      id: base.id,
-      xref: base.xref,
-      name: name.trim(),
-      languages: languages.map((language) => language.trim()).filter((language) => language !== ''),
-    };
-    if (linkedAddressId === undefined) {
-      next.addressId = await saveAddress();
-    } else {
-      next.addressId = linkedAddressId;
+    setSaveError(false);
+    try {
+      const next: SubmitterRecord = {
+        id: base.id,
+        xref: base.xref,
+        name: name.trim(),
+        languages: languages.map((language) => language.trim()).filter((language) => language !== ''),
+      };
+      if (linkedAddressId === undefined) {
+        next.addressId = await saveAddress();
+      } else {
+        next.addressId = linkedAddressId;
+      }
+      if (isNew && lastSaved === undefined) {
+        await api.addSubmitter(next);
+        onCreated(next.id);
+      } else {
+        await api.updateSubmitter(lastSaved ?? base, next);
+      }
+      clearAddressSaveFailure();
+      setLastSaved(next);
+    } catch (error) {
+      setSaveError(true);
+      throw error;
     }
-    if (isNew && lastSaved === undefined) {
-      await api.addSubmitter(next);
-      onCreated(next.id);
-    } else {
-      await api.updateSubmitter(lastSaved ?? base, next);
-    }
-    clearAddressSaveFailure();
-    setLastSaved(next);
   };
 
   const persisted = lastSaved ?? record;
@@ -255,10 +266,18 @@ function SubmitterTabBody({
         }
       />
       <AutoSaveError failed={autoSave.failed} onRetry={autoSave.retry} />
+      {isNew && saveError ? <InlineError>{nls.t('features.tree.autosaveFailed')}</InlineError> : null}
 
       <SectionCard title={nls.t('features.tree.details')}>
         <Field label={nls.t('features.tree.submitter.name')}>
-          <Input ref={nameRef} value={name} onChange={(event) => setName(event.target.value)} />
+          <Input
+            ref={nameRef}
+            value={name}
+            onChange={(event) => {
+              setSaveError(false);
+              setName(event.target.value);
+            }}
+          />
         </Field>
         <FieldGrid columns={1}>
           {languages.map((language, index) => (
@@ -286,7 +305,10 @@ function SubmitterTabBody({
           addressId={linkedAddressId}
           address={address}
           onSelect={selectAddress}
-          onChange={setAddress}
+          onChange={(next) => {
+            setSaveError(false);
+            setAddress(next);
+          }}
           onOpen={onOpenAddress}
           renderAttachments={(lineId) => (
             <AttachmentsPanel

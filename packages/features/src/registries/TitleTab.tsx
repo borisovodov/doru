@@ -122,7 +122,22 @@ function TitleTabBody({
   const persisted = lastSaved ?? record;
   const autoSave = useAutoSaveOnBlur({
     enabled: !isNew,
-    isDirty: () => persisted !== undefined && JSON.stringify(build()) !== JSON.stringify(persisted),
+    isDirty: () => {
+      if (persisted === undefined) {
+        return false;
+      }
+      const current = build();
+      return (
+        current.name !== persisted.name ||
+        current.author !== persisted.author ||
+        current.publisher !== persisted.publisher ||
+        current.series !== persisted.series ||
+        current.abbreviation !== persisted.abbreviation ||
+        current.callNumber !== persisted.callNumber ||
+        current.sequence !== persisted.sequence ||
+        current.repositoryId !== persisted.repositoryId
+      );
+    },
     save,
   });
 

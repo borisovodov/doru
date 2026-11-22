@@ -61,6 +61,9 @@ export function useAutoSaveOnBlur({ enabled, isDirty, save }: AutoSaveOnBlurOpti
       let again = true;
       while (again) {
         again = false;
+        if (cancelledRef.current) {
+          break;
+        }
         if (!dirtyRef.current()) {
           setFailure(false);
           break;
@@ -74,6 +77,8 @@ export function useAutoSaveOnBlur({ enabled, isDirty, save }: AutoSaveOnBlurOpti
           success = false;
           setFailure(true);
         }
+        // A concurrent flush marks the queue while this run is awaiting.
+        // oxlint-disable-next-line typescript/no-unnecessary-condition
         if (queuedRef.current && !cancelledRef.current) {
           queuedRef.current = false;
           again = true;
@@ -97,12 +102,13 @@ export function useAutoSaveOnBlur({ enabled, isDirty, save }: AutoSaveOnBlurOpti
     flushRef.current = flush;
   }, [flush]);
 
-  const flushForClose = useCallback((): Promise<boolean> => {
+  const flushForClose = useCallback(async (): Promise<boolean> => {
     if (closeBlockedRef.current) {
-      return Promise.resolve(false);
+      return false;
     }
     clearTimer();
-    return flush();
+    const success = await flush();
+    return success && !closeBlockedRef.current;
   }, [clearTimer, flush]);
 
   const cancel = useCallback(() => {
@@ -144,7 +150,10 @@ export function useAutoSaveOnBlur({ enabled, isDirty, save }: AutoSaveOnBlurOpti
     if (!enabled || tabId === null) {
       return undefined;
     }
-    return registerAutoSaveFlush(tabId, flushForClose);
+    return registerAutoSaveFlush(tabId, {
+      flush: flushForClose,
+      isDirty: () => dirtyRef.current(),
+    });
   }, [enabled, flushForClose, tabId]);
 
   const onBlur = useCallback(

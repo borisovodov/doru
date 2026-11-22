@@ -29,6 +29,7 @@ describe('local date-time helpers', () => {
 
   it('replaces the day and keeps the existing time', () => {
     expect(replaceInputDay('2026-11-22T18:30', new Date(2026, 11, 3))).toBe('2026-12-03T18:30');
+    expect(replaceInputDay('2026-11-22T18:30:45', new Date(2026, 11, 3))).toBe('2026-12-03T18:30:45');
     expect(replaceInputDay('', new Date(2026, 11, 3))).toBe('2026-12-03T09:00');
   });
 

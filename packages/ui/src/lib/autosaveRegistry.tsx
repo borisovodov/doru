@@ -1,6 +1,9 @@
 import { createContext, useContext, type ReactNode } from 'react';
 
-type AutoSaveFlush = () => Promise<boolean>;
+type AutoSaveEntry = {
+  flush: () => Promise<boolean>;
+  isDirty: () => boolean;
+};
 
 const AutoSaveTabContext = createContext<string | null>(null);
 
@@ -14,18 +17,18 @@ export function useAutoSaveTabId(): string | null {
   return useContext(AutoSaveTabContext);
 }
 
-const flushes = new Map<string, Set<AutoSaveFlush>>();
+const flushes = new Map<string, Set<AutoSaveEntry>>();
 
 /** Registers one editor's close-time save; returns the unregister callback. */
-export function registerAutoSaveFlush(tabId: string, flush: AutoSaveFlush): () => void {
+export function registerAutoSaveFlush(tabId: string, entry: AutoSaveEntry): () => void {
   let set = flushes.get(tabId);
   if (set === undefined) {
     set = new Set();
     flushes.set(tabId, set);
   }
-  set.add(flush);
+  set.add(entry);
   return () => {
-    set.delete(flush);
+    set.delete(entry);
     if (set.size === 0) {
       flushes.delete(tabId);
     }
@@ -39,13 +42,23 @@ export function hasAutoSaves(tabId: string): boolean {
 
 /**
  * Flushes the entity editors mounted in one tab before it closes. Returns
- * false when any save failed, so the caller can keep the tab open.
+ * false when any save failed or an editor is still dirty after the save, so
+ * the caller can keep the tab open.
  */
 export async function flushAutoSaves(tabId: string): Promise<boolean> {
   const set = flushes.get(tabId);
   if (set === undefined) {
     return true;
   }
-  const results = await Promise.all([...set].map((flush) => flush().catch(() => false)));
-  return results.every(Boolean);
+  const entries = [...set];
+  for (let round = 0; round < 2; round += 1) {
+    const results = await Promise.all(entries.map((entry) => entry.flush().catch(() => false)));
+    if (!results.every(Boolean)) {
+      return false;
+    }
+    if (!entries.some((entry) => entry.isDirty())) {
+      return true;
+    }
+  }
+  return false;
 }

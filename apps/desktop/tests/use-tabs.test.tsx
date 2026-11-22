@@ -45,7 +45,10 @@ describe('useTabs', () => {
     const { result } = renderTabs();
     act(() => result.current.open.person('p1'));
 
-    const unregisterFailure = registerAutoSaveFlush('person:p1', async () => false);
+    const unregisterFailure = registerAutoSaveFlush('person:p1', {
+      flush: async () => false,
+      isDirty: () => true,
+    });
     await act(async () => {
       result.current.closeTab('person:p1');
       await Promise.resolve();
@@ -53,7 +56,10 @@ describe('useTabs', () => {
     expect(result.current.openTabs).toHaveLength(1);
     unregisterFailure();
 
-    const unregisterSuccess = registerAutoSaveFlush('person:p1', async () => true);
+    const unregisterSuccess = registerAutoSaveFlush('person:p1', {
+      flush: async () => true,
+      isDirty: () => false,
+    });
     await act(async () => {
       result.current.closeTab('person:p1');
       await Promise.resolve();

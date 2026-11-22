@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useMemo, useRef, useState } from 'react';
 import type {
   AddressRecord,
   FamilyRecord,
@@ -49,33 +49,54 @@ export function useTabs(
   media: MediaWithPath[],
 ): TabsApi {
   const [state, setState] = useState<TabsState>(EMPTY_STATE);
+  // Each opened tab gets an identity token, so a close that finishes after the
+  // same id was closed and reopened cannot close the newer instance.
+  const tokensRef = useRef(new Map<string, string>());
 
   const openTab = useCallback((id: string) => {
+    if (!tokensRef.current.has(id)) {
+      tokensRef.current.set(id, crypto.randomUUID());
+    }
     setState((current) => openTabState(current, id));
   }, []);
 
   const closeTab = useCallback((id: string) => {
-    if (!hasAutoSaves(id)) {
+    const token = tokensRef.current.get(id);
+    if (token === undefined || !hasAutoSaves(id)) {
+      tokensRef.current.delete(id);
       setState((current) => closeTabState(current, id));
       return;
     }
     // Keep a tab with a failed close-time save open; its editor shows Retry.
     void flushAutoSaves(id).then((saved) => {
-      if (saved) {
-        setState((current) => closeTabState(current, id));
+      if (!saved || tokensRef.current.get(id) !== token) {
+        return;
       }
+      tokensRef.current.delete(id);
+      setState((current) => closeTabState(current, id));
     });
   }, []);
 
   const replaceTab = useCallback((oldId: string, newId: string) => {
+    if (oldId !== newId) {
+      const token = tokensRef.current.get(oldId);
+      if (token !== undefined && !tokensRef.current.has(newId)) {
+        tokensRef.current.set(newId, token);
+      }
+      tokensRef.current.delete(oldId);
+    }
     setState((current) => replaceTabState(current, oldId, newId));
   }, []);
 
   const resetToTree = useCallback(() => {
+    tokensRef.current = new Map([[TREE_TAB_ID, crypto.randomUUID()]]);
     setState({ openTabs: [{ id: TREE_TAB_ID, closable: true }], activeTabId: TREE_TAB_ID });
   }, []);
 
   const ensureTreeTab = useCallback(() => {
+    if (!tokensRef.current.has(TREE_TAB_ID)) {
+      tokensRef.current.set(TREE_TAB_ID, crypto.randomUUID());
+    }
     setState((current) => openTabState(current, TREE_TAB_ID));
   }, []);
 

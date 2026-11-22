@@ -26,7 +26,7 @@ import {
   addressLabel,
 } from '@doru/ui/domain';
 import { nls } from '../nls';
-import { Button, DangerZone, useAutoSaveOnBlur } from '@doru/ui';
+import { Button, DangerZone, InlineError, useAutoSaveOnBlur } from '@doru/ui';
 import { EntityViewCard } from '@doru/ui';
 import { useRegistryAddress } from './useRegistryAddress';
 
@@ -141,7 +141,10 @@ function RepositoryTabBody({
     refresh: refreshAttachments,
   } = useAttachments('repository', targetId, api, true);
 
+  const [saveError, setSaveError] = useState(false);
+
   const selectAddress = (addressId: string | undefined) => {
+    setSaveError(false);
     setLinkedAddressId(addressId);
     if (addressId === undefined) {
       unlinkAddress();
@@ -149,20 +152,26 @@ function RepositoryTabBody({
   };
 
   const save = async () => {
-    const next: RepositoryRecord = { id: base.id, xref: base.xref, name: name.trim() };
-    if (linkedAddressId === undefined) {
-      next.addressId = await saveAddress();
-    } else {
-      next.addressId = linkedAddressId;
+    setSaveError(false);
+    try {
+      const next: RepositoryRecord = { id: base.id, xref: base.xref, name: name.trim() };
+      if (linkedAddressId === undefined) {
+        next.addressId = await saveAddress();
+      } else {
+        next.addressId = linkedAddressId;
+      }
+      if (isNew && lastSaved === undefined) {
+        await api.addRepository(next);
+        onCreated(next.id);
+      } else {
+        await api.updateRepository(lastSaved ?? base, next);
+      }
+      clearAddressSaveFailure();
+      setLastSaved(next);
+    } catch (error) {
+      setSaveError(true);
+      throw error;
     }
-    if (isNew && lastSaved === undefined) {
-      await api.addRepository(next);
-      onCreated(next.id);
-    } else {
-      await api.updateRepository(lastSaved ?? base, next);
-    }
-    clearAddressSaveFailure();
-    setLastSaved(next);
   };
 
   const persisted = lastSaved ?? record;
@@ -215,17 +224,28 @@ function RepositoryTabBody({
         }
       />
       <AutoSaveError failed={autoSave.failed} onRetry={autoSave.retry} />
+      {isNew && saveError ? <InlineError>{nls.t('features.tree.autosaveFailed')}</InlineError> : null}
 
       <SectionCard title={nls.t('features.tree.details')}>
         <Field label={nls.t('features.tree.repository.name')}>
-          <Input ref={nameRef} value={name} onChange={(event) => setName(event.target.value)} />
+          <Input
+            ref={nameRef}
+            value={name}
+            onChange={(event) => {
+              setSaveError(false);
+              setName(event.target.value);
+            }}
+          />
         </Field>
         <AddressLinkField
           addresses={addresses}
           addressId={linkedAddressId}
           address={address}
           onSelect={selectAddress}
-          onChange={setAddress}
+          onChange={(next) => {
+            setSaveError(false);
+            setAddress(next);
+          }}
           onOpen={onOpenAddress}
           renderAttachments={(lineId) => (
             <AttachmentsPanel

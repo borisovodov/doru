@@ -69,7 +69,8 @@ export function useRegistryAddress(api: RegistriesEditorApi, addressId: string |
     if (addressDraftEmpty(address)) {
       return undefined;
     }
-    const record = addressDraftToRecord(address);
+    const submitted = address;
+    const record = addressDraftToRecord(submitted);
     if (addressBefore) {
       try {
         await api.updateAddress(addressBefore, record);
@@ -98,18 +99,32 @@ export function useRegistryAddress(api: RegistriesEditorApi, addressId: string |
       }
     }
     setAddressSaveFailed(false);
+    const idBySubmittedIndex = new Map<number, string>();
+    let storedIndex = 0;
+    submitted.lines.forEach((line, index) => {
+      if (line.value.trim() === '') {
+        return;
+      }
+      const stored = record.lines[storedIndex];
+      storedIndex += 1;
+      if (stored !== undefined) {
+        idBySubmittedIndex.set(index, stored.id);
+      }
+    });
     setAddress((current) => {
-      const storedIds = record.lines.map((line) => line.id);
-      let storedIndex = 0;
-      const lines = current.lines.map((line) => {
-        if (line.value.trim() === '') {
-          return line;
-        }
-        const id = storedIds[storedIndex];
-        storedIndex += 1;
-        return id === undefined ? line : { ...line, id };
-      });
-      return { ...current, id: record.id, lines };
+      const linesUnchanged =
+        current.lines.length === submitted.lines.length &&
+        current.lines.every((line, index) => line.value === submitted.lines[index]?.value);
+      return {
+        ...current,
+        id: record.id,
+        lines: linesUnchanged
+          ? current.lines.map((line, index) => {
+              const id = idBySubmittedIndex.get(index);
+              return id === undefined ? line : { ...line, id };
+            })
+          : current.lines,
+      };
     });
     setAddressBefore(record);
     return record.id;
