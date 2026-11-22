@@ -192,6 +192,32 @@ describe('fact date ordering', () => {
     }
   });
 
+  it('uses the final month of a thirteen-month calendar for an AFT year', () => {
+    const fixture = makeRepo();
+    try {
+      fixture.repo.insertPerson({
+        id: 'P1',
+        names: [],
+        sex: 'U',
+        facts: [
+          fact('YEAR_AFTER', {
+            sortDate: { quality: 'after', component: { calendar: 'french_republican', year: 3 } },
+          }),
+          fact('COMP', {
+            sortDate: {
+              quality: 'exact',
+              component: { calendar: 'french_republican', year: 3, month: 'COMP', day: 6 },
+            },
+          }),
+        ],
+      });
+
+      expect(fixture.repo.listFactsForPerson('P1').map((entry) => entry.id)).toEqual(['COMP', 'YEAR_AFTER']);
+    } finally {
+      cleanupRepo(fixture);
+    }
+  });
+
   it('falls back to date when sortDate only has a phrase', () => {
     const fixture = makeRepo();
     try {

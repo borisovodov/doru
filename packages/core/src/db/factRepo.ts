@@ -691,8 +691,9 @@ function dateSortKey(date: DateValue | undefined): DateSortKey | undefined {
   let day = component.day ?? 1;
   const bound = date.quality === 'before' ? 0 : date.quality === 'after' ? 2 : 1;
   if (date.quality === 'after' && component.month === undefined) {
-    month = 12;
-    day = 31;
+    const boundary = yearEndBoundary(component.calendar, component.year);
+    month = boundary.month;
+    day = boundary.day;
   } else if (date.quality === 'after' && component.day === undefined) {
     day = typeof component.month === 'number' ? daysInMonth(year, month, component.calendar) : 30;
   }
@@ -715,8 +716,7 @@ function monthPosition(calendar: string | undefined, year: number, month: number
     return index === -1 ? 1 : index + 1;
   }
   if (calendar === 'hebrew') {
-    const leap = (7 * year + 1) % 19 < 7;
-    const index = (leap ? HEBREW_LEAP_MONTHS : HEBREW_COMMON_MONTHS).indexOf(code);
+    const index = (hebrewIsLeap(year) ? HEBREW_LEAP_MONTHS : HEBREW_COMMON_MONTHS).indexOf(code);
     return index === -1 ? 1 : index + 1;
   }
   if (calendar !== undefined && calendar !== 'julian') {
@@ -724,6 +724,21 @@ function monthPosition(calendar: string | undefined, year: number, month: number
   }
   const index = GREGORIAN_MONTHS.indexOf(code);
   return index === -1 ? 1 : index + 1;
+}
+
+function hebrewIsLeap(year: number): boolean {
+  return (7 * year + 1) % 19 < 7;
+}
+
+/** The final sortable month/day of a calendar year. */
+function yearEndBoundary(calendar: string | undefined, year: number): { month: number; day: number } {
+  if (calendar === 'french_republican') {
+    return { month: 13, day: 31 };
+  }
+  if (calendar === 'hebrew') {
+    return { month: hebrewIsLeap(year) ? 13 : 12, day: 30 };
+  }
+  return { month: 12, day: 31 };
 }
 
 function compareFraction(left: string, right: string): number {
