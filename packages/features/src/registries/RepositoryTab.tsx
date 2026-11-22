@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Input } from '@doru/ui';
+import { Input, useAutoFocusSelect } from '@doru/ui';
 import { SectionCard } from '@doru/ui';
 import { Field } from '@doru/ui';
 import { Archive } from 'lucide-react';
@@ -20,10 +20,12 @@ import {
   TagsSection,
   TasksSection,
   SourceLink,
+  addressDraftEmpty,
+  addressDraftMatches,
   addressLabel,
 } from '@doru/ui/domain';
 import { nls } from '../nls';
-import { Button } from '@doru/ui';
+import { Button, DangerZone, useAutoSaveOnBlur } from '@doru/ui';
 import { EntityViewCard } from '@doru/ui';
 import { useRegistryAddress } from './useRegistryAddress';
 
@@ -116,8 +118,9 @@ function RepositoryTabBody({
   onCreated: (realId: string) => void;
 }) {
   const base: RepositoryRecord = record ?? { id: crypto.randomUUID(), name: '' };
+  const nameRef = useAutoFocusSelect<HTMLInputElement>(isNew);
   const [lastSaved, setLastSaved] = useState<RepositoryRecord | undefined>(record);
-  const [name, setName] = useState(base.name);
+  const [name, setName] = useState(isNew ? nls.t('features.tree.repository.newRepository') : base.name);
   const [linkedAddressId, setLinkedAddressId] = useState<string | undefined>(base.addressId);
   const { address, setAddress, addressBefore, addressSaveFailed, saveAddress, unlinkAddress, clearAddressSaveFailure } =
     useRegistryAddress(api, linkedAddressId);
@@ -176,30 +179,45 @@ function RepositoryTabBody({
       ? sources.filter((source) => (source.repositories ?? []).some((link) => link.repositoryId === targetId))
       : [];
   const usedByTitles = targetId !== undefined ? titles.filter((title) => title.repositoryId === targetId) : [];
+  const persisted = lastSaved ?? record;
+  const autoSave = useAutoSaveOnBlur({
+    enabled: !isNew,
+    isDirty: () => {
+      if (persisted === undefined || name.trim() === '') {
+        return false;
+      }
+      const addressDirty =
+        linkedAddressId === undefined &&
+        (addressBefore !== undefined ? !addressDraftMatches(address, addressBefore) : !addressDraftEmpty(address));
+      return name.trim() !== persisted.name || linkedAddressId !== persisted.addressId || addressDirty;
+    },
+    save,
+  });
 
   return (
-    <EntityTab>
+    <EntityTab onBlur={autoSave.onBlur}>
       <EntityViewCard
         media={<Archive size={20} aria-hidden="true" />}
-        title={name.trim() || '—'}
+        title={name.trim() || (isNew ? nls.t('features.tree.repository.newRepository') : '—')}
         subtitle={addressText !== '' ? addressText : null}
         actions={
-          <>
-            <Button variant="primary" size="sm" disabled={name.trim() === ''} onClick={() => void save()}>
-              {nls.t('features.tree.save')}
+          isNew ? (
+            <Button
+              variant="primary"
+              size="sm"
+              data-autosave-skip="true"
+              disabled={name.trim() === ''}
+              onClick={() => void save()}
+            >
+              {nls.t('features.tree.create')}
             </Button>
-            {(!isNew || lastSaved !== undefined) && (
-              <Button variant="danger" size="sm" onClick={() => void remove()}>
-                {nls.t('features.tree.fact.delete')}
-              </Button>
-            )}
-          </>
+          ) : undefined
         }
       />
 
       <SectionCard title={nls.t('features.tree.details')}>
         <Field label={nls.t('features.tree.repository.name')}>
-          <Input value={name} onChange={(event) => setName(event.target.value)} />
+          <Input ref={nameRef} value={name} onChange={(event) => setName(event.target.value)} />
         </Field>
         <AddressLinkField
           addresses={addresses}
@@ -390,6 +408,13 @@ function RepositoryTabBody({
           />
           <TasksSection targetType="repository" targetId={targetId} api={api} />
         </>
+      )}
+      {(!isNew || lastSaved !== undefined) && (
+        <DangerZone>
+          <Button variant="danger" size="sm" data-autosave-skip="true" onClick={() => void remove()}>
+            {nls.t('features.tree.fact.delete')}
+          </Button>
+        </DangerZone>
       )}
     </EntityTab>
   );

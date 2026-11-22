@@ -58,6 +58,11 @@ decisions about what we deliberately do **not** build, see
   single path for undo/redo and (potentially) sync. SQLite is
   the single source of truth; the in-memory `TreeDocument` exists only as an
   import/export DTO.
+- Existing entity editors **autosave when a field loses focus**: the tab
+  compares the draft with the persisted record, coalesces field-to-field
+  movement, and skips the explicit Create/Delete controls. There is no Save
+  button once an entity exists. A new entity is never autosaved — it is
+  written only when the user presses **Create**.
 - Repository transactions are **reentrant** (SQLite cannot nest `BEGIN`):
   outer op transactions can freely call repository methods that use their own
   transaction.
@@ -121,6 +126,11 @@ decisions about what we deliberately do **not** build, see
   `zh-hans`/`zh-hant` scripts → language-base mapping (`pt` → `pt-br`,
   `zh` → `zh-cn`) → `en`.
 - The UI locale always follows the OS; see decisions.md.
+- Regional preferences that `Intl` reads from a full locale — the first day
+  of the week in the calendar — come from the OS locale
+  (`app.getSystemLocale()`), not from the reduced UI bundle language. The
+  renderer receives it through `app:about` at startup, so an English UI in a
+  Monday-first region still starts its calendar on Monday.
 
 ## AI and agents
 

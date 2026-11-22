@@ -26,10 +26,10 @@ describe('emptyPlaceDraft', () => {
       latitude: '',
       longitude: '',
       verified: false,
-      names: [],
       postalCodes: [],
       hierarchy: [],
     });
+    expect(draft.names).toEqual([expect.objectContaining({ kind: 'official', position: 0, value: '' })]);
   });
 });
 

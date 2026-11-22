@@ -81,7 +81,7 @@ describe('MediaTab', () => {
     );
 
     fireEvent.change(screen.getByDisplayValue('Old title'), { target: { value: 'New title' } });
-    fireEvent.click(screen.getByRole('button', { name: nls.t('features.tree.save') }));
+    fireEvent.blur(screen.getByDisplayValue('New title'), { relatedTarget: document.body });
     await waitFor(() => expect(updateMedia).toHaveBeenCalledTimes(1));
 
     // A refresh that still carries the pre-save value must not reset the
@@ -127,10 +127,11 @@ describe('MediaTab', () => {
       />,
     );
 
-    fireEvent.click(screen.getByRole('button', { name: nls.t('features.tree.save') }));
+    fireEvent.change(screen.getByDisplayValue('Old title'), { target: { value: 'First title' } });
+    fireEvent.blur(screen.getByDisplayValue('First title'), { relatedTarget: document.body });
     await waitFor(() => expect(updateMedia).toHaveBeenCalledTimes(1));
-    fireEvent.change(screen.getByDisplayValue('Old title'), { target: { value: 'Second title' } });
-    fireEvent.click(screen.getByRole('button', { name: nls.t('features.tree.save') }));
+    fireEvent.change(screen.getByDisplayValue('First title'), { target: { value: 'Second title' } });
+    fireEvent.blur(screen.getByDisplayValue('Second title'), { relatedTarget: document.body });
     expect(updateMedia).toHaveBeenCalledTimes(1);
 
     await act(async () => first.resolve());
@@ -162,7 +163,7 @@ describe('MediaTab', () => {
       />,
     );
     fireEvent.change(screen.getByDisplayValue('Old'), { target: { value: 'New' } });
-    fireEvent.click(screen.getByRole('button', { name: nls.t('features.tree.save') }));
+    fireEvent.blur(screen.getByDisplayValue('New'), { relatedTarget: document.body });
     await waitFor(() => expect(updateMedia).toHaveBeenCalledTimes(1));
     fireEvent.change(screen.getByDisplayValue('X'), { target: { value: 'Z' } });
 
@@ -206,10 +207,10 @@ describe('MediaTab', () => {
       />,
     );
     fireEvent.change(screen.getByDisplayValue('A'), { target: { value: 'B' } });
-    fireEvent.click(screen.getByRole('button', { name: nls.t('features.tree.save') }));
+    fireEvent.blur(screen.getByDisplayValue('B'), { relatedTarget: document.body });
     await waitFor(() => expect(updateMedia).toHaveBeenCalledTimes(1));
     fireEvent.change(screen.getByDisplayValue('B'), { target: { value: 'A' } });
-    fireEvent.click(screen.getByRole('button', { name: nls.t('features.tree.save') }));
+    fireEvent.blur(screen.getByDisplayValue('A'), { relatedTarget: document.body });
     await act(async () => first.resolve());
     await waitFor(() => expect(updateMedia).toHaveBeenCalledTimes(2));
     expect(updateMedia.mock.calls[1]?.[1]).toMatchObject({ title: 'A' });

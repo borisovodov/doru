@@ -1,5 +1,8 @@
 import type { TaskPriority, TaskRecord, TaskStatus } from '@doru/core';
 import { normalizeTaskPriority, normalizeTaskStatus } from '@doru/core/model';
+import { inputToTimestamp, timestampToInput } from '../../lib/datetime';
+
+export { inputToTimestamp, timestampToInput } from '../../lib/datetime';
 
 /** The editable form of a task; empty strings mean "not set". */
 export interface TaskDraft {
@@ -60,52 +63,6 @@ export function taskDraftToRecord(task: TaskRecord, draft: TaskDraft): TaskRecor
     next.targetId = undefined;
   }
   return next;
-}
-
-/** Converts an epoch-ms instant to the local value a `datetime-local` input expects. */
-export function timestampToInput(value: number | undefined): string {
-  if (value === undefined || !Number.isFinite(value)) {
-    return '';
-  }
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) {
-    return '';
-  }
-  const year = date.getFullYear();
-  if (year < 0 || year > 9999) {
-    return '';
-  }
-  const pad = (part: number, size = 2): string => String(part).padStart(size, '0');
-  return `${pad(year, 4)}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
-}
-
-/** Parses a `datetime-local` value as a local instant; invalid values mean "not set". */
-export function inputToTimestamp(value: string): number | undefined {
-  const match = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})(?::(\d{2}))?$/.exec(value.trim());
-  if (match === null) {
-    return undefined;
-  }
-  const year = Number(match[1]);
-  const month = Number(match[2]);
-  const day = Number(match[3]);
-  const hour = Number(match[4]);
-  const minute = Number(match[5]);
-  const second = match[6] !== undefined ? Number(match[6]) : 0;
-  // Years 0-99 must not turn into 1900-1999 in the Date constructor.
-  const date = new Date(0);
-  date.setFullYear(year, month - 1, day);
-  date.setHours(hour, minute, second, 0);
-  if (
-    date.getFullYear() !== year ||
-    date.getMonth() !== month - 1 ||
-    date.getDate() !== day ||
-    date.getHours() !== hour ||
-    date.getMinutes() !== minute ||
-    date.getSeconds() !== second
-  ) {
-    return undefined;
-  }
-  return date.getTime();
 }
 
 /**

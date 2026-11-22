@@ -3,6 +3,7 @@ import { Save } from 'lucide-react';
 import { AppMenu, IconButton } from '@doru/ui';
 import { ChatPanel, ChatSetupPlaceholder, EmptyEditorPage, WelcomePage } from '@doru/features';
 import { Workbench, nls, type ActivityViewId } from '@doru/workbench';
+import { setSystemLocale } from '@doru/platform';
 import type { ProjectBinding } from '@doru/core';
 import { SidebarView } from './components/SidebarView';
 import { useChat } from './hooks/useChat';
@@ -58,7 +59,12 @@ export function App() {
   const [version, setVersion] = useState('');
 
   useEffect(() => {
-    void window.doru.getAbout().then((info) => setVersion(info.version));
+    void window.doru.getAbout().then((info) => {
+      setVersion(info.version);
+      // Regional settings (the first day of the week) follow the OS, not the
+      // app UI language.
+      setSystemLocale(info.systemLocale);
+    });
   }, []);
 
   // Re-read the theme list whenever the Settings tab opens: user themes are

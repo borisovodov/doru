@@ -11,6 +11,7 @@ import {
 import {
   Button,
   Checkbox,
+  DangerZone,
   EntityViewCard,
   Field,
   FieldGrid,
@@ -21,6 +22,7 @@ import {
   SectionCard,
   Select,
   Textarea,
+  useAutoSaveOnBlur,
 } from '@doru/ui';
 import { DateEditor, dateDraftsEqual, fromDateDraft, toDateDraft } from '@doru/ui/domain';
 import { AttachmentsPanel } from '../attachments';
@@ -439,9 +441,15 @@ function MediaTabBody({
     await api.updateMedia(record, after);
   };
 
+  const autoSave = useAutoSaveOnBlur({
+    enabled: true,
+    isDirty: () => !mediaMetadataMatches(metadataRef.current, savedRef.current),
+    save,
+  });
+
   const first = record.files?.find((file) => file.absolutePath !== '');
   return (
-    <EntityTab>
+    <EntityTab onBlur={autoSave.onBlur}>
       <EntityViewCard
         media={
           first !== undefined && first.absolutePath !== '' && isImagePath(first.path) ? (
@@ -456,16 +464,6 @@ function MediaTabBody({
         }
         title={title.trim() || '—'}
         subtitle={nls.t('features.tree.media.fileCount', record.files?.length ?? 0)}
-        actions={
-          <>
-            <Button variant="primary" size="sm" onClick={() => void save()}>
-              {nls.t('features.tree.save')}
-            </Button>
-            <Button variant="danger" size="sm" onClick={() => void remove()}>
-              {nls.t('features.tree.fact.delete')}
-            </Button>
-          </>
-        }
       />
 
       <SectionCard title={nls.t('features.tree.media.details')}>
@@ -616,6 +614,11 @@ function MediaTabBody({
         sources={sources}
         onOpenSource={(sourceId) => api.openSource?.(sourceId)}
       />
+      <DangerZone>
+        <Button variant="danger" size="sm" data-autosave-skip="true" onClick={() => void remove()}>
+          {nls.t('features.tree.fact.delete')}
+        </Button>
+      </DangerZone>
     </EntityTab>
   );
 }
@@ -793,7 +796,7 @@ function mediaMetadataMatches(
     description: string;
     keywords: string;
   },
-  record: MediaWithPath,
+  record: MediaRecord,
 ): boolean {
   return (
     values.title.trim() === (record.title ?? '') &&

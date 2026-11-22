@@ -3,6 +3,7 @@ import type { PersonRecord } from '@doru/core';
 import { PersonEditor } from './PersonEditor';
 import type { MediaTargetApi, PersonEditorApi } from './types';
 import { nls } from '../nls';
+import { Button, DangerZone, useAutoSaveOnBlur } from '@doru/ui';
 import { draftToRecord, newPersonDraft, personDraftMatches, personToDraft, type PersonDraft } from '@doru/ui/domain';
 
 const sameDraftValue = (left: unknown, right: unknown): boolean => JSON.stringify(left) === JSON.stringify(right);
@@ -91,7 +92,7 @@ function PersonTabBody({
 }) {
   const record = persons.find((person) => person.id === personId);
   const [draft, setDraft] = useState<PersonDraft>(() =>
-    isNew ? newPersonDraft() : record ? personToDraft(record) : newPersonDraft(),
+    isNew ? newPersonDraft(nls.t('features.tree.person.newPerson')) : record ? personToDraft(record) : newPersonDraft(),
   );
   const personRef = useRef(record);
   const committedRef = useRef<PersonRecord | undefined>(undefined);
@@ -205,24 +206,41 @@ function PersonTabBody({
     });
   };
 
+  const autoSave = useAutoSaveOnBlur({
+    enabled: !isNew,
+    isDirty: () => {
+      const persisted = committedRef.current ?? persons.find((entry) => entry.id === draft.id);
+      return persisted !== undefined && !personDraftMatches(draft, persisted);
+    },
+    save,
+  });
+
   return (
     <PersonEditor
       key={draft.isNew ? `new:${draft.id}` : draft.id}
+      onBlur={autoSave.onBlur}
       draft={draft}
       persons={persons}
       onChange={setDraft}
       onSave={() => void save()}
-      onDelete={
-        !draft.isNew && record !== undefined
-          ? () => {
-              void onDeletePerson(record).then(() => onClose());
-            }
-          : undefined
-      }
       onCancel={draft.isNew && !created ? () => onClose() : undefined}
       api={api}
       mediaApi={mediaApi}
       onOpenMedia={onOpenMedia}
+      footer={
+        !isNew && record !== undefined ? (
+          <DangerZone>
+            <Button
+              variant="danger"
+              size="sm"
+              data-autosave-skip="true"
+              onClick={() => void onDeletePerson(record).then(() => onClose())}
+            >
+              {nls.t('features.tree.fact.delete')}
+            </Button>
+          </DangerZone>
+        ) : undefined
+      }
     />
   );
 }

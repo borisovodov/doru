@@ -89,7 +89,7 @@ export function emptyPlaceDraft(): PlaceDraft {
     govId: '',
     maidenhead: '',
     placeType: '',
-    names: [],
+    names: [emptyPlaceNameDraft()],
     postalCodes: [],
     hierarchy: [],
   };

@@ -5,13 +5,14 @@ import { SourceEditor } from '@doru/features';
 import { nls } from '../src/nls';
 import { renderUi } from '../../../test/ui/harness';
 
-function renderEditor(overrides: { onSave?: () => void; onCancel?: () => void; onDelete?: () => void } = {}) {
+function renderEditor(overrides: { onSave?: () => void; onCancel?: () => void } = {}) {
   const draft = emptySourceDraft();
   const onChange = vi.fn();
 
   renderUi(
     <SourceEditor
       draft={draft}
+      isNew
       onChange={onChange}
       repositories={[]}
       titles={[]}
@@ -19,7 +20,6 @@ function renderEditor(overrides: { onSave?: () => void; onCancel?: () => void; o
       onAddRepository={async () => {}}
       onSave={overrides.onSave ?? vi.fn()}
       onCancel={overrides.onCancel}
-      onDelete={overrides.onDelete}
     />,
   );
 
@@ -30,17 +30,13 @@ describe('SourceEditor', () => {
   it('renders the bibliographic fields and the header actions', () => {
     const onSave = vi.fn();
     const onCancel = vi.fn();
-    const onDelete = vi.fn();
-    renderEditor({ onSave, onCancel, onDelete });
+    renderEditor({ onSave, onCancel });
 
     expect(screen.getByLabelText(nls.t('features.tree.sources.title'))).toBeInTheDocument();
     expect(screen.getByLabelText(nls.t('features.tree.sources.titleField'))).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole('button', { name: nls.t('features.tree.save') }));
+    fireEvent.click(screen.getAllByRole('button', { name: nls.t('features.tree.create') })[0]!);
     expect(onSave).toHaveBeenCalledTimes(1);
-
-    fireEvent.click(screen.getByRole('button', { name: nls.t('features.tree.fact.delete') }));
-    expect(onDelete).toHaveBeenCalledTimes(1);
 
     fireEvent.click(screen.getByRole('button', { name: nls.t('features.tree.back') }));
     expect(onCancel).toHaveBeenCalledTimes(1);

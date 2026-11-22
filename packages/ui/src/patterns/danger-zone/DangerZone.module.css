@@ -1,0 +1,8 @@
+.zone {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  margin-top: 24px;
+  padding-top: 12px;
+  border-top: 1px solid var(--doru-border);
+}

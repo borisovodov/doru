@@ -3,8 +3,14 @@ import type { AddressRecord, FactRecord, RepositoryRecord, SourceRecord, Submitt
 import { AttachmentsPanel } from '../attachments';
 import { EntityTab } from '../sidebar';
 import type { RegistriesEditorApi } from '../person/types';
-import { AddressFields, addressDraftToRecord, addressLabel } from '@doru/ui/domain';
-import { Button, EntityViewCard, SectionCard } from '@doru/ui';
+import {
+  AddressFields,
+  addressDraftEmpty,
+  addressDraftMatches,
+  addressDraftToRecord,
+  addressLabel,
+} from '@doru/ui/domain';
+import { Button, DangerZone, EntityViewCard, SectionCard, useAutoSaveOnBlur } from '@doru/ui';
 import { nls } from '../nls';
 import { useRegistryAddress } from './useRegistryAddress';
 
@@ -77,7 +83,11 @@ function AddressTabBody({
   onCreated: (realId: string) => void;
 }) {
   const base: AddressRecord = record ?? { id: crypto.randomUUID(), lines: [] };
-  const { address, setAddress, addressSaveFailed, saveAddress } = useRegistryAddress(api, record?.id);
+  const { address, setAddress, addressLoaded, addressSaveFailed, saveAddress } = useRegistryAddress(
+    api,
+    record?.id,
+    isNew ? nls.t('features.tree.address.newAddress') : '',
+  );
   const preview = addressLabel(addressDraftToRecord(address));
   const usage = {
     facts: facts.filter((fact) => fact.addressId === base.id).length,
@@ -108,28 +118,37 @@ function AddressTabBody({
     onClose();
   };
 
+  const autoSave = useAutoSaveOnBlur({
+    enabled: !isNew,
+    isDirty: () =>
+      addressLoaded && record !== undefined && !addressDraftEmpty(address) && !addressDraftMatches(address, record),
+    save,
+  });
+
   return (
-    <EntityTab>
+    <EntityTab onBlur={autoSave.onBlur}>
       <EntityViewCard
         media={<MapPin size={20} aria-hidden="true" />}
-        title={preview || '—'}
+        title={preview || (isNew ? nls.t('features.tree.address.newAddress') : '—')}
         subtitle={usageCount > 0 ? nls.t('features.tree.address.usage', usageCount) : null}
         actions={
-          <>
-            <Button variant="primary" size="sm" disabled={preview === ''} onClick={() => void save()}>
-              {nls.t('features.tree.save')}
+          isNew ? (
+            <Button
+              variant="primary"
+              size="sm"
+              data-autosave-skip="true"
+              disabled={preview === ''}
+              onClick={() => void save()}
+            >
+              {nls.t('features.tree.create')}
             </Button>
-            {record !== undefined && (
-              <Button variant="danger" size="sm" onClick={() => void remove()}>
-                {nls.t('features.tree.fact.delete')}
-              </Button>
-            )}
-          </>
+          ) : undefined
         }
       />
       <SectionCard title={nls.t('features.tree.address.title')}>
         <AddressFields
           address={address}
+          autoFocus={isNew}
           onChange={setAddress}
           renderAttachments={(lineId) => (
             <AttachmentsPanel
@@ -158,6 +177,13 @@ function AddressTabBody({
           sources={sources}
           onOpenSource={onOpenSource}
         />
+      )}
+      {record !== undefined && (
+        <DangerZone>
+          <Button variant="danger" size="sm" data-autosave-skip="true" onClick={() => void remove()}>
+            {nls.t('features.tree.fact.delete')}
+          </Button>
+        </DangerZone>
       )}
     </EntityTab>
   );

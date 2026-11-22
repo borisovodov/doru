@@ -8,6 +8,7 @@ import { FieldGrid } from '../../atoms/field-grid/FieldGrid';
 import { Input } from '../../atoms/form/Input';
 import { ReorderButtons } from '../../atoms/reorder-buttons/ReorderButtons';
 import { Subcard } from '../../patterns/subcard/Subcard';
+import { useAutoFocusSelect } from '../../lib/useAutoFocusSelect';
 import { moveItem } from '../reorder';
 import type { AddressDraft } from './address';
 import styles from './AddressFields.module.css';
@@ -17,11 +18,15 @@ export function AddressFields({
   address,
   onChange,
   renderAttachments,
+  autoFocus = false,
 }: {
   address: AddressDraft;
   onChange: (draft: AddressDraft) => void;
   renderAttachments?: ((lineId: string) => ReactNode) | undefined;
+  /** Focuses the first address line when a new address tab opens. */
+  autoFocus?: boolean;
 }) {
+  const firstLineRef = useAutoFocusSelect<HTMLInputElement>(autoFocus);
   const [expandedLineId, setExpandedLineId] = useState<string | null>(null);
   const set = (patch: Partial<AddressDraft>) => onChange({ ...address, ...patch });
   const patchLine = (index: number, value: string) =>
@@ -35,6 +40,7 @@ export function AddressFields({
           <div key={line.id ?? `new-${index}`}>
             <div className={styles['lineRow']}>
               <Input
+                ref={index === 0 ? firstLineRef : undefined}
                 aria-label={nls.t('features.tree.address.line')}
                 placeholder={nls.t('features.tree.address.line')}
                 value={line.value}

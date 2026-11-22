@@ -172,6 +172,7 @@ export function AttachmentsPanel({
           targetType={targetType}
           targetId={targetId}
           identifiers={identifiers}
+          canAdd={targetType !== 'task'}
           onAdd={async (identifier) => {
             await api.addIdentifier(identifier);
             await refresh();
@@ -230,6 +231,7 @@ export function AttachmentsPanel({
           targetId={targetId}
           submitters={submitters}
           links={contributors}
+          canAdd={targetType !== 'task'}
           onAdd={async (submitterId, type, id, kind) => {
             await api.addRecordSubmitter(submitterId, type, id, kind);
             await refresh();

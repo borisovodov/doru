@@ -58,13 +58,14 @@ describe('AddressTab', () => {
       />,
     );
 
-    await screen.findByDisplayValue('Main street 1');
+    const street = await screen.findByDisplayValue('Main street 1');
+    fireEvent.change(street, { target: { value: 'Main street 2' } });
     deleted.value = true;
-    fireEvent.click(screen.getByRole('button', { name: nls.t('features.tree.save') }));
+    fireEvent.blur(street, { relatedTarget: document.body });
     await waitFor(() => expect(updateAddress).toHaveBeenCalledTimes(1));
     expect(await screen.findByRole('alert')).toHaveTextContent(nls.t('features.tree.address.saveFailed'));
 
-    fireEvent.click(screen.getByRole('button', { name: nls.t('features.tree.save') }));
+    fireEvent.blur(street, { relatedTarget: document.body });
     await waitFor(() => expect(addAddress).toHaveBeenCalledTimes(1));
     expect(updateAddress).toHaveBeenCalledTimes(1);
   });
@@ -93,7 +94,7 @@ describe('AddressTab', () => {
     fireEvent.change(screen.getByPlaceholderText(nls.t('features.tree.address.city')), {
       target: { value: 'Moscow' },
     });
-    fireEvent.click(screen.getByRole('button', { name: nls.t('features.tree.save') }));
+    fireEvent.click(screen.getByRole('button', { name: nls.t('features.tree.create') }));
     await waitFor(() => expect(addAddress).toHaveBeenCalledTimes(1));
     expect(await screen.findByRole('alert')).toHaveTextContent(nls.t('features.tree.address.saveFailed'));
   });

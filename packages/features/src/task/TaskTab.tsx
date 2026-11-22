@@ -1,6 +1,5 @@
 import { useMemo, useState } from 'react';
-import { Button, EntityViewCard, InlineError, SectionCard } from '@doru/ui';
-import { TARGET_TYPES } from '@doru/core/model';
+import { Button, DangerZone, EntityViewCard, InlineError, SectionCard, useAutoSaveOnBlur } from '@doru/ui';
 import { MEDIA_VISIBLE } from '@doru/platform';
 import { ListTodo } from 'lucide-react';
 import type {
@@ -23,6 +22,7 @@ import { AttachmentsPanel } from '../attachments';
 import { EntityTab } from '../sidebar';
 import type { TaskEditorApi } from '../person/types';
 import {
+  TASK_TARGET_TYPES,
   TaskEditorFields,
   emptyTaskDraft,
   taskTargetLabel,
@@ -35,8 +35,8 @@ import { nls } from '../nls';
 
 /** Media targets stay out of the picker while media editing is hidden. */
 const VISIBLE_TARGET_TYPES = MEDIA_VISIBLE
-  ? TARGET_TYPES
-  : TARGET_TYPES.filter((type) => type !== 'media' && type !== 'media_file' && type !== 'media_link');
+  ? TASK_TARGET_TYPES
+  : TASK_TARGET_TYPES.filter((type) => type !== 'media' && type !== 'media_file' && type !== 'media_link');
 
 export function TaskTab({
   entityId,
@@ -161,9 +161,12 @@ function TaskTabBody({
 }) {
   const base = record ?? { id: crypto.randomUUID(), text: '' };
   const [lastSaved, setLastSaved] = useState<TaskRecord | undefined>(record);
-  const [draft, setDraft] = useState<TaskDraft>(() => (isNew ? emptyTaskDraft() : taskToDraft(base)));
+  const [draft, setDraft] = useState<TaskDraft>(() =>
+    isNew ? { ...emptyTaskDraft(), text: nls.t('features.tasks.newTask') } : taskToDraft(base),
+  );
   const invalidTimestamp = taskDraftHasInvalidTimestamp(draft);
   const targetId = lastSaved?.id ?? record?.id;
+  const displayTitle = draft.text.trim() !== '' ? draft.text.trim() : isNew ? nls.t('features.tasks.newTask') : '—';
 
   const patch = (update: Partial<TaskDraft>) => setDraft((current) => ({ ...current, ...update }));
 
@@ -227,33 +230,46 @@ function TaskTabBody({
     onClose();
   };
 
+  const autoSave = useAutoSaveOnBlur({
+    enabled: !isNew,
+    isDirty: () => {
+      const persisted = lastSaved ?? record;
+      return (
+        persisted !== undefined && JSON.stringify(taskDraftToRecord(persisted, draft)) !== JSON.stringify(persisted)
+      );
+    },
+    save,
+  });
+
   return (
-    <EntityTab>
+    <EntityTab onBlur={autoSave.onBlur}>
       <EntityViewCard
         media={<ListTodo size={20} aria-hidden="true" />}
-        title={draft.text.trim() || '—'}
+        title={displayTitle}
         subtitle={subtitleParts.length > 0 ? subtitleParts.join(' · ') : null}
         actions={
-          <>
+          isNew ? (
             <Button
               variant="primary"
               size="sm"
+              data-autosave-skip="true"
               disabled={draft.text.trim() === '' || invalidTimestamp}
               onClick={() => void save()}
             >
-              {nls.t('features.tree.save')}
+              {nls.t('features.tree.create')}
             </Button>
-            {(!isNew || lastSaved !== undefined) && (
-              <Button variant="danger" size="sm" onClick={() => void remove()}>
-                {nls.t('features.tree.fact.delete')}
-              </Button>
-            )}
-          </>
+          ) : undefined
         }
       />
 
       <SectionCard title={nls.t('features.tree.details')}>
-        <TaskEditorFields edit={draft} data={targetData} onChange={patch} targetTypes={VISIBLE_TARGET_TYPES} />
+        <TaskEditorFields
+          edit={draft}
+          data={targetData}
+          onChange={patch}
+          targetTypes={VISIBLE_TARGET_TYPES}
+          autoFocusText={isNew}
+        />
         {invalidTimestamp ? <InlineError>{nls.t('features.tasks.invalidTimestamp')}</InlineError> : null}
       </SectionCard>
       {targetId !== undefined && (
@@ -265,6 +281,13 @@ function TaskTabBody({
           onOpenSource={onOpenSource}
           onOpenMedia={onOpenMedia}
         />
+      )}
+      {(!isNew || lastSaved !== undefined) && (
+        <DangerZone>
+          <Button variant="danger" size="sm" data-autosave-skip="true" onClick={() => void remove()}>
+            {nls.t('features.tree.fact.delete')}
+          </Button>
+        </DangerZone>
       )}
     </EntityTab>
   );

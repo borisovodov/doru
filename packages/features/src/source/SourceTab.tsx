@@ -11,6 +11,7 @@ import type {
   TitleRecord,
 } from '@doru/core';
 import { CitationAttachments, NoteAttachments, useAttachments } from '../attachments';
+import { Button, DangerZone, useAutoSaveOnBlur } from '@doru/ui';
 import { MediaSection } from '../media/MediaSection';
 import { EntityTab, SourceCitationsList } from '../sidebar';
 import type { MediaTargetApi, SourceEditorApi } from '../person/types';
@@ -33,6 +34,11 @@ import {
   type SourceDraft,
 } from '@doru/ui/domain';
 import { nls } from '../nls';
+
+/** A new source starts with the placeholder text as its editable default title. */
+function newSourceDraft(): SourceDraft {
+  return { ...emptySourceDraft(), title: nls.t('features.tree.source.newSource') };
+}
 
 export function SourceTab({
   entityId,
@@ -136,7 +142,7 @@ function SourceTabBody({
   onCreated: (realId: string) => void;
 }) {
   const [draft, setDraftState] = useState<SourceDraft>(() =>
-    isNew ? emptySourceDraft() : record ? sourceToDraft(record) : emptySourceDraft(),
+    isNew ? newSourceDraft() : record ? sourceToDraft(record) : newSourceDraft(),
   );
   const [lastSaved, setLastSaved] = useState<SourceRecord | undefined>(record);
   const [repositories, setRepositories] = useState<RepositoryRecord[]>([]);
@@ -268,7 +274,7 @@ function SourceTabBody({
       submittedRef.current = submission;
       refreshBaselineRef.current = submission;
       submissionOriginRef.current =
-        baselineRef.current !== undefined ? sourceToDraft(baselineRef.current) : emptySourceDraft();
+        baselineRef.current !== undefined ? sourceToDraft(baselineRef.current) : newSourceDraft();
       try {
         if (isNew && lastSaved === undefined) {
           await api.addSource(next);
@@ -302,10 +308,21 @@ function SourceTabBody({
     onClose();
   };
 
+  const autoSave = useAutoSaveOnBlur({
+    enabled: !isNew,
+    isDirty: () => {
+      const persisted = record ?? lastSaved;
+      return persisted !== undefined && !sourceDraftMatches(draft, persisted);
+    },
+    save,
+  });
+
   return (
     <EntityTab>
       <SourceEditor
         draft={draft}
+        isNew={isNew}
+        onBlur={autoSave.onBlur}
         onChange={setDraft}
         repositories={repositories}
         titles={titles}
@@ -315,7 +332,6 @@ function SourceTabBody({
           setRepositories(await api.getRepositories());
         }}
         onSave={() => void save()}
-        onDelete={!isNew || lastSaved !== undefined ? () => void remove() : undefined}
       />
       {currentSource !== undefined && (
         <>
@@ -464,6 +480,13 @@ function SourceTabBody({
             </>
           )}
         </>
+      )}
+      {(!isNew || lastSaved !== undefined) && (
+        <DangerZone>
+          <Button variant="danger" size="sm" data-autosave-skip="true" onClick={() => void remove()}>
+            {nls.t('features.tree.fact.delete')}
+          </Button>
+        </DangerZone>
       )}
     </EntityTab>
   );

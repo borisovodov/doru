@@ -44,6 +44,19 @@ export function addressDraftEmpty(draft: AddressDraft): boolean {
   );
 }
 
+/** True when the draft holds the same address values as the stored record. */
+export function addressDraftMatches(draft: AddressDraft, address: AddressRecord): boolean {
+  const next = addressDraftToRecord(draft);
+  return (
+    next.lines.length === address.lines.length &&
+    next.lines.every((line, index) => line.value === address.lines[index]?.value) &&
+    (next.city ?? '') === (address.city ?? '') &&
+    (next.state ?? '') === (address.state ?? '') &&
+    (next.postalCode ?? '') === (address.postalCode ?? '') &&
+    (next.country ?? '') === (address.country ?? '')
+  );
+}
+
 export function addressDraftToRecord(draft: AddressDraft): AddressRecord {
   return {
     id: draft.id ?? crypto.randomUUID(),

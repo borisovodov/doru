@@ -25,7 +25,10 @@ export function broadcastAiSettingsChanged(): void {
 export function registerSettingsIpc(): void {
   ipcMain.handle('settings:ai:get', () => aiSettingsPayload(loadAiSettings()));
 
-  ipcMain.handle('app:about', () => ({ version: app.getVersion() }));
+  ipcMain.handle('app:about', () => ({
+    version: app.getVersion(),
+    systemLocale: app.getSystemLocale(),
+  }));
 
   ipcMain.handle('clipboard:writeText', (_event, text: string) => {
     void clipboard.writeText(typeof text === 'string' ? text : String(text));

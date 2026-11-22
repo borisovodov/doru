@@ -5,8 +5,8 @@ import { PersonEditor, type MediaTargetApi, type PersonEditorApi } from '@doru/f
 import { nls } from '../src/nls';
 import { renderUi, stubApi } from '../../../test/ui/harness';
 
-function renderEditor(overrides: { onSave?: () => void; onCancel?: () => void; onDelete?: () => void } = {}) {
-  const draft = newPersonDraft();
+function renderEditor(overrides: { onSave?: () => void; onCancel?: () => void } = {}) {
+  const draft = newPersonDraft(nls.t('features.tree.person.newPerson'));
   const onChange = vi.fn();
   const api = stubApi<PersonEditorApi>({
     getFamilies: async () => [],
@@ -26,7 +26,6 @@ function renderEditor(overrides: { onSave?: () => void; onCancel?: () => void; o
       onChange={onChange}
       onSave={overrides.onSave ?? vi.fn()}
       onCancel={overrides.onCancel}
-      onDelete={overrides.onDelete}
       api={api}
       mediaApi={mediaApi}
     />,
@@ -39,22 +38,23 @@ describe('PersonEditor', () => {
   it('renders a new person and wires the header actions', () => {
     const onSave = vi.fn();
     const onCancel = vi.fn();
-    const onDelete = vi.fn();
-    renderEditor({ onSave, onCancel, onDelete });
+    renderEditor({ onSave, onCancel });
 
     expect(screen.getByLabelText(nls.t('features.personEditor.title'))).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: nls.t('features.tree.person.newPerson') })).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: nls.t('features.tree.names.title') })).toBeInTheDocument();
     // MEDIA_VISIBLE in @doru/platform is off: the media editor is not offered.
     expect(screen.queryByRole('heading', { name: nls.t('features.tree.media.title') })).not.toBeInTheDocument();
+    const nameInput = screen.getByDisplayValue(nls.t('features.tree.person.newPerson'));
+    expect(nameInput).toHaveFocus();
+    expect((nameInput as HTMLInputElement).selectionStart).toBe(0);
+    expect((nameInput as HTMLInputElement).selectionEnd).toBe(nls.t('features.tree.person.newPerson').length);
 
-    fireEvent.click(screen.getByRole('button', { name: nls.t('features.tree.save') }));
+    fireEvent.click(screen.getByRole('button', { name: nls.t('features.tree.create') }));
     expect(onSave).toHaveBeenCalledTimes(1);
 
     fireEvent.click(screen.getByRole('button', { name: nls.t('features.tree.back') }));
     expect(onCancel).toHaveBeenCalledTimes(1);
-
-    fireEvent.click(screen.getByRole('button', { name: nls.t('features.tree.fact.delete') }));
-    expect(onDelete).toHaveBeenCalledTimes(1);
   });
 
   it('reports a changed sex through onChange', () => {

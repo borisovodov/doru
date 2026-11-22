@@ -1,5 +1,5 @@
-import { IconButton } from '@doru/ui';
-import { useState } from 'react';
+import { IconButton, useAutoFocusSelect } from '@doru/ui';
+import { useState, type FocusEventHandler } from 'react';
 import { Input } from '@doru/ui';
 import { Select, Textarea } from '@doru/ui';
 import { SectionCard, Subcard, ReorderButtons } from '@doru/ui';
@@ -31,6 +31,7 @@ import {
  */
 export function SourceEditor({
   draft,
+  isNew = false,
   onChange,
   repositories,
   titles,
@@ -38,9 +39,11 @@ export function SourceEditor({
   onAddRepository,
   onSave,
   onCancel,
-  onDelete,
+  onBlur,
 }: {
   draft: SourceDraft;
+  /** A draft that has not been saved yet; affects the header placeholder. */
+  isNew?: boolean;
   onChange: (draft: SourceDraft) => void;
   repositories: RepositoryRecord[];
   titles: TitleRecord[];
@@ -48,8 +51,10 @@ export function SourceEditor({
   onAddRepository: (repository: RepositoryRecord) => Promise<void>;
   onSave: () => void;
   onCancel?: (() => void) | undefined;
-  onDelete?: (() => void) | undefined;
+  /** Autosave trigger from the tab; fires when a field loses focus. */
+  onBlur?: FocusEventHandler<HTMLElement> | undefined;
 }) {
+  const titleRef = useAutoFocusSelect<HTMLInputElement>(isNew);
   const set = (patch: Partial<SourceDraft>) => onChange({ ...draft, ...patch });
 
   const patchText = (index: number, values: Partial<SourceTextDraft>) =>
@@ -106,12 +111,14 @@ export function SourceEditor({
   const removeField = (index: number) => set({ templateFields: draft.templateFields.filter((_, i) => i !== index) });
 
   const subtitle = [draft.author.trim(), draft.publication.trim()].filter((part) => part !== '').join(' · ');
+  const displayTitle =
+    draft.title.trim() !== '' ? draft.title.trim() : isNew ? nls.t('features.tree.source.newSource') : '—';
 
   return (
-    <EditorPage label={nls.t('features.tree.sources.title')}>
+    <EditorPage label={nls.t('features.tree.sources.title')} onBlur={onBlur}>
       <EntityViewCard
         media={<BookOpenText size={20} aria-hidden="true" />}
-        title={draft.title.trim() || '—'}
+        title={displayTitle}
         subtitle={
           <>
             {subtitle !== '' ? subtitle : null}
@@ -120,27 +127,24 @@ export function SourceEditor({
           </>
         }
         actions={
-          <>
-            <Button variant="primary" size="sm" onClick={onSave}>
-              {nls.t('features.tree.save')}
-            </Button>
-            {onCancel && (
-              <Button variant="secondary" size="sm" onClick={onCancel}>
-                {nls.t('features.tree.back')}
+          isNew ? (
+            <>
+              <Button variant="primary" size="sm" data-autosave-skip="true" onClick={onSave}>
+                {nls.t('features.tree.create')}
               </Button>
-            )}
-            {onDelete && (
-              <Button variant="danger" size="sm" onClick={onDelete}>
-                {nls.t('features.tree.fact.delete')}
-              </Button>
-            )}
-          </>
+              {onCancel && (
+                <Button variant="secondary" size="sm" data-autosave-skip="true" onClick={onCancel}>
+                  {nls.t('features.tree.back')}
+                </Button>
+              )}
+            </>
+          ) : undefined
         }
       />
 
       <SectionCard title={nls.t('features.tree.source.details')}>
         <Field label={nls.t('features.tree.sources.titleField')}>
-          <Input value={draft.title} onChange={(event) => set({ title: event.target.value })} />
+          <Input ref={titleRef} value={draft.title} onChange={(event) => set({ title: event.target.value })} />
         </Field>
         <Field label={nls.t('features.tree.title.work')}>
           <Select

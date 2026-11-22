@@ -84,7 +84,7 @@ declare global {
       }>;
       setTheme(name: string): Promise<string>;
       openThemesFolder(): Promise<void>;
-      getAbout(): Promise<{ version: string }>;
+      getAbout(): Promise<{ version: string; systemLocale: string }>;
       copyText(text: string): Promise<void>;
       openLogs(): Promise<string>;
       getThemeCss(name: string, mode: 'dark' | 'light'): Promise<string>;

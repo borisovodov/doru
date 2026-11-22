@@ -16,3 +16,4 @@ export type {
 } from './menu';
 export { LocalizationService, resolveLocale } from './nls';
 export type { ILocalizationService, MessageKey } from './nls';
+export { getSystemLocale, normalizeSystemLocale, setSystemLocale } from './system-locale';

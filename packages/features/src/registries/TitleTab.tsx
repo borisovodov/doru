@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { EmptyText } from '@doru/ui';
+import { EmptyText, useAutoFocusSelect } from '@doru/ui';
 import { Input } from '@doru/ui';
 import { Select } from '@doru/ui';
 import { SectionCard } from '@doru/ui';
@@ -11,7 +11,7 @@ import { AttachmentsPanel } from '../attachments';
 import { EntityTab } from '../sidebar';
 import type { TitleEditorApi } from '../person/types';
 import { nls } from '../nls';
-import { Button } from '@doru/ui';
+import { Button, DangerZone, useAutoSaveOnBlur } from '@doru/ui';
 import { EntityViewCard } from '@doru/ui';
 
 export function TitleTab({
@@ -78,8 +78,9 @@ function TitleTabBody({
   onCreated: (realId: string) => void;
 }) {
   const base = record ?? { id: crypto.randomUUID() };
+  const nameRef = useAutoFocusSelect<HTMLInputElement>(isNew);
   const [lastSaved, setLastSaved] = useState<TitleRecord | undefined>(record);
-  const [name, setName] = useState(base.name ?? '');
+  const [name, setName] = useState(isNew ? nls.t('features.tree.title.newTitle') : (base.name ?? ''));
   const [author, setAuthor] = useState(base.author ?? '');
   const [publisher, setPublisher] = useState(base.publisher ?? '');
   const [series, setSeries] = useState(base.series ?? '');
@@ -123,29 +124,31 @@ function TitleTabBody({
     onClose();
   };
 
+  const persisted = lastSaved ?? record;
+  const autoSave = useAutoSaveOnBlur({
+    enabled: !isNew,
+    isDirty: () => persisted !== undefined && JSON.stringify(build()) !== JSON.stringify(persisted),
+    save,
+  });
+
   return (
-    <EntityTab>
+    <EntityTab onBlur={autoSave.onBlur}>
       <EntityViewCard
         media={<BookMarked size={20} aria-hidden="true" />}
-        title={name.trim() || '—'}
+        title={name.trim() || (isNew ? nls.t('features.tree.title.newTitle') : '—')}
         subtitle={subtitle !== '' ? subtitle : null}
         actions={
-          <>
-            <Button variant="primary" size="sm" onClick={() => void save()}>
-              {nls.t('features.tree.save')}
+          isNew ? (
+            <Button variant="primary" size="sm" data-autosave-skip="true" onClick={() => void save()}>
+              {nls.t('features.tree.create')}
             </Button>
-            {(!isNew || lastSaved !== undefined) && (
-              <Button variant="danger" size="sm" onClick={() => void remove()}>
-                {nls.t('features.tree.fact.delete')}
-              </Button>
-            )}
-          </>
+          ) : undefined
         }
       />
 
       <SectionCard title={nls.t('features.tree.details')}>
         <Field label={nls.t('features.tree.title.name')}>
-          <Input value={name} onChange={(event) => setName(event.target.value)} />
+          <Input ref={nameRef} value={name} onChange={(event) => setName(event.target.value)} />
         </Field>
         <FieldGrid columns={2}>
           <Field label={nls.t('features.tree.title.author')}>
@@ -208,6 +211,13 @@ function TitleTabBody({
           onOpenSource={onOpenSource}
           onOpenMedia={onOpenMedia}
         />
+      )}
+      {(!isNew || lastSaved !== undefined) && (
+        <DangerZone>
+          <Button variant="danger" size="sm" data-autosave-skip="true" onClick={() => void remove()}>
+            {nls.t('features.tree.fact.delete')}
+          </Button>
+        </DangerZone>
       )}
     </EntityTab>
   );

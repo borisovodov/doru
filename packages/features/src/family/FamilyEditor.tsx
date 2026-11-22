@@ -3,7 +3,7 @@ import { EmptyText } from '@doru/ui';
 import { useEffect, useMemo, useState } from 'react';
 import { Checkbox, Field, FieldGrid, InlineForm, Input, ReorderButtons, Select, SectionCard, Subcard } from '@doru/ui';
 import { Paperclip, Plus, Users, X } from 'lucide-react';
-import type { ReactNode } from 'react';
+import type { FocusEventHandler, ReactNode } from 'react';
 import type {
   AddressRecord,
   AssociationRecord,
@@ -53,9 +53,8 @@ export function FamilyEditor({
   savedLinkIds,
   renderLinkAttachments,
   renderStatusAttachments,
-  onSave,
-  onDelete,
   onOpenSource,
+  onBlur,
 }: {
   draft: FamilyDraft;
   savedLinkIds?: ReadonlySet<string> | undefined;
@@ -67,9 +66,9 @@ export function FamilyEditor({
   associations: AssociationRecord[];
   sources: SourceRecord[];
   api: FamilyEditorApi;
-  onSave: () => void;
-  onDelete: (() => void) | undefined;
   onOpenSource: (sourceId: string) => void;
+  /** Autosave trigger from the tab; fires when a field loses focus. */
+  onBlur?: FocusEventHandler<HTMLElement> | undefined;
 }) {
   const [facts, setFacts] = useState<FactRecord[]>([]);
   const [places, setPlaces] = useState<PlaceRecord[]>([]);
@@ -151,23 +150,11 @@ export function FamilyEditor({
   const label = partnerNames.length > 0 ? partnerNames.join(' & ') : '—';
 
   return (
-    <EditorPage label={nls.t('features.tree.families.title')}>
+    <EditorPage label={nls.t('features.tree.families.title')} onBlur={onBlur}>
       <EntityViewCard
         media={<Users size={20} aria-hidden="true" />}
         title={label}
         subtitle={nls.t('features.sidebar.children', draft.childLinks.length)}
-        actions={
-          <>
-            <Button variant="primary" size="sm" onClick={onSave}>
-              {nls.t('features.tree.save')}
-            </Button>
-            {onDelete && (
-              <Button variant="danger" size="sm" onClick={onDelete}>
-                {nls.t('features.tree.fact.delete')}
-              </Button>
-            )}
-          </>
-        }
       />
 
       <SectionCard title={nls.t('features.tree.families.details')}>

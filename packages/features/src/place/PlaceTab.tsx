@@ -3,10 +3,18 @@ import type { FactRecord, FamilyRecord, PersonRecord, PlaceRecord, SourceRecord 
 import { AttachmentsPanel, CitationAttachments, NoteAttachments, useAttachments } from '../attachments';
 import { MediaSection } from '../media/MediaSection';
 import { EntityTab } from '../sidebar';
+import { Button, DangerZone, useAutoSaveOnBlur } from '@doru/ui';
 import type { MediaTargetApi, PlaceEditorApi } from '../person/types';
 import { PlaceEditor } from './PlaceEditor';
 import { PlaceFactsList } from './PlaceFactsList';
-import { emptyPlaceDraft, mergePlaceDraft, placeDraftToRecord, placeToDraft, type PlaceDraft } from './placeDraft';
+import {
+  emptyPlaceDraft,
+  mergePlaceDraft,
+  placeDraftMatches,
+  placeDraftToRecord,
+  placeToDraft,
+  type PlaceDraft,
+} from './placeDraft';
 import type { MediaWithPath } from '@doru/ui/domain';
 import {
   ContactsSection,
@@ -19,6 +27,15 @@ import {
   TasksSection,
 } from '@doru/ui/domain';
 import { nls } from '../nls';
+
+/** A new place starts with the placeholder text as the first name value. */
+function newPlaceDraft(): PlaceDraft {
+  const draft = emptyPlaceDraft();
+  const first = draft.names[0];
+  return first === undefined
+    ? draft
+    : { ...draft, names: [{ ...first, value: nls.t('features.tree.place.newPlace') }] };
+}
 
 export function PlaceTab({
   entityId,
@@ -112,7 +129,7 @@ function PlaceTabBody({
   onCreated: (realId: string) => void;
 }) {
   const [draft, setDraftState] = useState<PlaceDraft>(() =>
-    isNew ? emptyPlaceDraft() : record ? placeToDraft(record) : emptyPlaceDraft(),
+    isNew ? newPlaceDraft() : record ? placeToDraft(record) : newPlaceDraft(),
   );
   const [lastSaved, setLastSaved] = useState<PlaceRecord | undefined>(record);
   const recordRef = useRef(record);
@@ -208,6 +225,15 @@ function PlaceTabBody({
     onClose();
   };
 
+  const autoSave = useAutoSaveOnBlur({
+    enabled: !isNew,
+    isDirty: () => {
+      const persisted = record ?? lastSaved;
+      return persisted !== undefined && !placeDraftMatches(draft, persisted);
+    },
+    save,
+  });
+
   const currentPlace = lastSaved ?? record;
   const factsAtPlace =
     currentPlace !== undefined
@@ -220,10 +246,10 @@ function PlaceTabBody({
     <EntityTab>
       <PlaceEditor
         draft={draft}
+        onBlur={autoSave.onBlur}
         onChange={setDraft}
         places={places}
         onSave={() => void save()}
-        onDelete={!isNew || lastSaved !== undefined ? () => void remove() : undefined}
         renderAttachments={(linkId) => (
           <AttachmentsPanel
             targetType="place_hierarchy"
@@ -382,6 +408,13 @@ function PlaceTabBody({
             </>
           )}
         </>
+      )}
+      {(!isNew || lastSaved !== undefined) && (
+        <DangerZone>
+          <Button variant="danger" size="sm" data-autosave-skip="true" onClick={() => void remove()}>
+            {nls.t('features.tree.fact.delete')}
+          </Button>
+        </DangerZone>
       )}
     </EntityTab>
   );

@@ -9,6 +9,15 @@ import {
   type AddressDraft,
 } from '@doru/ui/domain';
 
+/** An empty address draft whose first line carries the tab's default title. */
+function emptyAddressDraftWithLine(line: string): AddressDraft {
+  const draft = emptyAddressDraft();
+  const first = draft.lines[0];
+  return first === undefined || line === ''
+    ? draft
+    : { ...draft, lines: [{ ...first, value: line }, ...draft.lines.slice(1)] };
+}
+
 /**
  * The address sub-form state shared by the repository and submitter tabs.
  *
@@ -17,8 +26,9 @@ import {
  * only clears the draft/link — the AddressRecord itself is never deleted
  * here, because it may be shared with other records.
  */
-export function useRegistryAddress(api: RegistriesEditorApi, addressId: string | undefined) {
-  const [address, setAddress] = useState<AddressDraft>(emptyAddressDraft());
+export function useRegistryAddress(api: RegistriesEditorApi, addressId: string | undefined, defaultLine = '') {
+  const defaultLineRef = useRef(defaultLine);
+  const [address, setAddress] = useState<AddressDraft>(() => emptyAddressDraftWithLine(defaultLineRef.current));
   const [addressLoaded, setAddressLoaded] = useState(false);
   const [addressBefore, setAddressBefore] = useState<AddressRecord | undefined>(undefined);
   const [addressSaveFailed, setAddressSaveFailed] = useState(false);
@@ -34,14 +44,14 @@ export function useRegistryAddress(api: RegistriesEditorApi, addressId: string |
             setAddress(addressToDraft(loaded));
             setAddressBefore(loaded);
           } else {
-            setAddress(emptyAddressDraft());
+            setAddress(emptyAddressDraftWithLine(defaultLineRef.current));
             setAddressBefore(undefined);
           }
           setAddressLoaded(true);
         }
       });
     } else {
-      setAddress(emptyAddressDraft());
+      setAddress(emptyAddressDraftWithLine(defaultLineRef.current));
       setAddressBefore(undefined);
       setAddressLoaded(true);
     }
@@ -95,7 +105,7 @@ export function useRegistryAddress(api: RegistriesEditorApi, addressId: string |
 
   /** Clears the local draft after the owner drops its address link. */
   const unlinkAddress = () => {
-    setAddress(emptyAddressDraft());
+    setAddress(emptyAddressDraftWithLine(defaultLineRef.current));
     setAddressBefore(undefined);
     setAddressLoaded(true);
   };

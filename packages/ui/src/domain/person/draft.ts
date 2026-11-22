@@ -356,10 +356,11 @@ export function draftSpan(draft: PersonDraft): string {
   return span;
 }
 
-export function newPersonDraft(): PersonDraft {
+export function newPersonDraft(defaultName = ''): PersonDraft {
+  const name = emptyNameDraft();
   return {
     id: crypto.randomUUID(),
-    names: [emptyNameDraft()],
+    names: [defaultName !== '' ? setPartValue(name, 'full', defaultName) : name],
     namesTouched: false,
     sex: 'U',
     sexTouched: false,

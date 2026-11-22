@@ -1,3 +1,4 @@
+export { DangerZone } from './danger-zone/DangerZone';
 export { SectionCard, type SectionCardProps } from './section-card/SectionCard';
 export { EntityViewCard, type EntityViewCardProps } from './entity-view-card/EntityViewCard';
 export { EntityCard, type EntityCardProps } from './entity-card/EntityCard';

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type FocusEventHandler, type ReactNode } from 'react';
 import { BookOpenText, HelpCircle, Image as ImageIcon, Mars, StickyNote, UserRound, Venus } from 'lucide-react';
 import { Avatar } from '@doru/ui';
 import { Badge, Button, EditorPage, EntityViewCard, Field, SectionCard, Select } from '@doru/ui';
@@ -49,11 +49,14 @@ export interface PersonEditorProps {
   persons: PersonRecord[];
   onChange: (draft: PersonDraft) => void;
   onSave: () => void;
-  onDelete?: (() => void) | undefined;
   onCancel?: (() => void) | undefined;
   api: PersonEditorApi;
   mediaApi: MediaTargetApi;
   onOpenMedia?: ((mediaId: string) => void) | undefined;
+  /** Rendered after every section, for page-level actions such as Delete. */
+  footer?: ReactNode;
+  /** Autosave trigger from the tab; fires when a field loses focus. */
+  onBlur?: FocusEventHandler<HTMLElement> | undefined;
 }
 
 /**
@@ -65,11 +68,12 @@ export function PersonEditor({
   persons,
   onChange,
   onSave,
-  onDelete,
   onCancel,
   api,
   mediaApi,
   onOpenMedia,
+  footer,
+  onBlur,
 }: PersonEditorProps) {
   const [notes, setNotes] = useState<NoteRecord[]>([]);
   const [allNotes, setAllNotes] = useState<NoteRecord[]>([]);
@@ -208,6 +212,7 @@ export function PersonEditor({
   const set = (patch: Partial<PersonDraft>) => onChange({ ...draft, ...patch });
 
   const name = nameDraftDisplay(primaryNameDraft(draft));
+  const displayTitle = name !== '' ? name : draft.isNew ? nls.t('features.tree.person.newPerson') : '—';
   const span = draftSpan(draft);
   const savedPerson = persons.find((person) => person.id === draft.id);
   const savedNameIds = new Set(savedPerson ? collectNameIds(savedPerson.names) : []);
@@ -234,7 +239,7 @@ export function PersonEditor({
       ];
 
   return (
-    <EditorPage label={nls.t('features.personEditor.title')} className="person-editor">
+    <EditorPage label={nls.t('features.personEditor.title')} className="person-editor" onBlur={onBlur}>
       <EntityViewCard
         media={
           <Avatar
@@ -245,7 +250,7 @@ export function PersonEditor({
         }
         title={
           <>
-            {name !== '' ? name : '—'}
+            {displayTitle}
             <span className="person-view-sex" title={sexTitle}>
               <SexIcon size={13} aria-hidden="true" />
             </span>
@@ -265,27 +270,25 @@ export function PersonEditor({
           ) : null,
         )}
         actions={
-          <>
-            <Button variant="primary" size="sm" onClick={onSave}>
-              {nls.t('features.tree.save')}
-            </Button>
-            {onDelete && (
-              <Button variant="danger" size="sm" onClick={onDelete}>
-                {nls.t('features.tree.fact.delete')}
+          draft.isNew ? (
+            <>
+              <Button variant="primary" size="sm" data-autosave-skip="true" onClick={onSave}>
+                {nls.t('features.tree.create')}
               </Button>
-            )}
-            {onCancel && (
-              <Button variant="secondary" size="sm" onClick={onCancel}>
-                {nls.t('features.tree.back')}
-              </Button>
-            )}
-          </>
+              {onCancel && (
+                <Button variant="secondary" size="sm" data-autosave-skip="true" onClick={onCancel}>
+                  {nls.t('features.tree.back')}
+                </Button>
+              )}
+            </>
+          ) : undefined
         }
       />
 
       <SectionCard title={nls.t('features.tree.names.title')}>
         <NamesSection
           names={draft.names}
+          autoFocusName={draft.isNew}
           onChange={(names) => set({ names, namesTouched: true })}
           renderAttachments={(name) =>
             savedNameIds.has(name.id) ? (
@@ -651,6 +654,7 @@ export function PersonEditor({
           <TasksSection targetType="person" targetId={draft.id} api={api} />
         </>
       )}
+      {footer}
     </EditorPage>
   );
 }

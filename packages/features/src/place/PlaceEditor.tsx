@@ -3,14 +3,14 @@ import { EmptyText } from '@doru/ui';
 import { Fragment, useMemo, useState } from 'react';
 import { Checkbox, Field, FieldGrid, Input, ReorderButtons, Select, SectionCard, Subcard } from '@doru/ui';
 import { MapPin, Paperclip, Plus, X } from 'lucide-react';
-import type { ReactNode } from 'react';
+import type { FocusEventHandler, ReactNode } from 'react';
 import type { PlaceRecord } from '@doru/core';
 import { nls } from '../nls';
 import { placeName } from '@doru/core/model';
 import '../sidebar/sidebar.css';
 import './PlaceEditor.css';
 import { DateEditor, emptyDate, moveItem } from '@doru/ui/domain';
-import { Button } from '@doru/ui';
+import { Button, useAutoFocusSelect } from '@doru/ui';
 import { EditorPage, EntityViewCard } from '@doru/ui';
 import {
   HIERARCHY_TYPES,
@@ -34,17 +34,18 @@ export function PlaceEditor({
   onChange,
   places,
   onSave,
-  onDelete,
   renderAttachments,
   renderNameAttachments,
+  onBlur,
 }: {
   draft: PlaceDraft;
   onChange: (draft: PlaceDraft) => void;
   places: PlaceRecord[];
   onSave: () => void;
-  onDelete: (() => void) | undefined;
   renderAttachments?: ((linkId: string) => ReactNode) | undefined;
   renderNameAttachments?: ((nameId: string) => ReactNode) | undefined;
+  /** Autosave trigger from the tab; fires when a field loses focus. */
+  onBlur?: FocusEventHandler<HTMLElement> | undefined;
 }) {
   const [expandedLinkId, setExpandedLinkId] = useState<string | null>(null);
   const [expandedNameId, setExpandedNameId] = useState<string | null>(null);
@@ -96,25 +97,23 @@ export function PlaceEditor({
 
   const parentOptions = places.filter((place) => !excludedIds.has(place.id));
   const saved = places.some((place) => place.id === draft.id);
+  const nameInputRef = useAutoFocusSelect<HTMLInputElement>(!saved);
+  const name = placeDraftName(draft);
+  const displayTitle = name !== '' ? name : saved ? '—' : nls.t('features.tree.place.newPlace');
   const subtitle = [draft.latitude.trim(), draft.longitude.trim()].filter((part) => part !== '').join(', ');
 
   return (
-    <EditorPage label={nls.t('workbench.activityBar.places')}>
+    <EditorPage label={nls.t('workbench.activityBar.places')} onBlur={onBlur}>
       <EntityViewCard
         media={<MapPin size={20} aria-hidden="true" />}
-        title={placeDraftName(draft) || '—'}
+        title={displayTitle}
         subtitle={subtitle !== '' ? subtitle : null}
         actions={
-          <>
-            <Button variant="primary" size="sm" onClick={onSave}>
-              {nls.t('features.tree.save')}
+          saved ? undefined : (
+            <Button variant="primary" size="sm" data-autosave-skip="true" onClick={onSave}>
+              {nls.t('features.tree.create')}
             </Button>
-            {onDelete && (
-              <Button variant="danger" size="sm" onClick={onDelete}>
-                {nls.t('features.tree.fact.delete')}
-              </Button>
-            )}
-          </>
+          )
         }
       />
 
@@ -147,6 +146,7 @@ export function PlaceEditor({
               onChange={(event) => patchName(index, { type: event.target.value })}
             />
             <Input
+              ref={index === 0 ? nameInputRef : undefined}
               className="place-name-value"
               placeholder={nls.t('features.tree.place.names.value')}
               value={name.value}

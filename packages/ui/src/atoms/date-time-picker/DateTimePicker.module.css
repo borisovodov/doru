@@ -1,0 +1,48 @@
+.root {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+}
+
+.input {
+  flex: 1;
+  min-width: 0;
+}
+
+/* Chromium renders its own low-contrast calendar indicator inside a
+   datetime-local field. The popover trigger next to the field is the picker,
+   so the native one would only open a second, unstyled widget. */
+.input::-webkit-calendar-picker-indicator {
+  display: none;
+}
+
+.trigger {
+  flex: none;
+}
+
+.popover {
+  position: absolute;
+  top: calc(100% + 4px);
+  right: 0;
+  z-index: 200;
+  width: 264px;
+  max-width: calc(100vw - 16px);
+  box-sizing: border-box;
+  padding: 8px;
+  background: var(--doru-bg-popover);
+  border: 1px solid var(--doru-border);
+  border-radius: var(--doru-radius-md);
+  box-shadow: 0 8px 24px rgb(0 0 0 / 35%);
+}
+
+.footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 6px;
+  padding-top: 6px;
+  border-top: 1px solid var(--doru-border);
+}

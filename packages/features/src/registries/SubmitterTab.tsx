@@ -1,4 +1,4 @@
-import { IconButton } from '@doru/ui';
+import { IconButton, useAutoFocusSelect } from '@doru/ui';
 import { useMemo, useState } from 'react';
 import { Input } from '@doru/ui';
 import { SectionCard } from '@doru/ui';
@@ -21,11 +21,13 @@ import {
   SourcesSection,
   TagsSection,
   TasksSection,
+  addressDraftEmpty,
+  addressDraftMatches,
   addressLabel,
   taskTargetLabel,
 } from '@doru/ui/domain';
 import { nls } from '../nls';
-import { Button } from '@doru/ui';
+import { Button, DangerZone, useAutoSaveOnBlur } from '@doru/ui';
 import { EntityCard, EntityViewCard } from '@doru/ui';
 import { useRegistryAddress } from './useRegistryAddress';
 
@@ -125,8 +127,9 @@ function SubmitterTabBody({
   onCreated: (realId: string) => void;
 }) {
   const base: SubmitterRecord = record ?? { id: crypto.randomUUID(), name: '' };
+  const nameRef = useAutoFocusSelect<HTMLInputElement>(isNew);
   const [lastSaved, setLastSaved] = useState<SubmitterRecord | undefined>(record);
-  const [name, setName] = useState(base.name);
+  const [name, setName] = useState(isNew ? nls.t('features.tree.submitter.newSubmitter') : base.name);
   const [languages, setLanguages] = useState<string[]>([...(base.languages ?? [])]);
   const [linkedAddressId, setLinkedAddressId] = useState<string | undefined>(base.addressId);
   const { address, setAddress, addressBefore, addressSaveFailed, saveAddress, unlinkAddress, clearAddressSaveFailure } =
@@ -209,29 +212,53 @@ function SubmitterTabBody({
       targetType,
     );
 
+  const persisted = lastSaved ?? record;
+  const autoSave = useAutoSaveOnBlur({
+    enabled: !isNew,
+    isDirty: () => {
+      if (persisted === undefined || name.trim() === '') {
+        return false;
+      }
+      const currentLanguages = languages.map((language) => language.trim()).filter((language) => language !== '');
+      const storedLanguages = persisted.languages ?? [];
+      const addressDirty =
+        linkedAddressId === undefined &&
+        (addressBefore !== undefined ? !addressDraftMatches(address, addressBefore) : !addressDraftEmpty(address));
+      return (
+        name.trim() !== persisted.name ||
+        linkedAddressId !== persisted.addressId ||
+        addressDirty ||
+        currentLanguages.length !== storedLanguages.length ||
+        currentLanguages.some((language, index) => language !== storedLanguages[index])
+      );
+    },
+    save,
+  });
+
   return (
-    <EntityTab>
+    <EntityTab onBlur={autoSave.onBlur}>
       <EntityViewCard
         media={<User size={20} aria-hidden="true" />}
-        title={name.trim() || '—'}
+        title={name.trim() || (isNew ? nls.t('features.tree.submitter.newSubmitter') : '—')}
         subtitle={addressText !== '' ? addressText : null}
         actions={
-          <>
-            <Button variant="primary" size="sm" disabled={name.trim() === ''} onClick={() => void save()}>
-              {nls.t('features.tree.save')}
+          isNew ? (
+            <Button
+              variant="primary"
+              size="sm"
+              data-autosave-skip="true"
+              disabled={name.trim() === ''}
+              onClick={() => void save()}
+            >
+              {nls.t('features.tree.create')}
             </Button>
-            {(!isNew || lastSaved !== undefined) && (
-              <Button variant="danger" size="sm" onClick={() => void remove()}>
-                {nls.t('features.tree.fact.delete')}
-              </Button>
-            )}
-          </>
+          ) : undefined
         }
       />
 
       <SectionCard title={nls.t('features.tree.details')}>
         <Field label={nls.t('features.tree.submitter.name')}>
-          <Input value={name} onChange={(event) => setName(event.target.value)} />
+          <Input ref={nameRef} value={name} onChange={(event) => setName(event.target.value)} />
         </Field>
         <FieldGrid columns={1}>
           {languages.map((language, index) => (
@@ -436,6 +463,13 @@ function SubmitterTabBody({
           />
           <TasksSection targetType="submitter" targetId={targetId} api={api} />
         </>
+      )}
+      {(!isNew || lastSaved !== undefined) && (
+        <DangerZone>
+          <Button variant="danger" size="sm" data-autosave-skip="true" onClick={() => void remove()}>
+            {nls.t('features.tree.fact.delete')}
+          </Button>
+        </DangerZone>
       )}
     </EntityTab>
   );

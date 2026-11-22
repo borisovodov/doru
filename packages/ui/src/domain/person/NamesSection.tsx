@@ -9,6 +9,7 @@ import { Input } from '../../atoms/form/Input';
 import { Select } from '../../atoms/form/Select';
 import { ReorderButtons } from '../../atoms/reorder-buttons/ReorderButtons';
 import { Subcard } from '../../patterns/subcard/Subcard';
+import { useAutoFocusSelect } from '../../lib/useAutoFocusSelect';
 import { DateEditor } from '../date/DateEditor';
 import { moveItem } from '../reorder';
 import {
@@ -58,12 +59,16 @@ export function NamesSection({
   onChange,
   renderAttachments,
   renderPartAttachments,
+  autoFocusName = false,
 }: {
   names: NameDraft[];
   onChange: (names: NameDraft[]) => void;
   renderAttachments?: ((name: NameDraft | NameVariantDraft) => ReactNode) | undefined;
   renderPartAttachments?: ((partId: string) => ReactNode) | undefined;
+  /** Focuses the first name's display form when a new person tab opens. */
+  autoFocusName?: boolean;
 }) {
+  const displayFormRef = useAutoFocusSelect<HTMLInputElement>(autoFocusName);
   const [expandedPartId, setExpandedPartId] = useState<string | null>(null);
   const patch = (index: number, values: Partial<NameDraft>) =>
     onChange(names.map((name, i) => (i === index ? { ...name, ...values } : name)));
@@ -171,6 +176,7 @@ export function NamesSection({
           />
           <Field label={nls.t('features.tree.names.displayForm')}>
             <Input
+              ref={index === 0 ? displayFormRef : undefined}
               value={partOf(name, 'full')}
               onChange={(event) => patch(index, setPartValue(name, 'full', event.target.value))}
             />

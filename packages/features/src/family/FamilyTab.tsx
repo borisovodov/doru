@@ -5,6 +5,7 @@ import { MediaSection } from '../media/MediaSection';
 import { EntityTab } from '../sidebar';
 import type { FamilyEditorApi, MediaTargetApi } from '../person/types';
 import { FamilyEditor } from './FamilyEditor';
+import { Button, DangerZone, useAutoSaveOnBlur } from '@doru/ui';
 import type { MediaWithPath } from '@doru/ui/domain';
 import {
   ContactsSection,
@@ -135,10 +136,17 @@ function FamilyTabBody({
     onClose();
   };
 
+  const autoSave = useAutoSaveOnBlur({
+    enabled: true,
+    isDirty: () => !familyDraftMatches(draft, record),
+    save,
+  });
+
   return (
     <EntityTab>
       <FamilyEditor
         draft={draft}
+        onBlur={autoSave.onBlur}
         onChange={setDraft}
         persons={persons}
         families={families}
@@ -169,8 +177,6 @@ function FamilyTabBody({
             onOpenSource={onOpenSource}
           />
         )}
-        onSave={() => void save()}
-        onDelete={() => void remove()}
         onOpenSource={onOpenSource}
       />
       <SourcesSection
@@ -304,6 +310,11 @@ function FamilyTabBody({
         onDelete={api.deleteRecordSubmitter}
       />
       <TasksSection targetType="family" targetId={record.id} api={api} />
+      <DangerZone>
+        <Button variant="danger" size="sm" data-autosave-skip="true" onClick={() => void remove()}>
+          {nls.t('features.tree.fact.delete')}
+        </Button>
+      </DangerZone>
     </EntityTab>
   );
 }
