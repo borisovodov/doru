@@ -5,7 +5,9 @@ import { SectionCard } from '@doru/ui';
 import { Field, FieldGrid, InlineForm } from '@doru/ui';
 import { Plus, User, X } from 'lucide-react';
 import type { AddressRecord, RecordSubmitterLink, SourceRecord, SubmitterRecord } from '@doru/core';
+import { MEDIA_VISIBLE } from '@doru/platform';
 import { AttachmentsPanel, CitationAttachments, NoteAttachments, useAttachments } from '../attachments';
+import { MediaSection } from '../media/MediaSection';
 import { EntityTab } from '../sidebar';
 import type { MediaTargetApi, RegistriesEditorApi } from '../person/types';
 import type { MediaWithPath, TaskTargetData } from '@doru/ui/domain';
@@ -18,7 +20,6 @@ import {
   RestrictionsSection,
   SourcesSection,
   TagsSection,
-  MediaSection,
   TasksSection,
   addressLabel,
   taskTargetLabel,
@@ -203,6 +204,7 @@ function SubmitterTabBody({
     return labels;
   }, [referencedBy, targetData]);
   const openableTarget = (targetType: string): boolean =>
+    (MEDIA_VISIBLE || !targetType.startsWith('media')) &&
     ['person', 'family', 'source', 'place', 'repository', 'submitter', 'address', 'task', 'media', 'title'].includes(
       targetType,
     );

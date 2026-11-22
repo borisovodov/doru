@@ -11,6 +11,7 @@ import type {
   TitleRecord,
 } from '@doru/core';
 import { CitationAttachments, NoteAttachments, useAttachments } from '../attachments';
+import { MediaSection } from '../media/MediaSection';
 import { EntityTab, SourceCitationsList } from '../sidebar';
 import type { MediaTargetApi, SourceEditorApi } from '../person/types';
 import { SourceEditor } from './SourceEditor';
@@ -23,7 +24,6 @@ import {
   RestrictionsSection,
   SourcesSection,
   TagsSection,
-  MediaSection,
   TasksSection,
   emptySourceDraft,
   mergeSourceDraft,

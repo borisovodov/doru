@@ -1,10 +1,10 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import type { CitationRecord, SourceRecord } from '@doru/core';
+import { MEDIA_VISIBLE } from '@doru/platform';
 import {
   ContactsSection,
   ContributorsSection,
   IdentifiersSection,
-  MediaSection,
   NotesSection,
   RestrictionsSection,
   SourcesSection,
@@ -12,6 +12,7 @@ import {
   TasksSection,
   type MediaWithPath,
 } from '@doru/ui/domain';
+import { MediaSection } from '../media/MediaSection';
 import type { AttachmentsApi } from '../person/types';
 import { useAttachments, type ContributorApi } from './useAttachments';
 
@@ -82,7 +83,7 @@ export function AttachmentsPanel({
     return null;
   }
 
-  const include = new Set(sections);
+  const include = new Set(MEDIA_VISIBLE ? sections : sections.filter((section) => section !== 'media'));
   return (
     <>
       {include.has('notes') && (

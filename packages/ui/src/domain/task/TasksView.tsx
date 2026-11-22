@@ -40,6 +40,7 @@ export function TasksView({
   citations,
   notes,
   media,
+  mediaVisible = true,
   submitters,
   addresses,
   associations,
@@ -66,6 +67,8 @@ export function TasksView({
   citations: CitationRecord[];
   notes: NoteRecord[];
   media: MediaRecord[];
+  /** Whether media targets are shown as links; hidden media stays a plain chip. */
+  mediaVisible?: boolean;
   submitters: SubmitterRecord[];
   addresses: AddressRecord[];
   associations: AssociationRecord[];
@@ -146,16 +149,16 @@ export function TasksView({
         break;
       }
       case 'media':
-        open = () => onOpenMedia(id);
+        open = mediaVisible ? () => onOpenMedia(id) : undefined;
         break;
       case 'media_file': {
         const record = media.find((entry) => (entry.files ?? []).some((file) => file.id === id));
-        open = record !== undefined ? () => onOpenMedia(record.id) : undefined;
+        open = mediaVisible && record !== undefined ? () => onOpenMedia(record.id) : undefined;
         break;
       }
       case 'media_link': {
         const record = media.find((entry) => (entry.links ?? []).some((link) => link.id === id));
-        open = record !== undefined ? () => onOpenMedia(record.id) : undefined;
+        open = mediaVisible && record !== undefined ? () => onOpenMedia(record.id) : undefined;
         break;
       }
       case 'place':

@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { AssociationRecord, FamilyRecord, PersonRecord, SourceRecord } from '@doru/core';
 import { AttachmentsPanel, CitationAttachments, NoteAttachments, useAttachments } from '../attachments';
+import { MediaSection } from '../media/MediaSection';
 import { EntityTab } from '../sidebar';
 import type { FamilyEditorApi, MediaTargetApi } from '../person/types';
 import { FamilyEditor } from './FamilyEditor';
@@ -13,7 +14,6 @@ import {
   RestrictionsSection,
   SourcesSection,
   TagsSection,
-  MediaSection,
   TasksSection,
   familyDraftMatches,
   familyDraftToRecord,

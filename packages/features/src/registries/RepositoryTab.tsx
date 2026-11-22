@@ -5,6 +5,7 @@ import { Field } from '@doru/ui';
 import { Archive } from 'lucide-react';
 import type { AddressRecord, RepositoryRecord, SourceRecord, TitleRecord } from '@doru/core';
 import { AttachmentsPanel, CitationAttachments, NoteAttachments, useAttachments } from '../attachments';
+import { MediaSection } from '../media/MediaSection';
 import { EntityTab } from '../sidebar';
 import type { MediaTargetApi, RegistriesEditorApi } from '../person/types';
 import type { MediaWithPath } from '@doru/ui/domain';
@@ -17,7 +18,6 @@ import {
   RestrictionsSection,
   SourcesSection,
   TagsSection,
-  MediaSection,
   TasksSection,
   SourceLink,
   addressLabel,
