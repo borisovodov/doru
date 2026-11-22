@@ -24,10 +24,17 @@ export const TRANSLATED_LOCALES = [
   'zh-tw',
 ] as const;
 
-const docPages = readdirSync(join(websiteRoot, 'docs'))
-  .filter((name) => name.endsWith('.md'))
-  .sort()
-  .map((name) => `docs/${name}`);
+const docPages = listMarkdownFiles(join(websiteRoot, 'docs')).map((name) => `docs/${name}`);
+
+/** Markdown files under a directory, relative to that directory, sorted. */
+export function listMarkdownFiles(dir: string, prefix = ''): string[] {
+  const files = readdirSync(join(dir, prefix), { withFileTypes: true }).flatMap((entry) => {
+    const relative = prefix === '' ? entry.name : `${prefix}/${entry.name}`;
+    if (entry.isDirectory()) return listMarkdownFiles(dir, relative);
+    return entry.isFile() && entry.name.endsWith('.md') ? [relative] : [];
+  });
+  return files.sort();
+}
 
 /** Pages that have a translated counterpart, relative to the website root. */
 export const SOURCE_PAGES = ['index.md', ...docPages] as const;

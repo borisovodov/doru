@@ -1,5 +1,5 @@
 ---
-source-hash: 70e5c9243679
+source-hash: fbf10a17cf6e
 ---
 
 # Datos y copias de seguridad
@@ -18,7 +18,9 @@ source-hash: 70e5c9243679
   archivo `.doru` como la carpeta `media/` con el proyecto cerrado y sin que
   ningún otro proceso esté escribiendo. Tras un cierre inesperado, abre el
   proyecto una vez en Dóru para que SQLite pueda recuperar cualquier diario
-  restante y luego ciérralo antes de copiar o restaurar.
+  restante y luego ciérralo antes de copiar o restaurar. Si el proyecto no se
+  puede abrir, mueve el archivo `.doru` dañado y cualquier diario restante a
+  otro lugar antes de restaurar.
 - Las sesiones de chat se guardan en el directorio de datos de la aplicación, no
   dentro del archivo `.doru`; haz una copia de seguridad aparte si las
   necesitas.
@@ -38,4 +40,6 @@ segura es: cierra el proyecto (o la app) y detén cualquier otro proceso que
 escriba antes de sincronizar. Un proyecto cerrado correctamente y en el que
 nadie más escribe se puede copiar sin riesgo. Tras un cierre inesperado, abre el
 proyecto una vez en Dóru para que SQLite pueda revertir cualquier diario
-restante y luego ciérralo antes de copiar.
+restante y luego ciérralo antes de copiar. Si el proyecto no se puede abrir,
+mueve el archivo dañado y cualquier diario restante a otro lugar antes de
+restaurar una copia de seguridad.

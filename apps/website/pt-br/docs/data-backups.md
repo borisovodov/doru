@@ -1,5 +1,5 @@
 ---
-source-hash: 70e5c9243679
+source-hash: fbf10a17cf6e
 ---
 
 # Dados e backups
@@ -17,6 +17,8 @@ source-hash: 70e5c9243679
   `media/` com o projeto fechado e sem nenhum outro processo gravando. Depois de
   um travamento, abra o projeto uma vez no Dóru para que o SQLite possa
   recuperar qualquer journal restante e feche-o antes de copiar ou restaurar.
+  Se o projeto não puder ser aberto, mova o arquivo `.doru` danificado e
+  qualquer journal restante para outro lugar antes de restaurar.
 - As sessões de chat ficam no diretório de dados do aplicativo, não dentro do
   arquivo `.doru`; faça um backup separado delas se precisar.
 - O arquivo é compatível com controle de versão: é um arquivo binário estável —
@@ -35,4 +37,6 @@ segura é: feche o projeto (ou o aplicativo) e pare qualquer outro processo que
 escreva antes de sincronizar. Um projeto fechado corretamente e em que ninguém
 mais escreve pode ser copiado com segurança. Depois de um travamento, abra o
 projeto uma vez no Dóru para que o SQLite possa reverter qualquer journal
-restante e feche-o antes de copiar.
+restante e feche-o antes de copiar. Se o projeto não puder ser aberto, mova
+o arquivo danificado e qualquer journal restante para outro lugar antes de
+restaurar um backup.

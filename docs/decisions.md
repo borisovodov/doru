@@ -42,7 +42,9 @@ in a half-written state and corrupt it. Dóru uses a single-file journal mode
 close the project (or the app) and stop any other writers before syncing.
 A cleanly closed project with no other writers can be copied safely. After a
 crash, open the project once in Dóru so SQLite can roll back any leftover
-journal, then close it before copying.
+journal, then close it before copying. If the project cannot be opened, move
+the damaged `.doru` file and any leftover journal out of the way before
+restoring a backup.
 
 ## Settings and data locations
 

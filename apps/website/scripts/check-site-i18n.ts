@@ -1,4 +1,4 @@
-import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
+import { existsSync, readFileSync, statSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import {
   SOURCE_PAGES,
@@ -11,6 +11,7 @@ import {
   headingLevels,
   isDocPage,
   listItemCount,
+  listMarkdownFiles,
   readSourceHash,
   relativeLinks,
   relativeLinkTargets,
@@ -25,14 +26,16 @@ const docPages = SOURCE_PAGES.filter(isDocPage).map((page) => page.slice('docs/'
 const errors: string[] = [];
 
 for (const locale of TRANSLATED_LOCALES) {
-  const localeDocs = join(websiteRoot, locale, 'docs');
+  const localeRoot = join(websiteRoot, locale);
+  const localeDocs = join(localeRoot, 'docs');
   if (!existsSync(localeDocs)) {
     errors.push(`${locale}: missing docs directory`);
-  } else {
-    const extra = readdirSync(localeDocs)
-      .filter((name) => name.endsWith('.md') && !docPages.includes(name))
-      .sort();
-    for (const name of extra) errors.push(`${locale}: extra docs/${name}`);
+  }
+
+  if (existsSync(localeRoot)) {
+    const allowed = new Set(['index.md', ...docPages.map((page) => `docs/${page}`)]);
+    const extra = listMarkdownFiles(localeRoot).filter((name) => !allowed.has(name));
+    for (const name of extra) errors.push(`${locale}: extra ${name}`);
   }
 
   for (const page of SOURCE_PAGES) {

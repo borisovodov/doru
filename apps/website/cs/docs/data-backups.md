@@ -1,5 +1,5 @@
 ---
-source-hash: 70e5c9243679
+source-hash: fbf10a17cf6e
 ---
 
 # Data a zálohy
@@ -16,7 +16,9 @@ source-hash: 70e5c9243679
   je vše. Obnovení znamená zkopírovat zpět soubor `.doru` i složku `media/`,
   zatímco je projekt zavřený a nezapisuje do něj žádný jiný proces. Po havárii
   otevřete projekt jednou v Dóru, aby SQLite mohl obnovit případný zbývající
-  žurnál, a potom ho před kopírováním nebo obnovením zavřete.
+  žurnál, a potom ho před kopírováním nebo obnovením zavřete. Pokud projekt
+  nelze otevřít, odsuňte poškozený soubor `.doru` a případný zbývající žurnál
+  stranou, než budete obnovovat.
 - Relace chatu se ukládají do datového adresáře aplikace, ne do souboru `.doru`;
   zálohujte je samostatně, pokud je potřebujete.
 - Soubor je vhodný pro správu verzí: je to stabilní binární soubor — klidně ho
@@ -35,3 +37,5 @@ před synchronizací projekt (nebo aplikaci) zavřete a zastavte všechny ostatn
 zapisující procesy. Řádně zavřený projekt, do kterého nezapisuje nikdo jiný, lze
 bezpečně zkopírovat. Po havárii otevřete projekt jednou v Dóru, aby SQLite mohl
 vrátit zpět případný zbývající žurnál, a potom ho před kopírováním zavřete.
+Pokud projekt nelze otevřít, odsuňte poškozený soubor a případný zbývající
+žurnál stranou, než obnovíte zálohu.

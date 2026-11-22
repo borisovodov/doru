@@ -1,5 +1,5 @@
 ---
-source-hash: 70e5c9243679
+source-hash: fbf10a17cf6e
 ---
 
 # Daten und Backups
@@ -19,7 +19,9 @@ source-hash: 70e5c9243679
   Projekt geschlossen ist und keine anderen Prozesse schreiben. Öffnen Sie das
   Projekt nach einem Absturz einmal in Dóru, damit SQLite ein verbliebenes
   Journal wiederherstellen kann, und schließen Sie es dann vor dem Kopieren oder
-  Wiederherstellen.
+  Wiederherstellen. Wenn sich das Projekt nicht öffnen lässt, verschieben Sie
+  die beschädigte `.doru`-Datei und ein eventuell verbliebenes Journal an
+  einen anderen Ort, bevor Sie wiederherstellen.
 - Chat-Sitzungen liegen im Datenverzeichnis der App, nicht in der `.doru`-Datei;
   sichern Sie sie bei Bedarf separat.
 - Die Datei eignet sich gut für die Versionskontrolle: Sie ist eine stabile Binärdatei —
@@ -39,4 +41,6 @@ und beenden Sie alle anderen Schreibprozesse, bevor Sie synchronisieren. Ein
 sauber geschlossenes Projekt, in das niemand sonst schreibt, kann sicher kopiert
 werden. Öffnen Sie das Projekt nach einem Absturz einmal in Dóru, damit
 SQLite ein verbliebenes Journal zurückrollen kann, und schließen Sie es dann vor
-dem Kopieren.
+dem Kopieren. Wenn sich das Projekt nicht öffnen lässt, verschieben Sie die
+beschädigte Datei und ein eventuell verbliebenes Journal an einen anderen
+Ort, bevor Sie ein Backup wiederherstellen.

@@ -1,5 +1,5 @@
 ---
-source-hash: 70e5c9243679
+source-hash: fbf10a17cf6e
 ---
 
 # Dati e backup
@@ -17,7 +17,9 @@ source-hash: 70e5c9243679
   ripristino consiste nel ricopiare sia il file `.doru` sia la cartella `media/`
   con il progetto chiuso e nessun altro processo in scrittura. Dopo un crash,
   apri il progetto una volta in Dóru così che SQLite possa recuperare eventuali
-  journal rimasti, poi chiudilo prima di copiare o ripristinare.
+  journal rimasti, poi chiudilo prima di copiare o ripristinare. Se il progetto
+  non può essere aperto, metti da parte il file `.doru` danneggiato e
+  l'eventuale journal rimasto prima di ripristinare.
 - Le sessioni di chat si trovano nella directory dati dell'app, non nel file
   `.doru`; eseguine un backup separato se ti servono.
 - Il file è adatto al controllo di versione: è un file binario stabile — fai un
@@ -36,4 +38,6 @@ sicura è: chiudi il progetto (o l'app) e ferma ogni altro processo che scrive
 prima di sincronizzare. Un progetto chiuso correttamente e in cui nessun altro
 scrive può essere copiato in sicurezza. Dopo un crash, apri il progetto una
 volta in Dóru così che SQLite possa annullare eventuali journal rimasti, poi
-chiudilo prima di copiare.
+chiudilo prima di copiare. Se il progetto non può essere aperto, metti da
+parte il file danneggiato e l'eventuale journal rimasto prima di ripristinare
+un backup.

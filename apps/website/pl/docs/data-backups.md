@@ -1,5 +1,5 @@
 ---
-source-hash: 70e5c9243679
+source-hash: fbf10a17cf6e
 ---
 
 # Dane i kopie zapasowe
@@ -17,7 +17,9 @@ source-hash: 70e5c9243679
   pliku `.doru`, jak i folderu `media/`, gdy projekt jest zamknięty i nie
   działają żadne inne procesy zapisujące. Po awarii otwórz projekt raz w Dóru,
   aby SQLite mógł odzyskać ewentualny pozostały dziennik, a następnie zamknij go
-  przed skopiowaniem lub przywróceniem.
+  przed skopiowaniem lub przywróceniem. Jeśli nie można otworzyć projektu,
+  przed przywróceniem przenieś uszkodzony plik `.doru` i ewentualny
+  pozostały dziennik w inne miejsce.
 - Sesje czatu są przechowywane w katalogu danych aplikacji, a nie w pliku
   `.doru`; w razie potrzeby wykonaj ich osobną kopię zapasową.
 - Plik jest przyjazny dla kontroli wersji: to stabilny plik binarny — dodaj go
@@ -36,4 +38,6 @@ projekt (lub aplikację) i zatrzymaj wszystkie inne procesy zapisujące przed
 synchronizacją. Projekt prawidłowo zamknięty, do którego nikt inny nie
 zapisuje, można bezpiecznie skopiować. Po awarii otwórz projekt raz w Dóru, aby
 SQLite mógł wycofać ewentualny pozostały dziennik, a następnie zamknij go przed
-skopiowaniem.
+skopiowaniem. Jeśli nie można otworzyć projektu, przed przywróceniem kopii
+zapasowej przenieś uszkodzony plik i ewentualny pozostały dziennik w inne
+miejsce.

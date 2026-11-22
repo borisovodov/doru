@@ -1,5 +1,5 @@
 ---
-source-hash: 70e5c9243679
+source-hash: fbf10a17cf6e
 ---
 
 # Données et sauvegardes
@@ -17,7 +17,8 @@ source-hash: 70e5c9243679
   le dossier `media/` alors que le projet est fermé et qu'aucun autre processus
   n'écrit. Après un plantage, ouvrez le projet une fois dans Dóru pour que SQLite
   puisse récupérer un éventuel journal restant, puis refermez-le avant de copier
-  ou de restaurer.
+  ou de restaurer. Si le projet ne peut pas être ouvert, mettez le fichier
+  `.doru` endommagé et tout journal restant de côté avant de restaurer.
 - Les sessions de chat sont stockées dans le répertoire de données de
   l'application, pas dans le fichier `.doru` ; sauvegardez-les séparément si
   vous en avez besoin.
@@ -37,4 +38,6 @@ pratique sûre consiste à fermer le projet (ou l'application) et à arrêter to
 autre processus écrivant avant de synchroniser. Un projet fermé proprement et
 dans lequel personne d'autre n'écrit peut être copié sans risque. Après un
 plantage, ouvrez le projet une fois dans Dóru pour que SQLite puisse annuler un
-éventuel journal restant, puis refermez-le avant de copier.
+éventuel journal restant, puis refermez-le avant de copier. Si le projet
+ne peut pas être ouvert, mettez le fichier endommagé et tout journal
+restant de côté avant de restaurer une sauvegarde.
