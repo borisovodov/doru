@@ -1,5 +1,5 @@
 ---
-source-hash: a4089605567c
+source-hash: 0feae5711b39
 ---
 
 # Dados e backups
@@ -13,7 +13,8 @@ source-hash: a4089605567c
 - Para fazer backup: pare todo processo que possa escrever no projeto — feche-o
   no Dóru e pare quaisquer clientes MCP ou outras ferramentas — e então copie o
   arquivo `.doru` (e a pasta `media/` ao lado dele, se você tiver fotos). É só
-  isso. Restaurar é copiá-lo de volta.
+  isso. Restaurar é copiá-lo de volta com o projeto fechado e sem nenhum outro
+  processo gravando.
 - As sessões de chat ficam no diretório de dados do aplicativo, não dentro do
   arquivo `.doru`; faça um backup separado delas se precisar.
 - O arquivo é compatível com controle de versão: é um arquivo binário estável —
@@ -30,4 +31,6 @@ vivo um projeto **aberto** com uma ferramenta de sincronização de arquivos pod
 copiar o arquivo em um estado de gravação incompleta e corrompê-lo. A prática
 segura é: feche o projeto (ou o aplicativo) e pare qualquer outro processo que
 escreva antes de sincronizar. Copiar um projeto fechado em que ninguém mais
-escreve é sempre seguro.
+escreve é sempre seguro. Depois de um travamento, abra o projeto uma vez no Dóru
+para que o SQLite possa reverter qualquer journal restante e feche-o antes de
+copiar.

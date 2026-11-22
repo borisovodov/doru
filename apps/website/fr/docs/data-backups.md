@@ -1,5 +1,5 @@
 ---
-source-hash: a4089605567c
+source-hash: 0feae5711b39
 ---
 
 # Données et sauvegardes
@@ -13,7 +13,8 @@ source-hash: a4089605567c
 - Pour sauvegarder : arrêtez tout processus susceptible d'écrire dans le projet
   — fermez-le dans Dóru et arrêtez les clients MCP ou autres outils — puis
   copiez le fichier `.doru` (et le dossier `media/` à côté, si vous avez des
-  photos). C'est tout. Restaurer, c'est le recopier.
+  photos). C'est tout. Restaurer, c'est le recopier alors que le projet est fermé
+  et qu'aucun autre processus n'écrit.
 - Les sessions de chat sont stockées dans le répertoire de données de
   l'application, pas dans le fichier `.doru` ; sauvegardez-les séparément si
   vous en avez besoin.
@@ -31,4 +32,6 @@ synchroniser en direct un projet **ouvert** avec un outil de synchronisation de
 fichiers peut copier le fichier dans un état à moitié écrit et le corrompre. La
 pratique sûre consiste à fermer le projet (ou l'application) et à arrêter tout
 autre processus écrivant avant de synchroniser. Copier un projet fermé dans
-lequel personne d'autre n'écrit est toujours sûr.
+lequel personne d'autre n'écrit est toujours sûr. Après un plantage, ouvrez le
+projet une fois dans Dóru pour que SQLite puisse annuler un éventuel journal
+restant, puis refermez-le avant de copier.

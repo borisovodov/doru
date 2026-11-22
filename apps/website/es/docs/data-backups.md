@@ -1,5 +1,5 @@
 ---
-source-hash: a4089605567c
+source-hash: 0feae5711b39
 ---
 
 # Datos y copias de seguridad
@@ -14,7 +14,8 @@ source-hash: a4089605567c
 - Para hacer una copia de seguridad: detén todos los procesos que puedan
   escribir en el proyecto — ciérralo en Dóru y detén los clientes MCP u otras
   herramientas — y luego copia el archivo `.doru` (y la carpeta `media/` junto a
-  él, si tienes fotos). Eso es todo. Restaurar es volver a copiarlo.
+  él, si tienes fotos). Eso es todo. Restaurar es volver a copiarlo con el
+  proyecto cerrado y sin que ningún otro proceso esté escribiendo.
 - Las sesiones de chat se guardan en el directorio de datos de la aplicación, no
   dentro del archivo `.doru`; haz una copia de seguridad aparte si las
   necesitas.
@@ -32,4 +33,6 @@ en vivo un proyecto **abierto** con una herramienta de sincronización de
 archivos puede copiar el archivo a medio escribir y corromperlo. La práctica
 segura es: cierra el proyecto (o la app) y detén cualquier otro proceso que
 escriba antes de sincronizar. Copiar un proyecto cerrado en el que nadie más
-escribe siempre es seguro.
+escribe siempre es seguro. Tras un cierre inesperado, abre el proyecto una vez
+en Dóru para que SQLite pueda revertir cualquier diario restante y luego
+ciérralo antes de copiar.

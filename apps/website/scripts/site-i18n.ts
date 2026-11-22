@@ -96,13 +96,14 @@ function bodyLines(text: string): string[] {
 interface FenceMarker {
   marker: string;
   length: number;
+  rest: string;
 }
 
 function fenceMarker(line: string): FenceMarker | undefined {
-  const match = line.match(/^\s*(`{3,}|~{3,})/);
+  const match = line.match(/^\s*(`{3,}|~{3,})(.*)$/);
   const marker = match?.[1];
   if (marker === undefined) return undefined;
-  return { marker: marker.charAt(0), length: marker.length };
+  return { marker: marker.charAt(0), length: marker.length, rest: match?.[2] ?? '' };
 }
 
 function forEachLineOutsideFences(text: string, callback: (line: string) => void): void {
@@ -112,7 +113,7 @@ function forEachLineOutsideFences(text: string, callback: (line: string) => void
     if (marker !== undefined) {
       if (fence === undefined) {
         fence = marker;
-      } else if (marker.marker === fence.marker && marker.length >= fence.length) {
+      } else if (marker.marker === fence.marker && marker.length >= fence.length && marker.rest.trim() === '') {
         fence = undefined;
       }
       continue;
@@ -139,7 +140,7 @@ export function codeFenceCount(text: string): number {
     if (fence === undefined) {
       fence = marker;
       count += 1;
-    } else if (marker.marker === fence.marker && marker.length >= fence.length) {
+    } else if (marker.marker === fence.marker && marker.length >= fence.length && marker.rest.trim() === '') {
       fence = undefined;
       count += 1;
     }
@@ -179,12 +180,13 @@ export function codeBlocks(text: string): CodeBlock[] {
     if (match) {
       const marker = match[1];
       if (marker === undefined) continue;
-      const current = { marker: marker.charAt(0), length: marker.length };
+      const current = { marker: marker.charAt(0), length: marker.length, rest: match[2] ?? '' };
+      const rest = current.rest;
       if (fence === undefined) {
         fence = current;
-        info = (match[2] ?? '').trim();
+        info = rest.trim();
         lines = [];
-      } else if (current.marker === fence.marker && current.length >= fence.length) {
+      } else if (current.marker === fence.marker && current.length >= fence.length && rest.trim() === '') {
         blocks.push({ info, body: lines.join('\n') });
         fence = undefined;
         info = '';
@@ -209,7 +211,11 @@ export function relativeLinks(text: string): RelativeLink[] {
   forEachLineOutsideFences(text, (line) => {
     for (const match of line.matchAll(/\]\(([^)\s]+)\)/g)) {
       const target = match[1];
-      if (target === undefined || /^[a-z][a-z0-9+.-]*:/i.test(target) || target.startsWith('#')) continue;
+      if (target === undefined || /^[a-z][a-z0-9+.-]*:/i.test(target)) continue;
+      if (target.startsWith('#')) {
+        links.push({ target: '', fragment: target.slice(1) });
+        continue;
+      }
       const hash = target.indexOf('#');
       links.push(hash === -1 ? { target } : { target: target.slice(0, hash), fragment: target.slice(hash + 1) });
     }
@@ -255,9 +261,13 @@ export function headingAnchors(text: string): Set<string> {
   forEachLineOutsideFences(text, (line) => {
     const heading = line.match(/^(#{1,6})\s+\S/);
     if (!heading) return;
-    for (const match of line.matchAll(/\{#([^}\s]+)\}/g)) {
-      const id = match[1];
-      if (id !== undefined) anchors.add(id);
+    const ids = [...line.matchAll(/\{#([^}\s]+)\}/g)];
+    if (ids.length > 0) {
+      for (const match of ids) {
+        const id = match[1];
+        if (id !== undefined) anchors.add(id);
+      }
+      return;
     }
     anchors.add(slugify(headingText(line)));
   });

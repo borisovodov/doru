@@ -1,4 +1,4 @@
-import { existsSync, readFileSync, readdirSync } from 'node:fs';
+import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import {
   SOURCE_PAGES,
@@ -88,7 +88,9 @@ for (const locale of TRANSLATED_LOCALES) {
 
       for (const link of relativeLinks(text)) {
         if (link.fragment === undefined) continue;
-        const linkedFile = resolve(dirname(target), link.target);
+        let linkedFile = link.target === '' ? target : resolve(dirname(target), link.target);
+        if (!existsSync(linkedFile)) continue;
+        if (statSync(linkedFile).isDirectory()) linkedFile = join(linkedFile, 'index.md');
         if (!existsSync(linkedFile)) continue;
         let fragment = link.fragment;
         try {

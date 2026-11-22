@@ -1,5 +1,5 @@
 ---
-source-hash: a4089605567c
+source-hash: 0feae5711b39
 ---
 
 # Dane i kopie zapasowe
@@ -13,7 +13,8 @@ source-hash: a4089605567c
 - Aby zrobić kopię zapasową: zatrzymaj każdy proces, który może zapisywać w
   projekcie — zamknij go w Dóru i zatrzymaj klientów MCP lub inne narzędzia — a
   następnie skopiuj plik `.doru` (oraz folder `media/` obok niego, jeśli masz
-  zdjęcia). To wszystko. Przywrócenie polega na skopiowaniu go z powrotem.
+  zdjęcia). To wszystko. Przywrócenie polega na skopiowaniu go z powrotem, gdy
+  projekt jest zamknięty i nie działają żadne inne procesy zapisujące.
 - Sesje czatu są przechowywane w katalogu danych aplikacji, a nie w pliku
   `.doru`; w razie potrzeby wykonaj ich osobną kopię zapasową.
 - Plik jest przyjazny dla kontroli wersji: to stabilny plik binarny — dodaj go
@@ -30,4 +31,6 @@ Jedno zastrzeżenie: plik `.doru` to baza danych SQLite, a synchronizowanie na
 plik w stanie połowicznego zapisu i uszkodzić go. Bezpieczna praktyka: zamknij
 projekt (lub aplikację) i zatrzymaj wszystkie inne procesy zapisujące przed
 synchronizacją. Kopiowanie zamkniętego projektu, do którego nikt inny nie
-zapisuje, jest zawsze bezpieczne.
+zapisuje, jest zawsze bezpieczne. Po awarii otwórz projekt raz w Dóru, aby SQLite
+mógł wycofać ewentualny pozostały dziennik, a następnie zamknij go przed
+skopiowaniem.
