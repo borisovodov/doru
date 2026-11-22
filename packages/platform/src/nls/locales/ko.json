@@ -55,6 +55,7 @@
   "features.tasks.cancel": "취소",
   "features.tasks.delete": "작업 삭제",
   "features.tasks.empty": "아직 작업이 없습니다.",
+  "features.tasks.invalidTimestamp": "해당 날짜와 시간이 존재하지 않습니다. 다른 값을 선택하세요.",
   "features.tasks.newTask": "새 작업",
   "features.tasks.none": "없음",
   "features.tasks.notFound": "이 작업은 더 이상 트리에 없습니다.",

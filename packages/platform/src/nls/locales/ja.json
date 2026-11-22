@@ -55,6 +55,7 @@
   "features.tasks.cancel": "キャンセル",
   "features.tasks.delete": "タスクを削除",
   "features.tasks.empty": "タスクはまだありません。",
+  "features.tasks.invalidTimestamp": "その日時は存在しません。別の値を選択してください。",
   "features.tasks.newTask": "新しいタスク",
   "features.tasks.none": "なし",
   "features.tasks.notFound": "このタスクはもう家系図にありません。",

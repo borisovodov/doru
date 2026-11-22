@@ -55,6 +55,7 @@
   "features.tasks.cancel": "Anuluj",
   "features.tasks.delete": "Usuń zadanie",
   "features.tasks.empty": "Brak zadań.",
+  "features.tasks.invalidTimestamp": "Ta data i godzina nie istnieją. Wybierz inną wartość.",
   "features.tasks.newTask": "Nowe zadanie",
   "features.tasks.none": "Brak",
   "features.tasks.notFound": "Tego zadania nie ma już w drzewie.",

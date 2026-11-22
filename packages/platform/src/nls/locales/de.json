@@ -55,6 +55,7 @@
   "features.tasks.cancel": "Abbrechen",
   "features.tasks.delete": "Aufgabe löschen",
   "features.tasks.empty": "Noch keine Aufgaben.",
+  "features.tasks.invalidTimestamp": "Datum und Uhrzeit gibt es nicht. Wählen Sie einen anderen Wert.",
   "features.tasks.newTask": "Neue Aufgabe",
   "features.tasks.none": "Keine",
   "features.tasks.notFound": "Diese Aufgabe ist nicht mehr im Stammbaum.",

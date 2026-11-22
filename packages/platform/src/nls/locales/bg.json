@@ -55,6 +55,7 @@
   "features.tasks.cancel": "Отказ",
   "features.tasks.delete": "Изтриване на задача",
   "features.tasks.empty": "Все още няма задачи.",
+  "features.tasks.invalidTimestamp": "Тази дата и час не съществуват. Изберете друга стойност.",
   "features.tasks.newTask": "Нова задача",
   "features.tasks.none": "Няма",
   "features.tasks.notFound": "Тази задача вече не е в дървото.",

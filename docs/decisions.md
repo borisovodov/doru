@@ -122,7 +122,9 @@ There are no date-delete triggers. Repositories delete the dates explicitly
 after the owner row is gone, including for cascaded children (a deleted
 person's names, facts and family links; a deleted source's events and
 citations). The update path writes surviving slots first, updates the owner,
-then releases the old ids. Tests assert that no date rows are left orphaned.
+then releases the old ids; aggregate updates reserve every old date id for
+the whole operation so a copy into another slot gets a fresh id. Tests assert
+that no date rows are left orphaned.
 
 ## Task times are Unix instants
 

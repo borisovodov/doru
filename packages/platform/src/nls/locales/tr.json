@@ -55,6 +55,7 @@
   "features.tasks.cancel": "İptal",
   "features.tasks.delete": "Görevi sil",
   "features.tasks.empty": "Henüz görev yok.",
+  "features.tasks.invalidTimestamp": "Bu tarih ve saat mevcut değil. Başka bir değer seçin.",
   "features.tasks.newTask": "Yeni görev",
   "features.tasks.none": "Yok",
   "features.tasks.notFound": "Bu görev artık ağaçta yok.",

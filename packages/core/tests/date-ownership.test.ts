@@ -373,6 +373,30 @@ describe('date ownership', () => {
     }
   });
 
+  it('keeps a removed source event date id reserved when the publication copies it', () => {
+    const fixture = makeRepo();
+    try {
+      fixture.repo.insertSource({
+        id: 'S1',
+        dataEvents: [{ id: 'E1', tag: 'EVEN', date: exact(1900) }],
+      });
+      const eventDate = fixture.repo.getSource('S1')!.dataEvents![0]!.date!;
+
+      fixture.repo.updateSource({
+        ...fixture.repo.getSource('S1')!,
+        pubDate: eventDate,
+        dataEvents: [],
+      });
+
+      const source = fixture.repo.getSource('S1')!;
+      expect(source.pubDate?.id).not.toBe(eventDate.id);
+      expect(source.dataEvents ?? []).toEqual([]);
+      expectNoOrphanDates(fixture);
+    } finally {
+      cleanupRepo(fixture);
+    }
+  });
+
   it('keeps a source event date fresh when it copies a cleared publication date', () => {
     const fixture = makeRepo();
     try {
@@ -472,6 +496,59 @@ describe('date ownership', () => {
       expect(events.get('E1')?.date?.id).toBe(originalDateId);
       expect(events.get('E2')?.date?.id).toBeDefined();
       expect(events.get('E2')?.date?.id).not.toBe(originalDateId);
+      expectNoOrphanDates(fixture);
+    } finally {
+      cleanupRepo(fixture);
+    }
+  });
+
+  it('keeps a removed name date id reserved when a fact copies it', () => {
+    const fixture = makeRepo();
+    try {
+      fixture.repo.insertPerson({
+        id: 'P1',
+        names: [{ id: 'N1', given: 'Ivan', date: exact(1900) }],
+        sex: 'M',
+        facts: [],
+      });
+      const nameDate = fixture.repo.getPerson('P1')!.names[0]!.date!;
+
+      fixture.repo.updatePerson({
+        ...fixture.repo.getPerson('P1')!,
+        names: [],
+        facts: [{ id: 'F1', personId: 'P1', tag: 'BIRT', date: nameDate }],
+      });
+
+      const fact = fixture.repo.getPerson('P1')!.facts[0]!;
+      expect(fact.date?.id).not.toBe(nameDate.id);
+      expectNoOrphanDates(fixture);
+    } finally {
+      cleanupRepo(fixture);
+    }
+  });
+
+  it('keeps a cleared fact date id reserved when a later fact copies it', () => {
+    const fixture = makeRepo();
+    try {
+      fixture.repo.insertPerson({
+        id: 'P1',
+        names: [],
+        sex: 'M',
+        facts: [{ id: 'F1', personId: 'P1', tag: 'BIRT', date: exact(1901) }],
+      });
+      const originalDate = fixture.repo.getPerson('P1')!.facts[0]!.date!;
+
+      fixture.repo.updatePerson({
+        ...fixture.repo.getPerson('P1')!,
+        facts: [
+          { id: 'F1', personId: 'P1', tag: 'BIRT' },
+          { id: 'F2', personId: 'P1', tag: 'DEAT', date: originalDate },
+        ],
+      });
+
+      const facts = new Map(fixture.repo.getPerson('P1')!.facts.map((fact) => [fact.id, fact]));
+      expect(facts.get('F1')?.date).toBeUndefined();
+      expect(facts.get('F2')?.date?.id).not.toBe(originalDate.id);
       expectNoOrphanDates(fixture);
     } finally {
       cleanupRepo(fixture);

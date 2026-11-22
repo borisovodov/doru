@@ -55,6 +55,7 @@
   "features.tasks.cancel": "Zrušit",
   "features.tasks.delete": "Smazat úkol",
   "features.tasks.empty": "Zatím žádné úkoly.",
+  "features.tasks.invalidTimestamp": "Toto datum a čas neexistují. Zvolte jinou hodnotu.",
   "features.tasks.newTask": "Nový úkol",
   "features.tasks.none": "Žádné",
   "features.tasks.notFound": "Tento úkol již není ve stromu.",

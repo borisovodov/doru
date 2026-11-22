@@ -1,6 +1,6 @@
 import type { DatabaseSync } from 'node:sqlite';
 import type { NamePart, PersonName } from '../model/types';
-import type { DateRepo } from './dateRepo';
+import { dateOwnerKey, type DateRepo, type DateReservations } from './dateRepo';
 import type { TransactionScope } from './transaction';
 
 interface NameRow {
@@ -64,11 +64,11 @@ export class NameRepo {
    * Callers may pass flat name pieces (`given`, `surname`, …) — they become
    * parts — or explicit `parts`.
    */
-  replaceNamesForPerson(personId: string, names: PersonName[]): Set<string> {
-    return this.transactions.run(() => this.replaceNames(personId, names));
+  replaceNamesForPerson(personId: string, names: PersonName[], aggregateReservations?: DateReservations): Set<string> {
+    return this.transactions.run(() => this.replaceNames(personId, names, aggregateReservations));
   }
 
-  private replaceNames(personId: string, names: PersonName[]): Set<string> {
+  private replaceNames(personId: string, names: PersonName[], aggregateReservations?: DateReservations): Set<string> {
     const existingNames = new Map<string, PersonName>();
     const remember = (name: PersonName): void => {
       existingNames.set(name.id, name);
@@ -80,10 +80,10 @@ export class NameRepo {
       remember(name);
     }
     const staleDates = [...existingNames.values()].map((name) => name.date?.id);
-    const reservedDates = new Map<string, string>();
+    const reservedDates = new Map<string, string>(aggregateReservations);
     for (const name of existingNames.values()) {
       if (name.date?.id !== undefined) {
-        reservedDates.set(name.date.id, name.id);
+        reservedDates.set(name.date.id, dateOwnerKey('person_name', name.id));
       }
     }
     this.db.prepare('DELETE FROM person_name WHERE person_id = ?').run(personId);
@@ -173,7 +173,12 @@ export class NameRepo {
     reservedDates: ReadonlyMap<string, string>,
   ): void {
     const periodDateId =
-      name.date !== undefined ? this.dates.create(name.date, { ownerKey: name.id, reserved: reservedDates }) : null;
+      name.date !== undefined
+        ? this.dates.create(name.date, {
+            ownerKey: dateOwnerKey('person_name', name.id),
+            reserved: reservedDates,
+          })
+        : null;
     this.insertName.run(
       name.id,
       personId,

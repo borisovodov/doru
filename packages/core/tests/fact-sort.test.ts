@@ -54,9 +54,9 @@ describe('fact date ordering', () => {
         names: [],
         sex: 'U',
         facts: [
-          fact('BEFORE', { sortDate: { quality: 'before', component: { year: 1900 } } }),
-          fact('EXACT', { sortDate: { quality: 'exact', component: { year: 1900 } } }),
           fact('AFTER', { sortDate: { quality: 'after', component: { year: 1900 } } }),
+          fact('EXACT', { sortDate: { quality: 'exact', component: { year: 1900 } } }),
+          fact('BEFORE', { sortDate: { quality: 'before', component: { year: 1900 } } }),
         ],
       });
 
@@ -231,10 +231,11 @@ describe('fact date ordering', () => {
             sortDate: { quality: 'exact', component: { calendar: 'ext_cal', year: 42 } },
           }),
           fact('EARLIER', { date: day(1899, 1, 1) }),
+          fact('LATER', { date: day(1901, 1, 1) }),
         ],
       });
 
-      expect(fixture.repo.listFactsForPerson('P1').map((entry) => entry.id)).toEqual(['EARLIER', 'OPAQUE']);
+      expect(fixture.repo.listFactsForPerson('P1').map((entry) => entry.id)).toEqual(['EARLIER', 'OPAQUE', 'LATER']);
     } finally {
       cleanupRepo(fixture);
     }
@@ -250,10 +251,11 @@ describe('fact date ordering', () => {
         facts: [
           fact('F1', { date: day(1901, 1, 1), sortDate: { quality: 'unknown', text: 'after the war' } }),
           fact('F2', { date: day(1900, 1, 1) }),
+          fact('F3', { date: day(1902, 1, 1) }),
         ],
       });
 
-      expect(fixture.repo.listFactsForPerson('P1').map((entry) => entry.id)).toEqual(['F2', 'F1']);
+      expect(fixture.repo.listFactsForPerson('P1').map((entry) => entry.id)).toEqual(['F2', 'F1', 'F3']);
     } finally {
       cleanupRepo(fixture);
     }

@@ -1530,7 +1530,7 @@ function taskDateValueToTimestamp(date: DateValue | undefined): number | undefin
   ) {
     return undefined;
   }
-  if (component.calendar !== undefined) {
+  if (component.calendar !== undefined || component.epoch === 'BCE') {
     return undefined;
   }
   return localTimestamp(
@@ -1559,9 +1559,19 @@ function localTimestamp(
   utc = false,
   millisecond = 0,
 ): number | undefined {
-  const value = utc
-    ? new Date(Date.UTC(year, month - 1, day, hour, minute, second, millisecond))
-    : new Date(year, month - 1, day, hour, minute, second, millisecond);
+  // The Date constructor maps years 0-99 to 1900-1999; setFullYear keeps the
+  // actual year. The component checks below still reject impossible dates.
+  const value = new Date(0);
+  if (utc) {
+    value.setUTCFullYear(year, month - 1, day);
+    value.setUTCHours(hour, minute, second, millisecond);
+  } else {
+    value.setFullYear(year, month - 1, day);
+    value.setHours(hour, minute, second, millisecond);
+  }
+  if (Number.isNaN(value.getTime())) {
+    return undefined;
+  }
   const actualYear = utc ? value.getUTCFullYear() : value.getFullYear();
   const actualMonth = utc ? value.getUTCMonth() : value.getMonth();
   const actualDay = utc ? value.getUTCDate() : value.getDate();

@@ -98,11 +98,18 @@ export function mergeDateBounds(start?: DateValue, end?: DateValue): DateValue |
   if (end === undefined) {
     return start;
   }
+  if (end.component === undefined && end.end === undefined) {
+    if (start.quality !== 'range' || start.end === undefined) {
+      // A phrase-only secondary date adds no bound; keep the primary qualifier
+      // (BEF stays BEF instead of becoming an open-ended FROM range).
+      return start;
+    }
+  }
   const endComponent = end.component ?? end.end ?? (start.quality === 'range' ? start.end : undefined);
   return {
     quality: 'range',
     ...(start.component !== undefined ? { component: start.component } : {}),
-    ...(endComponent !== undefined ? { end: endComponent } : {}),
+    end: endComponent,
     ...(start.text !== undefined ? { text: start.text } : end.text !== undefined ? { text: end.text } : {}),
     ...(start.time !== undefined ? { time: start.time } : {}),
   };

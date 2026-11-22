@@ -55,6 +55,7 @@
   "features.tasks.cancel": "Cancelar",
   "features.tasks.delete": "Excluir tarefa",
   "features.tasks.empty": "Sem tarefas ainda.",
+  "features.tasks.invalidTimestamp": "Essa data e hora não existem. Escolha outro valor.",
   "features.tasks.newTask": "Nova tarefa",
   "features.tasks.none": "Nenhum",
   "features.tasks.notFound": "Esta tarefa não está mais na árvore.",

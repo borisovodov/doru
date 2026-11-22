@@ -175,6 +175,36 @@ describe('P1 GEDCOM export gaps', () => {
       cleanupRepo(fixture);
     }
   });
+  it('omits task timestamps outside the Date range instead of throwing', () => {
+    const fixture = makeRepo();
+    try {
+      const { repo } = fixture;
+      const outside = 8_640_000_000_000_001;
+      repo.insertPerson({ id: 'P1', names: [], sex: 'U', facts: [] });
+      repo.insertTask({ id: 'T1', text: 'Free task', createdAt: outside, reminderAt: outside });
+      repo.insertTask({
+        id: 'T2',
+        text: 'Attached task',
+        targetType: 'person',
+        targetId: 'P1',
+        scheduledAt: outside,
+        closedAt: outside,
+      });
+
+      for (const serialize of [serializeGedcom70, serializeGedcom551]) {
+        const serialized = serialize(buildGedcomDataset(repo));
+        expect(serialized.ok).toBe(true);
+        if (!serialized.ok) {
+          continue;
+        }
+        expect(serialized.value).not.toContain('_TCDT');
+        expect(serialized.value).not.toContain('_TSDT');
+      }
+    } finally {
+      cleanupRepo(fixture);
+    }
+  });
+
   it('ties the adoption marker to the exported partner slot', () => {
     const fixture = makeRepo();
     try {

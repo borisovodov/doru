@@ -1394,13 +1394,16 @@ export class TreeService {
         return undefined;
       }
       const status = normalizeTaskStatus(after.status);
+      const draftClosedAtUnchanged = after.closedAt === before.closedAt;
       const closedAt =
         status === 'closed'
           ? current.status === 'closed'
-            ? after.closedAt === before.closedAt
+            ? draftClosedAtUnchanged
               ? current.closedAt
               : (after.closedAt ?? current.closedAt)
-            : (after.closedAt ?? Date.now())
+            : draftClosedAtUnchanged
+              ? Date.now()
+              : (after.closedAt ?? Date.now())
           : undefined;
       return updateTaskOp(current, {
         ...after,

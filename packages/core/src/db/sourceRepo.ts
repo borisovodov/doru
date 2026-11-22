@@ -1,6 +1,6 @@
 import type { DatabaseSync } from 'node:sqlite';
 import type { CitationRecord, SourceRecord } from '../model/types';
-import type { DateRepo } from './dateRepo';
+import { dateOwnerKey, type DateRepo, type DateReservations, type DateSlotReservation } from './dateRepo';
 import type { TransactionScope } from './transaction';
 
 interface SourceRow {
@@ -83,7 +83,15 @@ export class SourceRepo {
       if (current === undefined) {
         throw new Error(`source ${source.id} no longer exists`);
       }
-      const prepared = this.dates.prepareSlots([current.publication_date_id], [source.pubDate]);
+      const eventRows = this.db
+        .prepare('SELECT id, date_id FROM source_data_event WHERE source_id = ?')
+        .all(source.id) as unknown as Array<{ id: string; date_id: string | null }>;
+      const reservedDates = sourceDateReservations(source.id, current.publication_date_id, eventRows);
+      const prepared = this.dates.prepareSlots(
+        [current.publication_date_id],
+        [source.pubDate],
+        [sourcePublicationReservation(source.id, reservedDates)],
+      );
       this.db
         .prepare(
           `UPDATE source SET xref = ?, title = ?, abbreviation = ?, author = ?, publication = ?,
@@ -93,7 +101,7 @@ export class SourceRepo {
            WHERE id = ?`,
         )
         .run(...sourceParams(source).slice(1), prepared.ids[0] ?? null, source.id);
-      this.replaceSourceDetails(source);
+      this.replaceSourceDetails(source, reservedDates);
       this.dates.deleteMany(prepared.obsolete);
     });
   }
@@ -301,16 +309,11 @@ export class SourceRepo {
     });
   }
 
-  private replaceSourceDetails(source: SourceRecord): void {
+  private replaceSourceDetails(source: SourceRecord, reservedDates?: DateReservations): void {
     const eventRows = this.db
       .prepare('SELECT id, date_id FROM source_data_event WHERE source_id = ?')
       .all(source.id) as unknown as Array<{ id: string; date_id: string | null }>;
-    const eventReservations = new Map<string, string>();
-    for (const row of eventRows) {
-      if (row.date_id !== null) {
-        eventReservations.set(row.date_id, row.id);
-      }
-    }
+    const eventReservations = reservedDates ?? sourceDataEventReservations(eventRows);
     this.db.prepare('DELETE FROM source_text WHERE source_id = ?').run(source.id);
     this.db.prepare('DELETE FROM source_data_event WHERE source_id = ?').run(source.id);
     this.db.prepare('DELETE FROM source_repository WHERE source_id = ?').run(source.id);
@@ -329,7 +332,10 @@ export class SourceRepo {
     for (const event of source.dataEvents ?? []) {
       const dateId =
         event.date !== undefined
-          ? this.dates.create(event.date, { ownerKey: event.id, reserved: eventReservations })
+          ? this.dates.create(event.date, {
+              ownerKey: dateOwnerKey('source_data_event', event.id),
+              reserved: eventReservations,
+            })
           : null;
       insertEvent.run(event.id, source.id, event.tag, event.value ?? null, event.placeId ?? null, dateId);
     }
@@ -516,6 +522,32 @@ const citationSelect = `SELECT id, source_id, target_type, target_id, descriptio
   confidence, event, role, phrase, www, name, quality_assessment, reference,
   reference_number, abbreviation, footnote, verified, assessment, found_by, date_id
   FROM citation`;
+
+function sourceDataEventReservations(rows: Array<{ id: string; date_id: string | null }>): DateReservations {
+  const reserved = new Map<string, string>();
+  for (const row of rows) {
+    if (row.date_id !== null) {
+      reserved.set(row.date_id, dateOwnerKey('source_data_event', row.id));
+    }
+  }
+  return reserved;
+}
+
+function sourceDateReservations(
+  sourceId: string,
+  publicationDateId: string | null,
+  eventRows: Array<{ id: string; date_id: string | null }>,
+): DateReservations {
+  const reserved = new Map(sourceDataEventReservations(eventRows));
+  if (publicationDateId !== null) {
+    reserved.set(publicationDateId, dateOwnerKey('source', sourceId, 'publication'));
+  }
+  return reserved;
+}
+
+function sourcePublicationReservation(sourceId: string, reservedDates: DateReservations): DateSlotReservation {
+  return { ownerKey: dateOwnerKey('source', sourceId, 'publication'), reserved: reservedDates };
+}
 
 function sourceParams(source: SourceRecord): Array<string | number | null> {
   return [

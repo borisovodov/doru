@@ -24,6 +24,11 @@ describe('mergeDateBounds / splitDateBounds', () => {
     expect(mergeDateBounds(exact(1900), undefined)).toEqual(exact(1900));
   });
 
+  it('keeps the primary qualifier when the second bound has no component', () => {
+    const before = { quality: 'before' as const, component: { year: 1900 } };
+    expect(mergeDateBounds(before, { quality: 'unknown', text: 'before the war' })).toEqual(before);
+  });
+
   it('splits a range back into two exact bounds', () => {
     expect(
       splitDateBounds({

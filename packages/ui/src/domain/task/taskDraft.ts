@@ -38,6 +38,13 @@ export function taskToDraft(task: TaskRecord): TaskDraft {
   };
 }
 
+/** True when a nonempty draft value is not a real local instant. */
+export function taskDraftHasInvalidTimestamp(draft: TaskDraft): boolean {
+  return [draft.scheduledAt, draft.reminderAt].some(
+    (value) => value.trim() !== '' && inputToTimestamp(value) === undefined,
+  );
+}
+
 export function taskDraftToRecord(task: TaskRecord, draft: TaskDraft): TaskRecord {
   const next: TaskRecord = { ...task };
   next.text = draft.text.trim();
@@ -61,6 +68,9 @@ export function timestampToInput(value: number | undefined): string {
     return '';
   }
   const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return '';
+  }
   const pad = (part: number, size = 2): string => String(part).padStart(size, '0');
   return `${pad(date.getFullYear(), 4)}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
 }
@@ -77,7 +87,10 @@ export function inputToTimestamp(value: string): number | undefined {
   const hour = Number(match[4]);
   const minute = Number(match[5]);
   const second = match[6] !== undefined ? Number(match[6]) : 0;
-  const date = new Date(year, month - 1, day, hour, minute, second, 0);
+  // Years 0-99 must not turn into 1900-1999 in the Date constructor.
+  const date = new Date(0);
+  date.setFullYear(year, month - 1, day);
+  date.setHours(hour, minute, second, 0);
   if (
     date.getFullYear() !== year ||
     date.getMonth() !== month - 1 ||

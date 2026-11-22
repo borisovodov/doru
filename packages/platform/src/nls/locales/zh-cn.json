@@ -55,6 +55,7 @@
   "features.tasks.cancel": "取消",
   "features.tasks.delete": "删除任务",
   "features.tasks.empty": "暂无任务。",
+  "features.tasks.invalidTimestamp": "该日期和时间不存在。请选择其他值。",
   "features.tasks.newTask": "新任务",
   "features.tasks.none": "无",
   "features.tasks.notFound": "该任务已不在树中。",

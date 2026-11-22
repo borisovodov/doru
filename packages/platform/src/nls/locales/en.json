@@ -55,6 +55,7 @@
   "features.tasks.cancel": "Cancel",
   "features.tasks.delete": "Delete task",
   "features.tasks.empty": "No tasks yet.",
+  "features.tasks.invalidTimestamp": "That date and time does not exist. Choose another value.",
   "features.tasks.newTask": "New task",
   "features.tasks.none": "None",
   "features.tasks.notFound": "This task is no longer in the tree.",

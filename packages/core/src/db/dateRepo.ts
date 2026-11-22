@@ -34,6 +34,17 @@ export interface PreparedDates {
 /** Date id → the owner key that must keep it when a row is rewritten. */
 export type DateReservations = ReadonlyMap<string, string>;
 
+/** A reservation the writer may use when filling one empty date slot. */
+export interface DateSlotReservation {
+  ownerKey: string;
+  reserved: DateReservations;
+}
+
+/** A stable owner key; prefixed by table so ids from different tables cannot collide. */
+export function dateOwnerKey(table: string, id: string, slot?: string): string {
+  return slot === undefined ? `${table}:${id}` : `${table}:${id}:${slot}`;
+}
+
 /**
  * The `date` table is a value store: it has no owner columns. Owner rows
  * reference their dates through forward foreign keys (`ON DELETE RESTRICT`),
@@ -47,16 +58,20 @@ export class DateRepo {
   /**
    * Writes the desired dates for one row. `currentIds` and `dates` describe
    * the same slots in the same order. Existing slots keep their ids; empty
-   * slots get `null`; new dates use their captured id when it is free and a
-   * fresh UUID otherwise. The caller updates the owner row with `ids` and
-   * then deletes `obsolete`.
+   * slots get `null`; new dates use their captured id when it is free and not
+   * reserved for another owner, and a fresh UUID otherwise. The caller
+   * updates the owner row with `ids` and then deletes `obsolete`.
    */
   prepareSlots(
     currentIds: ReadonlyArray<string | null | undefined>,
     dates: ReadonlyArray<DateValue | undefined>,
+    reservations?: ReadonlyArray<DateSlotReservation | undefined>,
   ): PreparedDates {
     if (currentIds.length !== dates.length) {
       throw new Error('date slots and current ids must have the same length');
+    }
+    if (reservations !== undefined && reservations.length !== dates.length) {
+      throw new Error('date slots and reservations must have the same length');
     }
     const kept = new Set<string>();
     const ids = dates.map((date, index) => {
@@ -69,7 +84,7 @@ export class DateRepo {
         kept.add(current);
         return current;
       }
-      const id = this.create(date);
+      const id = this.create(date, reservations?.[index]);
       kept.add(id);
       return id;
     });
@@ -83,7 +98,7 @@ export class DateRepo {
   }
 
   /** Inserts a fresh date, preferring the captured id when it is still free. */
-  create(date: DateValue, reservation?: { ownerKey: string; reserved: DateReservations }): string {
+  create(date: DateValue, reservation?: DateSlotReservation): string {
     const id = this.freeId(date.id, reservation);
     this.write(id, date);
     return id;
@@ -127,10 +142,7 @@ export class DateRepo {
   }
 
   /** A restored date keeps its captured id when it is free and not reserved for another owner. */
-  private freeId(
-    preferred: string | undefined,
-    reservation?: { ownerKey: string; reserved: DateReservations },
-  ): string {
+  private freeId(preferred: string | undefined, reservation?: DateSlotReservation): string {
     if (preferred !== undefined) {
       const reservedOwner = reservation?.reserved.get(preferred);
       if (

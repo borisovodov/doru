@@ -55,6 +55,7 @@
   "features.tasks.cancel": "Mégse",
   "features.tasks.delete": "Feladat törlése",
   "features.tasks.empty": "Még nincsenek feladatok.",
+  "features.tasks.invalidTimestamp": "Ez a dátum és időpont nem létezik. Válasszon másik értéket.",
   "features.tasks.newTask": "Új feladat",
   "features.tasks.none": "Nincs",
   "features.tasks.notFound": "Ez a feladat már nincs a fában.",

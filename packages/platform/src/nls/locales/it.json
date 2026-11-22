@@ -55,6 +55,7 @@
   "features.tasks.cancel": "Annulla",
   "features.tasks.delete": "Elimina attività",
   "features.tasks.empty": "Ancora nessuna attività.",
+  "features.tasks.invalidTimestamp": "Questa data e ora non esiste. Scegli un altro valore.",
   "features.tasks.newTask": "Nuova attività",
   "features.tasks.none": "Nessuno",
   "features.tasks.notFound": "Questa attività non è più nell'albero.",

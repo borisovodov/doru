@@ -55,6 +55,7 @@
   "features.tasks.cancel": "Отмена",
   "features.tasks.delete": "Удалить задачу",
   "features.tasks.empty": "Задач пока нет.",
+  "features.tasks.invalidTimestamp": "Такой даты и времени не существует. Выберите другое значение.",
   "features.tasks.newTask": "Новая задача",
   "features.tasks.none": "Нет",
   "features.tasks.notFound": "Этой задачи больше нет в древе.",

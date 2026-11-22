@@ -55,6 +55,7 @@
   "features.tasks.cancel": "Ακύρωση",
   "features.tasks.delete": "Διαγραφή εργασίας",
   "features.tasks.empty": "Δεν υπάρχουν εργασίες ακόμα.",
+  "features.tasks.invalidTimestamp": "Αυτή η ημερομηνία και ώρα δεν υπάρχει. Επιλέξτε άλλη τιμή.",
   "features.tasks.newTask": "Νέα εργασία",
   "features.tasks.none": "Κανένα",
   "features.tasks.notFound": "Αυτή η εργασία δεν υπάρχει πλέον στο δέντρο.",

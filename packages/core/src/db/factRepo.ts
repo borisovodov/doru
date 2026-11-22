@@ -10,7 +10,7 @@ import {
   type FactParticipant,
   type FactRecord,
 } from '../model/types';
-import type { DateRepo } from './dateRepo';
+import { dateOwnerKey, type DateRepo, type DateReservations, type DateSlotReservation } from './dateRepo';
 
 const FACT_FLAG_SET = new Set<string>(FACT_FLAGS);
 
@@ -60,6 +60,16 @@ function factDateIds(ids: FactDateIds | undefined): Array<string | null> {
   return [ids.date_id, ids.sort_date_id];
 }
 
+function factSlotReservation(
+  factId: string,
+  slot: 'date' | 'sortDate',
+  reservedDates: DateReservations | undefined,
+): DateSlotReservation | undefined {
+  return reservedDates === undefined
+    ? undefined
+    : { ownerKey: dateOwnerKey('fact', factId, slot), reserved: reservedDates };
+}
+
 /**
  * Facts (events and attributes) with exactly one owner — a person or a
  * family. Dates are value rows in the `date` table owned by the fact: they
@@ -73,13 +83,19 @@ export class FactRepo {
     private readonly transactions: TransactionScope,
   ) {}
 
-  insertFact(fact: FactRecord): void {
-    this.transactions.run(() => this.insertFactRows(fact));
+  insertFact(fact: FactRecord, reservedDates?: DateReservations): void {
+    this.transactions.run(() => this.insertFactRows(fact, reservedDates));
   }
 
-  private insertFactRows(fact: FactRecord): void {
-    const dateId = fact.date !== undefined ? this.dates.create(fact.date) : null;
-    const sortDateId = fact.sortDate !== undefined ? this.dates.create(fact.sortDate) : null;
+  private insertFactRows(fact: FactRecord, reservedDates?: DateReservations): void {
+    const dateId =
+      fact.date !== undefined
+        ? this.dates.create(fact.date, factSlotReservation(fact.id, 'date', reservedDates))
+        : null;
+    const sortDateId =
+      fact.sortDate !== undefined
+        ? this.dates.create(fact.sortDate, factSlotReservation(fact.id, 'sortDate', reservedDates))
+        : null;
     this.db
       .prepare(
         `INSERT INTO fact (id, person_id, family_id, tag, type, value, negation, primary_flag,
@@ -93,18 +109,22 @@ export class FactRepo {
     this.replaceSubRows(fact);
   }
 
-  updateFact(fact: FactRecord): void {
-    this.transactions.run(() => this.updateFactRows(fact));
+  updateFact(fact: FactRecord, reservedDates?: DateReservations): void {
+    this.transactions.run(() => this.updateFactRows(fact, reservedDates));
   }
 
-  private updateFactRows(fact: FactRecord): void {
+  private updateFactRows(fact: FactRecord, reservedDates?: DateReservations): void {
     const current = this.db.prepare('SELECT date_id, sort_date_id FROM fact WHERE id = ?').get(fact.id) as
       | FactDateIds
       | undefined;
     if (current === undefined) {
       throw new Error(`fact ${fact.id} no longer exists`);
     }
-    const prepared = this.dates.prepareSlots([current.date_id, current.sort_date_id], [fact.date, fact.sortDate]);
+    const prepared = this.dates.prepareSlots(
+      [current.date_id, current.sort_date_id],
+      [fact.date, fact.sortDate],
+      [factSlotReservation(fact.id, 'date', reservedDates), factSlotReservation(fact.id, 'sortDate', reservedDates)],
+    );
     this.db
       .prepare(
         `UPDATE fact SET person_id = ?, family_id = ?, tag = ?, type = ?, value = ?, negation = ?,

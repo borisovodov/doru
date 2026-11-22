@@ -432,9 +432,14 @@ the owner row and release them explicitly:
 - Insert: create the date rows, then insert the owner row with their ids.
 - Update: `DateRepo.prepareSlots` writes the surviving dates, keeps the id of
   every occupied slot, returns the ids for the owner update, and reports the
-  old ids to delete after the owner row no longer references them.
-- Delete: collect the owner's date ids, delete the owner row (including its
-  cascades), then delete the collected date rows.
+  old ids to delete after the owner row no longer references them. Aggregate
+  updates reserve the ids owned by the old rows for the whole operation, so a
+  date copied into another slot gets a fresh id even when its source row was
+  deleted earlier in the same update.
+- Delete: collect the date ids of the owner and every cascaded child — for a
+  source, its data events and citations; for a place, its names, hierarchy
+  rows on either side, and postal codes — delete the owner row, then delete
+  all collected date rows.
 
 A date row has exactly one owner by application convention. The schema cannot
 express "unique across fourteen tables"; repositories never share a date, and

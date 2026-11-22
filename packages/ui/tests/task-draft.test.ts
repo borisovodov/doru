@@ -1,6 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import type { TaskRecord } from '@doru/core';
-import { emptyTaskDraft, taskDraftToRecord, taskToDraft } from '../src/domain/task/taskDraft';
+import {
+  emptyTaskDraft,
+  inputToTimestamp,
+  taskDraftHasInvalidTimestamp,
+  taskDraftToRecord,
+  taskToDraft,
+  timestampToInput,
+} from '../src/domain/task/taskDraft';
 
 const task = (overrides: Partial<TaskRecord> = {}): TaskRecord => ({
   id: 'T1',
@@ -110,6 +117,52 @@ describe('taskDraft', () => {
         process.env['TZ'] = previous;
       }
     }
+  });
+
+  it('rejects a local time that does not exist', () => {
+    const previous = process.env['TZ'];
+    process.env['TZ'] = 'America/New_York';
+    try {
+      expect(inputToTimestamp('2024-03-10T02:30')).toBeUndefined();
+      expect(
+        taskDraftHasInvalidTimestamp({
+          ...emptyTaskDraft(),
+          scheduledAt: '2024-03-10T02:30',
+        }),
+      ).toBe(true);
+      expect(
+        taskDraftHasInvalidTimestamp({
+          ...emptyTaskDraft(),
+          reminderAt: '2024-03-10T02:30',
+        }),
+      ).toBe(true);
+      expect(
+        taskDraftHasInvalidTimestamp({
+          ...emptyTaskDraft(),
+          scheduledAt: '2024-03-10T03:30',
+        }),
+      ).toBe(false);
+      expect(taskDraftHasInvalidTimestamp(emptyTaskDraft())).toBe(false);
+    } finally {
+      if (previous === undefined) {
+        delete process.env['TZ'];
+      } else {
+        process.env['TZ'] = previous;
+      }
+    }
+  });
+
+  it('keeps years below 100 in datetime-local values', () => {
+    const expected = new Date(0);
+    expected.setFullYear(99, 0, 1);
+    expected.setHours(0, 0, 0, 0);
+
+    expect(inputToTimestamp('0099-01-01T00:00')).toBe(expected.getTime());
+    expect(timestampToInput(expected.getTime())).toBe('0099-01-01T00:00');
+  });
+
+  it('treats every value outside the Date range as absent', () => {
+    expect(timestampToInput(8_640_000_000_000_001)).toBe('');
   });
 
   it('detaches a task when the person is cleared', () => {

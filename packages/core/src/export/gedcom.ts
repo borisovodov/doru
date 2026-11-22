@@ -759,7 +759,8 @@ function formatTaskTimestamp(value: number | undefined): string | undefined {
   if (value === undefined || !Number.isFinite(value)) {
     return undefined;
   }
-  return new Date(value).toISOString();
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? undefined : date.toISOString();
 }
 
 function taskTimestampToDateValue(value: number | undefined): DateValue | undefined {
@@ -767,6 +768,9 @@ function taskTimestampToDateValue(value: number | undefined): DateValue | undefi
     return undefined;
   }
   const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return undefined;
+  }
   return {
     quality: 'exact',
     component: { year: date.getUTCFullYear(), month: date.getUTCMonth() + 1, day: date.getUTCDate() },

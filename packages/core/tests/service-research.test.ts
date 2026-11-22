@@ -142,6 +142,28 @@ describe('TreeService research layer', () => {
     }
   });
 
+  it('uses a fresh closing time when a retained draft re-closes a reopened task', () => {
+    const { fixture, service } = makeService();
+    try {
+      const t1 = 1_700_000_100_000;
+      service.addTask(task());
+      service.updateTask(task(), task({ status: 'closed', closedAt: t1 }));
+      const closedDraft = fixture.repo.getTask('T1')!;
+      service.updateTask(closedDraft, task({ status: 'open' }));
+      const reopened = fixture.repo.getTask('T1')!;
+
+      const before = Date.now();
+      service.updateTask(closedDraft, { ...closedDraft, text: 'Re-closed from a stale draft' });
+      const stored = fixture.repo.getTask('T1')!;
+      expect(stored.status).toBe('closed');
+      expect(stored.closedAt).not.toBe(t1);
+      expect(stored.closedAt).toBeGreaterThanOrEqual(before);
+      expect(reopened.closedAt).toBeUndefined();
+    } finally {
+      cleanupRepo(fixture);
+    }
+  });
+
   it('adds, updates, deletes and restores a task with its attachments', () => {
     const { fixture, service } = makeService();
     try {
