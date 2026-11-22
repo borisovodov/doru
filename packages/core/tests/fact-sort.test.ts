@@ -136,6 +136,62 @@ describe('fact date ordering', () => {
     }
   });
 
+  it('sorts AFT by the end of the year or month', () => {
+    const fixture = makeRepo();
+    try {
+      fixture.repo.insertPerson({
+        id: 'P1',
+        names: [],
+        sex: 'U',
+        facts: [
+          fact('YEAR_AFTER', { sortDate: { quality: 'after', component: { year: 1900 } } }),
+          fact('MONTH_AFTER', {
+            sortDate: { quality: 'after', component: { year: 1900, month: 2 } },
+          }),
+          fact('FEB_FIRST', { sortDate: day(1900, 2, 1) }),
+          fact('FEB_LAST', { sortDate: day(1900, 2, 28) }),
+          fact('JAN_LAST', { sortDate: day(1900, 1, 31) }),
+        ],
+      });
+
+      expect(fixture.repo.listFactsForPerson('P1').map((entry) => entry.id)).toEqual([
+        'JAN_LAST',
+        'FEB_FIRST',
+        'FEB_LAST',
+        'MONTH_AFTER',
+        'YEAR_AFTER',
+      ]);
+    } finally {
+      cleanupRepo(fixture);
+    }
+  });
+
+  it('uses the Julian leap rule for an AFT month boundary', () => {
+    const fixture = makeRepo();
+    try {
+      fixture.repo.insertPerson({
+        id: 'P1',
+        names: [],
+        sex: 'U',
+        facts: [
+          fact('AFTER_FEB', {
+            sortDate: {
+              quality: 'after',
+              component: { calendar: 'julian', year: 1900, month: 2 },
+            },
+          }),
+          fact('FEB_29', {
+            sortDate: { quality: 'exact', component: { calendar: 'julian', year: 1900, month: 2, day: 29 } },
+          }),
+        ],
+      });
+
+      expect(fixture.repo.listFactsForPerson('P1').map((entry) => entry.id)).toEqual(['FEB_29', 'AFTER_FEB']);
+    } finally {
+      cleanupRepo(fixture);
+    }
+  });
+
   it('falls back to date when sortDate only has a phrase', () => {
     const fixture = makeRepo();
     try {

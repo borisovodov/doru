@@ -687,15 +687,14 @@ function dateSortKey(date: DateValue | undefined): DateSortKey | undefined {
   if (year === undefined) {
     return undefined;
   }
-  const month = monthPosition(component.calendar, component.year, component.month);
+  let month = monthPosition(component.calendar, component.year, component.month);
   let day = component.day ?? 1;
   const bound = date.quality === 'before' ? 0 : date.quality === 'after' ? 2 : 1;
-  if (date.quality === 'after' && component.day === undefined) {
-    if (component.month === undefined) {
-      day = 31;
-    } else {
-      day = typeof component.month === 'number' ? daysInMonth(year, month) : 30;
-    }
+  if (date.quality === 'after' && component.month === undefined) {
+    month = 12;
+    day = 31;
+  } else if (date.quality === 'after' && component.day === undefined) {
+    day = typeof component.month === 'number' ? daysInMonth(year, month, component.calendar) : 30;
   }
   const time = date.time;
   const seconds = time === undefined ? 0 : time.hour * 3600 + time.minute * 60 + (time.second ?? 0);
@@ -734,8 +733,8 @@ function compareFraction(left: string, right: string): number {
   return leftPadded < rightPadded ? -1 : leftPadded > rightPadded ? 1 : 0;
 }
 
-function daysInMonth(year: number, month: number): number {
-  const leap = year % 4 === 0 && (year % 100 !== 0 || year % 400 === 0);
+function daysInMonth(year: number, month: number, calendar: string | undefined): number {
+  const leap = calendar === 'julian' ? year % 4 === 0 : year % 4 === 0 && (year % 100 !== 0 || year % 400 === 0);
   return [31, leap ? 29 : 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31][month - 1] ?? 31;
 }
 
