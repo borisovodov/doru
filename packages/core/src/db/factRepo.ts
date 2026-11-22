@@ -642,7 +642,29 @@ const HEBREW_LEAP_MONTHS = ['TSH', 'CSH', 'KSL', 'TVT', 'SHV', 'ADR', 'ADS', 'NS
  * back to the display date.
  */
 function effectiveSortDate(fact: FactRecord): DateValue | undefined {
-  return dateSortKey(fact.sortDate) !== undefined ? fact.sortDate : fact.date;
+  const sortDate = fact.sortDate;
+  if (sortDate === undefined || dateSortKey(sortDate) === undefined) {
+    return fact.date;
+  }
+  return hasRecognisedCalendar(sortDate) ? sortDate : fact.date;
+}
+
+/** Extension calendars are opaque; their SDATE cannot position a fact. */
+function hasRecognisedCalendar(date: DateValue): boolean {
+  const component =
+    date.component?.year !== undefined
+      ? date.component
+      : date.end?.year !== undefined
+        ? date.end
+        : (date.component ?? date.end);
+  const calendar = component?.calendar;
+  return (
+    calendar === undefined ||
+    calendar === '' ||
+    calendar === 'julian' ||
+    calendar === 'french_republican' ||
+    calendar === 'hebrew'
+  );
 }
 
 function compareFactDates(left: FactRecord, right: FactRecord): number {

@@ -117,6 +117,31 @@ describe('TreeService research layer', () => {
     }
   });
 
+  it('keeps the latest closing timestamp on a stale text save', () => {
+    const { fixture, service } = makeService();
+    try {
+      const t1 = 1_700_000_100_000;
+      const t2 = 1_700_000_200_000;
+      const t3 = 1_700_000_300_000;
+      service.addTask(task());
+      service.updateTask(task(), task({ status: 'closed', closedAt: t1 }));
+      const firstClosed = fixture.repo.getTask('T1')!;
+      service.updateTask(firstClosed, task({ status: 'open' }));
+      const reopened = fixture.repo.getTask('T1')!;
+      service.updateTask(reopened, task({ status: 'closed', closedAt: t2 }));
+      const secondClosed = fixture.repo.getTask('T1')!;
+      expect(secondClosed.closedAt).toBe(t2);
+
+      service.updateTask(firstClosed, { ...secondClosed, text: 'Stale text save', closedAt: t1 });
+      expect(fixture.repo.getTask('T1')).toMatchObject({ closedAt: t2, text: 'Stale text save' });
+
+      service.updateTask(secondClosed, { ...secondClosed, closedAt: t3 });
+      expect(fixture.repo.getTask('T1')?.closedAt).toBe(t3);
+    } finally {
+      cleanupRepo(fixture);
+    }
+  });
+
   it('adds, updates, deletes and restores a task with its attachments', () => {
     const { fixture, service } = makeService();
     try {

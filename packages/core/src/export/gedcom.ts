@@ -754,14 +754,12 @@ function buildGedcomTodoRecord(task: TaskRecord, repo: TreeRepository, xrefs: Xr
   };
 }
 
-/** Task instants are local wall-clock values in the vendor text slots. */
+/** The vendor text slots carry a zone-qualified ISO timestamp. */
 function formatTaskTimestamp(value: number | undefined): string | undefined {
   if (value === undefined || !Number.isFinite(value)) {
     return undefined;
   }
-  const date = new Date(value);
-  const pad = (part: number, size = 2): string => String(part).padStart(size, '0');
-  return `${pad(date.getFullYear(), 4)}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`;
+  return new Date(value).toISOString();
 }
 
 function taskTimestampToDateValue(value: number | undefined): DateValue | undefined {
@@ -771,8 +769,13 @@ function taskTimestampToDateValue(value: number | undefined): DateValue | undefi
   const date = new Date(value);
   return {
     quality: 'exact',
-    component: { year: date.getFullYear(), month: date.getMonth() + 1, day: date.getDate() },
-    time: { hour: date.getHours(), minute: date.getMinutes(), second: date.getSeconds() },
+    component: { year: date.getUTCFullYear(), month: date.getUTCMonth() + 1, day: date.getUTCDate() },
+    time: {
+      hour: date.getUTCHours(),
+      minute: date.getUTCMinutes(),
+      second: date.getUTCSeconds(),
+      utc: true,
+    },
   };
 }
 

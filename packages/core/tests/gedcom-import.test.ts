@@ -460,6 +460,10 @@ describe('importGedcomDataset', () => {
       '1 _TCDT V02C0000S01140220120000000E01000000000000000T',
       '0 _TODO Second encoded date',
       '1 _TCDT V05T00S000115082011000000000000LE000100000000000000000000LT',
+      '0 _TODO Zoned date',
+      '1 _TCDT 2026-01-02T03:04:05Z',
+      '0 _TODO Offset date',
+      '1 _TCDT 2026-01-02T03:04:05+05:30',
       '0 @I1@ INDI',
       '1 NAME Task /Owner/',
       '1 _TODO UTC task',
@@ -479,11 +483,15 @@ describe('importGedcomDataset', () => {
       const encoded = fixture.repo.listTasks().find((task) => task.text === 'Encoded date')!;
       const secondEncoded = fixture.repo.listTasks().find((task) => task.text === 'Second encoded date')!;
       const utc = fixture.repo.listTasks().find((task) => task.text === 'UTC task')!;
+      const zoned = fixture.repo.listTasks().find((task) => task.text === 'Zoned date')!;
+      const offset = fixture.repo.listTasks().find((task) => task.text === 'Offset date')!;
       expect(invalid.createdAt).toBeUndefined();
       expect(leap.createdAt).toBe(new Date(2024, 1, 29).getTime());
       expect(encoded.createdAt).toBe(new Date(2012, 1, 14).getTime());
       expect(secondEncoded.createdAt).toBe(new Date(2011, 7, 15).getTime());
       expect(utc.scheduledAt).toBe(Date.UTC(1900, 0, 1, 12, 0));
+      expect(zoned.createdAt).toBe(Date.UTC(2026, 0, 2, 3, 4, 5));
+      expect(offset.createdAt).toBe(Date.UTC(2026, 0, 1, 21, 34, 5));
     } finally {
       cleanupRepo(fixture);
     }

@@ -1397,7 +1397,9 @@ export class TreeService {
       const closedAt =
         status === 'closed'
           ? current.status === 'closed'
-            ? (after.closedAt ?? current.closedAt)
+            ? after.closedAt === before.closedAt
+              ? current.closedAt
+              : (after.closedAt ?? current.closedAt)
             : (after.closedAt ?? Date.now())
           : undefined;
       return updateTaskOp(current, {

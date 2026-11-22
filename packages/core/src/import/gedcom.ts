@@ -1481,18 +1481,39 @@ function parseEncodedTaskDate(text: string): number | undefined {
 }
 
 function parseIsoTaskDate(text: string): number | undefined {
-  const match = /^(\d{4})-(\d{2})-(\d{2})(?:[T ](\d{2}):(\d{2})(?::(\d{2}))?)?$/.exec(text);
+  const match =
+    /^(\d{4})-(\d{2})-(\d{2})(?:[T ](\d{2}):(\d{2})(?::(\d{2})(?:\.\d{1,9})?)?(Z|[+-]\d{2}:?\d{2})?)?$/.exec(text);
   if (match === null) {
     return undefined;
   }
-  return localTimestamp(
-    Number(match[1]),
-    Number(match[2]),
-    Number(match[3]),
-    match[4] !== undefined ? Number(match[4]) : 0,
-    match[5] !== undefined ? Number(match[5]) : 0,
-    match[6] !== undefined ? Number(match[6]) : 0,
-  );
+  const year = Number(match[1]);
+  const month = Number(match[2]);
+  const day = Number(match[3]);
+  const hour = match[4] !== undefined ? Number(match[4]) : 0;
+  const minute = match[5] !== undefined ? Number(match[5]) : 0;
+  const second = match[6] !== undefined ? Number(match[6]) : 0;
+  const zone = match[7];
+  if (zone === undefined) {
+    return localTimestamp(year, month, day, hour, minute, second);
+  }
+  const timestamp = Date.parse(text);
+  if (Number.isNaN(timestamp)) {
+    return undefined;
+  }
+  const offsetMinutes =
+    zone === 'Z' ? 0 : (zone.startsWith('-') ? -1 : 1) * (Number(zone.slice(1, 3)) * 60 + Number(zone.slice(-2)));
+  const wall = new Date(timestamp + offsetMinutes * 60_000);
+  if (
+    wall.getUTCFullYear() !== year ||
+    wall.getUTCMonth() !== month - 1 ||
+    wall.getUTCDate() !== day ||
+    wall.getUTCHours() !== hour ||
+    wall.getUTCMinutes() !== minute ||
+    wall.getUTCSeconds() !== second
+  ) {
+    return undefined;
+  }
+  return timestamp;
 }
 
 function taskDateValueToTimestamp(date: DateValue | undefined): number | undefined {

@@ -218,6 +218,28 @@ describe('fact date ordering', () => {
     }
   });
 
+  it('ignores a sort date in an opaque extension calendar', () => {
+    const fixture = makeRepo();
+    try {
+      fixture.repo.insertPerson({
+        id: 'P1',
+        names: [],
+        sex: 'U',
+        facts: [
+          fact('OPAQUE', {
+            date: day(1900, 1, 1),
+            sortDate: { quality: 'exact', component: { calendar: 'ext_cal', year: 42 } },
+          }),
+          fact('EARLIER', { date: day(1899, 1, 1) }),
+        ],
+      });
+
+      expect(fixture.repo.listFactsForPerson('P1').map((entry) => entry.id)).toEqual(['EARLIER', 'OPAQUE']);
+    } finally {
+      cleanupRepo(fixture);
+    }
+  });
+
   it('falls back to date when sortDate only has a phrase', () => {
     const fixture = makeRepo();
     try {

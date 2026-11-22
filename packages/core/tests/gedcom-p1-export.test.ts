@@ -107,8 +107,8 @@ describe('P1 GEDCOM export gaps', () => {
           // only the 7.0 `_PLAC` record can carry them.
           expect(text).toContain('1 REFN PLACE-1');
         }
-        expect(text).toContain('_TCDT 2026-11-17T00:00:00');
-        expect(text).toContain('_TCDT 2026-11-18T00:00:00');
+        expect(text).toContain(`_TCDT ${new Date(2026, 10, 17).toISOString()}`);
+        expect(text).toContain(`_TCDT ${new Date(2026, 10, 18).toISOString()}`);
         expect(text).toContain('_TSTS Waiting');
         expect(text).toContain('STAT Waiting');
 
