@@ -12,7 +12,8 @@ wire format. GEDCOM HEAD/SUBN metadata and raw vendor records are not stored;
 they are counted as dropped on import, and export synthesizes a fresh header.
 Round-trip fidelity is not an application requirement: the schema stores what
 Dóru models, and import/export maps that subset. `@doru/gedcom` keeps the wire
-model faithful; that guarantee does not extend to the tree database.
+model faithful for the structures it models, except for the drops documented
+in its README; that guarantee does not extend to the tree database.
 
 ## At a glance
 
