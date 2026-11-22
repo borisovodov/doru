@@ -1,0 +1,108 @@
+---
+source-hash: ea1d373e7c9e
+---
+
+# Práce se stromem
+
+Strom se otevírá jako interaktivní plátno. Vše níže se odehrává přímo na plátně;
+seznam osob žije v pohledu **Osoby** na levém panelu aktivit.
+
+## Navigace
+
+- **Posouvejte** tažením pozadí, **přibližujte** kolečkem myši nebo
+  trackpadem; tlačítka přiblížení jsou v rohu plátna.
+- **Znovu zaostřete** na osobu dvojklikem na její kartu. Panel nástrojů si
+  uchovává historii: šipky zpět/vpřed a stopu fokusu.
+- **Grafy**: přepínejte mezi pohledy *Předci*, *Potomci*, *Přesýpací hodiny* a
+  *Rodina* na panelu nástrojů. Pohled rodiny zobrazuje pár ve fokusu, jeho
+  děti a obě strany rodičů.
+- **Hledání**: napište jméno do vyhledávacího pole na panelu nástrojů a
+  vyberte výsledek, abyste na danou osobu přeskočili.
+- **Sbalte** větev pomocí šipky na kartě (nebo sbalte/rozbalte všechny větve z
+  panelu nástrojů).
+
+## Karty
+
+Každá karta zobrazuje avatar s iniciálami, jméno, roky života (s † u zemřelých
+osob) a malé odznaky s počtem poznámek, pramenů a médií. Levý okraj označuje
+otcovskou (modrou) a mateřskou (růžovou) linii v grafech předků; zvýrazněný
+rámeček označuje osobu ve fokusu.
+
+## Úpravy
+
+Vyberte kartu a zobrazí se panel nástrojů akcí:
+
+- **Přidat dítě / partnera / rodiče** — vedle osoby se objeví nová prázdná
+  karta; napište jméno přímo do karty a potvrďte je zaškrtnutím (křížek ji
+  zahodí).
+- **Upravit** — otevře úplný editor osoby jako kartu: jména, pohlaví, data
+  narození/úmrtí s ukazatelem kvality (*Přesně / Přibližně / Před / Po*) a pole
+  volného textu pro datum (např. kalendářní datum „23 Nivôse“, které
+  neodpovídá gregoriánskému), rodiny, události, prameny, poznámky a média.
+- **Smazat** — odstraní osobu ze stromu a ze všech rodin.
+- **Změnit rodiče**: přetáhněte kartu na kartu jiné osoby, abyste
+  přetahovanou osobu přesunuli jako dítě do této rodiny (platný cíl se během
+  přetahování zvýrazní).
+
+Nový (prázdný) strom zobrazuje jednu prázdnou kartu: klikněte na ni, napište
+jméno, potvrďte zaškrtnutím a na plátně se objeví první osoba. Poté nechte
+strom růst z karet samotných.
+
+## Rodiny
+
+V úplném editoru osoby přidejte rodiče, partnera nebo děti. Napište jméno pro
+výběr existující osoby; chipy zobrazují členy každé rodiny. Odebrání osoby z
+rodiny nebo smazání rodiny je jeden klik.
+
+## Prameny a poznámky
+
+- **Prameny**: připojte k osobě prameny (s názvem a autorem) nebo znovu
+  použijte existující pramen. Každá příloha je citace a lze ji odebrat.
+- **Poznámky**: volné výzkumné poznámky připojené k osobě. Poznámka může být
+  připojena k několika záznamům: použijte **Připojit existující poznámku** v
+  sekci Poznámky jiného záznamu a poté zvolte, zda má úprava aktualizovat
+  sdílený text všude, nebo jen aktuální záznam. **Odpojit od tohoto záznamu**
+  odebere jedno propojení; **Smazat všude** poznámku odstraní.
+- Události a jména mají v editoru osoby vlastní sekce Prameny, Poznámky,
+  Štítky, Identifikátory, Kontakty a Omezení.
+
+## Adresy
+
+Pohled **Prameny** má sekci **Adresy**. Použijte ji k vytváření, úpravám a
+mazání samostatných adres. Adresy používané událostmi, archivy nebo odesílateli
+zobrazují počet použití; smazáním adresy ji odpojíte od těchto záznamů. Výběr
+adresy u události má také akce **Nová adresa** a **Upravit adresu** pro úpravu
+adresy přímo na místě.
+
+## Úkoly
+
+Úkoly mají kromě naplánovaných dat a dat připomenutí také data vytvoření a
+uzavření. Každý editor má sekci **Úkoly**: přidejte tam úkol a automaticky se
+propojí s daným záznamem. Události, jména, citace a poznámky mají vlastní sekci
+Úkoly ve svém panelu příloh. **Související s** propojí úkol s libovolným
+záznamem ve stromu — osobou, rodinou, událostí, jménem, pramenem, citací,
+poznámkou, mediálním souborem, místem, archivem, odesílatelem, adresou, dílem
+nebo dokonce dalším úkolem; ponechte prázdné pro samostatný úkol.
+
+Díla, úkoly, adresy, spojení a vazby partnera/dítěte v rodinách mají stejné
+sekce Poznámky, Prameny, Štítky, Identifikátory, Kontakty, Omezení,
+Přispěvatelé a Úkoly jako karty hlavních entit.
+
+## Média
+
+Fotografie jsou obyčejné soubory ve složce `media/` vedle projektu. Přidejte je
+z osoby, rodiny, pramene, místa, archivu, odesílatele, díla, úkolu nebo adresy;
+sekce médií také umožňuje připojit existující záznam k jinému cíli. Kliknutím
+na náhled otevřete kartu médií, kde můžete upravit název, spravovat soubory a
+upravit metadata propojení, jako je popisek, pořadí, označení hlavní a
+označení vyloučení.
+
+Mediální záznam lze propojit s několika cíli. **Odpojit od tohoto záznamu**
+odebere jedno propojení; **Smazat médium** odstraní záznam a kopie jeho
+souborů. Záznam bez zbývajících propojení se odstraní automaticky.
+
+## Řazení
+
+Seznamy, u nichž záleží na pořadí — jména, partneři a děti rodiny, názvy míst,
+řádky adresy, účastníci událostí a pole šablon — mají ovládání nahoru/dolů.
+Pořadí se ukládá jako pozice řádku.

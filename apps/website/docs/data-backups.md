@@ -1,0 +1,36 @@
+# Data and backups
+
+- Your data is a plain file — and it stays yours. Dóru has no accounts, no
+  cloud backend, and no telemetry. Nothing is uploaded anywhere unless *you*
+  configure a remote AI provider — and even then, the chat messages and the
+  tree data the assistant retrieves through its tools are sent to that
+  provider. If you want to keep everything on your computer, local providers
+  (Ollama, LM Studio) work fully offline.
+- To back up: stop every process that can write to the project — close it in
+  Dóru and stop any MCP clients or other tools — then copy the `.doru` file
+  (and the `media/` folder next to it, if you have photos). That's all there
+  is. Restoring is copying the `.doru` file and the `media/` folder back while
+  the project is closed and no other writers are running. After a crash, open
+  the project once in Dóru so SQLite can recover any leftover journal, then
+  close it before copying or restoring. If the project cannot be opened, move
+  the damaged `.doru` file and any leftover journal out of the way before
+  restoring.
+- Chat sessions live in the app data directory, not inside the `.doru` file;
+  back them up separately if you need them.
+- The file is version-control friendly: it is a stable binary file — commit it
+  to git if you like.
+
+## Syncing between machines
+
+Dóru has no built-in sync engine — projects are plain files, and keeping them
+in sync is your job: iCloud Drive, Dropbox, rclone, rsync, a USB stick,
+whatever you prefer.
+
+One caveat: the `.doru` file is a SQLite database, and live-syncing an **open**
+project with a file-sync tool can copy the file in a half-written state and
+corrupt it. The safe practice is: close the project (or the app) and stop any
+other writers before syncing. A cleanly closed project with no other writers
+can be copied safely. After a crash, open the project once in Dóru so SQLite
+can roll back any leftover journal, then close it before copying. If the
+project cannot be opened, move the damaged file and any leftover journal out
+of the way before restoring a backup.

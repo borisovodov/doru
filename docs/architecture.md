@@ -45,9 +45,12 @@ decisions about what we deliberately do **not** build, see
   for anything else.
 - AI provider keys are entered only in the Settings UI and stored encrypted
   via the OS keychain; the plaintext never sits in a file.
-- Tree data leaves the machine only when the user sends it: a chat message to
-  a configured provider or an explicit export. This guarantee is load-bearing
-  for the product — see the Monetization decision in decisions.md.
+- Tree data leaves the machine only when the user configures a remote AI
+  provider or exports a project. With a remote provider, chat messages and the
+  tree records the assistant retrieves through its tools are sent to that
+  provider; an explicit export leaves the machine when the user saves it. This
+  guarantee is load-bearing for the product — see the Monetization decision in
+  decisions.md.
 
 ## Mutations
 

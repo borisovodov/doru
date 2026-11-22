@@ -1,4 +1,5 @@
 ---
+source-hash: 2512c57f34c8
 layout: home
 
 hero:
@@ -8,7 +9,7 @@ hero:
 features:
   - icon: 🗂️
     title: Yerel veriler
-    details: "Bir proje tek bir .doru dosyasıdır (SQLite); fotoğraflar yanındaki media klasöründe yaşar. Hiçbir şey gizli değil, hiçbir şey yüklenmiyor. Bir klasörü kopyalayarak yedekleyin."
+    details: "Bir proje tek bir .doru dosyasıdır (SQLite); fotoğraflar yanındaki media klasöründe yaşar. Hiçbir şey gizli değildir ve Dóru'nun bulut hizmeti yoktur. Bir klasörü kopyalayarak yedekleyin."
   - icon: 🤖
     title: YZ-yerel
     details: "Uygulamanın tamamı YZ-yerel. Yerleşik asistan Dóru AI, yerelde ve çevrimdışı çalışır — hesap gerekmez. Veya istediğiniz herhangi bir sağlayıcıyı bağlayın — Ollama, LM Studio, bir bulut API'si, bir ACP ajanı."
@@ -33,5 +34,5 @@ features:
 ---
 
 <div class="doru-read-docs">
-  <a href="/docs/">Belgeleri okuyun →</a>
+  <a href="/tr/docs/">Belgeleri okuyun →</a>
 </div>

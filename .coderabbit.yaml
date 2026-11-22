@@ -289,9 +289,21 @@ reviews:
         - Design rationale lives in docs/architecture.md and non-goals in
           docs/decisions.md; flag documentation that contradicts them.
 
+    - path: 'apps/website/**/*.md'
+      instructions: |
+        - English user docs live in `apps/website/docs/` and the English
+          landing page is `apps/website/index.md`.
+        - Translated pages under `apps/website/<locale>/docs/` and
+          `apps/website/<locale>/index.md` are intentionally non-English. Keep
+          their `source-hash`, relative links, installation anchors and code
+          blocks intact; update translations and run `stamp:site-i18n` after
+          changing an English source.
+
     - path: '**/*.md'
       instructions: |
-        - English only, including README, AGENTS.md, CONTRIBUTING.md and docs.
+        - English only, including README, AGENTS.md, CONTRIBUTING.md and docs;
+          the translated website pages under `apps/website/<locale>/` are the
+          only exception.
         - Do not add roadmap, TODO or "future work" sections; file an issue
           instead.
         - Pull request titles are user-facing plain sentences; the rest of a PR
