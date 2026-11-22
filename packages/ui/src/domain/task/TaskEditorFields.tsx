@@ -28,7 +28,10 @@ export function TaskEditorFields({
 }) {
   const knownTarget = (targetTypes as readonly string[]).includes(edit.targetType);
   // A stored target outside the offered types (e.g. media while its editor is
-  // hidden) stays visible as a single read-only reference.
+  // hidden) stays visible as a single read-only reference. Canonical types
+  // keep their translated label; only genuinely unknown types show the raw id.
+  const offeredTargetLabel = (type: string): string =>
+    (TARGET_TYPES as readonly string[]).includes(type) ? nls.t(`features.tasks.target.${type as TargetType}`) : type;
   const targetOptions = knownTarget ? taskTargetOptions(edit.targetType, data) : [];
   const knownTargetId = targetOptions.some((option) => option.id === edit.targetId);
 
@@ -81,7 +84,9 @@ export function TaskEditorFields({
                 {nls.t(`features.tasks.target.${type}`)}
               </option>
             ))}
-            {!knownTarget && edit.targetType !== '' && <option value={edit.targetType}>{edit.targetType}</option>}
+            {!knownTarget && edit.targetType !== '' && (
+              <option value={edit.targetType}>{offeredTargetLabel(edit.targetType)}</option>
+            )}
           </Select>
         </Field>
         <Field label={nls.t('features.tasks.targetRecord')}>
