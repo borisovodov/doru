@@ -165,17 +165,6 @@ function RepositoryTabBody({
     setLastSaved(next);
   };
 
-  const remove = async () => {
-    const target = lastSaved ?? base;
-    await api.deleteRepository(target);
-    onClose();
-  };
-
-  const usedBySources =
-    targetId !== undefined
-      ? sources.filter((source) => (source.repositories ?? []).some((link) => link.repositoryId === targetId))
-      : [];
-  const usedByTitles = targetId !== undefined ? titles.filter((title) => title.repositoryId === targetId) : [];
   const persisted = lastSaved ?? record;
   const autoSave = useAutoSaveOnBlur({
     enabled: !isNew,
@@ -191,6 +180,19 @@ function RepositoryTabBody({
     },
     save,
   });
+
+  const remove = async () => {
+    const target = lastSaved ?? base;
+    await api.deleteRepository(target);
+    autoSave.release();
+    onClose();
+  };
+
+  const usedBySources =
+    targetId !== undefined
+      ? sources.filter((source) => (source.repositories ?? []).some((link) => link.repositoryId === targetId))
+      : [];
+  const usedByTitles = targetId !== undefined ? titles.filter((title) => title.repositoryId === targetId) : [];
 
   return (
     <EntityTab onBlur={autoSave.onBlur}>

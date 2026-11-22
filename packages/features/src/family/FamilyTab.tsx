@@ -150,10 +150,14 @@ function FamilyTabBody({
     recordRef.current = record;
     savedRef.current = record;
     const submitted = submittedRef.current;
-    if (submitted !== undefined && familyDraftMatches(submitted, record)) {
+    const confirmed = submitted !== undefined && familyDraftMatches(submitted, record);
+    if (confirmed) {
       submittedRef.current = undefined;
     }
-    const base = submitted ?? familyToDraft(previous);
+    // Only a record that confirms the pending write may use the submitted
+    // draft as its base; an unrelated refresh must compare against the
+    // previous stored snapshot.
+    const base = submitted !== undefined && confirmed ? submitted : familyToDraft(previous);
     setDraft((current) => {
       if (submitted === undefined && familyDraftMatches(current, previous)) {
         return familyToDraft(record);
@@ -178,16 +182,17 @@ function FamilyTabBody({
     }
   };
 
-  const remove = async () => {
-    await api.deleteFamily(savedRef.current);
-    onClose();
-  };
-
   const autoSave = useAutoSaveOnBlur({
     enabled: true,
     isDirty: () => !familyDraftMatches(familyToDraft(familyDraftToRecord(draft, savedRef.current)), savedRef.current),
     save,
   });
+
+  const remove = async () => {
+    await api.deleteFamily(savedRef.current);
+    autoSave.release();
+    onClose();
+  };
 
   return (
     <EntityTab>

@@ -119,18 +119,19 @@ function TitleTabBody({
     setLastSaved(after);
   };
 
-  const remove = async () => {
-    const target = lastSaved ?? base;
-    await api.deleteTitle(target);
-    onClose();
-  };
-
   const persisted = lastSaved ?? record;
   const autoSave = useAutoSaveOnBlur({
     enabled: !isNew,
     isDirty: () => persisted !== undefined && JSON.stringify(build()) !== JSON.stringify(persisted),
     save,
   });
+
+  const remove = async () => {
+    const target = lastSaved ?? base;
+    await api.deleteTitle(target);
+    autoSave.release();
+    onClose();
+  };
 
   return (
     <EntityTab onBlur={autoSave.onBlur}>

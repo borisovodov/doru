@@ -107,19 +107,20 @@ function AddressTabBody({
     }
   };
 
-  const remove = async () => {
-    if (record !== undefined) {
-      await api.deleteAddress(record);
-    }
-    onClose();
-  };
-
   const autoSave = useAutoSaveOnBlur({
     enabled: !isNew,
     isDirty: () =>
       addressLoaded && record !== undefined && !addressDraftEmpty(address) && !addressDraftMatches(address, record),
     save,
   });
+
+  const remove = async () => {
+    if (record !== undefined) {
+      await api.deleteAddress(record);
+    }
+    autoSave.release();
+    onClose();
+  };
 
   return (
     <EntityTab onBlur={autoSave.onBlur}>

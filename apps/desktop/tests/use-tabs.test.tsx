@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { act, renderHook } from '@testing-library/react';
 import type { PersonRecord } from '@doru/core';
+import { registerAutoSaveFlush } from '@doru/ui';
 import { nls } from '@doru/workbench';
 import { useTabs } from '../src/renderer/src/hooks/useTabs';
 
@@ -38,6 +39,27 @@ describe('useTabs', () => {
     act(() => result.current.openStatic.export());
     expect(result.current.activeTabId).toBe('export');
     expect(result.current.tabInfos[1]?.label).toBe(nls.t('workbench.exportGedcom'));
+  });
+
+  it('keeps a tab open when its close-time save fails', async () => {
+    const { result } = renderTabs();
+    act(() => result.current.open.person('p1'));
+
+    const unregisterFailure = registerAutoSaveFlush('person:p1', async () => false);
+    await act(async () => {
+      result.current.closeTab('person:p1');
+      await Promise.resolve();
+    });
+    expect(result.current.openTabs).toHaveLength(1);
+    unregisterFailure();
+
+    const unregisterSuccess = registerAutoSaveFlush('person:p1', async () => true);
+    await act(async () => {
+      result.current.closeTab('person:p1');
+      await Promise.resolve();
+    });
+    expect(result.current.openTabs).toHaveLength(0);
+    unregisterSuccess();
   });
 
   it('resets to the tree tab and closes back to it', () => {

@@ -98,7 +98,19 @@ export function useRegistryAddress(api: RegistriesEditorApi, addressId: string |
       }
     }
     setAddressSaveFailed(false);
-    setAddress((current) => ({ ...current, id: record.id }));
+    setAddress((current) => {
+      const storedIds = record.lines.map((line) => line.id);
+      let storedIndex = 0;
+      const lines = current.lines.map((line) => {
+        if (line.value.trim() === '') {
+          return line;
+        }
+        const id = storedIds[storedIndex];
+        storedIndex += 1;
+        return id === undefined ? line : { ...line, id };
+      });
+      return { ...current, id: record.id, lines };
+    });
     setAddressBefore(record);
     return record.id;
   };

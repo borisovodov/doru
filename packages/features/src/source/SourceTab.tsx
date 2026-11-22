@@ -301,14 +301,6 @@ function SourceTabBody({
     }
   };
 
-  const remove = async () => {
-    const target = lastSaved ?? record;
-    if (target) {
-      await api.deleteSource(target);
-    }
-    onClose();
-  };
-
   const autoSave = useAutoSaveOnBlur({
     enabled: !isNew,
     isDirty: () => {
@@ -323,6 +315,15 @@ function SourceTabBody({
     },
     save,
   });
+
+  const remove = async () => {
+    const target = lastSaved ?? record;
+    if (target) {
+      await api.deleteSource(target);
+    }
+    autoSave.release();
+    onClose();
+  };
 
   return (
     <EntityTab>

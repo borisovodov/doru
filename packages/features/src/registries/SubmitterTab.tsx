@@ -183,32 +183,6 @@ function SubmitterTabBody({
     setLastSaved(next);
   };
 
-  const remove = async () => {
-    const target = lastSaved ?? base;
-    await api.deleteSubmitter(target);
-    onClose();
-  };
-
-  const referencedBy = useMemo(
-    () => (targetId !== undefined ? recordSubmitters.filter((link) => link.submitterId === targetId) : []),
-    [recordSubmitters, targetId],
-  );
-  const targetLabels = useMemo(() => {
-    const labels = new Map<string, string>();
-    for (const link of referencedBy) {
-      const key = `${link.targetType}:${link.targetId}`;
-      if (!labels.has(key)) {
-        labels.set(key, taskTargetLabel(link.targetType, link.targetId, targetData));
-      }
-    }
-    return labels;
-  }, [referencedBy, targetData]);
-  const openableTarget = (targetType: string): boolean =>
-    (MEDIA_VISIBLE || !targetType.startsWith('media')) &&
-    ['person', 'family', 'source', 'place', 'repository', 'submitter', 'address', 'task', 'media', 'title'].includes(
-      targetType,
-    );
-
   const persisted = lastSaved ?? record;
   const autoSave = useAutoSaveOnBlur({
     enabled: !isNew,
@@ -232,6 +206,33 @@ function SubmitterTabBody({
     },
     save,
   });
+
+  const remove = async () => {
+    const target = lastSaved ?? base;
+    await api.deleteSubmitter(target);
+    autoSave.release();
+    onClose();
+  };
+
+  const referencedBy = useMemo(
+    () => (targetId !== undefined ? recordSubmitters.filter((link) => link.submitterId === targetId) : []),
+    [recordSubmitters, targetId],
+  );
+  const targetLabels = useMemo(() => {
+    const labels = new Map<string, string>();
+    for (const link of referencedBy) {
+      const key = `${link.targetType}:${link.targetId}`;
+      if (!labels.has(key)) {
+        labels.set(key, taskTargetLabel(link.targetType, link.targetId, targetData));
+      }
+    }
+    return labels;
+  }, [referencedBy, targetData]);
+  const openableTarget = (targetType: string): boolean =>
+    (MEDIA_VISIBLE || !targetType.startsWith('media')) &&
+    ['person', 'family', 'source', 'place', 'repository', 'submitter', 'address', 'task', 'media', 'title'].includes(
+      targetType,
+    );
 
   return (
     <EntityTab onBlur={autoSave.onBlur}>

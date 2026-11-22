@@ -218,14 +218,6 @@ function PlaceTabBody({
     setLastSaved(next);
   };
 
-  const remove = async () => {
-    const target = lastSaved ?? record;
-    if (target) {
-      await api.deletePlace(target);
-    }
-    onClose();
-  };
-
   const autoSave = useAutoSaveOnBlur({
     enabled: !isNew,
     isDirty: () => {
@@ -238,6 +230,15 @@ function PlaceTabBody({
     },
     save,
   });
+
+  const remove = async () => {
+    const target = lastSaved ?? record;
+    if (target) {
+      await api.deletePlace(target);
+    }
+    autoSave.release();
+    onClose();
+  };
 
   const currentPlace = lastSaved ?? record;
   const factsAtPlace =

@@ -55,12 +55,12 @@ export function useTabs(
   }, []);
 
   const closeTab = useCallback((id: string) => {
-    if (!hasAutoSaves()) {
+    if (!hasAutoSaves(id)) {
       setState((current) => closeTabState(current, id));
       return;
     }
     // Keep a tab with a failed close-time save open; its editor shows Retry.
-    void flushAutoSaves().then((saved) => {
+    void flushAutoSaves(id).then((saved) => {
       if (saved) {
         setState((current) => closeTabState(current, id));
       }

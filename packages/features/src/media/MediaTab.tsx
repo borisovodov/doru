@@ -422,6 +422,7 @@ function MediaTabBody({
     autoSave.cancel();
     try {
       await api.deleteMedia(record);
+      autoSave.release();
       onClose();
     } catch (error) {
       autoSave.resume();

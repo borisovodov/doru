@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState, type FocusEvent } from 'react';
-import { registerAutoSaveFlush } from './autosaveRegistry';
+import { registerAutoSaveFlush, useAutoSaveTabId } from './autosaveRegistry';
 
 export interface AutoSaveOnBlurOptions {
   /** Autosave is off for new-entity forms; they are created explicitly. */
@@ -17,17 +17,19 @@ export interface AutoSaveOnBlurOptions {
  * immediately. Controls marked `data-autosave-skip` (Save, Create, Delete)
  * are ignored so an explicit action is never preceded by an extra write.
  * A pending save is flushed when the editor unmounts unless `cancel` was
- * called first (the tab is deleting the entity).
+ * called first (the tab is deleting the entity); `cancel` also blocks closing
+ * until the delete settles.
  */
 export function useAutoSaveOnBlur({ enabled, isDirty, save }: AutoSaveOnBlurOptions) {
+  const tabId = useAutoSaveTabId();
   const saveRef = useRef(save);
   const dirtyRef = useRef(isDirty);
-  const busyRef = useRef<boolean>(false);
-  const queuedRef = useRef<boolean>(false);
   const cancelledRef = useRef<boolean>(false);
+  const closeBlockedRef = useRef<boolean>(false);
   const mountedRef = useRef<boolean>(true);
-  const failedRef = useRef<boolean>(false);
   const timerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const flushPromiseRef = useRef<Promise<boolean> | null>(null);
+  const queuedRef = useRef<boolean>(false);
   const [failed, setFailed] = useState(false);
 
   useEffect(() => {
@@ -36,7 +38,6 @@ export function useAutoSaveOnBlur({ enabled, isDirty, save }: AutoSaveOnBlurOpti
   }, [save, isDirty]);
 
   const setFailure = useCallback((value: boolean) => {
-    failedRef.current = value;
     if (mountedRef.current) {
       setFailed(value);
     }
@@ -47,41 +48,48 @@ export function useAutoSaveOnBlur({ enabled, isDirty, save }: AutoSaveOnBlurOpti
     timerRef.current = undefined;
   }, []);
 
-  const flush = useCallback(async (): Promise<boolean> => {
+  const flush = useCallback((): Promise<boolean> => {
     if (!enabled || cancelledRef.current) {
-      return true;
+      return Promise.resolve(true);
     }
-    if (busyRef.current) {
+    if (flushPromiseRef.current !== null) {
       queuedRef.current = true;
-      return true;
+      return flushPromiseRef.current;
     }
-    if (!dirtyRef.current()) {
-      setFailure(false);
-      return true;
-    }
-    busyRef.current = true;
-    let success = true;
-    try {
-      await saveRef.current();
-    } catch {
-      // The editor owns the error UI; keep the draft for the next attempt.
-      success = false;
-      setFailure(true);
-    } finally {
-      busyRef.current = false;
-      // A concurrent flush marks the queue while this one is awaiting.
-      // oxlint-disable-next-line typescript/no-unnecessary-condition
-      if (queuedRef.current && !cancelledRef.current) {
-        queuedRef.current = false;
-        // Let React commit the save's state updates before the next dirty check.
-        await new Promise((resolve) => setTimeout(resolve, 0));
-        success = await flush();
+    const run = async (): Promise<boolean> => {
+      let success = true;
+      let again = true;
+      while (again) {
+        again = false;
+        if (!dirtyRef.current()) {
+          setFailure(false);
+          break;
+        }
+        try {
+          await saveRef.current();
+          success = true;
+          setFailure(false);
+        } catch {
+          // The editor owns the error UI; keep the draft for the next attempt.
+          success = false;
+          setFailure(true);
+        }
+        if (queuedRef.current && !cancelledRef.current) {
+          queuedRef.current = false;
+          again = true;
+          // Let React commit the saved baseline before the next dirty check.
+          await new Promise((resolve) => setTimeout(resolve, 0));
+        }
       }
-    }
-    if (success) {
-      setFailure(false);
-    }
-    return success;
+      return success;
+    };
+    const promise = run().finally(() => {
+      if (flushPromiseRef.current === promise) {
+        flushPromiseRef.current = null;
+      }
+    });
+    flushPromiseRef.current = promise;
+    return promise;
   }, [enabled, setFailure]);
 
   const flushRef = useRef(flush);
@@ -89,26 +97,34 @@ export function useAutoSaveOnBlur({ enabled, isDirty, save }: AutoSaveOnBlurOpti
     flushRef.current = flush;
   }, [flush]);
 
-  const flushForClose = useCallback(async (): Promise<boolean> => {
-    clearTimer();
-    while (busyRef.current) {
-      await new Promise((resolve) => setTimeout(resolve, 0));
+  const flushForClose = useCallback((): Promise<boolean> => {
+    if (closeBlockedRef.current) {
+      return Promise.resolve(false);
     }
+    clearTimer();
     return flush();
   }, [clearTimer, flush]);
 
   const cancel = useCallback(() => {
     cancelledRef.current = true;
+    closeBlockedRef.current = true;
     queuedRef.current = false;
     clearTimer();
   }, [clearTimer]);
 
   const resume = useCallback(() => {
     cancelledRef.current = false;
+    closeBlockedRef.current = false;
+  }, []);
+
+  /** Allows a successful deletion to close the tab while autosave stays off. */
+  const release = useCallback(() => {
+    closeBlockedRef.current = false;
   }, []);
 
   const retry = useCallback(() => {
     cancelledRef.current = false;
+    closeBlockedRef.current = false;
     void flush();
   }, [flush]);
 
@@ -125,11 +141,11 @@ export function useAutoSaveOnBlur({ enabled, isDirty, save }: AutoSaveOnBlurOpti
   }, [clearTimer]);
 
   useEffect(() => {
-    if (!enabled) {
+    if (!enabled || tabId === null) {
       return undefined;
     }
-    return registerAutoSaveFlush(flushForClose);
-  }, [enabled, flushForClose]);
+    return registerAutoSaveFlush(tabId, flushForClose);
+  }, [enabled, flushForClose, tabId]);
 
   const onBlur = useCallback(
     (event: FocusEvent<HTMLElement>) => {
@@ -163,5 +179,5 @@ export function useAutoSaveOnBlur({ enabled, isDirty, save }: AutoSaveOnBlurOpti
     [clearTimer, enabled, flush],
   );
 
-  return { onBlur, failed, retry, cancel, resume };
+  return { onBlur, failed, retry, cancel, resume, release };
 }

@@ -213,7 +213,7 @@ function TaskTabBody({
 
   const save = async () => {
     if (draft.text.trim() === '' || invalidTimestamp) {
-      return;
+      throw new Error('The task text and timestamp must be valid before saving.');
     }
     const after = taskDraftToRecord(base, draft);
     if (isNew && lastSaved === undefined) {
@@ -223,12 +223,6 @@ function TaskTabBody({
       await api.updateTask(lastSaved ?? base, after);
     }
     setLastSaved(after);
-  };
-
-  const remove = async () => {
-    const target = lastSaved ?? base;
-    await api.deleteTask(target);
-    onClose();
   };
 
   const autoSave = useAutoSaveOnBlur({
@@ -241,6 +235,13 @@ function TaskTabBody({
     },
     save,
   });
+
+  const remove = async () => {
+    const target = lastSaved ?? base;
+    await api.deleteTask(target);
+    autoSave.release();
+    onClose();
+  };
 
   return (
     <EntityTab onBlur={autoSave.onBlur}>

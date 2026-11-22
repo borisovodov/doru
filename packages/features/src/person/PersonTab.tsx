@@ -239,7 +239,10 @@ function PersonTabBody({
               onClick={() => {
                 autoSave.cancel();
                 void onDeletePerson(record)
-                  .then(() => onClose())
+                  .then(() => {
+                    autoSave.release();
+                    onClose();
+                  })
                   .catch(() => autoSave.resume());
               }}
             >
