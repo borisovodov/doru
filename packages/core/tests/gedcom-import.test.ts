@@ -379,6 +379,37 @@ describe('importGedcomDataset', () => {
     }
   });
 
+  it('imports the hierarchy date of a place card', () => {
+    const gedcom = [
+      '0 HEAD',
+      '1 GEDC',
+      '2 VERS 7.0',
+      '0 @PL1@ _PLAC Parent',
+      '0 @PL2@ _PLAC Child',
+      '1 _LOC @PL1@',
+      '2 TYPE POLI',
+      '2 DATE FROM 1900 TO 1910',
+      '0 TRLR',
+    ].join('\n');
+    const result = parse(new TextEncoder().encode(gedcom));
+    if (!result.ok || result.value.kind !== 'dataset') {
+      throw new Error('fixture failed to parse');
+    }
+    const fixture = makeRepo();
+    try {
+      importGedcomDataset(result.value.dataset, fixture.repo);
+      const parent = fixture.repo.listPlaces().find((place) => place.names[0]?.value === 'Parent')!;
+      const child = fixture.repo.listPlaces().find((place) => place.names[0]?.value === 'Child')!;
+      expect(child.hierarchy?.[0]).toMatchObject({
+        parentId: parent.id,
+        type: 'poli',
+        date: { quality: 'range', component: { year: 1900 }, end: { year: 1910 } },
+      });
+    } finally {
+      cleanupRepo(fixture);
+    }
+  });
+
   it('keeps person-side FAMC details without a reciprocal CHIL row', () => {
     const gedcom = [
       '0 HEAD',

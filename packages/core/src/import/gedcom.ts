@@ -122,7 +122,7 @@ interface ImportContext {
   /** Place-card xref → place id. */
   placeCardIds: Map<string, string>;
   /** Place id → parent links resolved after all cards are imported. */
-  placeParents: Map<string, Array<{ parentXref: string; type?: string | undefined }>>;
+  placeParents: Map<string, Array<{ parentXref: string; type?: string | undefined; date?: DateValue | undefined }>>;
   /** Media record xref → media id. */
   mediaIds: Map<string, string>;
   /** Media id → historical place text, resolved after place records exist. */
@@ -2208,6 +2208,7 @@ function importPlaceRecords(records: GedcomRecord[], ctx: ImportContext): void {
         record.parents.map((parent) => ({
           parentXref: parent.parent,
           ...(parent.type !== undefined ? { type: parent.type.toLowerCase() } : {}),
+          ...(parent.date !== undefined ? { date: mapDate(parent.date) } : {}),
         })),
       );
     }
@@ -2224,7 +2225,14 @@ function linkPlaceHierarchy(ctx: ImportContext): void {
     const hierarchy = parents.flatMap((parent) => {
       const parentId = ctx.placeCardIds.get(parent.parentXref);
       return parentId !== undefined
-        ? [{ id: crypto.randomUUID(), parentId, ...(parent.type !== undefined ? { type: parent.type } : {}) }]
+        ? [
+            {
+              id: crypto.randomUUID(),
+              parentId,
+              ...(parent.type !== undefined ? { type: parent.type } : {}),
+              ...(parent.date !== undefined ? { date: parent.date } : {}),
+            },
+          ]
         : [];
     });
     if (hierarchy.length > 0) {
