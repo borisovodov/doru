@@ -330,7 +330,10 @@ erDiagram
 Fact dates live in the `date` table through the forward foreign keys
 `fact.date_id` and `fact.sort_date_id`. A period is one `range` value. The
 import layer folds the vendor `_DATE2` second date into that range's end;
-export writes a single standard `DATE`. See [Dates](#dates).
+export writes a single standard `DATE`. Fact lists sort by `sort_date_id`
+when it contains a usable date, otherwise by `date_id`; the comparison uses
+year, month, day and time, with `BEF` before and `AFT` after the component
+and unknown dates last. See [Dates](#dates).
 
 ## Associations
 

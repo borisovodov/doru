@@ -345,7 +345,12 @@ export class FactRepo {
     return this.hydrate(rows);
   }
 
-  /** Attaches each fact's dates and sub-rows and orders by sort year (unknown dates last, rowid as tiebreak). */
+  /**
+   * Attaches each fact's dates and sub-rows and orders by the effective
+   * sorting date: `sortDate` when it has a usable date, otherwise `date`.
+   * Date-only components compare at their start; `BEF` sorts before the
+   * component and `AFT` after it; unknown dates go last. Row id breaks ties.
+   */
   private hydrate(rows: FactRow[]): FactRecord[] {
     const factIds = rows.map((row) => row.id);
     const dates = this.dates.getMany(rows.flatMap((row) => [row.date_id, row.sort_date_id]));
@@ -359,11 +364,7 @@ export class FactRepo {
         fact: rowToFact(row, dates, agesByFact, participantsByFact, flagsByFact, placesByFact, familyLinksByFact),
         rowid: row.rowid,
       }))
-      .sort((a, b) => {
-        const yearA = sortYear(a.fact.date) ?? sortYear(a.fact.sortDate) ?? Number.POSITIVE_INFINITY;
-        const yearB = sortYear(b.fact.date) ?? sortYear(b.fact.sortDate) ?? Number.POSITIVE_INFINITY;
-        return yearA - yearB || a.rowid - b.rowid;
-      })
+      .sort((a, b) => compareFactDates(a.fact, b.fact) || a.rowid - b.rowid)
       .map(({ fact }) => fact);
   }
 
@@ -607,8 +608,82 @@ function factValueParams(fact: FactRecord): Array<string | number | null> {
 }
 
 /** The year the fact sorts by: the date's sort year, falling back to the sort date's. */
-function sortYear(date: DateValue | undefined): number | null {
-  return signedYear(date?.component) ?? signedYear(date?.end) ?? null;
+interface DateSortKey {
+  year: number;
+  month: number;
+  day: number;
+  bound: number;
+  seconds: number;
+}
+
+/**
+ * SDATE is the sorting hint when it has a usable date; otherwise DATE is
+ * shown and sorted. A phrase-only hint cannot position an event, so it falls
+ * back to the display date.
+ */
+function effectiveSortDate(fact: FactRecord): DateValue | undefined {
+  return dateSortKey(fact.sortDate) !== undefined ? fact.sortDate : fact.date;
+}
+
+function compareFactDates(left: FactRecord, right: FactRecord): number {
+  const leftKey = dateSortKey(effectiveSortDate(left));
+  const rightKey = dateSortKey(effectiveSortDate(right));
+  if (leftKey === undefined) {
+    return rightKey === undefined ? 0 : 1;
+  }
+  if (rightKey === undefined) {
+    return -1;
+  }
+  return (
+    leftKey.year - rightKey.year ||
+    leftKey.month - rightKey.month ||
+    leftKey.day - rightKey.day ||
+    leftKey.bound - rightKey.bound ||
+    leftKey.seconds - rightKey.seconds
+  );
+}
+
+/**
+ * The recommended SDATE shape is `[[day] month] year`, but the wire type is
+ * DateValue. Missing month/day compare at the start of the known interval;
+ * BEF sorts before its component and AFT after it. Ranges use their start,
+ * or their end when the start is open.
+ */
+function dateSortKey(date: DateValue | undefined): DateSortKey | undefined {
+  if (date === undefined) {
+    return undefined;
+  }
+  const component = date.component ?? date.end;
+  if (component === undefined || component.year === undefined) {
+    return undefined;
+  }
+  const year = signedYear(component);
+  if (year === undefined) {
+    return undefined;
+  }
+  const numericMonth = typeof component.month === 'number' ? component.month : 1;
+  let month = numericMonth;
+  let day = component.day ?? 1;
+  const bound = date.quality === 'before' ? 0 : date.quality === 'after' ? 2 : 1;
+  if (date.quality === 'after') {
+    if (typeof component.month !== 'number') {
+      month = 12;
+      day = 31;
+    } else if (component.day === undefined) {
+      day = daysInMonth(year, numericMonth);
+    }
+  }
+  if (date.quality === 'before' && component.day === undefined) {
+    day = 1;
+  }
+  const time = date.time;
+  const seconds = time === undefined ? 0 : time.hour * 3600 + time.minute * 60 + (time.second ?? 0);
+  return { year, month, day, bound, seconds };
+}
+
+function daysInMonth(year: number, month: number): number {
+  const leap = year % 4 === 0 && (year % 100 !== 0 || year % 400 === 0);
+  return [31, leap ? 29 : 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31][month - 1] ?? 31;
 }
 
 function rowToFact(
