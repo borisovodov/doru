@@ -2,7 +2,7 @@
 
 A Dóru project is a single `.doru` file: a SQLite database branded with
 `application_id = 0x444F5255` ("DORU") and versioned with `user_version`.
-This document is the field-level reference for **schema version 13**. The
+This document is the field-level reference for **schema version 14**. The
 source of truth is [`packages/core/src/db/schema.ts`](../packages/core/src/db/schema.ts);
 the domain shapes that the repositories map onto the rows live in
 [`packages/core/src/model/types.ts`](../packages/core/src/model/types.ts).
@@ -13,11 +13,11 @@ they are counted as dropped on import, and export synthesizes a fresh header.
 
 ## At a glance
 
-- **50 tables**, **65 indexes**, and **14 date-cleanup triggers**.
+- **50 tables**, **84 indexes**, and no date-delete triggers.
 - The core genealogy model is `person` → `person_name` / `fact`, with
   `family` joining people through `family_partner` and `family_child`.
-- Dates are normalized into one polymorphic `date` table instead of columns
-  on every entity.
+- Dates are normalized into one `date` value table; owner rows reference
+  their date slots through explicit `*_date_id` foreign keys.
 - Notes, citations, media, tags, identifiers, contacts, restrictions,
   contributors, and tasks attach through a polymorphic
   `(target_type, target_id)` pair.
@@ -35,9 +35,9 @@ they are counted as dropped on import, and export synthesizes a fresh header.
 - SQLite storage classes are used as types (`TEXT`, `INTEGER`, `REAL`).
   Domain-level enums are still `TEXT` so unknown future values do not make a
   file unreadable.
-- Polymorphic targets (`target_type` + `target_id`) and date owners
-  (`owner_type` + `owner_id`) cannot be drawn as ordinary foreign-key lines;
-  they are called out in the text.
+- Polymorphic targets (`target_type` + `target_id`) cannot be drawn as
+  ordinary foreign-key lines; they are called out in the text. Date slots are
+  ordinary forward foreign keys and appear as normal `FK` columns.
 
 ## Conventions
 
@@ -52,9 +52,8 @@ they are counted as dropped on import, and export synthesizes a fresh header.
   lowercase where they have a textual form.
 - Enum-like columns have no `CHECK` constraint. The only structural checks are
   the "exactly one owner" checks on `fact` and `association`.
-- `target_type` values are listed in `TARGET_TYPES`. `date.owner_type` values
-  are listed in `DateOwnerType`; they are a separate vocabulary because a date
-  belongs to a row, not to an attachment target.
+- `target_type` values are listed in `TARGET_TYPES`. Date slots are plain
+  `*_date_id` columns on the owner table; the role is the column name.
 
 ---
 
@@ -102,6 +101,7 @@ erDiagram
         TEXT short_name
         TEXT name_as_recorded
         TEXT given_name_used
+        TEXT period_date_id FK "nullable, RESTRICT"
     }
 
     name_part {
@@ -165,6 +165,7 @@ erDiagram
         TEXT name "partner name as written on the link"
         TEXT civil_status
         TEXT marriage_number
+        TEXT date_id FK "nullable, RESTRICT"
     }
 
     family_child {
@@ -188,6 +189,7 @@ erDiagram
         TEXT status "NOT NULL"
         TEXT place_id FK "nullable, SET NULL"
         INTEGER position "NOT NULL"
+        TEXT date_id FK "nullable, RESTRICT"
     }
 
     family_witness {
@@ -257,6 +259,9 @@ erDiagram
         INTEGER description_aware "NOT NULL, default 0"
         REAL map_latitude "vendor _COR"
         REAL map_longitude "vendor _COR"
+        TEXT date_id FK "nullable, RESTRICT"
+        TEXT end_date_id FK "nullable, RESTRICT"
+        TEXT sort_date_id FK "nullable, RESTRICT"
     }
 
     fact_age {
@@ -318,8 +323,8 @@ erDiagram
     }
 ```
 
-Fact dates live in the `date` table, not in `fact` columns:
-`owner_type = 'fact'` with roles `event`, `end`, and `sort`. See
+Fact dates live in the `date` table through the forward foreign keys
+`fact.date_id`, `fact.end_date_id`, and `fact.sort_date_id`. See
 [Dates](#dates).
 
 ## Associations
@@ -345,6 +350,8 @@ erDiagram
         INTEGER primary_flag "NOT NULL, default 0"
         TEXT specific_type
         TEXT confidence
+        TEXT period_start_date_id FK
+        TEXT period_end_date_id FK
     }
 
     person {
@@ -358,18 +365,14 @@ erDiagram
 
 ## Dates
 
-There is one normalized date table. A date row belongs to exactly one owner
-row and one role, and the owner's lifecycle governs it. The 14 triggers at the
-end of the schema delete `date` rows when their owner is deleted, including
-when the owner is removed by a foreign-key cascade.
+`date` is a value table: each row holds one complete date value and has no
+owner or role columns. Owner rows reference their slots through forward
+foreign keys with `ON DELETE RESTRICT`.
 
 ```mermaid
 erDiagram
     date {
         TEXT id PK
-        TEXT owner_type "NOT NULL: see owner types below"
-        TEXT owner_id "NOT NULL: UUID of the owner row"
-        TEXT role "NOT NULL: date slot on the owner"
         TEXT quality "NOT NULL: exact, about, before, after, range, unknown"
         TEXT modifier "ABT, CAL, EST"
         TEXT calendar "NULL = Gregorian; julian, french_republican, hebrew, ext"
@@ -391,24 +394,45 @@ erDiagram
     }
 ```
 
-Unique key: `(owner_type, owner_id, role)`.
+The role of a date is the name of the column that references it:
 
-| `owner_type` | Owner table | Roles used |
-|---|---|---|
-| `person_name` | `person_name` | `period` |
-| `family_partner` | `family_partner` | `date` |
-| `family_marriage_status` | `family_marriage_status` | `date` |
-| `fact` | `fact` | `event`, `end`, `sort` |
-| `place_name` | `place_name` | `date` |
-| `place_hierarchy` | `place_hierarchy` | `date` |
-| `place_postal_code` | `place_postal_code` | `date` |
-| `source` | `source` | `publication` |
-| `source_data_event` | `source_data_event` | `date` |
-| `citation` | `citation` | `date` |
-| `media` | `media` | `date` |
-| `tag_link` | `tag_link` | `date` |
-| `task` | `task` | `created`, `scheduled`, `reminder`, `closed` |
-| `association` | `association` | `period_start`, `period_end` |
+| Owner table | Date columns |
+|---|---|
+| `person_name` | `period_date_id` |
+| `family_partner` | `date_id` |
+| `family_marriage_status` | `date_id` |
+| `fact` | `date_id`, `end_date_id`, `sort_date_id` |
+| `place_name` | `date_id` |
+| `place_hierarchy` | `date_id` |
+| `place_postal_code` | `date_id` |
+| `source` | `publication_date_id` |
+| `source_data_event` | `date_id` |
+| `citation` | `date_id` |
+| `media` | `date_id` |
+| `tag_link` | `date_id` |
+| `task` | `created_date_id`, `scheduled_date_id`, `reminder_date_id`, `closed_date_id` |
+| `association` | `period_start_date_id`, `period_end_date_id` |
+
+A column is nullable and each slot holds at most one date. The foreign keys
+use `ON DELETE RESTRICT`: deleting a date row that is still referenced by any
+owner fails loudly.
+
+There are no `AFTER DELETE` triggers. Repositories create the date rows before
+the owner row and release them explicitly:
+
+- Insert: create the date rows, then insert the owner row with their ids.
+- Update: `DateRepo.prepareSlots` writes the surviving dates, keeps the id of
+  every occupied slot, returns the ids for the owner update, and reports the
+  old ids to delete after the owner row no longer references them.
+- Delete: collect the owner's date ids, delete the owner row (including its
+  cascades), then delete the collected date rows.
+
+A date row has exactly one owner by application convention. The schema cannot
+express "unique across fourteen tables"; repositories never share a date, and
+a copy gets a fresh id. Tests check that no date is orphaned, and
+`ON DELETE RESTRICT` catches a leaked share during deletion. Any new
+date-owning table must add its `*_date_id` columns, indexes, and delete
+cleanup in the repository.
 
 ## Places
 
@@ -449,6 +473,7 @@ erDiagram
         TEXT addition
         TEXT abbreviation
         TEXT abbreviation_type
+        TEXT date_id FK "nullable, RESTRICT"
     }
 
     place_hierarchy {
@@ -456,12 +481,14 @@ erDiagram
         TEXT parent_id FK
         TEXT child_id FK
         TEXT type "poli, reli, geog, cult; UNIQUE with parent and child"
+        TEXT date_id FK "nullable, RESTRICT"
     }
 
     place_postal_code {
         TEXT id PK
         TEXT place_id FK
         TEXT code "NOT NULL"
+        TEXT date_id FK "nullable, RESTRICT"
     }
 ```
 
@@ -503,6 +530,7 @@ erDiagram
         TEXT subsequent_citation_format "vendor _SUBQ"
         TEXT bibliography "vendor _BIBL"
         TEXT data_note
+        TEXT publication_date_id FK "nullable, RESTRICT"
     }
 
     source_text {
@@ -519,6 +547,7 @@ erDiagram
         TEXT tag "NOT NULL"
         TEXT value
         TEXT place_id FK "nullable, SET NULL"
+        TEXT date_id FK "nullable, RESTRICT"
     }
 
     source_repository {
@@ -608,6 +637,7 @@ erDiagram
         INTEGER verified "NOT NULL, default 0"
         TEXT assessment
         TEXT found_by
+        TEXT date_id FK "nullable, RESTRICT"
     }
 
     citation_text {
@@ -656,6 +686,7 @@ erDiagram
         TEXT object_type "_TYPE: Photo, Sound, Video, Document, ..."
         TEXT description "_DSCR"
         TEXT keywords "_KEYS"
+        TEXT date_id FK "nullable, RESTRICT"
     }
 
     media_file {
@@ -804,8 +835,8 @@ erDiagram
 ## Attachments and research
 
 These tables are the cross-cutting layer. Most of them use the polymorphic
-`(target_type, target_id)` shape; `date` uses the separate
-`(owner_type, owner_id, role)` shape.
+`(target_type, target_id)` shape; dates are ordinary forward foreign keys
+from the owner table.
 
 ```mermaid
 erDiagram
@@ -845,6 +876,7 @@ erDiagram
         TEXT tag_id FK
         TEXT target_type "NOT NULL, polymorphic target"
         TEXT target_id "NOT NULL, UUID"
+        TEXT date_id FK "nullable, RESTRICT"
     }
 
     task {
@@ -854,6 +886,10 @@ erDiagram
         TEXT target_id "nullable; UUID when attached"
         TEXT priority
         TEXT status
+        TEXT created_date_id FK "nullable, RESTRICT"
+        TEXT scheduled_date_id FK "nullable, RESTRICT"
+        TEXT reminder_date_id FK "nullable, RESTRICT"
+        TEXT closed_date_id FK "nullable, RESTRICT"
     }
 ```
 
@@ -937,13 +973,15 @@ References that are cleared instead of deleting the child use `SET NULL`:
 - `source_data_event.place_id`
 - `source.title_id`, `title.repository_id`
 
-`date` rows are not foreign-key children. They are removed by 15
-`AFTER DELETE` triggers, one per owner table. Any new date-owning table must
-add a matching trigger and a `DateOwnerType` value.
+`date` rows are referenced by owner rows through forward foreign keys and
+are not cleaned up by triggers. The repositories create dates before the
+owner row and delete them after the owner row is gone; `ON DELETE RESTRICT`
+rejects deleting a date that is still referenced. Any new date-owning table
+must add a `*_date_id` column and date cleanup to its repository.
 
 ## Indexes
 
-The schema has 65 regular indexes:
+The schema has 84 regular indexes:
 
 - Parent/child lookups are indexed on the child columns: `person_name`,
   `name_part`, `family_partner`, `family_child`, `fact_*`, `place_*`,
@@ -951,7 +989,9 @@ The schema has 65 regular indexes:
   `submitter_language`, `record_submitter`, `tag_link`, and the rest.
 - Ordered child lists use `(parent_id, position)`.
 - Polymorphic attachment tables use `(target_type, target_id)`.
-- `date` uses `(owner_type, owner_id)`.
+- Every date slot has its own index (`person_name.period_date_id`,
+  `fact.date_id`, `task.created_date_id`, …) so the `RESTRICT` check does not
+  scan owner tables.
 - No search index or FTS table exists yet. Person search is an in-memory
   substring scan over the stored name parts.
 
@@ -996,8 +1036,8 @@ When adding a table or column, keep the following checklist:
    shared references.
 5. If the new row can receive notes, sources, media, tags, tasks, or other
    attachments, add its type to `TARGET_TYPES` and wire the op cleanup.
-6. If the new row can own dates, add a `DateOwnerType` value and an
-   `AFTER DELETE` trigger.
+6. If the new row can own dates, add its `*_date_id` columns (with
+   `ON DELETE RESTRICT`), indexes, and repository delete cleanup.
 7. Add indexes for every foreign-key child column and for ordered lists.
 8. Keep enum-like columns as plain `TEXT`; do not add a `CHECK` that would
    reject a future value.

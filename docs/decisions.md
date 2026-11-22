@@ -89,6 +89,26 @@ status instead. The record-form `_TTIL` title and the GEDCOM-L `TYPE` task kind 
 solution text are dropped too: Dóru has one task text, no task-type taxonomy,
 and no separate task-result field.
 
+## Dates are forward-referenced values
+
+A date is a value row in `date`, not a child row with a polymorphic owner.
+Each owner table has one column per date slot (`fact.date_id`,
+`task.created_date_id`, `association.period_start_date_id`, …) pointing at
+the value with `ON DELETE RESTRICT`. The column name is the role; there is no
+`owner_type`/`role` vocabulary.
+
+This gives the schema real foreign keys and makes a task's dates visible on
+the task row. The trade-off is that SQLite cannot express "exactly one owner"
+across fourteen referencing tables. Repositories keep that invariant: a date
+row is created for one owner and never shared, and a copied row gets a fresh
+date id. `ON DELETE RESTRICT` turns a leaked share into a loud failure.
+
+There are no date-delete triggers. Repositories delete the dates explicitly
+after the owner row is gone, including for cascaded children (a deleted
+person's names, facts and family links; a deleted source's events and
+citations). The update path writes surviving slots first, updates the owner,
+then releases the old ids. Tests assert that no date rows are left orphaned.
+
 ## No persistent change log
 
 There is no `change_log` table and no `CHAN`/`CREA` mapping. Undo/redo is an

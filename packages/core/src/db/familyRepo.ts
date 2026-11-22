@@ -23,6 +23,7 @@ interface PartnerRow {
   name: string | null;
   civil_status: string | null;
   marriage_number: string | null;
+  date_id: string | null;
 }
 
 interface ChildRow {
@@ -98,7 +99,19 @@ export class FamilyRepo {
   }
 
   deleteFamily(id: string): boolean {
-    return this.transactions.run(() => this.db.prepare('DELETE FROM family WHERE id = ?').run(id).changes > 0);
+    return this.transactions.run(() => {
+      const partnerDates = this.db
+        .prepare('SELECT date_id FROM family_partner WHERE family_id = ?')
+        .all(id) as unknown as Array<{ date_id: string | null }>;
+      const statusDates = this.db
+        .prepare('SELECT date_id FROM family_marriage_status WHERE family_id = ?')
+        .all(id) as unknown as Array<{ date_id: string | null }>;
+      const changed = this.db.prepare('DELETE FROM family WHERE id = ?').run(id).changes > 0;
+      if (changed) {
+        this.dates.deleteMany([...partnerDates.map((row) => row.date_id), ...statusDates.map((row) => row.date_id)]);
+      }
+      return changed;
+    });
   }
 
   listFamilies(): FamilyRecord[] {
@@ -134,18 +147,23 @@ export class FamilyRepo {
     existingPartners: Map<string, PartnerRow>,
     existingChildren?: Map<string, ChildRow>,
   ): void {
-    const reservedPartnerDates = this.dates.reservationsFor(
-      'family_partner',
-      [...existingPartners.values()].map((row) => row.id),
-    );
     const partnerLinks = family.partnerLinks ?? derivedPartnerLinks(family);
     const children = existingChildren ?? new Map<string, ChildRow>();
     const childLinks = family.childLinks ?? derivedChildLinks(family);
+    const stalePartnerDates = [...existingPartners.values()].map((row) => row.date_id);
+    const partnerDateReservations = new Map<string, string>();
+    for (const row of existingPartners.values()) {
+      if (row.date_id !== null) {
+        partnerDateReservations.set(row.date_id, row.id);
+      }
+    }
 
     this.db.prepare('DELETE FROM family_partner WHERE family_id = ?').run(family.id);
+    this.dates.deleteMany(stalePartnerDates);
     const insertPartner = this.db.prepare(
       `INSERT INTO family_partner (id, family_id, person_id, position, preferred,
-        phrase, name, civil_status, marriage_number) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        phrase, name, civil_status, marriage_number, date_id)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     );
     const personExists = this.db.prepare('SELECT 1 FROM person WHERE id = ?');
     partnerLinks.forEach((link, position) => {
@@ -155,6 +173,10 @@ export class FamilyRepo {
       const previous = existingPartners.get(link.personId);
       const linkId = previous?.id ?? link.id;
       const preferred = link.preferred === true;
+      const dateId =
+        link.date !== undefined
+          ? this.dates.create(link.date, { ownerKey: linkId, reserved: partnerDateReservations })
+          : null;
       insertPartner.run(
         linkId,
         family.id,
@@ -165,8 +187,8 @@ export class FamilyRepo {
         link.name ?? null,
         link.civilStatus ?? null,
         link.marriageNumber ?? null,
+        dateId,
       );
-      this.dates.upsertForOwner('family_partner', linkId, 'date', link.date, reservedPartnerDates);
     });
 
     this.db.prepare('DELETE FROM family_child WHERE family_id = ?').run(family.id);
@@ -201,14 +223,10 @@ export class FamilyRepo {
     const partners = this.listPartnerRows(row.id).sort((a, b) => a.position - b.position);
     const children = this.listChildRows(row.id).sort((a, b) => a.position - b.position);
     const statuses = this.listMarriageStatuses(row.id);
-    const partnerDates = this.dates.getManyForOwners(
-      'family_partner',
-      partners.map((link) => link.id),
-    );
-    const statusDates = this.dates.getManyForOwners(
-      'family_marriage_status',
-      statuses.map((status) => status.id),
-    );
+    const dates = this.dates.getMany([
+      ...partners.map((link) => link.date_id),
+      ...statuses.map((status) => status.date_id),
+    ]);
     return {
       id: row.id,
       xref: row.xref ?? undefined,
@@ -224,7 +242,7 @@ export class FamilyRepo {
         id: link.id,
         personId: link.person_id,
         preferred: link.preferred === 1 ? true : undefined,
-        date: partnerDates.get(link.id)?.get('date'),
+        date: link.date_id !== null ? dates.get(link.date_id) : undefined,
         phrase: link.phrase ?? undefined,
         name: link.name ?? undefined,
         civilStatus: link.civil_status ?? undefined,
@@ -247,7 +265,7 @@ export class FamilyRepo {
             marriageStatuses: statuses.map((status) => ({
               id: status.id,
               status: status.status,
-              date: statusDates.get(status.id)?.get('date'),
+              date: status.date_id !== null ? dates.get(status.date_id) : undefined,
               placeId: status.place_id ?? undefined,
             })),
           }
@@ -259,7 +277,7 @@ export class FamilyRepo {
   private listPartnerRows(familyId: string): PartnerRow[] {
     return this.db
       .prepare(
-        `SELECT id, person_id, position, preferred, phrase, name, civil_status, marriage_number
+        `SELECT id, person_id, position, preferred, phrase, name, civil_status, marriage_number, date_id
          FROM family_partner WHERE family_id = ?`,
       )
       .all(familyId) as unknown as PartnerRow[];
@@ -279,13 +297,15 @@ export class FamilyRepo {
     id: string;
     status: string;
     place_id: string | null;
+    date_id: string | null;
   }> {
     return this.db
-      .prepare('SELECT id, status, place_id FROM family_marriage_status WHERE family_id = ? ORDER BY position')
+      .prepare('SELECT id, status, place_id, date_id FROM family_marriage_status WHERE family_id = ? ORDER BY position')
       .all(familyId) as unknown as Array<{
       id: string;
       status: string;
       place_id: string | null;
+      date_id: string | null;
     }>;
   }
 
@@ -298,19 +318,27 @@ export class FamilyRepo {
   }
 
   private replaceDetails(family: FamilyRecord): void {
-    const reservedStatusDates = this.dates.reservationsFor(
-      'family_marriage_status',
-      this.listMarriageStatuses(family.id).map((status) => status.id),
-    );
+    const currentStatuses = this.listMarriageStatuses(family.id);
+    const staleStatusDates = currentStatuses.map((status) => status.date_id);
+    const statusDateReservations = new Map<string, string>();
+    for (const status of currentStatuses) {
+      if (status.date_id !== null) {
+        statusDateReservations.set(status.date_id, status.id);
+      }
+    }
     this.db.prepare('DELETE FROM family_marriage_status WHERE family_id = ?').run(family.id);
+    this.dates.deleteMany(staleStatusDates);
     this.db.prepare('DELETE FROM family_witness WHERE family_id = ?').run(family.id);
     const insertStatus = this.db.prepare(
-      `INSERT INTO family_marriage_status (id, family_id, status, place_id, position)
-       VALUES (?, ?, ?, ?, ?)`,
+      `INSERT INTO family_marriage_status (id, family_id, status, place_id, position, date_id)
+       VALUES (?, ?, ?, ?, ?, ?)`,
     );
     (family.marriageStatuses ?? []).forEach((status, position) => {
-      insertStatus.run(status.id, family.id, status.status, status.placeId ?? null, position);
-      this.dates.upsertForOwner('family_marriage_status', status.id, 'date', status.date, reservedStatusDates);
+      const dateId =
+        status.date !== undefined
+          ? this.dates.create(status.date, { ownerKey: status.id, reserved: statusDateReservations })
+          : null;
+      insertStatus.run(status.id, family.id, status.status, status.placeId ?? null, position, dateId);
     });
     const insertWitness = this.db.prepare(
       'INSERT INTO family_witness (id, family_id, value, position) VALUES (?, ?, ?, ?)',

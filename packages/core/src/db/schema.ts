@@ -21,9 +21,10 @@
  * - Every addressable row — including link rows (`family_partner`,
  *   `family_child`) — carries its own UUID, so the polymorphic attachment
  *   tables can point at anything.
- * - Dates live in one normalized `date` table. Every date row belongs to
- *   exactly one owner row and one role (`owner_type`, `owner_id`, `role`);
- *   owner triggers delete its date rows on delete. Ordering is derived in
+ * - Dates live in one normalized `date` table. Owner rows reference their
+ *   dates through explicit `*_date_id` foreign keys with
+ *   `ON DELETE RESTRICT`; the repositories delete the date rows together
+ *   with their owner (there are no delete triggers). Ordering is derived in
  *   TypeScript from the date components. See `model/types.ts`.
  * - Names are normalized into `person_name` rows plus `name_part` piece rows
  *   (any number of given names, surnames, …). The flat pieces exposed by the
@@ -45,10 +46,10 @@ export const DORU_APPLICATION_ID = 0x444f5255;
  * Bumped whenever the schema changes. There are no migrations before 1.0.0:
  * a newer version may simply not understand files written by older ones
  * (the store refuses to open them with a loud error). This schema uses
- * version 13, above every version written by an earlier build (the old model
- * reached 6), so the open guard cannot mistake an old file for this one.
+ * version 14, above every version written by an earlier build (the old model
+ * reached 13), so the open guard cannot mistake an old file for this one.
  */
-export const SCHEMA_VERSION = 13;
+export const SCHEMA_VERSION = 14;
 
 export const SCHEMA_SQL = `
 CREATE TABLE IF NOT EXISTS person (
@@ -78,7 +79,8 @@ CREATE TABLE IF NOT EXISTS person_name (
   title TEXT,
   short_name TEXT,
   name_as_recorded TEXT,
-  given_name_used TEXT
+  given_name_used TEXT,
+  period_date_id TEXT REFERENCES date(id) ON DELETE RESTRICT
 );
 
 CREATE TABLE IF NOT EXISTS name_part (
@@ -110,6 +112,7 @@ CREATE TABLE IF NOT EXISTS family_partner (
   name TEXT,
   civil_status TEXT,
   marriage_number TEXT,
+  date_id TEXT REFERENCES date(id) ON DELETE RESTRICT,
   UNIQUE (family_id, person_id)
 );
 
@@ -136,7 +139,8 @@ CREATE TABLE IF NOT EXISTS family_marriage_status (
   family_id TEXT NOT NULL REFERENCES family(id) ON DELETE CASCADE,
   status TEXT NOT NULL,
   place_id TEXT REFERENCES place(id) ON DELETE SET NULL,
-  position INTEGER NOT NULL
+  position INTEGER NOT NULL,
+  date_id TEXT REFERENCES date(id) ON DELETE RESTRICT
 );
 
 -- Free-text vendor witnesses (_WITN/_GODT), names rather than person
@@ -151,9 +155,6 @@ CREATE TABLE IF NOT EXISTS family_witness (
 
 CREATE TABLE IF NOT EXISTS date (
   id TEXT PRIMARY KEY,
-  owner_type TEXT NOT NULL,  -- person_name | family_partner | fact | ...
-  owner_id TEXT NOT NULL,    -- the owning row's UUID
-  role TEXT NOT NULL,        -- date slot: period | event | end | created | ...
   quality TEXT NOT NULL,     -- exact | about | before | after | range | unknown
   modifier TEXT,             -- ABT | CAL | EST
   calendar TEXT,             -- NULL = gregorian; julian | french_republican | hebrew | ext
@@ -161,8 +162,7 @@ CREATE TABLE IF NOT EXISTS date (
   end_calendar TEXT, end_year INTEGER, end_month TEXT, end_day INTEGER, end_epoch TEXT,
   text TEXT,                 -- free-text phrase
   time_hour INTEGER, time_minute INTEGER, time_second INTEGER,
-  time_fraction TEXT, utc INTEGER NOT NULL DEFAULT 0,
-  UNIQUE (owner_type, owner_id, role)
+  time_fraction TEXT, utc INTEGER NOT NULL DEFAULT 0
 );
 
 CREATE TABLE IF NOT EXISTS fact (
@@ -191,6 +191,9 @@ CREATE TABLE IF NOT EXISTS fact (
   description_aware INTEGER NOT NULL DEFAULT 0,
   map_latitude REAL,
   map_longitude REAL,
+  date_id TEXT REFERENCES date(id) ON DELETE RESTRICT,
+  end_date_id TEXT REFERENCES date(id) ON DELETE RESTRICT,
+  sort_date_id TEXT REFERENCES date(id) ON DELETE RESTRICT,
   CHECK ((person_id IS NULL) + (family_id IS NULL) = 1)
 );
 
@@ -236,7 +239,8 @@ CREATE TABLE IF NOT EXISTS place_name (
   value TEXT NOT NULL,
   addition TEXT,
   abbreviation TEXT,
-  abbreviation_type TEXT
+  abbreviation_type TEXT,
+  date_id TEXT REFERENCES date(id) ON DELETE RESTRICT
 );
 
 CREATE TABLE IF NOT EXISTS place_hierarchy (
@@ -244,13 +248,15 @@ CREATE TABLE IF NOT EXISTS place_hierarchy (
   parent_id TEXT NOT NULL REFERENCES place(id) ON DELETE CASCADE,
   child_id TEXT NOT NULL REFERENCES place(id) ON DELETE CASCADE,
   type TEXT,                -- poli | reli | geog | cult
+  date_id TEXT REFERENCES date(id) ON DELETE RESTRICT,
   UNIQUE (parent_id, child_id, type)
 );
 
 CREATE TABLE IF NOT EXISTS place_postal_code (
   id TEXT PRIMARY KEY,
   place_id TEXT NOT NULL REFERENCES place(id) ON DELETE CASCADE,
-  code TEXT NOT NULL
+  code TEXT NOT NULL,
+  date_id TEXT REFERENCES date(id) ON DELETE RESTRICT
 );
 
 -- Notes: shared or inline. A note is one text row; note_link attaches it to
@@ -297,7 +303,8 @@ CREATE TABLE IF NOT EXISTS source (
   certainty TEXT,           -- record-level QUAY
   subsequent_citation_format TEXT, -- _SUBQ
   bibliography TEXT,        -- _BIBL
-  data_note TEXT
+  data_note TEXT,
+  publication_date_id TEXT REFERENCES date(id) ON DELETE RESTRICT
 );
 
 CREATE TABLE IF NOT EXISTS source_text (
@@ -312,7 +319,8 @@ CREATE TABLE IF NOT EXISTS source_data_event (
   source_id TEXT NOT NULL REFERENCES source(id) ON DELETE CASCADE,
   tag TEXT NOT NULL,
   value TEXT,
-  place_id TEXT REFERENCES place(id) ON DELETE SET NULL
+  place_id TEXT REFERENCES place(id) ON DELETE SET NULL,
+  date_id TEXT REFERENCES date(id) ON DELETE RESTRICT
 );
 
 CREATE TABLE IF NOT EXISTS source_repository (
@@ -360,7 +368,8 @@ CREATE TABLE IF NOT EXISTS citation (
   footnote TEXT,
   verified INTEGER NOT NULL DEFAULT 0,
   assessment TEXT,
-  found_by TEXT
+  found_by TEXT,
+  date_id TEXT REFERENCES date(id) ON DELETE RESTRICT
 );
 
 CREATE TABLE IF NOT EXISTS citation_text (
@@ -393,7 +402,8 @@ CREATE TABLE IF NOT EXISTS media (
   place_text TEXT,
   object_type TEXT,       -- _TYPE: Photo | Sound | Video | Document ...
   description TEXT,       -- _DSCR
-  keywords TEXT           -- _KEYS
+  keywords TEXT,          -- _KEYS
+  date_id TEXT REFERENCES date(id) ON DELETE RESTRICT
 );
 
 CREATE TABLE IF NOT EXISTS media_file (
@@ -509,7 +519,8 @@ CREATE TABLE IF NOT EXISTS tag_link (
   id TEXT PRIMARY KEY,
   tag_id TEXT NOT NULL REFERENCES tag(id) ON DELETE CASCADE,
   target_type TEXT NOT NULL,
-  target_id TEXT NOT NULL
+  target_id TEXT NOT NULL,
+  date_id TEXT REFERENCES date(id) ON DELETE RESTRICT
 );
 
 -- Fact details: ages, participants (witnesses, shared-event people) and
@@ -551,6 +562,8 @@ CREATE TABLE IF NOT EXISTS association (
   primary_flag INTEGER NOT NULL DEFAULT 0,
   specific_type TEXT,
   confidence TEXT,
+  period_start_date_id TEXT REFERENCES date(id) ON DELETE RESTRICT,
+  period_end_date_id TEXT REFERENCES date(id) ON DELETE RESTRICT,
   CHECK ((person_id IS NULL) + (family_id IS NULL) = 1)
 );
 
@@ -568,7 +581,11 @@ CREATE TABLE IF NOT EXISTS task (
   id TEXT PRIMARY KEY,
   text TEXT NOT NULL,
   target_type TEXT, target_id TEXT,  -- may be a free-standing task
-  priority TEXT, status TEXT
+  priority TEXT, status TEXT,
+  created_date_id TEXT REFERENCES date(id) ON DELETE RESTRICT,
+  scheduled_date_id TEXT REFERENCES date(id) ON DELETE RESTRICT,
+  reminder_date_id TEXT REFERENCES date(id) ON DELETE RESTRICT,
+  closed_date_id TEXT REFERENCES date(id) ON DELETE RESTRICT
 );
 
 CREATE TABLE IF NOT EXISTS title (
@@ -635,7 +652,31 @@ CREATE INDEX IF NOT EXISTS idx_association_other ON association(other_person_id)
 CREATE INDEX IF NOT EXISTS idx_person_alias_person ON person_alias(person_id);
 CREATE INDEX IF NOT EXISTS idx_person_alias_alias ON person_alias(alias_id);
 CREATE INDEX IF NOT EXISTS idx_task_target ON task(target_type, target_id);
-CREATE INDEX IF NOT EXISTS idx_date_owner ON date(owner_type, owner_id);
+
+-- Date owner columns. Every owner row references its date rows through
+-- these foreign keys; the indexes keep date deletion (and the RESTRICT
+-- check) from scanning the owner tables.
+
+CREATE INDEX IF NOT EXISTS idx_person_name_period_date ON person_name(period_date_id);
+CREATE INDEX IF NOT EXISTS idx_family_partner_date ON family_partner(date_id);
+CREATE INDEX IF NOT EXISTS idx_family_marriage_status_date ON family_marriage_status(date_id);
+CREATE INDEX IF NOT EXISTS idx_fact_date ON fact(date_id);
+CREATE INDEX IF NOT EXISTS idx_fact_end_date ON fact(end_date_id);
+CREATE INDEX IF NOT EXISTS idx_fact_sort_date ON fact(sort_date_id);
+CREATE INDEX IF NOT EXISTS idx_place_name_date ON place_name(date_id);
+CREATE INDEX IF NOT EXISTS idx_place_hierarchy_date ON place_hierarchy(date_id);
+CREATE INDEX IF NOT EXISTS idx_place_postal_code_date ON place_postal_code(date_id);
+CREATE INDEX IF NOT EXISTS idx_source_publication_date ON source(publication_date_id);
+CREATE INDEX IF NOT EXISTS idx_source_data_event_date ON source_data_event(date_id);
+CREATE INDEX IF NOT EXISTS idx_citation_date ON citation(date_id);
+CREATE INDEX IF NOT EXISTS idx_media_date ON media(date_id);
+CREATE INDEX IF NOT EXISTS idx_tag_link_date ON tag_link(date_id);
+CREATE INDEX IF NOT EXISTS idx_task_created_date ON task(created_date_id);
+CREATE INDEX IF NOT EXISTS idx_task_scheduled_date ON task(scheduled_date_id);
+CREATE INDEX IF NOT EXISTS idx_task_reminder_date ON task(reminder_date_id);
+CREATE INDEX IF NOT EXISTS idx_task_closed_date ON task(closed_date_id);
+CREATE INDEX IF NOT EXISTS idx_association_period_start_date ON association(period_start_date_id);
+CREATE INDEX IF NOT EXISTS idx_association_period_end_date ON association(period_end_date_id);
 
 -- Foreign-key child columns. SQLite does not index these automatically, so
 -- deleting or updating a parent would otherwise scan the child table.
@@ -651,75 +692,7 @@ CREATE INDEX IF NOT EXISTS idx_source_title ON source(title_id);
 CREATE INDEX IF NOT EXISTS idx_source_event_place ON source_data_event(place_id);
 CREATE INDEX IF NOT EXISTS idx_title_repository ON title(repository_id);
 
--- Every date row belongs to one owner row. These triggers delete the date
--- rows with their owner, including when a foreign-key cascade removes it.
-CREATE TRIGGER IF NOT EXISTS date_person_name_delete AFTER DELETE ON person_name
-BEGIN
-  DELETE FROM date WHERE owner_type = 'person_name' AND owner_id = OLD.id;
-END;
-
-CREATE TRIGGER IF NOT EXISTS date_family_partner_delete AFTER DELETE ON family_partner
-BEGIN
-  DELETE FROM date WHERE owner_type = 'family_partner' AND owner_id = OLD.id;
-END;
-
-CREATE TRIGGER IF NOT EXISTS date_family_marriage_status_delete AFTER DELETE ON family_marriage_status
-BEGIN
-  DELETE FROM date WHERE owner_type = 'family_marriage_status' AND owner_id = OLD.id;
-END;
-
-CREATE TRIGGER IF NOT EXISTS date_fact_delete AFTER DELETE ON fact
-BEGIN
-  DELETE FROM date WHERE owner_type = 'fact' AND owner_id = OLD.id;
-END;
-
-CREATE TRIGGER IF NOT EXISTS date_place_name_delete AFTER DELETE ON place_name
-BEGIN
-  DELETE FROM date WHERE owner_type = 'place_name' AND owner_id = OLD.id;
-END;
-
-CREATE TRIGGER IF NOT EXISTS date_place_hierarchy_delete AFTER DELETE ON place_hierarchy
-BEGIN
-  DELETE FROM date WHERE owner_type = 'place_hierarchy' AND owner_id = OLD.id;
-END;
-
-CREATE TRIGGER IF NOT EXISTS date_place_postal_code_delete AFTER DELETE ON place_postal_code
-BEGIN
-  DELETE FROM date WHERE owner_type = 'place_postal_code' AND owner_id = OLD.id;
-END;
-
-CREATE TRIGGER IF NOT EXISTS date_source_delete AFTER DELETE ON source
-BEGIN
-  DELETE FROM date WHERE owner_type = 'source' AND owner_id = OLD.id;
-END;
-
-CREATE TRIGGER IF NOT EXISTS date_source_data_event_delete AFTER DELETE ON source_data_event
-BEGIN
-  DELETE FROM date WHERE owner_type = 'source_data_event' AND owner_id = OLD.id;
-END;
-
-CREATE TRIGGER IF NOT EXISTS date_citation_delete AFTER DELETE ON citation
-BEGIN
-  DELETE FROM date WHERE owner_type = 'citation' AND owner_id = OLD.id;
-END;
-
-CREATE TRIGGER IF NOT EXISTS date_media_delete AFTER DELETE ON media
-BEGIN
-  DELETE FROM date WHERE owner_type = 'media' AND owner_id = OLD.id;
-END;
-
-CREATE TRIGGER IF NOT EXISTS date_tag_link_delete AFTER DELETE ON tag_link
-BEGIN
-  DELETE FROM date WHERE owner_type = 'tag_link' AND owner_id = OLD.id;
-END;
-
-CREATE TRIGGER IF NOT EXISTS date_task_delete AFTER DELETE ON task
-BEGIN
-  DELETE FROM date WHERE owner_type = 'task' AND owner_id = OLD.id;
-END;
-
-CREATE TRIGGER IF NOT EXISTS date_association_delete AFTER DELETE ON association
-BEGIN
-  DELETE FROM date WHERE owner_type = 'association' AND owner_id = OLD.id;
-END;
+-- Date rows have no delete triggers. Repositories delete the dates of a row
+-- explicitly, after the owner row is gone, so ON DELETE RESTRICT can catch
+-- a date that is still referenced by another owner.
 `;

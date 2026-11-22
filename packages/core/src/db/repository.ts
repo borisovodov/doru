@@ -287,17 +287,17 @@ export class SqliteTreeRepository implements TreeRepository {
     this.transactions = new TransactionScope(db);
     const dates = new DateRepo(db);
     this.persons = new PersonRepo(db, this.transactions);
-    this.names = new NameRepo(db, dates);
+    this.names = new NameRepo(db, dates, this.transactions);
     this.families = new FamilyRepo(db, this.transactions, dates);
     this.facts = new FactRepo(db, dates, this.transactions);
     this.places = new PlaceRepo(db, dates, this.transactions);
-    this.sources = new SourceRepo(db, dates);
+    this.sources = new SourceRepo(db, dates, this.transactions);
     this.notes = new NoteRepo(db);
     this.media = new MediaRepo(db, dates, this.transactions);
-    this.attachments = new AttachmentRepo(db, dates);
+    this.attachments = new AttachmentRepo(db, dates, this.transactions);
     this.repositories = new RepositoryRepo(db);
-    this.relations = new RelationRepo(db, dates);
-    this.research = new ResearchRepo(db, dates);
+    this.relations = new RelationRepo(db, dates, this.transactions);
+    this.research = new ResearchRepo(db, dates, this.transactions);
     this.submitters = new SubmitterRepo(db);
     this.addresses = new AddressRepo(db);
   }
@@ -515,6 +515,7 @@ export class SqliteTreeRepository implements TreeRepository {
       }
       this.deleteAttachmentsFor('family', id);
       this.facts.deleteFactsForFamily(id);
+      this.relations.deleteAssociationsForFamily(id);
       return this.families.deleteFamily(id);
     });
   }

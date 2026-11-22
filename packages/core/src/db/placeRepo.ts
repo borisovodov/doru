@@ -28,6 +28,7 @@ interface PlaceNameRow {
   addition: string | null;
   abbreviation: string | null;
   abbreviation_type: string | null;
+  date_id: string | null;
 }
 
 /**
@@ -45,53 +46,57 @@ export class PlaceRepo {
   ) {
     this.insertName = this.db.prepare(
       `INSERT INTO place_name (id, place_id, kind, language, type, position, value,
-         addition, abbreviation, abbreviation_type)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+         addition, abbreviation, abbreviation_type, date_id)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     );
   }
 
   insertPlace(place: PlaceRecord): void {
-    this.db
-      .prepare(`INSERT INTO place (id, xref, latitude, longitude, verified, form, abbreviation,
-        preposition, gov_id, maidenhead, place_type) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`)
-      .run(
-        place.id,
-        place.xref ?? null,
-        place.latitude ?? null,
-        place.longitude ?? null,
-        place.verified ? 1 : 0,
-        place.form !== undefined ? place.form.join(', ') : null,
-        place.abbreviation ?? null,
-        place.preposition ?? null,
-        place.govId ?? null,
-        place.maidenhead ?? null,
-        place.placeType ?? null,
-      );
-    this.replaceDetails(place);
+    this.transactions.run(() => {
+      this.db
+        .prepare(`INSERT INTO place (id, xref, latitude, longitude, verified, form, abbreviation,
+          preposition, gov_id, maidenhead, place_type) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`)
+        .run(
+          place.id,
+          place.xref ?? null,
+          place.latitude ?? null,
+          place.longitude ?? null,
+          place.verified ? 1 : 0,
+          place.form !== undefined ? place.form.join(', ') : null,
+          place.abbreviation ?? null,
+          place.preposition ?? null,
+          place.govId ?? null,
+          place.maidenhead ?? null,
+          place.placeType ?? null,
+        );
+      this.replaceDetails(place);
+    });
   }
 
   /** Replaces the place's names, hierarchy and postal codes wholesale. */
   updatePlace(place: PlaceRecord): void {
-    if (this.db.prepare('SELECT 1 FROM place WHERE id = ?').get(place.id) === undefined) {
-      throw new Error(`place ${place.id} no longer exists`);
-    }
-    this.db
-      .prepare(`UPDATE place SET xref = ?, latitude = ?, longitude = ?, verified = ?, form = ?,
-        abbreviation = ?, preposition = ?, gov_id = ?, maidenhead = ?, place_type = ? WHERE id = ?`)
-      .run(
-        place.xref ?? null,
-        place.latitude ?? null,
-        place.longitude ?? null,
-        place.verified ? 1 : 0,
-        place.form !== undefined ? place.form.join(', ') : null,
-        place.abbreviation ?? null,
-        place.preposition ?? null,
-        place.govId ?? null,
-        place.maidenhead ?? null,
-        place.placeType ?? null,
-        place.id,
-      );
-    this.replaceDetails(place);
+    this.transactions.run(() => {
+      if (this.db.prepare('SELECT 1 FROM place WHERE id = ?').get(place.id) === undefined) {
+        throw new Error(`place ${place.id} no longer exists`);
+      }
+      this.db
+        .prepare(`UPDATE place SET xref = ?, latitude = ?, longitude = ?, verified = ?, form = ?,
+          abbreviation = ?, preposition = ?, gov_id = ?, maidenhead = ?, place_type = ? WHERE id = ?`)
+        .run(
+          place.xref ?? null,
+          place.latitude ?? null,
+          place.longitude ?? null,
+          place.verified ? 1 : 0,
+          place.form !== undefined ? place.form.join(', ') : null,
+          place.abbreviation ?? null,
+          place.preposition ?? null,
+          place.govId ?? null,
+          place.maidenhead ?? null,
+          place.placeType ?? null,
+          place.id,
+        );
+      this.replaceDetails(place);
+    });
   }
 
   getPlace(id: string): PlaceRecord | undefined {
@@ -128,46 +133,67 @@ export class PlaceRepo {
       if (this.db.prepare('SELECT 1 FROM place_hierarchy WHERE id = ?').get(link.id) !== undefined) {
         return;
       }
+      const dateId = link.date !== undefined ? this.dates.create(link.date) : null;
       this.db
-        .prepare('INSERT INTO place_hierarchy (id, parent_id, child_id, type) VALUES (?, ?, ?, ?)')
-        .run(link.id, link.parentId, childId, link.type ?? null);
-      this.dates.upsertForOwner('place_hierarchy', link.id, 'date', link.date);
+        .prepare('INSERT INTO place_hierarchy (id, parent_id, child_id, type, date_id) VALUES (?, ?, ?, ?, ?)')
+        .run(link.id, link.parentId, childId, link.type ?? null, dateId);
     });
   }
 
   deletePlace(id: string): boolean {
     // fact.place_id is ON DELETE SET NULL — facts detach automatically and
     // keep their raw place_text. The op that deletes a place restores the
-    // link on undo. The place's own names/hierarchy rows and the hierarchy
-    // rows where it is the parent cascade; their owner triggers delete the
-    // date rows with them.
-    return this.db.prepare('DELETE FROM place WHERE id = ?').run(id).changes > 0;
+    // link on undo. The place's names, hierarchy rows on either side and
+    // postal codes cascade; their dates are collected and deleted here.
+    return this.transactions.run(() => {
+      const nameDates = this.db
+        .prepare('SELECT date_id FROM place_name WHERE place_id = ?')
+        .all(id) as unknown as Array<{ date_id: string | null }>;
+      const hierarchyDates = this.db
+        .prepare('SELECT date_id FROM place_hierarchy WHERE parent_id = ? OR child_id = ?')
+        .all(id, id) as unknown as Array<{ date_id: string | null }>;
+      const postalDates = this.db
+        .prepare('SELECT date_id FROM place_postal_code WHERE place_id = ?')
+        .all(id) as unknown as Array<{ date_id: string | null }>;
+      const changed = this.db.prepare('DELETE FROM place WHERE id = ?').run(id).changes > 0;
+      if (changed) {
+        this.dates.deleteMany([
+          ...nameDates.map((row) => row.date_id),
+          ...hierarchyDates.map((row) => row.date_id),
+          ...postalDates.map((row) => row.date_id),
+        ]);
+      }
+      return changed;
+    });
   }
 
   private replaceDetails(place: PlaceRecord): void {
-    const nameIds = (
-      this.db.prepare('SELECT id FROM place_name WHERE place_id = ?').all(place.id) as unknown as Array<{ id: string }>
-    ).map((row) => row.id);
-    const hierarchyIds = (
-      this.db.prepare('SELECT id FROM place_hierarchy WHERE child_id = ?').all(place.id) as unknown as Array<{
-        id: string;
-      }>
-    ).map((row) => row.id);
-    const postalIds = (
-      this.db.prepare('SELECT id FROM place_postal_code WHERE place_id = ?').all(place.id) as unknown as Array<{
-        id: string;
-      }>
-    ).map((row) => row.id);
-    const reservedDates = new Map([
-      ...this.dates.reservationsFor('place_name', nameIds),
-      ...this.dates.reservationsFor('place_hierarchy', hierarchyIds),
-      ...this.dates.reservationsFor('place_postal_code', postalIds),
-    ]);
+    const nameRows = this.db
+      .prepare('SELECT id, date_id FROM place_name WHERE place_id = ?')
+      .all(place.id) as unknown as Array<{ id: string; date_id: string | null }>;
+    const hierarchyRows = this.db
+      .prepare('SELECT id, date_id FROM place_hierarchy WHERE child_id = ?')
+      .all(place.id) as unknown as Array<{ id: string; date_id: string | null }>;
+    const postalRows = this.db
+      .prepare('SELECT id, date_id FROM place_postal_code WHERE place_id = ?')
+      .all(place.id) as unknown as Array<{ id: string; date_id: string | null }>;
+    const nameReservations = dateReservations(nameRows);
+    const hierarchyReservations = dateReservations(hierarchyRows);
+    const postalReservations = dateReservations(postalRows);
     this.db.prepare('DELETE FROM place_name WHERE place_id = ?').run(place.id);
     this.db.prepare('DELETE FROM place_hierarchy WHERE child_id = ?').run(place.id);
     this.db.prepare('DELETE FROM place_postal_code WHERE place_id = ?').run(place.id);
+    this.dates.deleteMany([
+      ...nameRows.map((row) => row.date_id),
+      ...hierarchyRows.map((row) => row.date_id),
+      ...postalRows.map((row) => row.date_id),
+    ]);
 
     place.names.forEach((name, position) => {
+      const dateId =
+        name.date !== undefined
+          ? this.dates.create(name.date, { ownerKey: name.id, reserved: nameReservations })
+          : null;
       this.insertName.run(
         name.id,
         place.id,
@@ -179,20 +205,28 @@ export class PlaceRepo {
         name.addition ?? null,
         name.abbreviation ?? null,
         name.abbreviationType ?? null,
+        dateId,
       );
-      this.dates.upsertForOwner('place_name', name.id, 'date', name.date, reservedDates);
     });
     const insertHierarchy = this.db.prepare(
-      'INSERT INTO place_hierarchy (id, parent_id, child_id, type) VALUES (?, ?, ?, ?)',
+      'INSERT INTO place_hierarchy (id, parent_id, child_id, type, date_id) VALUES (?, ?, ?, ?, ?)',
     );
     for (const parent of place.hierarchy ?? []) {
-      insertHierarchy.run(parent.id, parent.parentId, place.id, parent.type ?? null);
-      this.dates.upsertForOwner('place_hierarchy', parent.id, 'date', parent.date, reservedDates);
+      const dateId =
+        parent.date !== undefined
+          ? this.dates.create(parent.date, { ownerKey: parent.id, reserved: hierarchyReservations })
+          : null;
+      insertHierarchy.run(parent.id, parent.parentId, place.id, parent.type ?? null, dateId);
     }
-    const insertPostal = this.db.prepare('INSERT INTO place_postal_code (id, place_id, code) VALUES (?, ?, ?)');
+    const insertPostal = this.db.prepare(
+      'INSERT INTO place_postal_code (id, place_id, code, date_id) VALUES (?, ?, ?, ?)',
+    );
     for (const postal of place.postalCodes ?? []) {
-      insertPostal.run(postal.id, place.id, postal.code);
-      this.dates.upsertForOwner('place_postal_code', postal.id, 'date', postal.date, reservedDates);
+      const dateId =
+        postal.date !== undefined
+          ? this.dates.create(postal.date, { ownerKey: postal.id, reserved: postalReservations })
+          : null;
+      insertPostal.run(postal.id, place.id, postal.code, dateId);
     }
   }
 
@@ -200,34 +234,28 @@ export class PlaceRepo {
     const names = this.db
       .prepare(
         `SELECT id, place_id, kind, language, type, position, value, addition,
-           abbreviation, abbreviation_type
+           abbreviation, abbreviation_type, date_id
          FROM place_name WHERE place_id = ? ORDER BY position`,
       )
       .all(row.id) as unknown as PlaceNameRow[];
     const hierarchyRows = this.db
-      .prepare('SELECT id, parent_id, type FROM place_hierarchy WHERE child_id = ? ORDER BY type')
+      .prepare('SELECT id, parent_id, type, date_id FROM place_hierarchy WHERE child_id = ? ORDER BY type')
       .all(row.id) as unknown as {
       id: string;
       parent_id: string;
       type: string | null;
+      date_id: string | null;
     }[];
     const postalRows = this.db
-      .prepare('SELECT id, code FROM place_postal_code WHERE place_id = ?')
-      .all(row.id) as unknown as { id: string; code: string }[];
-    const nameDates = this.dates.getManyForOwners(
-      'place_name',
-      names.map((name) => name.id),
-    );
-    const hierarchyDates = this.dates.getManyForOwners(
-      'place_hierarchy',
-      hierarchyRows.map((entry) => entry.id),
-    );
-    const postalDates = this.dates.getManyForOwners(
-      'place_postal_code',
-      postalRows.map((entry) => entry.id),
-    );
+      .prepare('SELECT id, code, date_id FROM place_postal_code WHERE place_id = ?')
+      .all(row.id) as unknown as { id: string; code: string; date_id: string | null }[];
+    const dates = this.dates.getMany([
+      ...names.map((name) => name.date_id),
+      ...hierarchyRows.map((entry) => entry.date_id),
+      ...postalRows.map((entry) => entry.date_id),
+    ]);
     const hierarchy = hierarchyRows.map((entry) => {
-      const date = hierarchyDates.get(entry.id)?.get('date');
+      const date = entry.date_id !== null ? dates.get(entry.date_id) : undefined;
       return {
         id: entry.id,
         parentId: entry.parent_id,
@@ -248,7 +276,7 @@ export class PlaceRepo {
       ...(row.maidenhead !== null ? { maidenhead: row.maidenhead } : {}),
       ...(row.place_type !== null ? { placeType: row.place_type } : {}),
       names: names.map((name) => {
-        const date = nameDates.get(name.id)?.get('date');
+        const date = name.date_id !== null ? dates.get(name.date_id) : undefined;
         return {
           id: name.id,
           kind: name.kind as PlaceName['kind'],
@@ -266,7 +294,7 @@ export class PlaceRepo {
       postalCodes:
         postalRows.length > 0
           ? postalRows.map((postal) => {
-              const date = postalDates.get(postal.id)?.get('date');
+              const date = postal.date_id !== null ? dates.get(postal.date_id) : undefined;
               return {
                 id: postal.id,
                 code: postal.code,
@@ -276,4 +304,14 @@ export class PlaceRepo {
           : undefined,
     };
   }
+}
+
+function dateReservations(rows: Array<{ id: string; date_id: string | null }>): Map<string, string> {
+  const reservations = new Map<string, string>();
+  for (const row of rows) {
+    if (row.date_id !== null) {
+      reservations.set(row.date_id, row.id);
+    }
+  }
+  return reservations;
 }

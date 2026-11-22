@@ -1,93 +1,117 @@
 import type { DatabaseSync } from 'node:sqlite';
 import type { AssociationRecord } from '../model/types';
 import type { DateRepo } from './dateRepo';
+import type { TransactionScope } from './transaction';
 
 /** Relations between persons: associations and aliases. */
 export class RelationRepo {
   constructor(
     private readonly db: DatabaseSync,
     private readonly dates: DateRepo,
+    private readonly transactions: TransactionScope,
   ) {}
 
   // associations ---------------------------------------------------------------
 
   insertAssociation(association: AssociationRecord): void {
-    this.db
-      .prepare(
-        `INSERT INTO association (id, person_id, family_id, other_person_id, role, relationship, phrase,
-           primary_flag, specific_type, confidence)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      )
-      .run(...associationParams(association));
-    this.replaceAssociationDates(association);
+    this.transactions.run(() => {
+      const periodStartDateId =
+        association.periodStart !== undefined ? this.dates.create(association.periodStart) : null;
+      const periodEndDateId = association.periodEnd !== undefined ? this.dates.create(association.periodEnd) : null;
+      this.db
+        .prepare(
+          `INSERT INTO association (id, person_id, family_id, other_person_id, role, relationship, phrase,
+             primary_flag, specific_type, confidence, period_start_date_id, period_end_date_id)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        )
+        .run(...associationParams(association), periodStartDateId, periodEndDateId);
+    });
   }
 
   updateAssociation(association: AssociationRecord): void {
-    if (this.db.prepare('SELECT 1 FROM association WHERE id = ?').get(association.id) === undefined) {
-      throw new Error(`association ${association.id} no longer exists`);
-    }
-    this.db
-      .prepare(
-        `UPDATE association SET person_id = ?, family_id = ?, other_person_id = ?, role = ?, relationship = ?, phrase = ?,
-           primary_flag = ?, specific_type = ?, confidence = ?
-         WHERE id = ?`,
-      )
-      .run(...associationParams(association).slice(1), association.id);
-    this.replaceAssociationDates(association);
+    this.transactions.run(() => {
+      const current = this.db
+        .prepare('SELECT period_start_date_id, period_end_date_id FROM association WHERE id = ?')
+        .get(association.id) as AssociationDateIds | undefined;
+      if (current === undefined) {
+        throw new Error(`association ${association.id} no longer exists`);
+      }
+      const prepared = this.dates.prepareSlots(
+        [current.period_start_date_id, current.period_end_date_id],
+        [association.periodStart, association.periodEnd],
+      );
+      this.db
+        .prepare(
+          `UPDATE association SET person_id = ?, family_id = ?, other_person_id = ?, role = ?, relationship = ?, phrase = ?,
+             primary_flag = ?, specific_type = ?, confidence = ?,
+             period_start_date_id = ?, period_end_date_id = ?
+           WHERE id = ?`,
+        )
+        .run(...associationParams(association).slice(1), ...prepared.ids, association.id);
+      this.dates.deleteMany(prepared.obsolete);
+    });
   }
 
   deleteAssociation(id: string): boolean {
-    return this.db.prepare('DELETE FROM association WHERE id = ?').run(id).changes > 0;
+    return this.transactions.run(() => {
+      const current = this.db
+        .prepare('SELECT period_start_date_id, period_end_date_id FROM association WHERE id = ?')
+        .get(id) as AssociationDateIds | undefined;
+      const changed = this.db.prepare('DELETE FROM association WHERE id = ?').run(id).changes > 0;
+      if (changed) {
+        this.dates.deleteMany(associationDateIds(current));
+      }
+      return changed;
+    });
   }
 
   listAssociations(): AssociationRecord[] {
-    const rows = this.db
-      .prepare(
-        `SELECT id, person_id, family_id, other_person_id, role, relationship, phrase,
-           primary_flag, specific_type, confidence
-         FROM association ORDER BY id`,
-      )
-      .all() as unknown as AssociationRow[];
-    return rows.map((row) => this.hydrate(row));
+    const rows = this.db.prepare(`${associationSelect} ORDER BY id`).all() as unknown as AssociationRow[];
+    return this.hydrateMany(rows);
   }
 
   listAssociationsFor(personId: string): AssociationRecord[] {
     const rows = this.db
-      .prepare(
-        `SELECT id, person_id, family_id, other_person_id, role, relationship, phrase,
-           primary_flag, specific_type, confidence
-         FROM association WHERE person_id = ? OR other_person_id = ? ORDER BY id`,
-      )
+      .prepare(`${associationSelect} WHERE person_id = ? OR other_person_id = ? ORDER BY id`)
       .all(personId, personId) as unknown as AssociationRow[];
-    return rows.map((row) => this.hydrate(row));
+    return this.hydrateMany(rows);
   }
 
   listAssociationsForFamily(familyId: string): AssociationRecord[] {
     const rows = this.db
-      .prepare(
-        `SELECT id, person_id, family_id, other_person_id, role, relationship, phrase,
-           primary_flag, specific_type, confidence
-         FROM association WHERE family_id = ? ORDER BY id`,
-      )
+      .prepare(`${associationSelect} WHERE family_id = ? ORDER BY id`)
       .all(familyId) as unknown as AssociationRow[];
-    return rows.map((row) => this.hydrate(row));
+    return this.hydrateMany(rows);
   }
 
-  /** Deletes every association of a person; owner triggers delete the dates. */
+  /** Deletes every association of a person and the dates they owned. */
   deleteAssociationsForPerson(personId: string): void {
-    this.db.prepare('DELETE FROM association WHERE person_id = ? OR other_person_id = ?').run(personId, personId);
+    this.deleteAssociationsWhere('person_id = ? OR other_person_id = ?', [personId, personId]);
   }
 
-  private replaceAssociationDates(association: AssociationRecord): void {
-    this.dates.replaceForOwner('association', association.id, {
-      period_start: association.periodStart,
-      period_end: association.periodEnd,
+  /** Deletes every association of a family and the dates they owned. */
+  deleteAssociationsForFamily(familyId: string): void {
+    this.deleteAssociationsWhere('family_id = ?', [familyId]);
+  }
+
+  private deleteAssociationsWhere(where: string, params: string[]): void {
+    this.transactions.run(() => {
+      const rows = this.db
+        .prepare(
+          `SELECT period_start_date_id, period_end_date_id FROM association
+           WHERE ${where}`,
+        )
+        .all(...params) as unknown as AssociationDateIds[];
+      const changed = this.db.prepare(`DELETE FROM association WHERE ${where}`).run(...params).changes;
+      if (changed > 0) {
+        this.dates.deleteMany(rows.flatMap(associationDateIds));
+      }
     });
   }
 
-  private hydrate(row: AssociationRow): AssociationRecord {
-    const dates = this.dates.getManyForOwners('association', [row.id]).get(row.id);
-    return {
+  private hydrateMany(rows: AssociationRow[]): AssociationRecord[] {
+    const dates = this.dates.getMany(rows.flatMap((row) => [row.period_start_date_id, row.period_end_date_id]));
+    return rows.map((row) => ({
       id: row.id,
       personId: row.person_id ?? undefined,
       familyId: row.family_id ?? undefined,
@@ -98,9 +122,9 @@ export class RelationRepo {
       primary: row.primary_flag === 1 ? true : undefined,
       specificType: row.specific_type ?? undefined,
       confidence: row.confidence ?? undefined,
-      periodStart: dates?.get('period_start'),
-      periodEnd: dates?.get('period_end'),
-    };
+      periodStart: row.period_start_date_id !== null ? dates.get(row.period_start_date_id) : undefined,
+      periodEnd: row.period_end_date_id !== null ? dates.get(row.period_end_date_id) : undefined,
+    }));
   }
 
   // aliases ---------------------------------------------------------------------
@@ -157,6 +181,21 @@ interface AssociationRow {
   primary_flag: number;
   specific_type: string | null;
   confidence: string | null;
+  period_start_date_id: string | null;
+  period_end_date_id: string | null;
+}
+
+type AssociationDateIds = Pick<AssociationRow, 'period_start_date_id' | 'period_end_date_id'>;
+
+const associationSelect = `SELECT id, person_id, family_id, other_person_id, role, relationship, phrase,
+  primary_flag, specific_type, confidence, period_start_date_id, period_end_date_id
+  FROM association`;
+
+function associationDateIds(ids: AssociationDateIds | undefined): Array<string | null> {
+  if (ids === undefined) {
+    return [];
+  }
+  return [ids.period_start_date_id, ids.period_end_date_id];
 }
 
 function associationParams(association: AssociationRecord): Array<string | number | null> {

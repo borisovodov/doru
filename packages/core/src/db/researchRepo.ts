@@ -1,87 +1,126 @@
 import type { DatabaseSync } from 'node:sqlite';
 import type { TitleRecord, TaskRecord } from '../model/types';
 import type { DateRepo } from './dateRepo';
+import type { TransactionScope } from './transaction';
 
 /** The research layer: tasks and titles. */
 export class ResearchRepo {
   constructor(
     private readonly db: DatabaseSync,
     private readonly dates: DateRepo,
+    private readonly transactions: TransactionScope,
   ) {}
 
   // tasks -----------------------------------------------------------------------
 
   insertTask(task: TaskRecord): void {
-    this.db
-      .prepare(
-        `INSERT INTO task (id, text, target_type, target_id, priority, status)
-         VALUES (?, ?, ?, ?, ?, ?)`,
-      )
-      .run(...taskParams(task));
-    this.replaceTaskDates(task);
+    this.transactions.run(() => {
+      const createdDateId = task.createdDate !== undefined ? this.dates.create(task.createdDate) : null;
+      const scheduledDateId = task.scheduledDate !== undefined ? this.dates.create(task.scheduledDate) : null;
+      const reminderDateId = task.reminderDate !== undefined ? this.dates.create(task.reminderDate) : null;
+      const closedDateId = task.closedDate !== undefined ? this.dates.create(task.closedDate) : null;
+      this.db
+        .prepare(
+          `INSERT INTO task (id, text, target_type, target_id, priority, status,
+             created_date_id, scheduled_date_id, reminder_date_id, closed_date_id)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        )
+        .run(...taskParams(task), createdDateId, scheduledDateId, reminderDateId, closedDateId);
+    });
   }
 
   updateTask(task: TaskRecord): void {
-    if (this.db.prepare('SELECT 1 FROM task WHERE id = ?').get(task.id) === undefined) {
-      throw new Error(`task ${task.id} no longer exists`);
-    }
-    this.db
-      .prepare(
-        `UPDATE task SET text = ?, target_type = ?, target_id = ?, priority = ?, status = ?
-         WHERE id = ?`,
-      )
-      .run(...taskParams(task).slice(1), task.id);
-    this.replaceTaskDates(task);
+    this.transactions.run(() => {
+      const current = this.db
+        .prepare(
+          `SELECT created_date_id, scheduled_date_id, reminder_date_id, closed_date_id
+           FROM task WHERE id = ?`,
+        )
+        .get(task.id) as TaskDateIds | undefined;
+      if (current === undefined) {
+        throw new Error(`task ${task.id} no longer exists`);
+      }
+      const prepared = this.dates.prepareSlots(
+        [current.created_date_id, current.scheduled_date_id, current.reminder_date_id, current.closed_date_id],
+        [task.createdDate, task.scheduledDate, task.reminderDate, task.closedDate],
+      );
+      this.db
+        .prepare(
+          `UPDATE task SET text = ?, target_type = ?, target_id = ?, priority = ?, status = ?,
+             created_date_id = ?, scheduled_date_id = ?, reminder_date_id = ?, closed_date_id = ?
+           WHERE id = ?`,
+        )
+        .run(...taskParams(task).slice(1), ...prepared.ids, task.id);
+      this.dates.deleteMany(prepared.obsolete);
+    });
   }
 
   deleteTask(id: string): boolean {
-    return this.db.prepare('DELETE FROM task WHERE id = ?').run(id).changes > 0;
+    return this.transactions.run(() => {
+      const current = this.db
+        .prepare(
+          `SELECT created_date_id, scheduled_date_id, reminder_date_id, closed_date_id
+           FROM task WHERE id = ?`,
+        )
+        .get(id) as TaskDateIds | undefined;
+      const changed = this.db.prepare('DELETE FROM task WHERE id = ?').run(id).changes > 0;
+      if (changed) {
+        this.dates.deleteMany(taskDateIds(current));
+      }
+      return changed;
+    });
   }
 
   getTask(id: string): TaskRecord | undefined {
     const row = this.db.prepare(`${taskSelect} WHERE id = ?`).get(id) as TaskRow | undefined;
-    return row === undefined ? undefined : this.hydrateTask(row);
+    return row === undefined ? undefined : this.hydrateTasks([row])[0];
   }
 
   listTasks(): TaskRecord[] {
     const rows = this.db.prepare(taskSelect).all() as unknown as TaskRow[];
-    return rows.map((row) => this.hydrateTask(row));
+    return this.hydrateTasks(rows);
   }
 
   listTasksFor(targetType: string, targetId: string): TaskRecord[] {
     const rows = this.db
       .prepare(`${taskSelect} WHERE target_type = ? AND target_id = ? ORDER BY id`)
       .all(targetType, targetId) as unknown as TaskRow[];
-    return rows.map((row) => this.hydrateTask(row));
+    return this.hydrateTasks(rows);
   }
 
   deleteTasksFor(targetType: string, targetId: string): void {
-    this.db.prepare('DELETE FROM task WHERE target_type = ? AND target_id = ?').run(targetType, targetId);
-  }
-
-  private replaceTaskDates(task: TaskRecord): void {
-    this.dates.replaceForOwner('task', task.id, {
-      created: task.createdDate,
-      scheduled: task.scheduledDate,
-      reminder: task.reminderDate,
-      closed: task.closedDate,
+    this.transactions.run(() => {
+      const rows = this.db
+        .prepare(
+          `SELECT created_date_id, scheduled_date_id, reminder_date_id, closed_date_id
+           FROM task WHERE target_type = ? AND target_id = ?`,
+        )
+        .all(targetType, targetId) as unknown as TaskDateIds[];
+      const changed = this.db
+        .prepare('DELETE FROM task WHERE target_type = ? AND target_id = ?')
+        .run(targetType, targetId).changes;
+      if (changed > 0) {
+        this.dates.deleteMany(rows.flatMap(taskDateIds));
+      }
     });
   }
 
-  private hydrateTask(row: TaskRow): TaskRecord {
-    const dates = this.dates.getManyForOwners('task', [row.id]).get(row.id);
-    return {
+  private hydrateTasks(rows: TaskRow[]): TaskRecord[] {
+    const dates = this.dates.getMany(
+      rows.flatMap((row) => [row.created_date_id, row.scheduled_date_id, row.reminder_date_id, row.closed_date_id]),
+    );
+    return rows.map((row) => ({
       id: row.id,
       text: row.text,
       targetType: row.target_type ?? undefined,
       targetId: row.target_id ?? undefined,
       priority: row.priority ?? undefined,
       status: row.status ?? undefined,
-      createdDate: dates?.get('created'),
-      scheduledDate: dates?.get('scheduled'),
-      reminderDate: dates?.get('reminder'),
-      closedDate: dates?.get('closed'),
-    };
+      createdDate: row.created_date_id !== null ? dates.get(row.created_date_id) : undefined,
+      scheduledDate: row.scheduled_date_id !== null ? dates.get(row.scheduled_date_id) : undefined,
+      reminderDate: row.reminder_date_id !== null ? dates.get(row.reminder_date_id) : undefined,
+      closedDate: row.closed_date_id !== null ? dates.get(row.closed_date_id) : undefined,
+    }));
   }
 
   // titles ---------------------------------------------------------------------------
@@ -143,7 +182,13 @@ interface TaskRow {
   target_id: string | null;
   priority: string | null;
   status: string | null;
+  created_date_id: string | null;
+  scheduled_date_id: string | null;
+  reminder_date_id: string | null;
+  closed_date_id: string | null;
 }
+
+type TaskDateIds = Pick<TaskRow, 'created_date_id' | 'scheduled_date_id' | 'reminder_date_id' | 'closed_date_id'>;
 
 interface TitleRow {
   id: string;
@@ -158,7 +203,8 @@ interface TitleRow {
   sequence: number | null;
 }
 
-const taskSelect = `SELECT id, text, target_type, target_id, priority, status
+const taskSelect = `SELECT id, text, target_type, target_id, priority, status,
+  created_date_id, scheduled_date_id, reminder_date_id, closed_date_id
   FROM task`;
 
 function taskParams(task: TaskRecord): Array<string | number | null> {
@@ -170,6 +216,13 @@ function taskParams(task: TaskRecord): Array<string | number | null> {
     task.priority ?? null,
     task.status ?? null,
   ];
+}
+
+function taskDateIds(ids: TaskDateIds | undefined): Array<string | null> {
+  if (ids === undefined) {
+    return [];
+  }
+  return [ids.created_date_id, ids.scheduled_date_id, ids.reminder_date_id, ids.closed_date_id];
 }
 
 function titleParams(title: TitleRecord): Array<string | number | null> {
