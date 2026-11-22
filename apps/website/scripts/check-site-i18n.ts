@@ -87,7 +87,7 @@ for (const locale of TRANSLATED_LOCALES) {
       }
 
       for (const link of relativeLinks(text)) {
-        if (link.fragment === undefined) continue;
+        if (link.fragment === undefined || link.fragment === '') continue;
         let linkedFile = link.target === '' ? target : resolve(dirname(target), link.target);
         if (!existsSync(linkedFile)) continue;
         if (statSync(linkedFile).isDirectory()) linkedFile = join(linkedFile, 'index.md');

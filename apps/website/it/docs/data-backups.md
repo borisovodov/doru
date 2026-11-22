@@ -1,5 +1,5 @@
 ---
-source-hash: 0feae5711b39
+source-hash: 70e5c9243679
 ---
 
 # Dati e backup
@@ -14,8 +14,10 @@ source-hash: 0feae5711b39
 - Per il backup: ferma ogni processo che può scrivere nel progetto — chiudilo in
   Dóru e ferma eventuali client MCP o altri strumenti — poi copia il file
   `.doru` (e la cartella `media/` accanto, se hai foto). Non c'è altro. Il
-  ripristino consiste nel ricopiarlo con il progetto chiuso e nessun altro
-  processo in scrittura.
+  ripristino consiste nel ricopiare sia il file `.doru` sia la cartella `media/`
+  con il progetto chiuso e nessun altro processo in scrittura. Dopo un crash,
+  apri il progetto una volta in Dóru così che SQLite possa recuperare eventuali
+  journal rimasti, poi chiudilo prima di copiare o ripristinare.
 - Le sessioni di chat si trovano nella directory dati dell'app, non nel file
   `.doru`; eseguine un backup separato se ti servono.
 - Il file è adatto al controllo di versione: è un file binario stabile — fai un
@@ -31,6 +33,7 @@ Un'avvertenza: il file `.doru` è un database SQLite e sincronizzare in tempo
 reale un progetto **aperto** con uno strumento di sincronizzazione file può
 copiare il file in uno stato di scrittura incompleta e corromperlo. La pratica
 sicura è: chiudi il progetto (o l'app) e ferma ogni altro processo che scrive
-prima di sincronizzare. Copiare un progetto chiuso in cui nessun altro scrive è
-sempre sicuro. Dopo un crash, apri il progetto una volta in Dóru così che SQLite
-possa annullare eventuali journal rimasti, poi chiudilo prima di copiare.
+prima di sincronizzare. Un progetto chiuso correttamente e in cui nessun altro
+scrive può essere copiato in sicurezza. Dopo un crash, apri il progetto una
+volta in Dóru così che SQLite possa annullare eventuali journal rimasti, poi
+chiudilo prima di copiare.

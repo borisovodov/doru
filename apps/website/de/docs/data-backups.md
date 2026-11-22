@@ -1,5 +1,5 @@
 ---
-source-hash: 0feae5711b39
+source-hash: 70e5c9243679
 ---
 
 # Daten und Backups
@@ -14,9 +14,12 @@ source-hash: 0feae5711b39
 - Zum Sichern: Beenden Sie jeden Prozess, der in das Projekt schreiben kann —
   schließen Sie es in Dóru und beenden Sie alle MCP-Clients oder anderen
   Werkzeuge — und kopieren Sie dann die `.doru`-Datei (und den `media/`-Ordner
-  daneben, falls Sie Fotos haben). Das ist alles. Wiederherstellen heißt
-  zurückkopieren, während das Projekt geschlossen ist und keine anderen Prozesse
-  schreiben.
+  daneben, falls Sie Fotos haben). Das ist alles. Wiederherstellen heißt, sowohl
+  die `.doru`-Datei als auch den `media/`-Ordner zurückzukopieren, während das
+  Projekt geschlossen ist und keine anderen Prozesse schreiben. Öffnen Sie das
+  Projekt nach einem Absturz einmal in Dóru, damit SQLite ein verbliebenes
+  Journal wiederherstellen kann, und schließen Sie es dann vor dem Kopieren oder
+  Wiederherstellen.
 - Chat-Sitzungen liegen im Datenverzeichnis der App, nicht in der `.doru`-Datei;
   sichern Sie sie bei Bedarf separat.
 - Die Datei eignet sich gut für die Versionskontrolle: Sie ist eine stabile Binärdatei —
@@ -33,7 +36,7 @@ Eine Einschränkung: Die `.doru`-Datei ist eine SQLite-Datenbank, und ein
 synchronisieren kann die Datei in halb geschriebenem Zustand kopieren und
 beschädigen. Die sichere Praxis ist: Schließen Sie das Projekt (oder die App)
 und beenden Sie alle anderen Schreibprozesse, bevor Sie synchronisieren. Ein
-Projekt zu kopieren, das geschlossen ist und in das niemand sonst schreibt, ist
-immer sicher. Öffnen Sie das Projekt nach einem Absturz einmal in Dóru, damit
+sauber geschlossenes Projekt, in das niemand sonst schreibt, kann sicher kopiert
+werden. Öffnen Sie das Projekt nach einem Absturz einmal in Dóru, damit
 SQLite ein verbliebenes Journal zurückrollen kann, und schließen Sie es dann vor
 dem Kopieren.

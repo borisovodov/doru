@@ -25,6 +25,7 @@
     "corpus-run/",
     ".vite/",
     "apps/website/.vitepress/cache/",
+    "apps/website/.vitepress/.temp/",
     "apps/website/.vitepress/dist/",
     "*.md"
   ]

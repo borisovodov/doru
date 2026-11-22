@@ -9,8 +9,10 @@
 - To back up: stop every process that can write to the project — close it in
   Dóru and stop any MCP clients or other tools — then copy the `.doru` file
   (and the `media/` folder next to it, if you have photos). That's all there
-  is. Restoring is copying it back while the project is closed and no other
-  writers are running.
+  is. Restoring is copying the `.doru` file and the `media/` folder back while
+  the project is closed and no other writers are running. After a crash, open
+  the project once in Dóru so SQLite can recover any leftover journal, then
+  close it before copying or restoring.
 - Chat sessions live in the app data directory, not inside the `.doru` file;
   back them up separately if you need them.
 - The file is version-control friendly: it is a stable binary file — commit it
@@ -25,6 +27,6 @@ whatever you prefer.
 One caveat: the `.doru` file is a SQLite database, and live-syncing an **open**
 project with a file-sync tool can copy the file in a half-written state and
 corrupt it. The safe practice is: close the project (or the app) and stop any
-other writers before syncing. Copying a project that is closed and has no other
-writers is always safe. After a crash, open the project once in Dóru so SQLite
+other writers before syncing. A cleanly closed project with no other writers
+can be copied safely. After a crash, open the project once in Dóru so SQLite
 can roll back any leftover journal, then close it before copying.

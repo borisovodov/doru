@@ -12,6 +12,7 @@ test-results/
 *.tsbuildinfo
 apps/website/public/icon.png
 apps/website/.vitepress/cache/
+apps/website/.vitepress/.temp/
 apps/website/.vitepress/dist/
 .ui-shots/
 

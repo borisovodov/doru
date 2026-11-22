@@ -18,6 +18,7 @@
     "**/coverage/**",
     "**/.vite/**",
     "**/.vitepress/cache/**",
+    "**/.vitepress/.temp/**",
     "**/.vitepress/dist/**",
     "**/playwright-report/**",
     "**/test-results/**",

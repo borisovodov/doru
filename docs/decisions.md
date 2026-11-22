@@ -40,8 +40,8 @@ and live-syncing an **open** project with a file-sync tool can copy the file
 in a half-written state and corrupt it. Dóru uses a single-file journal mode
 (`journal_mode=DELETE`) to keep the file clean, but the safe practice is:
 close the project (or the app) and stop any other writers before syncing.
-Copying a project that is closed and has no other writers is always safe. After
-a crash, open the project once in Dóru so SQLite can roll back any leftover
+A cleanly closed project with no other writers can be copied safely. After a
+crash, open the project once in Dóru so SQLite can roll back any leftover
 journal, then close it before copying.
 
 ## Settings and data locations
