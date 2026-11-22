@@ -1482,7 +1482,7 @@ function parseEncodedTaskDate(text: string): number | undefined {
 
 function parseIsoTaskDate(text: string): number | undefined {
   const match =
-    /^(\d{4})-(\d{2})-(\d{2})(?:[T ](\d{2}):(\d{2})(?::(\d{2})(?:\.\d{1,9})?)?(Z|[+-]\d{2}:?\d{2})?)?$/.exec(text);
+    /^(\d{4})-(\d{2})-(\d{2})(?:[T ](\d{2}):(\d{2})(?::(\d{2})(?:\.(\d{1,9}))?)?(Z|[+-]\d{2}:?\d{2})?)?$/.exec(text);
   if (match === null) {
     return undefined;
   }
@@ -1492,9 +1492,10 @@ function parseIsoTaskDate(text: string): number | undefined {
   const hour = match[4] !== undefined ? Number(match[4]) : 0;
   const minute = match[5] !== undefined ? Number(match[5]) : 0;
   const second = match[6] !== undefined ? Number(match[6]) : 0;
-  const zone = match[7];
+  const millisecond = fractionToMilliseconds(match[7]);
+  const zone = match[8];
   if (zone === undefined) {
-    return localTimestamp(year, month, day, hour, minute, second);
+    return localTimestamp(year, month, day, hour, minute, second, false, millisecond);
   }
   const timestamp = Date.parse(text);
   if (Number.isNaN(timestamp)) {
@@ -1540,7 +1541,12 @@ function taskDateValueToTimestamp(date: DateValue | undefined): number | undefin
     date.time?.minute ?? 0,
     date.time?.second ?? 0,
     date.time?.utc === true,
+    fractionToMilliseconds(date.time?.fraction),
   );
+}
+
+function fractionToMilliseconds(fraction: string | undefined): number {
+  return fraction === undefined || fraction === '' ? 0 : Number(fraction.slice(0, 3).padEnd(3, '0'));
 }
 
 function localTimestamp(
@@ -1551,23 +1557,26 @@ function localTimestamp(
   minute: number,
   second = 0,
   utc = false,
+  millisecond = 0,
 ): number | undefined {
   const value = utc
-    ? new Date(Date.UTC(year, month - 1, day, hour, minute, second))
-    : new Date(year, month - 1, day, hour, minute, second, 0);
+    ? new Date(Date.UTC(year, month - 1, day, hour, minute, second, millisecond))
+    : new Date(year, month - 1, day, hour, minute, second, millisecond);
   const actualYear = utc ? value.getUTCFullYear() : value.getFullYear();
   const actualMonth = utc ? value.getUTCMonth() : value.getMonth();
   const actualDay = utc ? value.getUTCDate() : value.getDate();
   const actualHour = utc ? value.getUTCHours() : value.getHours();
   const actualMinute = utc ? value.getUTCMinutes() : value.getMinutes();
   const actualSecond = utc ? value.getUTCSeconds() : value.getSeconds();
+  const actualMillisecond = utc ? value.getUTCMilliseconds() : value.getMilliseconds();
   if (
     actualYear !== year ||
     actualMonth !== month - 1 ||
     actualDay !== day ||
     actualHour !== hour ||
     actualMinute !== minute ||
-    actualSecond !== second
+    actualSecond !== second ||
+    actualMillisecond !== millisecond
   ) {
     return undefined;
   }

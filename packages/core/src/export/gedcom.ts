@@ -774,6 +774,7 @@ function taskTimestampToDateValue(value: number | undefined): DateValue | undefi
       hour: date.getUTCHours(),
       minute: date.getUTCMinutes(),
       second: date.getUTCSeconds(),
+      ...(date.getUTCMilliseconds() !== 0 ? { fraction: String(date.getUTCMilliseconds()).padStart(3, '0') } : {}),
       utc: true,
     },
   };
