@@ -32,6 +32,21 @@ describe('local date-time helpers', () => {
     expect(replaceInputDay('', new Date(2026, 11, 3))).toBe('2026-12-03T09:00');
   });
 
+  it('keeps a nonexistent daylight-saving time for validation', () => {
+    const previous = process.env['TZ'];
+    process.env['TZ'] = 'America/New_York';
+    try {
+      expect(replaceInputDay('2017-03-11T02:30', new Date(2017, 2, 12))).toBe('2017-03-12T02:30');
+      expect(inputToTimestamp('2017-03-12T02:30')).toBeUndefined();
+    } finally {
+      if (previous === undefined) {
+        delete process.env['TZ'];
+      } else {
+        process.env['TZ'] = previous;
+      }
+    }
+  });
+
   it('moves days and months across month and year boundaries', () => {
     expect(localDayKey(addLocalDays(localDay(2026, 11, 31), 1))).toBe('2027-01-01');
     expect(localDayKey(addLocalMonths(localDay(2026, 0, 31), 1))).toBe('2026-02-28');

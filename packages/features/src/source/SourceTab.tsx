@@ -11,6 +11,7 @@ import type {
   TitleRecord,
 } from '@doru/core';
 import { CitationAttachments, NoteAttachments, useAttachments } from '../attachments';
+import { AutoSaveError } from '../autoSaveFeedback';
 import { Button, DangerZone, useAutoSaveOnBlur } from '@doru/ui';
 import { MediaSection } from '../media/MediaSection';
 import { EntityTab, SourceCitationsList } from '../sidebar';
@@ -268,8 +269,8 @@ function SourceTabBody({
     }
     savingRef.current = true;
     try {
-      const target = record ?? lastSaved;
-      const next = sourceDraftToRecord(draftRef.current, record ?? lastSaved ?? baselineRef.current);
+      const target = lastSaved ?? record;
+      const next = sourceDraftToRecord(draftRef.current, lastSaved ?? record ?? baselineRef.current);
       const submission = sourceToDraft(next);
       submittedRef.current = submission;
       refreshBaselineRef.current = submission;
@@ -311,7 +312,7 @@ function SourceTabBody({
   const autoSave = useAutoSaveOnBlur({
     enabled: !isNew,
     isDirty: () => {
-      const persisted = record ?? lastSaved;
+      const persisted = lastSaved ?? record;
       return persisted !== undefined && !sourceDraftMatches(draft, persisted);
     },
     save,
@@ -323,6 +324,7 @@ function SourceTabBody({
         draft={draft}
         isNew={isNew}
         onBlur={autoSave.onBlur}
+        notice={<AutoSaveError failed={autoSave.failed} onRetry={autoSave.retry} />}
         onChange={setDraft}
         repositories={repositories}
         titles={titles}
@@ -483,7 +485,15 @@ function SourceTabBody({
       )}
       {(!isNew || lastSaved !== undefined) && (
         <DangerZone>
-          <Button variant="danger" size="sm" data-autosave-skip="true" onClick={() => void remove()}>
+          <Button
+            variant="danger"
+            size="sm"
+            data-autosave-skip="true"
+            onClick={() => {
+              autoSave.cancel();
+              void remove();
+            }}
+          >
             {nls.t('features.tree.fact.delete')}
           </Button>
         </DangerZone>

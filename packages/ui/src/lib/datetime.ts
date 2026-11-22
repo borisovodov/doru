@@ -90,12 +90,16 @@ export function timeOfInput(value: string): { hours: number; minutes: number } {
   return { hours: date.getHours(), minutes: date.getMinutes() };
 }
 
-/** Replaces the day of a `datetime-local` value, keeping its time. */
+/**
+ * Replaces the day of a `datetime-local` value, keeping its time.
+ * The string is composed directly instead of passing through `Date`, whose
+ * daylight-saving normalization would silently turn a nonexistent 02:30 into
+ * 03:30. The caller validates the resulting value and can reject it.
+ */
 export function replaceInputDay(value: string, day: Date): string {
   const time = timeOfInput(value);
-  const next = localDay(day.getFullYear(), day.getMonth(), day.getDate());
-  next.setHours(time.hours, time.minutes, 0, 0);
-  return timestampToInput(next.getTime());
+  const pad = (part: number): string => String(part).padStart(2, '0');
+  return `${localDayKey(day)}T${pad(time.hours)}:${pad(time.minutes)}`;
 }
 
 /** Adds calendar days without leaving local noon. */

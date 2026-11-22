@@ -1,14 +1,14 @@
 .calendar {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: var(--doru-space-2);
   width: 100%;
 }
 
 .header {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: var(--doru-space-1);
 }
 
 .month {
@@ -30,7 +30,7 @@
 }
 
 .weekday {
-  padding: 2px 0 4px;
+  padding: 0 0 var(--doru-space-1);
   color: var(--doru-fg-faint);
   font-size: var(--doru-font-size-xs);
   font-weight: 500;
@@ -42,7 +42,7 @@
   display: grid;
   place-items: center;
   width: 100%;
-  height: 28px;
+  height: var(--doru-control-height);
   box-sizing: border-box;
   padding: 0;
   border: 1px solid transparent;

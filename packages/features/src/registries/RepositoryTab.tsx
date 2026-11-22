@@ -5,6 +5,7 @@ import { Field } from '@doru/ui';
 import { Archive } from 'lucide-react';
 import type { AddressRecord, RepositoryRecord, SourceRecord, TitleRecord } from '@doru/core';
 import { AttachmentsPanel, CitationAttachments, NoteAttachments, useAttachments } from '../attachments';
+import { AutoSaveError } from '../autoSaveFeedback';
 import { MediaSection } from '../media/MediaSection';
 import { EntityTab } from '../sidebar';
 import type { MediaTargetApi, RegistriesEditorApi } from '../person/types';
@@ -189,7 +190,8 @@ function RepositoryTabBody({
       const addressDirty =
         linkedAddressId === undefined &&
         (addressBefore !== undefined ? !addressDraftMatches(address, addressBefore) : !addressDraftEmpty(address));
-      return name.trim() !== persisted.name || linkedAddressId !== persisted.addressId || addressDirty;
+      const effectiveAddressId = linkedAddressId ?? addressBefore?.id;
+      return name.trim() !== persisted.name || effectiveAddressId !== persisted.addressId || addressDirty;
     },
     save,
   });
@@ -214,6 +216,7 @@ function RepositoryTabBody({
           ) : undefined
         }
       />
+      <AutoSaveError failed={autoSave.failed} onRetry={autoSave.retry} />
 
       <SectionCard title={nls.t('features.tree.details')}>
         <Field label={nls.t('features.tree.repository.name')}>
@@ -411,7 +414,15 @@ function RepositoryTabBody({
       )}
       {(!isNew || lastSaved !== undefined) && (
         <DangerZone>
-          <Button variant="danger" size="sm" data-autosave-skip="true" onClick={() => void remove()}>
+          <Button
+            variant="danger"
+            size="sm"
+            data-autosave-skip="true"
+            onClick={() => {
+              autoSave.cancel();
+              void remove();
+            }}
+          >
             {nls.t('features.tree.fact.delete')}
           </Button>
         </DangerZone>

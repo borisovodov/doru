@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState, type FocusEvent } from 'react';
 import { Broom, CalendarDays } from 'lucide-react';
 import { cx } from '../../lib/cx';
 import { inputToTimestamp, replaceInputDay } from '../../lib/datetime';
@@ -104,8 +104,18 @@ export function DateTimePicker({
     close();
   };
 
+  const onRootBlur = (event: FocusEvent<HTMLDivElement>) => {
+    const next = event.relatedTarget;
+    if (next instanceof Node && event.currentTarget.contains(next)) {
+      return;
+    }
+    // Keyboard focus moved out of the composite picker; close without
+    // pulling focus back from the field that received it.
+    setOpen(false);
+  };
+
   return (
-    <div className={cx(styles['root'], className)} ref={rootRef}>
+    <div className={cx(styles['root'], className)} ref={rootRef} data-autosave-field="true" onBlur={onRootBlur}>
       <Input
         id={id}
         className={styles['input']}

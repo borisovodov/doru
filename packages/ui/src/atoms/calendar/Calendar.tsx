@@ -4,6 +4,7 @@ import { cx } from '../../lib/cx';
 import {
   addLocalDays,
   addLocalMonths,
+  daysInMonth,
   localDay,
   localDayKey,
   monthGrid,
@@ -83,8 +84,13 @@ export function Calendar({ value, locale, previousMonthLabel, nextMonthLabel, on
   const changeMonth = (amount: number) => {
     const next = addLocalMonths(localDay(visible.year, visible.month, 1), amount);
     setVisible({ year: next.getFullYear(), month: next.getMonth() });
-    const nextFocus = addLocalMonths(focusedDay, amount);
-    setFocusedDay(nextFocus);
+    setFocusedDay(
+      localDay(
+        next.getFullYear(),
+        next.getMonth(),
+        Math.min(focusedDay.getDate(), daysInMonth(next.getFullYear(), next.getMonth())),
+      ),
+    );
   };
 
   const onGridKeyDown = (event: KeyboardEvent<HTMLTableElement>) => {

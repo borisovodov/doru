@@ -63,6 +63,25 @@ describe('Calendar', () => {
     fireEvent.click(screen.getByRole('button', { name: labels.nextMonth }));
     expect(screen.getByText('December 2026')).toBeInTheDocument();
   });
+
+  it('keeps the roving focus inside the visible month after an adjacent-day focus', () => {
+    renderUi(
+      <Calendar
+        value={new Date(2026, 1, 1)}
+        locale="en"
+        previousMonthLabel={labels.previousMonth}
+        nextMonthLabel={labels.nextMonth}
+        onSelect={vi.fn()}
+      />,
+    );
+
+    const marchDay = screen.getByRole('button', { name: /March 8, 2026/ });
+    fireEvent.focus(marchDay);
+    fireEvent.click(screen.getByRole('button', { name: labels.nextMonth }));
+
+    expect(screen.getByText('March 2026')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /March 8, 2026/ })).toHaveAttribute('tabindex', '0');
+  });
 });
 
 describe('DateTimePicker', () => {

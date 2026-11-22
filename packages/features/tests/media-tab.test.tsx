@@ -183,6 +183,54 @@ describe('MediaTab', () => {
     expect(screen.getByDisplayValue('Z')).toBeInTheDocument();
   });
 
+  it('saves a reversal made after a pre-write refresh', async () => {
+    const pending = deferred();
+    const updateMedia = vi
+      .fn()
+      .mockImplementationOnce(async () => pending.promise)
+      .mockResolvedValueOnce(undefined);
+    const api = stubApi<MediaAdminApi>({
+      updateMedia,
+      getMediaFor: async () => [],
+      getAllMedia: async () => [],
+    });
+    const media = (title: string) => [{ id: 'M1', title, absolutePath: '', files: [] }];
+    const view = renderUi(
+      <MediaTab
+        entityId="M1"
+        media={media('Old')}
+        api={api}
+        attachmentsApi={attachmentsStub()}
+        sources={[]}
+        targetData={targetData}
+        onClose={vi.fn()}
+      />,
+    );
+    fireEvent.change(screen.getByDisplayValue('Old'), { target: { value: 'New' } });
+    fireEvent.blur(screen.getByDisplayValue('New'), { relatedTarget: document.body });
+    await waitFor(() => expect(updateMedia).toHaveBeenCalledTimes(1));
+
+    // A refresh captured before the write must not become the dirty baseline.
+    view.rerender(
+      <MediaTab
+        entityId="M1"
+        media={media('Old')}
+        api={api}
+        attachmentsApi={attachmentsStub()}
+        sources={[]}
+        targetData={targetData}
+        onClose={vi.fn()}
+      />,
+    );
+    await act(async () => pending.resolve());
+    expect(screen.getByDisplayValue('New')).toBeInTheDocument();
+
+    fireEvent.change(screen.getByDisplayValue('New'), { target: { value: 'Old' } });
+    fireEvent.blur(screen.getByDisplayValue('Old'), { relatedTarget: document.body });
+    await waitFor(() => expect(updateMedia).toHaveBeenCalledTimes(2));
+    expect(updateMedia.mock.calls[1]?.[1]).toMatchObject({ title: 'Old' });
+  });
+
   it('keeps a reversal across queued saves', async () => {
     const first = deferred();
     const second = deferred();

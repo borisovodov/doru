@@ -3,6 +3,7 @@ import type { PersonRecord } from '@doru/core';
 import { PersonEditor } from './PersonEditor';
 import type { MediaTargetApi, PersonEditorApi } from './types';
 import { nls } from '../nls';
+import { AutoSaveError } from '../autoSaveFeedback';
 import { Button, DangerZone, useAutoSaveOnBlur } from '@doru/ui';
 import { draftToRecord, newPersonDraft, personDraftMatches, personToDraft, type PersonDraft } from '@doru/ui/domain';
 
@@ -227,6 +228,7 @@ function PersonTabBody({
       api={api}
       mediaApi={mediaApi}
       onOpenMedia={onOpenMedia}
+      notice={<AutoSaveError failed={autoSave.failed} onRetry={autoSave.retry} />}
       footer={
         !isNew && record !== undefined ? (
           <DangerZone>
@@ -234,7 +236,10 @@ function PersonTabBody({
               variant="danger"
               size="sm"
               data-autosave-skip="true"
-              onClick={() => void onDeletePerson(record).then(() => onClose())}
+              onClick={() => {
+                autoSave.cancel();
+                void onDeletePerson(record).then(() => onClose());
+              }}
             >
               {nls.t('features.tree.fact.delete')}
             </Button>

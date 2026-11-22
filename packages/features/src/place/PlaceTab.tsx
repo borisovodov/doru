@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import type { FactRecord, FamilyRecord, PersonRecord, PlaceRecord, SourceRecord } from '@doru/core';
 import { AttachmentsPanel, CitationAttachments, NoteAttachments, useAttachments } from '../attachments';
 import { MediaSection } from '../media/MediaSection';
+import { AutoSaveError } from '../autoSaveFeedback';
 import { EntityTab } from '../sidebar';
 import { Button, DangerZone, useAutoSaveOnBlur } from '@doru/ui';
 import type { MediaTargetApi, PlaceEditorApi } from '../person/types';
@@ -184,8 +185,8 @@ function PlaceTabBody({
   }, [record, isNew]);
 
   const save = async () => {
-    const target = record ?? lastSaved;
-    const next = placeDraftToRecord(draftRef.current, record ?? lastSaved ?? baselineRef.current);
+    const target = lastSaved ?? record;
+    const next = placeDraftToRecord(draftRef.current, lastSaved ?? record ?? baselineRef.current);
     if (isNew && lastSaved === undefined) {
       await api.addPlace(next);
       onCreated(next.id);
@@ -228,7 +229,7 @@ function PlaceTabBody({
   const autoSave = useAutoSaveOnBlur({
     enabled: !isNew,
     isDirty: () => {
-      const persisted = record ?? lastSaved;
+      const persisted = lastSaved ?? record;
       return persisted !== undefined && !placeDraftMatches(draft, persisted);
     },
     save,
@@ -247,6 +248,7 @@ function PlaceTabBody({
       <PlaceEditor
         draft={draft}
         onBlur={autoSave.onBlur}
+        notice={<AutoSaveError failed={autoSave.failed} onRetry={autoSave.retry} />}
         onChange={setDraft}
         places={places}
         onSave={() => void save()}
@@ -411,7 +413,15 @@ function PlaceTabBody({
       )}
       {(!isNew || lastSaved !== undefined) && (
         <DangerZone>
-          <Button variant="danger" size="sm" data-autosave-skip="true" onClick={() => void remove()}>
+          <Button
+            variant="danger"
+            size="sm"
+            data-autosave-skip="true"
+            onClick={() => {
+              autoSave.cancel();
+              void remove();
+            }}
+          >
             {nls.t('features.tree.fact.delete')}
           </Button>
         </DangerZone>

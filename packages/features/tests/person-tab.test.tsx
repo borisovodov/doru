@@ -12,10 +12,11 @@ function renderTab(
     persons?: PersonRecord[];
     onClose?: () => void;
     onCreated?: (realId: string) => void;
+    updatePerson?: (before: PersonRecord, after: PersonRecord) => Promise<void>;
   } = {},
 ) {
   const addPerson = vi.fn(async () => {});
-  const updatePerson = vi.fn(async (_before: PersonRecord, _after: PersonRecord) => {});
+  const updatePerson = vi.fn(overrides.updatePerson ?? (async (_before: PersonRecord, _after: PersonRecord) => {}));
   const api = stubApi<PersonEditorApi>({
     addPerson,
     updatePerson,
@@ -76,6 +77,37 @@ describe('PersonTab', () => {
     await waitFor(() => expect(addPerson).toHaveBeenCalledTimes(1));
     expect(onCreated).toHaveBeenCalledTimes(1);
     expect(onCreated).toHaveBeenCalledWith(expect.any(String));
+  });
+
+  it('shows a save failure and retries it without dropping the draft', async () => {
+    const person: PersonRecord = {
+      id: 'P1',
+      names: [{ id: 'N1', given: 'Ivan', surname: 'Ivanov' }],
+      sex: 'M',
+      facts: [],
+    };
+    let reject = true;
+    const { updatePerson } = renderTab({
+      entityId: 'P1',
+      persons: [person],
+      updatePerson: async () => {
+        if (reject) {
+          reject = false;
+          throw new Error('offline');
+        }
+      },
+    });
+    const given = screen.getByDisplayValue('Ivan');
+    fireEvent.change(given, { target: { value: 'Ivan Jr' } });
+    fireEvent.blur(given, { relatedTarget: document.body });
+
+    await waitFor(() => expect(updatePerson).toHaveBeenCalledTimes(1));
+    expect(await screen.findByText(nls.t('features.tree.autosaveFailed'))).toBeInTheDocument();
+    expect(screen.getByDisplayValue('Ivan Jr')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: nls.t('features.tree.retry') }));
+    await waitFor(() => expect(updatePerson).toHaveBeenCalledTimes(2));
+    await waitFor(() => expect(screen.queryByText(nls.t('features.tree.autosaveFailed'))).not.toBeInTheDocument());
   });
 
   it('autosaves an existing person when a field loses focus', async () => {

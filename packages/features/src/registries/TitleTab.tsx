@@ -8,6 +8,7 @@ import { AttachmentRow, RowList } from '@doru/ui';
 import { BookMarked } from 'lucide-react';
 import type { RepositoryRecord, SourceRecord, TitleRecord } from '@doru/core';
 import { AttachmentsPanel } from '../attachments';
+import { AutoSaveError } from '../autoSaveFeedback';
 import { EntityTab } from '../sidebar';
 import type { TitleEditorApi } from '../person/types';
 import { nls } from '../nls';
@@ -145,6 +146,7 @@ function TitleTabBody({
           ) : undefined
         }
       />
+      <AutoSaveError failed={autoSave.failed} onRetry={autoSave.retry} />
 
       <SectionCard title={nls.t('features.tree.details')}>
         <Field label={nls.t('features.tree.title.name')}>
@@ -214,7 +216,15 @@ function TitleTabBody({
       )}
       {(!isNew || lastSaved !== undefined) && (
         <DangerZone>
-          <Button variant="danger" size="sm" data-autosave-skip="true" onClick={() => void remove()}>
+          <Button
+            variant="danger"
+            size="sm"
+            data-autosave-skip="true"
+            onClick={() => {
+              autoSave.cancel();
+              void remove();
+            }}
+          >
             {nls.t('features.tree.fact.delete')}
           </Button>
         </DangerZone>

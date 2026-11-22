@@ -26,6 +26,7 @@ import {
 } from '@doru/ui';
 import { DateEditor, dateDraftsEqual, fromDateDraft, toDateDraft } from '@doru/ui/domain';
 import { AttachmentsPanel } from '../attachments';
+import { AutoSaveError } from '../autoSaveFeedback';
 import { EntityTab } from '../sidebar';
 import type { AttachmentsPanelApi } from '../attachments';
 import type { MediaAdminApi } from '../person/types';
@@ -121,6 +122,7 @@ function MediaTabBody({
   const recordRef = useRef(record);
   const baselineRef = useRef<MediaRecord>(record);
   const savedRef = useRef<MediaRecord>(record);
+  const savedMetadataRef = useRef<MediaRecord>(record);
   const submittedRef = useRef<typeof metadataRef.current | undefined>(undefined);
   const submissionTokenRef = useRef<object | undefined>(undefined);
   const submittedDirtyRef = useRef<MediaDirtyFields | undefined>(undefined);
@@ -158,6 +160,7 @@ function MediaTabBody({
     submittedRef.current = undefined;
     submittedDirtyRef.current = undefined;
     savedRef.current = record;
+    savedMetadataRef.current = record;
     if (submitted === undefined && mediaMetadataMatches(metadataRef.current, previous)) {
       baselineRef.current = record;
       setTitle(record.title ?? '');
@@ -225,7 +228,7 @@ function MediaTabBody({
     dirty: MediaDirtyFields,
     submitted: MediaDraftSnapshot,
     next?: MediaRecord,
-  ): void => {
+  ): MediaRecord => {
     const refreshed: MediaRecord = { ...latest };
     const draft = metadataRef.current;
     if (!dirty.title) {
@@ -273,6 +276,7 @@ function MediaTabBody({
       refreshed.keywords = (next ?? base).keywords;
     }
     baselineRef.current = refreshed;
+    return refreshed;
   };
 
   const performSave = async (
@@ -341,9 +345,10 @@ function MediaTabBody({
       if (recordRef.current === recordBeforeSave) {
         baselineRef.current = next;
         savedRef.current = next;
+        savedMetadataRef.current = next;
       } else {
         savedRef.current = recordRef.current;
-        reconcileAfterRefresh(recordRef.current, base, dirty, submission, next);
+        savedMetadataRef.current = reconcileAfterRefresh(recordRef.current, base, dirty, submission, next);
       }
     }
   };
@@ -404,10 +409,17 @@ function MediaTabBody({
     return saveChainRef.current;
   };
 
+  const autoSave = useAutoSaveOnBlur({
+    enabled: true,
+    isDirty: () => !mediaMetadataMatches(metadataRef.current, savedMetadataRef.current),
+    save,
+  });
+
   const remove = async () => {
     if (!window.confirm(nls.t('features.tree.media.deleteConfirm'))) {
       return;
     }
+    autoSave.cancel();
     await api.deleteMedia(record);
     onClose();
   };
@@ -441,12 +453,6 @@ function MediaTabBody({
     await api.updateMedia(record, after);
   };
 
-  const autoSave = useAutoSaveOnBlur({
-    enabled: true,
-    isDirty: () => !mediaMetadataMatches(metadataRef.current, savedRef.current),
-    save,
-  });
-
   const first = record.files?.find((file) => file.absolutePath !== '');
   return (
     <EntityTab onBlur={autoSave.onBlur}>
@@ -465,6 +471,7 @@ function MediaTabBody({
         title={title.trim() || '—'}
         subtitle={nls.t('features.tree.media.fileCount', record.files?.length ?? 0)}
       />
+      <AutoSaveError failed={autoSave.failed} onRetry={autoSave.retry} />
 
       <SectionCard title={nls.t('features.tree.media.details')}>
         <Field label={nls.t('features.tree.media.titleField')}>

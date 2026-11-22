@@ -53,6 +53,8 @@ export interface PersonEditorProps {
   api: PersonEditorApi;
   mediaApi: MediaTargetApi;
   onOpenMedia?: ((mediaId: string) => void) | undefined;
+  /** Inline notice rendered under the header (autosave failure). */
+  notice?: ReactNode;
   /** Rendered after every section, for page-level actions such as Delete. */
   footer?: ReactNode;
   /** Autosave trigger from the tab; fires when a field loses focus. */
@@ -72,6 +74,7 @@ export function PersonEditor({
   api,
   mediaApi,
   onOpenMedia,
+  notice,
   footer,
   onBlur,
 }: PersonEditorProps) {
@@ -284,6 +287,7 @@ export function PersonEditor({
           ) : undefined
         }
       />
+      {notice}
 
       <SectionCard title={nls.t('features.tree.names.title')}>
         <NamesSection

@@ -1,6 +1,7 @@
 import { MapPin } from 'lucide-react';
 import type { AddressRecord, FactRecord, RepositoryRecord, SourceRecord, SubmitterRecord } from '@doru/core';
 import { AttachmentsPanel } from '../attachments';
+import { AutoSaveError } from '../autoSaveFeedback';
 import { EntityTab } from '../sidebar';
 import type { RegistriesEditorApi } from '../person/types';
 import {
@@ -145,6 +146,7 @@ function AddressTabBody({
           ) : undefined
         }
       />
+      <AutoSaveError failed={autoSave.failed} onRetry={autoSave.retry} />
       <SectionCard title={nls.t('features.tree.address.title')}>
         <AddressFields
           address={address}
@@ -180,7 +182,15 @@ function AddressTabBody({
       )}
       {record !== undefined && (
         <DangerZone>
-          <Button variant="danger" size="sm" data-autosave-skip="true" onClick={() => void remove()}>
+          <Button
+            variant="danger"
+            size="sm"
+            data-autosave-skip="true"
+            onClick={() => {
+              autoSave.cancel();
+              void remove();
+            }}
+          >
             {nls.t('features.tree.fact.delete')}
           </Button>
         </DangerZone>

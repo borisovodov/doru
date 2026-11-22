@@ -1,5 +1,5 @@
 import { IconButton, useAutoFocusSelect } from '@doru/ui';
-import { useState, type FocusEventHandler } from 'react';
+import { useState, type FocusEventHandler, type ReactNode } from 'react';
 import { Input } from '@doru/ui';
 import { Select, Textarea } from '@doru/ui';
 import { SectionCard, Subcard, ReorderButtons } from '@doru/ui';
@@ -39,6 +39,7 @@ export function SourceEditor({
   onAddRepository,
   onSave,
   onCancel,
+  notice,
   onBlur,
 }: {
   draft: SourceDraft;
@@ -51,6 +52,8 @@ export function SourceEditor({
   onAddRepository: (repository: RepositoryRecord) => Promise<void>;
   onSave: () => void;
   onCancel?: (() => void) | undefined;
+  /** Inline notice rendered under the header (autosave failure). */
+  notice?: ReactNode;
   /** Autosave trigger from the tab; fires when a field loses focus. */
   onBlur?: FocusEventHandler<HTMLElement> | undefined;
 }) {
@@ -141,6 +144,7 @@ export function SourceEditor({
           ) : undefined
         }
       />
+      {notice}
 
       <SectionCard title={nls.t('features.tree.source.details')}>
         <Field label={nls.t('features.tree.sources.titleField')}>

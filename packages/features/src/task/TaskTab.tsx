@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import { Button, DangerZone, EntityViewCard, InlineError, SectionCard, useAutoSaveOnBlur } from '@doru/ui';
 import { MEDIA_VISIBLE } from '@doru/platform';
+import { AutoSaveError } from '../autoSaveFeedback';
 import { ListTodo } from 'lucide-react';
 import type {
   AddressRecord,
@@ -261,6 +262,7 @@ function TaskTabBody({
           ) : undefined
         }
       />
+      <AutoSaveError failed={autoSave.failed} onRetry={autoSave.retry} />
 
       <SectionCard title={nls.t('features.tree.details')}>
         <TaskEditorFields
@@ -284,7 +286,15 @@ function TaskTabBody({
       )}
       {(!isNew || lastSaved !== undefined) && (
         <DangerZone>
-          <Button variant="danger" size="sm" data-autosave-skip="true" onClick={() => void remove()}>
+          <Button
+            variant="danger"
+            size="sm"
+            data-autosave-skip="true"
+            onClick={() => {
+              autoSave.cancel();
+              void remove();
+            }}
+          >
             {nls.t('features.tree.fact.delete')}
           </Button>
         </DangerZone>

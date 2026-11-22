@@ -7,6 +7,7 @@ import { Plus, User, X } from 'lucide-react';
 import type { AddressRecord, RecordSubmitterLink, SourceRecord, SubmitterRecord } from '@doru/core';
 import { MEDIA_VISIBLE } from '@doru/platform';
 import { AttachmentsPanel, CitationAttachments, NoteAttachments, useAttachments } from '../attachments';
+import { AutoSaveError } from '../autoSaveFeedback';
 import { MediaSection } from '../media/MediaSection';
 import { EntityTab } from '../sidebar';
 import type { MediaTargetApi, RegistriesEditorApi } from '../person/types';
@@ -224,9 +225,10 @@ function SubmitterTabBody({
       const addressDirty =
         linkedAddressId === undefined &&
         (addressBefore !== undefined ? !addressDraftMatches(address, addressBefore) : !addressDraftEmpty(address));
+      const effectiveAddressId = linkedAddressId ?? addressBefore?.id;
       return (
         name.trim() !== persisted.name ||
-        linkedAddressId !== persisted.addressId ||
+        effectiveAddressId !== persisted.addressId ||
         addressDirty ||
         currentLanguages.length !== storedLanguages.length ||
         currentLanguages.some((language, index) => language !== storedLanguages[index])
@@ -255,6 +257,7 @@ function SubmitterTabBody({
           ) : undefined
         }
       />
+      <AutoSaveError failed={autoSave.failed} onRetry={autoSave.retry} />
 
       <SectionCard title={nls.t('features.tree.details')}>
         <Field label={nls.t('features.tree.submitter.name')}>
@@ -466,7 +469,15 @@ function SubmitterTabBody({
       )}
       {(!isNew || lastSaved !== undefined) && (
         <DangerZone>
-          <Button variant="danger" size="sm" data-autosave-skip="true" onClick={() => void remove()}>
+          <Button
+            variant="danger"
+            size="sm"
+            data-autosave-skip="true"
+            onClick={() => {
+              autoSave.cancel();
+              void remove();
+            }}
+          >
             {nls.t('features.tree.fact.delete')}
           </Button>
         </DangerZone>

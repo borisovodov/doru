@@ -53,6 +53,7 @@ export function FamilyEditor({
   savedLinkIds,
   renderLinkAttachments,
   renderStatusAttachments,
+  notice,
   onOpenSource,
   onBlur,
 }: {
@@ -66,6 +67,8 @@ export function FamilyEditor({
   associations: AssociationRecord[];
   sources: SourceRecord[];
   api: FamilyEditorApi;
+  /** Inline notice rendered under the header (autosave failure). */
+  notice?: ReactNode;
   onOpenSource: (sourceId: string) => void;
   /** Autosave trigger from the tab; fires when a field loses focus. */
   onBlur?: FocusEventHandler<HTMLElement> | undefined;
@@ -156,6 +159,7 @@ export function FamilyEditor({
         title={label}
         subtitle={nls.t('features.sidebar.children', draft.childLinks.length)}
       />
+      {notice}
 
       <SectionCard title={nls.t('features.tree.families.details')}>
         <Checkbox

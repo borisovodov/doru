@@ -34,6 +34,7 @@ export function PlaceEditor({
   onChange,
   places,
   onSave,
+  notice,
   renderAttachments,
   renderNameAttachments,
   onBlur,
@@ -42,6 +43,8 @@ export function PlaceEditor({
   onChange: (draft: PlaceDraft) => void;
   places: PlaceRecord[];
   onSave: () => void;
+  /** Inline notice rendered under the header (autosave failure). */
+  notice?: ReactNode;
   renderAttachments?: ((linkId: string) => ReactNode) | undefined;
   renderNameAttachments?: ((nameId: string) => ReactNode) | undefined;
   /** Autosave trigger from the tab; fires when a field loses focus. */
@@ -116,6 +119,7 @@ export function PlaceEditor({
           )
         }
       />
+      {notice}
 
       <SectionCard title={nls.t('features.tree.place.names')}>
         {draft.names.length === 0 && <EmptyText>{nls.t('features.tree.place.names.empty')}</EmptyText>}
