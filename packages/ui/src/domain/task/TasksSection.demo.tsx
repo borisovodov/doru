@@ -18,7 +18,7 @@ const tasks: TaskRecord[] = [
     targetId: 'I1',
     priority: 'medium',
     status: 'closed',
-    scheduledDate: { quality: 'exact', component: { year: 2026, month: 5, day: 12 } },
+    scheduledAt: new Date(2026, 4, 12, 9, 0).getTime(),
   },
 ];
 

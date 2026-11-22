@@ -27,6 +27,7 @@ const task = (overrides: Partial<TaskRecord> = {}): TaskRecord => ({
   text: 'Order the birth record',
   priority: 'medium',
   status: 'open',
+  createdAt: 1_700_000_000_000,
   ...overrides,
 });
 
@@ -111,9 +112,14 @@ describe('TreeService research layer', () => {
         task({ id: 'T2', targetType: 'person', targetId: 'P1' }),
       ]);
 
-      const after = task({ status: 'closed', closedDate: { quality: 'exact' as const, component: { year: 2026 } } });
+      const after = task({ status: 'closed', closedAt: 1_700_000_100_000 });
       service.updateTask(task(), after);
       expect(fixture.repo.listTasks().find((entry) => entry.id === 'T1')).toMatchObject(after);
+
+      service.updateTask(after, task({ status: 'open' }));
+      expect(fixture.repo.getTask('T1')?.closedAt).toBeUndefined();
+      service.undo();
+      expect(fixture.repo.getTask('T1')?.closedAt).toBe(after.closedAt);
 
       service.deleteTask(after);
       expect(fixture.repo.listTasks().find((entry) => entry.id === 'T1')).toBeUndefined();

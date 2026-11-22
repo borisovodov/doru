@@ -294,10 +294,10 @@ export class SqliteTreeRepository implements TreeRepository {
     this.sources = new SourceRepo(db, dates, this.transactions);
     this.notes = new NoteRepo(db);
     this.media = new MediaRepo(db, dates, this.transactions);
-    this.attachments = new AttachmentRepo(db, dates, this.transactions);
+    this.attachments = new AttachmentRepo(db);
     this.repositories = new RepositoryRepo(db);
     this.relations = new RelationRepo(db, dates, this.transactions);
-    this.research = new ResearchRepo(db, dates, this.transactions);
+    this.research = new ResearchRepo(db, this.transactions);
     this.submitters = new SubmitterRepo(db);
     this.addresses = new AddressRepo(db);
   }

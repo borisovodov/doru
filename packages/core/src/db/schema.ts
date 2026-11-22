@@ -46,10 +46,10 @@ export const DORU_APPLICATION_ID = 0x444f5255;
  * Bumped whenever the schema changes. There are no migrations before 1.0.0:
  * a newer version may simply not understand files written by older ones
  * (the store refuses to open them with a loud error). This schema uses
- * version 15, above every version written by an earlier build (the old model
- * reached 14), so the open guard cannot mistake an old file for this one.
+ * version 16, above every version written by an earlier build (the old model
+ * reached 15), so the open guard cannot mistake an old file for this one.
  */
-export const SCHEMA_VERSION = 15;
+export const SCHEMA_VERSION = 16;
 
 export const SCHEMA_SQL = `
 CREATE TABLE IF NOT EXISTS person (
@@ -518,8 +518,7 @@ CREATE TABLE IF NOT EXISTS tag_link (
   id TEXT PRIMARY KEY,
   tag_id TEXT NOT NULL REFERENCES tag(id) ON DELETE CASCADE,
   target_type TEXT NOT NULL,
-  target_id TEXT NOT NULL,
-  date_id TEXT REFERENCES date(id) ON DELETE RESTRICT
+  target_id TEXT NOT NULL
 );
 
 -- Fact details: ages, participants (witnesses, shared-event people) and
@@ -575,15 +574,17 @@ CREATE TABLE IF NOT EXISTS person_alias (
 -- No repository_id, category, locality, title, type, or result text on
 -- purpose: GEDCOM TODO REPO, _CAT, _LOCL, _TTIL, TYPE, and DATA are not
 -- imported.
+-- Task lifecycle times are epoch-millisecond instants, not genealogical
+-- dates; they do not use the date table.
 CREATE TABLE IF NOT EXISTS task (
   id TEXT PRIMARY KEY,
   text TEXT NOT NULL,
   target_type TEXT, target_id TEXT,  -- may be a free-standing task
   priority TEXT, status TEXT,
-  created_date_id TEXT REFERENCES date(id) ON DELETE RESTRICT,
-  scheduled_date_id TEXT REFERENCES date(id) ON DELETE RESTRICT,
-  reminder_date_id TEXT REFERENCES date(id) ON DELETE RESTRICT,
-  closed_date_id TEXT REFERENCES date(id) ON DELETE RESTRICT
+  created_at INTEGER,
+  scheduled_at INTEGER,
+  reminder_at INTEGER,
+  closed_at INTEGER
 );
 
 CREATE TABLE IF NOT EXISTS title (
@@ -667,11 +668,7 @@ CREATE INDEX IF NOT EXISTS idx_source_publication_date ON source(publication_dat
 CREATE INDEX IF NOT EXISTS idx_source_data_event_date ON source_data_event(date_id);
 CREATE INDEX IF NOT EXISTS idx_citation_date ON citation(date_id);
 CREATE INDEX IF NOT EXISTS idx_media_date ON media(date_id);
-CREATE INDEX IF NOT EXISTS idx_tag_link_date ON tag_link(date_id);
-CREATE INDEX IF NOT EXISTS idx_task_created_date ON task(created_date_id);
-CREATE INDEX IF NOT EXISTS idx_task_scheduled_date ON task(scheduled_date_id);
-CREATE INDEX IF NOT EXISTS idx_task_reminder_date ON task(reminder_date_id);
-CREATE INDEX IF NOT EXISTS idx_task_closed_date ON task(closed_date_id);
+CREATE INDEX IF NOT EXISTS idx_task_scheduled_at ON task(scheduled_at);
 CREATE INDEX IF NOT EXISTS idx_association_period_date ON association(period_date_id);
 
 -- Foreign-key child columns. SQLite does not index these automatically, so

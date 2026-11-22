@@ -82,13 +82,16 @@ test('attachments, addresses and task fields round-trip through the desktop IPC'
         throw new Error('address was not detached from the fact');
       }
 
+      const createdStamp = new Date(2026, 0, 1).getTime();
+      const closedStamp = new Date(2026, 11, 1).getTime();
       await window.doru.addTask(project, {
         id: 'AT1',
         text: 'Check the register',
         targetType: 'family',
         targetId: 'F1',
-        createdDate: { quality: 'exact', component: { year: 2026 } },
-        closedDate: { quality: 'exact', component: { year: 2026, month: 12 } },
+        status: 'closed',
+        createdAt: createdStamp,
+        closedAt: closedStamp,
       });
       const tasks = await window.doru.getTasks(project);
       const task = tasks.find((entry) => entry.id === 'AT1');
@@ -96,8 +99,8 @@ test('attachments, addresses and task fields round-trip through the desktop IPC'
         task === undefined ||
         task.targetType !== 'family' ||
         task.targetId !== 'F1' ||
-        task.createdDate?.component?.year !== 2026 ||
-        task.closedDate?.component?.month !== 12
+        task.createdAt !== createdStamp ||
+        task.closedAt !== closedStamp
       ) {
         throw new Error('task fields missing');
       }

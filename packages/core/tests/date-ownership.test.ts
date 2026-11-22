@@ -29,11 +29,6 @@ function expectNoOrphanDates(fixture: RepoFixture): void {
          UNION ALL SELECT date_id FROM source_data_event WHERE date_id IS NOT NULL
          UNION ALL SELECT date_id FROM citation WHERE date_id IS NOT NULL
          UNION ALL SELECT date_id FROM media WHERE date_id IS NOT NULL
-         UNION ALL SELECT date_id FROM tag_link WHERE date_id IS NOT NULL
-         UNION ALL SELECT created_date_id FROM task WHERE created_date_id IS NOT NULL
-         UNION ALL SELECT scheduled_date_id FROM task WHERE scheduled_date_id IS NOT NULL
-         UNION ALL SELECT reminder_date_id FROM task WHERE reminder_date_id IS NOT NULL
-         UNION ALL SELECT closed_date_id FROM task WHERE closed_date_id IS NOT NULL
          UNION ALL SELECT period_date_id FROM association WHERE period_date_id IS NOT NULL
        )`,
     )
@@ -55,11 +50,6 @@ function expectNoOrphanDates(fixture: RepoFixture): void {
          UNION ALL SELECT date_id FROM source_data_event WHERE date_id IS NOT NULL
          UNION ALL SELECT date_id FROM citation WHERE date_id IS NOT NULL
          UNION ALL SELECT date_id FROM media WHERE date_id IS NOT NULL
-         UNION ALL SELECT date_id FROM tag_link WHERE date_id IS NOT NULL
-         UNION ALL SELECT created_date_id FROM task WHERE created_date_id IS NOT NULL
-         UNION ALL SELECT scheduled_date_id FROM task WHERE scheduled_date_id IS NOT NULL
-         UNION ALL SELECT reminder_date_id FROM task WHERE reminder_date_id IS NOT NULL
-         UNION ALL SELECT closed_date_id FROM task WHERE closed_date_id IS NOT NULL
          UNION ALL SELECT period_date_id FROM association WHERE period_date_id IS NOT NULL
        ) GROUP BY date_id HAVING n > 1`,
     )
@@ -176,14 +166,6 @@ describe('date ownership', () => {
         hierarchy: [{ id: 'H1', parentId: 'PL2', date: exact(1901) }],
         postalCodes: [{ id: 'PC1', code: '101000', date: exact(1902) }],
       });
-      fixture.repo.insertTask({
-        id: 'T1',
-        text: 'Task',
-        createdDate: exact(1903),
-        scheduledDate: exact(1904),
-        reminderDate: exact(1905),
-        closedDate: exact(1906),
-      });
       fixture.repo.insertAssociation({
         id: 'AS1',
         personId: 'P1',
@@ -203,21 +185,11 @@ describe('date ownership', () => {
         targetId: 'P1',
         date: exact(1912),
       });
-      fixture.repo.insertTag({ id: 'TAG1', name: 'research' });
-      fixture.repo.insertTagLink({
-        id: 'TL1',
-        tagId: 'TAG1',
-        targetType: 'person',
-        targetId: 'P1',
-        date: exact(1913),
-      });
-      expect(dateCount(fixture)).toBe(13);
+      expect(dateCount(fixture)).toBe(8);
       expectNoOrphanDates(fixture);
 
-      fixture.repo.deleteTask('T1');
       fixture.repo.deleteAssociation('AS1');
       fixture.repo.deleteMedia('M1');
-      fixture.repo.deleteTag('TAG1');
       fixture.repo.deleteSource('S1');
       fixture.repo.deletePlace('PL1');
       expect(dateCount(fixture)).toBe(0);
@@ -297,7 +269,6 @@ describe('date ownership', () => {
     try {
       fixture.repo.insertPerson({ id: 'P1', names: [], sex: 'M', facts: [] });
       fixture.repo.insertPerson({ id: 'P2', names: [], sex: 'F', facts: [] });
-      fixture.repo.insertTask({ id: 'T1', text: 'Task', createdDate: exact(1901), scheduledDate: exact(1902) });
       fixture.repo.insertMedia({ id: 'M1', date: exact(1903) });
       fixture.repo.insertSource({
         id: 'S1',
@@ -310,25 +281,14 @@ describe('date ownership', () => {
         targetId: 'P1',
         date: exact(1905),
       });
-      fixture.repo.insertTag({ id: 'TAG1', name: 'research' });
-      fixture.repo.insertTagLink({
-        id: 'TL1',
-        tagId: 'TAG1',
-        targetType: 'person',
-        targetId: 'P1',
-        date: exact(1906),
-      });
       fixture.repo.insertAssociation({
         id: 'AS1',
         personId: 'P1',
         otherPersonId: 'P2',
         period: exact(1907),
       });
-      expect(dateCount(fixture)).toBe(7);
+      expect(dateCount(fixture)).toBe(4);
 
-      const task = fixture.repo.getTask('T1')!;
-      delete task.scheduledDate;
-      fixture.repo.updateTask(task);
       const media = fixture.repo.getMedia('M1')!;
       delete media.date;
       fixture.repo.updateMedia(media);
@@ -339,13 +299,10 @@ describe('date ownership', () => {
       const citation = fixture.repo.getCitation('C1')!;
       delete citation.date;
       fixture.repo.updateCitation(citation);
-      const tagLink = fixture.repo.getTagLink('TL1')!;
-      delete tagLink.date;
-      fixture.repo.updateTagLink(tagLink);
       const association = fixture.repo.listAssociations().find((entry) => entry.id === 'AS1')!;
       delete association.period;
       fixture.repo.updateAssociation(association);
-      expect(dateCount(fixture)).toBe(1);
+      expect(dateCount(fixture)).toBe(0);
       expectNoOrphanDates(fixture);
     } finally {
       cleanupRepo(fixture);

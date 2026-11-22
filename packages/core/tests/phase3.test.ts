@@ -70,7 +70,7 @@ describe('Phase 3: research layer', () => {
         targetId: 'P1',
         priority: 'high',
         status: 'open',
-        createdDate: { quality: 'exact', component: { year: 2026 } },
+        createdAt: new Date(2026, 0, 2).getTime(),
       });
       expect(repo.listTasksFor('person', 'P1')).toEqual([
         expect.objectContaining({ id: 'T1', text: 'check the archive', status: 'open' }),

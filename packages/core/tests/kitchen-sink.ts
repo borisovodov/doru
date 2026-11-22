@@ -291,7 +291,6 @@ export function buildKitchenSinkTree(fixture: RepoFixture): void {
     tagId: 'TG1',
     targetType: 'person',
     targetId: 'P1',
-    date: { quality: 'exact', component: { year: 2026 } },
   });
 
   // Associations and aliases.
@@ -316,9 +315,9 @@ export function buildKitchenSinkTree(fixture: RepoFixture): void {
     text: 'Order the birth record',
     priority: 'high',
     status: 'open',
-    scheduledDate: { quality: 'exact', component: { year: 2026 } },
-    reminderDate: { quality: 'exact', component: { year: 2026, month: 2 } },
-    closedDate: { quality: 'exact', component: { year: 2026, month: 3 } },
+    scheduledAt: new Date(2026, 0, 2).getTime(),
+    reminderAt: new Date(2026, 1, 3).getTime(),
+    closedAt: new Date(2026, 2, 4).getTime(),
   });
   repo.insertTask({ id: 'TD2', text: 'Visit the cemetery', targetType: 'person', targetId: 'P1' });
 

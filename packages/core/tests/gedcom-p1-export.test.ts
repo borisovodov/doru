@@ -73,7 +73,7 @@ describe('P1 GEDCOM export gaps', () => {
         id: 'T1',
         text: 'Free task',
         status: 'waiting',
-        createdDate: { quality: 'exact', component: { year: 2026, month: 11, day: 17 } },
+        createdAt: new Date(2026, 10, 17).getTime(),
       });
       repo.insertTask({
         id: 'T2',
@@ -81,7 +81,7 @@ describe('P1 GEDCOM export gaps', () => {
         targetType: 'person',
         targetId: 'P1',
         status: 'waiting',
-        createdDate: { quality: 'exact', component: { year: 2026, month: 11, day: 18 } },
+        createdAt: new Date(2026, 10, 18).getTime(),
       });
 
       for (const [serialize, hasPlaceCards, hasNonEvents] of [
@@ -107,8 +107,8 @@ describe('P1 GEDCOM export gaps', () => {
           // only the 7.0 `_PLAC` record can carry them.
           expect(text).toContain('1 REFN PLACE-1');
         }
-        expect(text).toContain('_TCDT 2026-11-17');
-        expect(text).toContain('_TCDT 2026-11-18');
+        expect(text).toContain('_TCDT 2026-11-17T00:00:00');
+        expect(text).toContain('_TCDT 2026-11-18T00:00:00');
         expect(text).toContain('_TSTS Waiting');
         expect(text).toContain('STAT Waiting');
 
@@ -158,12 +158,12 @@ describe('P1 GEDCOM export gaps', () => {
           const freeTask = tasks.find((task) => task.text === 'Free task')!;
           const attachedTask = tasks.find((task) => task.text === 'Attached task')!;
           expect(freeTask).toMatchObject({
-            createdDate: { quality: 'exact', component: { year: 2026, month: 11, day: 17 } },
+            createdAt: new Date(2026, 10, 17).getTime(),
           });
           expect(freeTask.targetType).toBeUndefined();
           expect(freeTask.targetId).toBeUndefined();
           expect(attachedTask).toMatchObject({
-            createdDate: { quality: 'exact', component: { year: 2026, month: 11, day: 18 } },
+            createdAt: new Date(2026, 10, 18).getTime(),
             targetType: 'person',
             targetId: person.id,
           });
@@ -175,129 +175,6 @@ describe('P1 GEDCOM export gaps', () => {
       cleanupRepo(fixture);
     }
   });
-  it('pads task years below 1000 when exporting _TCDT', () => {
-    const fixture = makeRepo();
-    try {
-      const { repo } = fixture;
-      repo.insertTask({
-        id: 'T1',
-        text: 'Ancient task',
-        createdDate: { quality: 'exact', component: { year: 999, month: 11, day: 17 } },
-      });
-      repo.insertTask({
-        id: 'T2',
-        text: 'Approximate task',
-        createdDate: { quality: 'about', component: { year: 1900 }, text: 'circa' },
-      });
-      repo.insertTask({
-        id: 'T3',
-        text: 'End-only task',
-        createdDate: { quality: 'range', end: { year: 1900 } },
-      });
-      repo.insertTask({
-        id: 'T4',
-        text: 'Unknown text task',
-        createdDate: { quality: 'unknown', text: '1900' },
-      });
-      repo.insertTask({
-        id: 'T5',
-        text: 'Julian task',
-        createdDate: {
-          quality: 'about',
-          modifier: 'CAL',
-          component: { calendar: 'julian', year: 1900, month: 1, day: 1 },
-          time: { hour: 12, minute: 0 },
-        },
-      });
-      repo.insertTask({
-        id: 'T6',
-        text: 'Yearless task',
-        createdDate: { quality: 'exact', component: { month: 5, day: 3 } },
-      });
-      repo.insertTask({
-        id: 'T7',
-        text: 'Day-only task',
-        createdDate: { quality: 'exact', component: { year: 1900, day: 15 } },
-      });
-      repo.insertTask({
-        id: 'T8',
-        text: 'Julian leap task',
-        createdDate: { quality: 'exact', component: { calendar: 'julian', year: 1900, month: 2, day: 29 } },
-      });
-      repo.insertTask({
-        id: 'T9',
-        text: 'Text-only approximate task',
-        createdDate: { quality: 'about', text: 'circa spring' },
-      });
-      repo.insertTask({
-        id: 'T10',
-        text: 'Long-year task',
-        createdDate: { quality: 'exact', component: { year: 10000 } },
-      });
-      const serialized = serializeGedcom70(buildGedcomDataset(repo));
-      expect(serialized.ok).toBe(true);
-      if (!serialized.ok) {
-        return;
-      }
-      expect(serialized.value).toContain('_TCDT 0999-11-17');
-      expect(serialized.value).toContain('_TCDT about:1900|circa');
-      expect(serialized.value).toContain('_TCDT range:..1900');
-      expect(serialized.value).toContain('_TCDT unknown:|1900');
-      expect(serialized.value).toContain('_TCDT json:');
-
-      const target = makeRepo();
-      try {
-        importGedcomDataset(parseDataset(serialized.value), target.repo);
-        expect(target.repo.listTasks().find((task) => task.text === 'Ancient task')?.createdDate).toMatchObject({
-          quality: 'exact',
-          component: { year: 999, month: 11, day: 17 },
-        });
-        expect(target.repo.listTasks().find((task) => task.text === 'Approximate task')?.createdDate).toMatchObject({
-          quality: 'about',
-          component: { year: 1900 },
-          text: 'circa',
-        });
-        expect(target.repo.listTasks().find((task) => task.text === 'End-only task')?.createdDate).toMatchObject({
-          quality: 'range',
-          end: { year: 1900 },
-        });
-        expect(target.repo.listTasks().find((task) => task.text === 'Unknown text task')?.createdDate).toMatchObject({
-          quality: 'unknown',
-          text: '1900',
-        });
-        expect(target.repo.listTasks().find((task) => task.text === 'Julian task')?.createdDate).toMatchObject({
-          quality: 'about',
-          modifier: 'CAL',
-          component: { calendar: 'julian', year: 1900, month: 1, day: 1 },
-          time: { hour: 12, minute: 0 },
-        });
-        expect(target.repo.listTasks().find((task) => task.text === 'Yearless task')?.createdDate).toMatchObject({
-          quality: 'exact',
-          component: { month: 5, day: 3 },
-        });
-        expect(target.repo.listTasks().find((task) => task.text === 'Day-only task')?.createdDate).toMatchObject({
-          quality: 'exact',
-          component: { year: 1900, day: 15 },
-        });
-        expect(target.repo.listTasks().find((task) => task.text === 'Julian leap task')?.createdDate).toMatchObject({
-          quality: 'exact',
-          component: { calendar: 'julian', year: 1900, month: 2, day: 29 },
-        });
-        expect(
-          target.repo.listTasks().find((task) => task.text === 'Text-only approximate task')?.createdDate,
-        ).toMatchObject({ quality: 'about', text: 'circa spring' });
-        expect(target.repo.listTasks().find((task) => task.text === 'Long-year task')?.createdDate).toMatchObject({
-          quality: 'exact',
-          component: { year: 10000 },
-        });
-      } finally {
-        cleanupRepo(target);
-      }
-    } finally {
-      cleanupRepo(fixture);
-    }
-  });
-
   it('ties the adoption marker to the exported partner slot', () => {
     const fixture = makeRepo();
     try {
@@ -417,29 +294,6 @@ describe('P1 GEDCOM export gaps', () => {
       const family = target.repo.listFamilies()[0]!;
       const link = family.childLinks?.[0];
       expect(link).toMatchObject({ status: 'disproven', multiplicity: 'TWIN', preferred: true });
-    } finally {
-      cleanupRepo(fixture);
-      cleanupRepo(target);
-    }
-  });
-
-  it('uses the structured task date when its phrase has trailing whitespace', () => {
-    const fixture = makeRepo();
-    const target = makeRepo();
-    try {
-      fixture.repo.insertTask({
-        id: 'T1',
-        text: 'Task',
-        createdDate: { quality: 'exact', component: { year: 1900 }, text: 'recorded ' },
-      });
-      const serialized = serializeGedcom70(buildGedcomDataset(fixture.repo));
-      expect(serialized.ok).toBe(true);
-      if (!serialized.ok) {
-        return;
-      }
-      expect(serialized.value).toContain('json:');
-      importGedcomDataset(parseDataset(serialized.value), target.repo);
-      expect(target.repo.listTasks()[0]?.createdDate).toMatchObject({ quality: 'exact', text: 'recorded ' });
     } finally {
       cleanupRepo(fixture);
       cleanupRepo(target);

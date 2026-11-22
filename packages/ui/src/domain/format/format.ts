@@ -140,6 +140,14 @@ export function formatDate(date: DateValue): string {
   return parts.join(' ');
 }
 
+/** Formats an epoch-ms instant in the user's locale and time zone. */
+export function formatTimestamp(value: number | undefined): string {
+  if (value === undefined || !Number.isFinite(value)) {
+    return '';
+  }
+  return new Intl.DateTimeFormat(undefined, { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(value));
+}
+
 export function qualityMark(quality: DateQuality, modifier?: string): string {
   if (modifier === 'ABT') {
     return '~';

@@ -1,16 +1,15 @@
 import type { TaskPriority, TaskRecord, TaskStatus } from '@doru/core';
 import { normalizeTaskPriority, normalizeTaskStatus } from '@doru/core/model';
-import { emptyDate, fromDateDraft, toDateDraft, type DateDraft } from '../person/draft';
 
 /** The editable form of a task; empty strings mean "not set". */
 export interface TaskDraft {
   text: string;
   priority: TaskPriority;
   status: TaskStatus;
-  created: DateDraft;
-  scheduled: DateDraft;
-  reminder: DateDraft;
-  closed: DateDraft;
+  /** Local `datetime-local` value, e.g. `2026-11-22T18:30`. */
+  scheduledAt: string;
+  /** Local `datetime-local` value. */
+  reminderAt: string;
   targetType: string;
   targetId: string;
 }
@@ -20,10 +19,8 @@ export function emptyTaskDraft(): TaskDraft {
     text: '',
     priority: 'medium',
     status: 'open',
-    created: emptyDate(),
-    scheduled: emptyDate(),
-    reminder: emptyDate(),
-    closed: emptyDate(),
+    scheduledAt: '',
+    reminderAt: '',
     targetType: '',
     targetId: '',
   };
@@ -34,10 +31,8 @@ export function taskToDraft(task: TaskRecord): TaskDraft {
     text: task.text,
     priority: normalizeTaskPriority(task.priority),
     status: normalizeTaskStatus(task.status),
-    created: toDateDraft(task.createdDate),
-    scheduled: toDateDraft(task.scheduledDate),
-    reminder: toDateDraft(task.reminderDate),
-    closed: toDateDraft(task.closedDate),
+    scheduledAt: timestampToInput(task.scheduledAt),
+    reminderAt: timestampToInput(task.reminderAt),
     targetType: task.targetType ?? '',
     targetId: task.targetId ?? '',
   };
@@ -48,10 +43,8 @@ export function taskDraftToRecord(task: TaskRecord, draft: TaskDraft): TaskRecor
   next.text = draft.text.trim();
   next.priority = normalizeTaskPriority(draft.priority);
   next.status = normalizeTaskStatus(draft.status);
-  next.createdDate = fromDateDraft(draft.created, task.createdDate);
-  next.scheduledDate = fromDateDraft(draft.scheduled, task.scheduledDate);
-  next.reminderDate = fromDateDraft(draft.reminder, task.reminderDate);
-  next.closedDate = fromDateDraft(draft.closed, task.closedDate);
+  next.scheduledAt = inputToTimestamp(draft.scheduledAt);
+  next.reminderAt = inputToTimestamp(draft.reminderAt);
   if (draft.targetType !== '' && draft.targetId !== '') {
     next.targetType = draft.targetType;
     next.targetId = draft.targetId;
@@ -60,4 +53,40 @@ export function taskDraftToRecord(task: TaskRecord, draft: TaskDraft): TaskRecor
     next.targetId = undefined;
   }
   return next;
+}
+
+/** Converts an epoch-ms instant to the local value a `datetime-local` input expects. */
+export function timestampToInput(value: number | undefined): string {
+  if (value === undefined || !Number.isFinite(value)) {
+    return '';
+  }
+  const date = new Date(value);
+  const pad = (part: number, size = 2): string => String(part).padStart(size, '0');
+  return `${pad(date.getFullYear(), 4)}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+}
+
+/** Parses a `datetime-local` value as a local instant; invalid values mean "not set". */
+export function inputToTimestamp(value: string): number | undefined {
+  const match = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})(?::(\d{2}))?$/.exec(value.trim());
+  if (match === null) {
+    return undefined;
+  }
+  const year = Number(match[1]);
+  const month = Number(match[2]);
+  const day = Number(match[3]);
+  const hour = Number(match[4]);
+  const minute = Number(match[5]);
+  const second = match[6] !== undefined ? Number(match[6]) : 0;
+  const date = new Date(year, month - 1, day, hour, minute, second, 0);
+  if (
+    date.getFullYear() !== year ||
+    date.getMonth() !== month - 1 ||
+    date.getDate() !== day ||
+    date.getHours() !== hour ||
+    date.getMinutes() !== minute ||
+    date.getSeconds() !== second
+  ) {
+    return undefined;
+  }
+  return date.getTime();
 }

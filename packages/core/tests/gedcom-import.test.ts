@@ -416,7 +416,7 @@ describe('importGedcomDataset', () => {
     }
   });
 
-  it('validates task dates against the month and leap year', () => {
+  it('drops task dates that are not complete exact instants', () => {
     const gedcom = [
       '0 HEAD',
       '1 GEDC',
@@ -425,8 +425,8 @@ describe('importGedcomDataset', () => {
       '1 _TCDT 2026-02-31',
       '0 _TODO Leap date',
       '1 _TCDT 2024-02-29',
-      '0 _TODO Bad structured date',
-      '1 _TCDT json:{"quality":"exact","text":{"bad":true}}',
+      '0 _TODO Encoded date',
+      '1 _TCDT V02C0000S01140220120000000E01000000000000000T',
       '0 TRLR',
     ].join('\n');
     const result = parse(new TextEncoder().encode(gedcom));
@@ -438,16 +438,10 @@ describe('importGedcomDataset', () => {
       importGedcomDataset(result.value.dataset, fixture.repo);
       const invalid = fixture.repo.listTasks().find((task) => task.text === 'Invalid date')!;
       const leap = fixture.repo.listTasks().find((task) => task.text === 'Leap date')!;
-      expect(invalid.createdDate).toMatchObject({ quality: 'unknown', text: '2026-02-31' });
-      expect(leap.createdDate).toMatchObject({
-        quality: 'exact',
-        component: { year: 2024, month: 2, day: 29 },
-      });
-      const bad = fixture.repo.listTasks().find((task) => task.text === 'Bad structured date')!;
-      expect(bad.createdDate).toMatchObject({
-        quality: 'unknown',
-        text: 'json:{"quality":"exact","text":{"bad":true}}',
-      });
+      const encoded = fixture.repo.listTasks().find((task) => task.text === 'Encoded date')!;
+      expect(invalid.createdAt).toBeUndefined();
+      expect(leap.createdAt).toBe(new Date(2024, 1, 29).getTime());
+      expect(encoded.createdAt).toBe(new Date(2012, 1, 14).getTime());
     } finally {
       cleanupRepo(fixture);
     }

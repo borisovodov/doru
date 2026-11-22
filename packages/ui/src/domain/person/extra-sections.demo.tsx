@@ -94,7 +94,6 @@ export const Tags: DemoCase = {
       onDeleteTag={async () => undefined}
       onAttachTag={async () => undefined}
       onDetachTag={async () => undefined}
-      onUpdateTagLink={async () => undefined}
     />
   ),
 };
@@ -116,7 +115,6 @@ export const Tagged: DemoCase = {
       onDeleteTag={async () => undefined}
       onAttachTag={async () => undefined}
       onDetachTag={async () => undefined}
-      onUpdateTagLink={async () => undefined}
     />
   ),
 };

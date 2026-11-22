@@ -1366,11 +1366,15 @@ export class TreeService {
   }
 
   addTask(task: TaskRecord): UndoRedoState {
+    const status = normalizeTaskStatus(task.status);
+    const now = Date.now();
     return this.apply(
       addTaskOp({
         ...task,
         priority: normalizeTaskPriority(task.priority),
-        status: normalizeTaskStatus(task.status),
+        status,
+        createdAt: task.createdAt ?? now,
+        closedAt: status === 'closed' ? (task.closedAt ?? now) : undefined,
       }),
     );
   }
@@ -1384,11 +1388,20 @@ export class TreeService {
   }
 
   updateTask(before: TaskRecord, after: TaskRecord): UndoRedoState {
+    const status = normalizeTaskStatus(after.status);
+    const closedAt =
+      status === 'closed'
+        ? before.status === 'closed'
+          ? (after.closedAt ?? before.closedAt)
+          : (after.closedAt ?? Date.now())
+        : undefined;
     return this.apply(
       updateTaskOp(before, {
         ...after,
         priority: normalizeTaskPriority(after.priority),
-        status: normalizeTaskStatus(after.status),
+        status,
+        createdAt: before.createdAt ?? after.createdAt,
+        closedAt,
       }),
     );
   }

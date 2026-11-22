@@ -106,15 +106,15 @@ and no separate task-result field.
 
 A date is a value row in `date`, not a child row with a polymorphic owner.
 Each owner row has one column per date slot (`fact.date_id`,
-`task.created_date_id`, `association.period_date_id`, …) pointing at the
-value with `ON DELETE RESTRICT`. The column name is the role; there is no
+`association.period_date_id`, …) pointing at the value with
+`ON DELETE RESTRICT`. The column name is the role; there is no
 `owner_type`/`role` vocabulary. A period is one `range` value: the import
 layer folds two-slot wire dates (`_DATE2`, `_PERIOD`) into it, and export
 splits them back where the target format needs two slots.
 
-This gives the schema real foreign keys and makes a task's dates visible on
-the task row. The trade-off is that SQLite cannot express "exactly one owner"
-across fourteen referencing tables. Repositories keep that invariant: a date
+This gives the schema real foreign keys and makes a fact's dates visible on
+the fact row. The trade-off is that SQLite cannot express "exactly one owner"
+across twelve referencing tables. Repositories keep that invariant: a date
 row is created for one owner and never shared, and a copied row gets a fresh
 date id. `ON DELETE RESTRICT` turns a leaked share into a loud failure.
 
@@ -123,6 +123,27 @@ after the owner row is gone, including for cascaded children (a deleted
 person's names, facts and family links; a deleted source's events and
 citations). The update path writes surviving slots first, updates the owner,
 then releases the old ids. Tests assert that no date rows are left orphaned.
+
+## Task times are Unix instants
+
+Task lifecycle times are operational instants, not genealogical assertions.
+They are stored as epoch-millisecond integers: `created_at`, `scheduled_at`,
+`reminder_at`, and `closed_at`. They do not use the `date` table.
+
+`created_at` is set once when the app creates a task. `closed_at` is set when
+the status becomes `closed` and cleared when the task is reopened. The UI uses
+a date-and-time control, not the GEDCOM date editor.
+
+GEDCOM task dates are imported only when they are complete exact dates:
+My Family Tree's encoded `DDMMYYYY` text in the record form, and exact GEDCOM
+dates in the `_TODO` structure form. Date-only values become local midnight.
+Partial, approximate, range, or otherwise unparseable task dates are dropped
+rather than inventing an instant.
+
+`tag_link.date` is dropped entirely. The tag-application date is rare in the
+corpus (a handful of modern dates in the tag-extension examples) and Dóru's
+tag model does not need it; `@doru/gedcom` still parses and serializes the wire
+field, but the tree database does not store it.
 
 ## No persistent change log
 

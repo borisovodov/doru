@@ -777,7 +777,6 @@ export interface TagLinkRecord {
   tagId: string;
   targetType: string;
   targetId: string;
-  date?: DateValue | undefined;
 }
 
 /** A submitter link: contributor or an ANCI/DESI research interest. */
@@ -973,10 +972,14 @@ export interface TaskRecord {
   priority?: string | undefined;
   /** Canonical statuses; unknown, empty, and missing values mean open. */
   status?: string | undefined;
-  createdDate?: DateValue | undefined;
-  scheduledDate?: DateValue | undefined;
-  reminderDate?: DateValue | undefined;
-  closedDate?: DateValue | undefined;
+  /** Creation instant, epoch milliseconds. Set once when the task is created. */
+  createdAt?: number | undefined;
+  /** Scheduled instant, epoch milliseconds. */
+  scheduledAt?: number | undefined;
+  /** Reminder instant, epoch milliseconds. */
+  reminderAt?: number | undefined;
+  /** Closing instant, epoch milliseconds; cleared when the task is reopened. */
+  closedAt?: number | undefined;
 }
 
 /** A bibliographic work (GEDCOM 7.0 TITL record), cited by sources. */

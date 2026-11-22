@@ -17,9 +17,9 @@ describe('taskDraft', () => {
       targetId: 'P1',
       priority: 'high',
       status: 'in-progress',
-      scheduledDate: { quality: 'exact', component: { year: 2026, month: 3, day: 12 } },
-      reminderDate: { quality: 'about', component: { year: 2026, month: 3 } },
-      createdDate: { quality: 'exact', component: { year: 2026 } },
+      scheduledAt: new Date(2026, 2, 12, 9, 0).getTime(),
+      reminderAt: new Date(2026, 2, 1, 8, 30).getTime(),
+      createdAt: new Date(2026, 0, 1, 10, 0).getTime(),
     };
     const draft = taskToDraft(source);
     expect(draft).toMatchObject({
@@ -28,8 +28,8 @@ describe('taskDraft', () => {
       status: 'in-progress',
       targetType: 'person',
       targetId: 'P1',
-      scheduled: { year: '2026', month: '3', day: '12', quality: 'exact' },
-      created: { year: '2026' },
+      scheduledAt: '2026-03-12T09:00',
+      reminderAt: '2026-03-01T08:30',
     });
     expect(taskDraftToRecord(source, draft)).toEqual(source);
   });
@@ -67,7 +67,7 @@ describe('taskDraft', () => {
       status: 'closed',
       targetType: 'person',
       targetId: 'P2',
-      scheduled: { ...emptyTaskDraft().scheduled, year: '2027' },
+      scheduledAt: '2027-01-01T00:00',
     });
     expect(after).toEqual({
       id: 'T1',
@@ -76,7 +76,7 @@ describe('taskDraft', () => {
       targetId: 'P2',
       priority: 'low',
       status: 'closed',
-      scheduledDate: { quality: 'exact', component: { year: 2027 } },
+      scheduledAt: new Date(2027, 0, 1, 0, 0).getTime(),
     });
   });
 

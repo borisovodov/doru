@@ -2,7 +2,7 @@
 
 A Dóru project is a single `.doru` file: a SQLite database branded with
 `application_id = 0x444F5255` ("DORU") and versioned with `user_version`.
-This document is the field-level reference for **schema version 15**. The
+This document is the field-level reference for **schema version 16**. The
 source of truth is [`packages/core/src/db/schema.ts`](../packages/core/src/db/schema.ts);
 the domain shapes that the repositories map onto the rows live in
 [`packages/core/src/model/types.ts`](../packages/core/src/model/types.ts).
@@ -16,11 +16,13 @@ model faithful; that guarantee does not extend to the tree database.
 
 ## At a glance
 
-- **50 tables**, **82 indexes**, and no date-delete triggers.
+- **50 tables**, **78 indexes**, and no date-delete triggers.
 - The core genealogy model is `person` → `person_name` / `fact`, with
   `family` joining people through `family_partner` and `family_child`.
 - Dates are normalized into one `date` value table; owner rows reference
   their date slots through explicit `*_date_id` foreign keys.
+- Task lifecycle times are epoch-millisecond integers (`created_at`,
+  `scheduled_at`, `reminder_at`, `closed_at`), not `date` rows.
 - Notes, citations, media, tags, identifiers, contacts, restrictions,
   contributors, and tasks attach through a polymorphic
   `(target_type, target_id)` pair.
@@ -415,8 +417,6 @@ The role of a date is the name of the column that references it:
 | `source_data_event` | `date_id` |
 | `citation` | `date_id` |
 | `media` | `date_id` |
-| `tag_link` | `date_id` |
-| `task` | `created_date_id`, `scheduled_date_id`, `reminder_date_id`, `closed_date_id` |
 | `association` | `period_date_id` |
 
 A column is nullable and each slot holds at most one date. The foreign keys
@@ -882,7 +882,6 @@ erDiagram
         TEXT tag_id FK
         TEXT target_type "NOT NULL, polymorphic target"
         TEXT target_id "NOT NULL, UUID"
-        TEXT date_id FK "nullable, RESTRICT"
     }
 
     task {
@@ -892,10 +891,10 @@ erDiagram
         TEXT target_id "nullable; UUID when attached"
         TEXT priority
         TEXT status
-        TEXT created_date_id FK "nullable, RESTRICT"
-        TEXT scheduled_date_id FK "nullable, RESTRICT"
-        TEXT reminder_date_id FK "nullable, RESTRICT"
-        TEXT closed_date_id FK "nullable, RESTRICT"
+        INTEGER created_at "epoch milliseconds"
+        INTEGER scheduled_at "epoch milliseconds"
+        INTEGER reminder_at "epoch milliseconds"
+        INTEGER closed_at "epoch milliseconds; cleared when reopened"
     }
 ```
 
@@ -903,8 +902,18 @@ erDiagram
 attached to any target. GEDCOM import and export still map the record to the
 `_TODO` record/structure in `@doru/gedcom`, but the Dóru table, model type,
 target type, tab prefix, and UI strings all use the task vocabulary
-(`TaskRecord`, `TaskTab`, the `task:` tab prefix, `features.tasks.*`). The
-GEDCOM `TODO` `REPO`, `_CAT`, `_LOCL`, `_TTIL`, `TYPE`, and `DATA` slots are
+(`TaskRecord`, `TaskTab`, the `task:` tab prefix, `features.tasks.*`).
+
+Task lifecycle times are **epoch milliseconds**, not genealogical dates:
+`created_at` is set once by the application, `scheduled_at` and `reminder_at`
+are user-chosen instants, and `closed_at` is set when the status becomes
+`closed` and cleared when the task is reopened. Import accepts complete exact
+dates only (including My Family Tree's encoded `DDMMYYYY` record slots);
+partial, approximate, range, or otherwise unparseable task dates are dropped.
+`tag_link.date` is deliberately not stored: the tag-application date is rare
+in the corpus and is not part of Dóru's tag model.
+
+The GEDCOM `TODO` `REPO`, `_CAT`, `_LOCL`, `_TTIL`, `TYPE`, and `DATA` slots are
 still parsed by `@doru/gedcom` but are deliberately ignored on import and not
 written on export. Dóru stores no direct task-to-repository link, task
 category, task locality, task title, task type, or task-result text; a task
@@ -987,7 +996,7 @@ must add a `*_date_id` column and date cleanup to its repository.
 
 ## Indexes
 
-The schema has 84 regular indexes:
+The schema has 78 regular indexes:
 
 - Parent/child lookups are indexed on the child columns: `person_name`,
   `name_part`, `family_partner`, `family_child`, `fact_*`, `place_*`,
@@ -996,8 +1005,9 @@ The schema has 84 regular indexes:
 - Ordered child lists use `(parent_id, position)`.
 - Polymorphic attachment tables use `(target_type, target_id)`.
 - Every date slot has its own index (`person_name.period_date_id`,
-  `fact.date_id`, `task.created_date_id`, …) so the `RESTRICT` check does not
-  scan owner tables.
+  `fact.date_id`, `association.period_date_id`, …) so the `RESTRICT` check
+  does not scan owner tables.
+- `task.scheduled_at` is indexed for scheduled-task lists and ordering.
 - No search index or FTS table exists yet. Person search is an in-memory
   substring scan over the stored name parts.
 

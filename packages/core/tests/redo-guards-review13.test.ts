@@ -18,23 +18,6 @@ function makeService() {
 }
 
 describe('redo guards for nested attachment targets', () => {
-  it('blocks tag redo when a link date changed', () => {
-    const { fixture, service } = makeService();
-    const { repo } = fixture;
-    try {
-      service.addPerson(person('P1'));
-      service.addTag({ id: 'TAG1', name: 'Family' });
-      service.attachTag({ id: 'TL1', tagId: 'TAG1', targetType: 'person', targetId: 'P1' });
-      service.deleteTag(repo.listTags()[0]!);
-      service.undo();
-      const link = repo.listTagLinksByTag('TAG1')[0]!;
-      repo.updateTagLink({ ...link, date: { quality: 'exact', component: { year: 1900 } } });
-      expect(service.redo().redoBlocked).toBe(true);
-    } finally {
-      cleanupRepo(fixture);
-    }
-  });
-
   it('blocks submitter redo when a new record link appeared', () => {
     const { fixture, service } = makeService();
     const { repo } = fixture;
@@ -207,7 +190,7 @@ describe('redo guards for nested attachment targets', () => {
       service.addTag({ id: 'TAG1', name: 'Family' });
       service.attachTag({ id: 'TL1', tagId: 'TAG1', targetType: 'person', targetId: 'P1' });
       const link = repo.listTagLinksByTag('TAG1')[0]!;
-      service.updateTagLink(link, { ...link, date: { quality: 'exact', component: { year: 1900 } } });
+      service.updateTagLink(link, { ...link, targetId: 'P2' });
       service.undo();
       repo.deleteTagLink('TL1');
       expect(service.redo().redoBlocked).toBe(true);

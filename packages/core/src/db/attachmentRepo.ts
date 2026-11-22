@@ -1,14 +1,11 @@
 import type { DatabaseSync } from 'node:sqlite';
 import type { ContactRecord, IdentifierRecord, RestrictionRecord, TagLinkRecord, TagRecord } from '../model/types';
-import type { DateRepo } from './dateRepo';
-import type { TransactionScope } from './transaction';
 
 interface TagLinkRow {
   id: string;
   tag_id: string;
   target_type: string;
   target_id: string;
-  date_id: string | null;
 }
 
 /**
@@ -17,11 +14,7 @@ interface TagLinkRow {
  * shape.
  */
 export class AttachmentRepo {
-  constructor(
-    private readonly db: DatabaseSync,
-    private readonly dates: DateRepo,
-    private readonly transactions: TransactionScope,
-  ) {}
+  constructor(private readonly db: DatabaseSync) {}
 
   // identifiers -------------------------------------------------------------
 
@@ -161,16 +154,7 @@ export class AttachmentRepo {
   }
 
   deleteTag(id: string): boolean {
-    return this.transactions.run(() => {
-      const rows = this.db.prepare('SELECT date_id FROM tag_link WHERE tag_id = ?').all(id) as unknown as Array<{
-        date_id: string | null;
-      }>;
-      const changed = this.db.prepare('DELETE FROM tag WHERE id = ?').run(id).changes > 0;
-      if (changed) {
-        this.dates.deleteMany(rows.map((row) => row.date_id));
-      }
-      return changed;
-    });
+    return this.db.prepare('DELETE FROM tag WHERE id = ?').run(id).changes > 0;
   }
 
   updateTag(tag: TagRecord): void {
@@ -186,50 +170,30 @@ export class AttachmentRepo {
   }
 
   insertTagLink(link: TagLinkRecord): void {
-    this.transactions.run(() => {
-      const dateId = link.date !== undefined ? this.dates.create(link.date) : null;
-      this.db
-        .prepare('INSERT INTO tag_link (id, tag_id, target_type, target_id, date_id) VALUES (?, ?, ?, ?, ?)')
-        .run(link.id, link.tagId, link.targetType, link.targetId, dateId);
-    });
+    this.db
+      .prepare('INSERT INTO tag_link (id, tag_id, target_type, target_id) VALUES (?, ?, ?, ?)')
+      .run(link.id, link.tagId, link.targetType, link.targetId);
   }
 
   deleteTagLink(id: string): boolean {
-    return this.transactions.run(() => {
-      const current = this.db.prepare('SELECT date_id FROM tag_link WHERE id = ?').get(id) as
-        | { date_id: string | null }
-        | undefined;
-      const changed = this.db.prepare('DELETE FROM tag_link WHERE id = ?').run(id).changes > 0;
-      if (changed) {
-        this.dates.deleteMany([current?.date_id]);
-      }
-      return changed;
-    });
+    return this.db.prepare('DELETE FROM tag_link WHERE id = ?').run(id).changes > 0;
   }
 
   updateTagLink(link: TagLinkRecord): void {
-    this.transactions.run(() => {
-      const current = this.db.prepare('SELECT date_id FROM tag_link WHERE id = ?').get(link.id) as
-        | { date_id: string | null }
-        | undefined;
-      if (current === undefined) {
-        throw new Error(`tag_link ${link.id} no longer exists`);
-      }
-      const prepared = this.dates.prepareSlots([current.date_id], [link.date]);
-      this.db
-        .prepare('UPDATE tag_link SET tag_id = ?, target_type = ?, target_id = ?, date_id = ? WHERE id = ?')
-        .run(link.tagId, link.targetType, link.targetId, prepared.ids[0] ?? null, link.id);
-      this.dates.deleteMany(prepared.obsolete);
-    });
+    const changed = this.db
+      .prepare('UPDATE tag_link SET tag_id = ?, target_type = ?, target_id = ? WHERE id = ?')
+      .run(link.tagId, link.targetType, link.targetId, link.id).changes;
+    if (changed === 0) {
+      throw new Error(`tag_link ${link.id} no longer exists`);
+    }
   }
 
   listTagLinksFor(targetType: string, targetId: string): Array<{ tagId: string; link: TagLinkRecord }> {
     const rows = this.db
       .prepare(
-        'SELECT id, tag_id, target_type, target_id, date_id FROM tag_link WHERE target_type = ? AND target_id = ? ORDER BY id',
+        'SELECT id, tag_id, target_type, target_id FROM tag_link WHERE target_type = ? AND target_id = ? ORDER BY id',
       )
       .all(targetType, targetId) as unknown as TagLinkRow[];
-    const dates = this.dates.getMany(rows.map((row) => row.date_id));
     return rows.map((row) => ({
       tagId: row.tag_id,
       link: {
@@ -237,15 +201,14 @@ export class AttachmentRepo {
         tagId: row.tag_id,
         targetType: row.target_type,
         targetId: row.target_id,
-        date: row.date_id !== null ? dates.get(row.date_id) : undefined,
       },
     }));
   }
 
   getTagLink(id: string): TagLinkRecord | undefined {
-    const row = this.db
-      .prepare('SELECT id, tag_id, target_type, target_id, date_id FROM tag_link WHERE id = ?')
-      .get(id) as TagLinkRow | undefined;
+    const row = this.db.prepare('SELECT id, tag_id, target_type, target_id FROM tag_link WHERE id = ?').get(id) as
+      | TagLinkRow
+      | undefined;
     if (row === undefined) {
       return undefined;
     }
@@ -254,36 +217,31 @@ export class AttachmentRepo {
       tagId: row.tag_id,
       targetType: row.target_type,
       targetId: row.target_id,
-      date: row.date_id !== null ? this.dates.get(row.date_id) : undefined,
     };
   }
 
   listTagLinksByTag(tagId: string): TagLinkRecord[] {
     const rows = this.db
-      .prepare('SELECT id, tag_id, target_type, target_id, date_id FROM tag_link WHERE tag_id = ? ORDER BY id')
+      .prepare('SELECT id, tag_id, target_type, target_id FROM tag_link WHERE tag_id = ? ORDER BY id')
       .all(tagId) as unknown as TagLinkRow[];
-    const dates = this.dates.getMany(rows.map((row) => row.date_id));
     return rows.map((row) => ({
       id: row.id,
       tagId: row.tag_id,
       targetType: row.target_type,
       targetId: row.target_id,
-      date: row.date_id !== null ? dates.get(row.date_id) : undefined,
     }));
   }
 
   /** Every tag link in the tree, for the global tag registry. */
   listAllTagLinks(): TagLinkRecord[] {
     const rows = this.db
-      .prepare('SELECT id, tag_id, target_type, target_id, date_id FROM tag_link ORDER BY id')
+      .prepare('SELECT id, tag_id, target_type, target_id FROM tag_link ORDER BY id')
       .all() as unknown as TagLinkRow[];
-    const dates = this.dates.getMany(rows.map((row) => row.date_id));
     return rows.map((row) => ({
       id: row.id,
       tagId: row.tag_id,
       targetType: row.target_type,
       targetId: row.target_id,
-      date: row.date_id !== null ? dates.get(row.date_id) : undefined,
     }));
   }
 
@@ -291,14 +249,8 @@ export class AttachmentRepo {
 
   /** Deletes every attachment row of the target (except notes/citations/media, which own their links). */
   deleteAllFor(targetType: string, targetId: string): void {
-    this.transactions.run(() => {
-      const tagLinks = this.db
-        .prepare('SELECT date_id FROM tag_link WHERE target_type = ? AND target_id = ?')
-        .all(targetType, targetId) as unknown as Array<{ date_id: string | null }>;
-      for (const table of ['identifier', 'contact', 'restriction', 'tag_link'] as const) {
-        this.db.prepare(`DELETE FROM ${table} WHERE target_type = ? AND target_id = ?`).run(targetType, targetId);
-      }
-      this.dates.deleteMany(tagLinks.map((row) => row.date_id));
-    });
+    for (const table of ['identifier', 'contact', 'restriction', 'tag_link'] as const) {
+      this.db.prepare(`DELETE FROM ${table} WHERE target_type = ? AND target_id = ?`).run(targetType, targetId);
+    }
   }
 }
