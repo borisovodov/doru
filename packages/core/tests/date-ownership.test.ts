@@ -107,12 +107,19 @@ describe('date ownership', () => {
       };
       fixture.repo.insertPerson({ id: 'P1', names: [], sex: 'M', facts: [fact] });
       expect(dateCount(fixture)).toBe(1);
+      const original = fixture.store.db.prepare('SELECT date_id FROM fact WHERE id = ?').get('F1') as {
+        date_id: string;
+      };
 
       fixture.repo.updateFact({ ...fact, date: exact(1901) });
       const cleared = fixture.store.db.prepare('SELECT date_id FROM fact WHERE id = ?').get('F1') as {
         date_id: string | null;
       };
-      expect(cleared.date_id).not.toBeNull();
+      expect(cleared.date_id).toBe(original.date_id);
+      expect(fixture.store.db.prepare('SELECT quality, end_year FROM date WHERE id = ?').get(cleared.date_id)).toEqual({
+        quality: 'exact',
+        end_year: null,
+      });
       expect(dateCount(fixture)).toBe(1);
       expectNoOrphanDates(fixture);
 
@@ -331,6 +338,60 @@ describe('date ownership', () => {
       expect(names.get('N1')?.date?.id).toBe(originalDateId);
       expect(names.get('N2')?.date?.id).toBeDefined();
       expect(names.get('N2')?.date?.id).not.toBe(originalDateId);
+      expectNoOrphanDates(fixture);
+    } finally {
+      cleanupRepo(fixture);
+    }
+  });
+
+  it('keeps a family link date id reserved when a status copies it', () => {
+    const fixture = makeRepo();
+    try {
+      fixture.repo.insertPerson({ id: 'P1', names: [], sex: 'U', facts: [] });
+      fixture.repo.insertFamily({
+        id: 'FAM1',
+        partners: ['P1'],
+        children: [],
+        partnerLinks: [{ id: 'L1', personId: 'P1', date: exact(1901) }],
+        marriageStatuses: [{ id: 'S1', status: 'married', date: exact(1902) }],
+      });
+      const family = fixture.repo.getFamily('FAM1')!;
+      const partnerDate = family.partnerLinks![0]!.date!;
+
+      fixture.repo.updateFamily({
+        ...family,
+        partners: [],
+        partnerLinks: [],
+        marriageStatuses: [{ id: 'S1', status: 'married', date: partnerDate }],
+      });
+
+      const status = fixture.repo.getFamily('FAM1')!.marriageStatuses![0]!;
+      expect(status.date?.id).not.toBe(partnerDate.id);
+      expectNoOrphanDates(fixture);
+    } finally {
+      cleanupRepo(fixture);
+    }
+  });
+
+  it('keeps a source event date fresh when it copies a cleared publication date', () => {
+    const fixture = makeRepo();
+    try {
+      fixture.repo.insertSource({
+        id: 'S1',
+        pubDate: exact(1900),
+        dataEvents: [{ id: 'E1', tag: 'EVEN' }],
+      });
+      const source = fixture.repo.getSource('S1')!;
+      const publicationDate = source.pubDate!;
+      fixture.repo.updateSource({
+        ...source,
+        pubDate: undefined,
+        dataEvents: [{ id: 'E1', tag: 'EVEN', date: publicationDate }],
+      });
+
+      const updated = fixture.repo.getSource('S1')!;
+      expect(updated.pubDate).toBeUndefined();
+      expect(updated.dataEvents?.[0]?.date?.id).not.toBe(publicationDate.id);
       expectNoOrphanDates(fixture);
     } finally {
       cleanupRepo(fixture);

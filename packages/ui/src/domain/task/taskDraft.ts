@@ -43,8 +43,8 @@ export function taskDraftToRecord(task: TaskRecord, draft: TaskDraft): TaskRecor
   next.text = draft.text.trim();
   next.priority = normalizeTaskPriority(draft.priority);
   next.status = normalizeTaskStatus(draft.status);
-  next.scheduledAt = inputToTimestamp(draft.scheduledAt);
-  next.reminderAt = inputToTimestamp(draft.reminderAt);
+  next.scheduledAt = preserveTimestamp(task.scheduledAt, draft.scheduledAt);
+  next.reminderAt = preserveTimestamp(task.reminderAt, draft.reminderAt);
   if (draft.targetType !== '' && draft.targetId !== '') {
     next.targetType = draft.targetType;
     next.targetId = draft.targetId;
@@ -89,4 +89,16 @@ export function inputToTimestamp(value: string): number | undefined {
     return undefined;
   }
   return date.getTime();
+}
+
+/**
+ * The minute-precision input cannot represent seconds, milliseconds or the
+ * second occurrence of a repeated local time. Keep the stored instant when the
+ * draft still shows exactly that instant; parse only a changed value.
+ */
+function preserveTimestamp(original: number | undefined, input: string): number | undefined {
+  if (original !== undefined && input === timestampToInput(original)) {
+    return original;
+  }
+  return inputToTimestamp(input);
 }

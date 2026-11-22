@@ -42,6 +42,24 @@ describe('mergeDateBounds / splitDateBounds', () => {
       start: { quality: 'about', component: { year: 1900 } },
     });
   });
+
+  it('keeps the phrase on an open-ended range end', () => {
+    expect(
+      splitDateBounds({
+        quality: 'range',
+        end: { year: 1900 },
+        text: 'to 1900',
+        time: { hour: 12, minute: 30 },
+      }),
+    ).toEqual({
+      end: {
+        quality: 'exact',
+        component: { year: 1900 },
+        text: 'to 1900',
+        time: { hour: 12, minute: 30 },
+      },
+    });
+  });
 });
 
 const GEDCOM = [

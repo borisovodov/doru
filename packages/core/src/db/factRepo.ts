@@ -614,7 +614,27 @@ interface DateSortKey {
   day: number;
   bound: number;
   seconds: number;
+  fraction: string;
 }
+
+const GREGORIAN_MONTHS = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
+const FRENCH_MONTHS = [
+  'VEND',
+  'BRUM',
+  'FRIM',
+  'NIVO',
+  'PLUV',
+  'VENT',
+  'GERM',
+  'FLOR',
+  'PRAI',
+  'MESS',
+  'THER',
+  'FRUC',
+  'COMP',
+];
+const HEBREW_COMMON_MONTHS = ['TSH', 'CSH', 'KSL', 'TVT', 'SHV', 'ADS', 'NSN', 'IYR', 'SVN', 'TMZ', 'AAV', 'ELL'];
+const HEBREW_LEAP_MONTHS = ['TSH', 'CSH', 'KSL', 'TVT', 'SHV', 'ADR', 'ADS', 'NSN', 'IYR', 'SVN', 'TMZ', 'AAV', 'ELL'];
 
 /**
  * SDATE is the sorting hint when it has a usable date; otherwise DATE is
@@ -639,7 +659,8 @@ function compareFactDates(left: FactRecord, right: FactRecord): number {
     leftKey.month - rightKey.month ||
     leftKey.day - rightKey.day ||
     leftKey.bound - rightKey.bound ||
-    leftKey.seconds - rightKey.seconds
+    leftKey.seconds - rightKey.seconds ||
+    compareFraction(leftKey.fraction, rightKey.fraction)
   );
 }
 
@@ -653,7 +674,12 @@ function dateSortKey(date: DateValue | undefined): DateSortKey | undefined {
   if (date === undefined) {
     return undefined;
   }
-  const component = date.component ?? date.end;
+  const component =
+    date.component?.year !== undefined
+      ? date.component
+      : date.end?.year !== undefined
+        ? date.end
+        : (date.component ?? date.end);
   if (component === undefined || component.year === undefined) {
     return undefined;
   }
@@ -661,24 +687,48 @@ function dateSortKey(date: DateValue | undefined): DateSortKey | undefined {
   if (year === undefined) {
     return undefined;
   }
-  const numericMonth = typeof component.month === 'number' ? component.month : 1;
-  let month = numericMonth;
+  const month = monthPosition(component.calendar, component.year, component.month);
   let day = component.day ?? 1;
   const bound = date.quality === 'before' ? 0 : date.quality === 'after' ? 2 : 1;
-  if (date.quality === 'after') {
-    if (typeof component.month !== 'number') {
-      month = 12;
+  if (date.quality === 'after' && component.day === undefined) {
+    if (component.month === undefined) {
       day = 31;
-    } else if (component.day === undefined) {
-      day = daysInMonth(year, numericMonth);
+    } else {
+      day = typeof component.month === 'number' ? daysInMonth(year, month) : 30;
     }
-  }
-  if (date.quality === 'before' && component.day === undefined) {
-    day = 1;
   }
   const time = date.time;
   const seconds = time === undefined ? 0 : time.hour * 3600 + time.minute * 60 + (time.second ?? 0);
-  return { year, month, day, bound, seconds };
+  return { year, month, day, bound, seconds, fraction: time?.fraction ?? '' };
+}
+
+/** Month codes are calendar-specific; unknown extension calendars stay opaque. */
+function monthPosition(calendar: string | undefined, year: number, month: number | string | undefined): number {
+  if (typeof month === 'number') {
+    return month;
+  }
+  if (month === undefined) {
+    return 1;
+  }
+  const code = month.toUpperCase();
+  if (calendar === 'french_republican') {
+    const index = FRENCH_MONTHS.indexOf(code);
+    return index === -1 ? 1 : index + 1;
+  }
+  if (calendar === 'hebrew') {
+    const leap = (7 * year + 1) % 19 < 7;
+    const index = (leap ? HEBREW_LEAP_MONTHS : HEBREW_COMMON_MONTHS).indexOf(code);
+    return index === -1 ? 1 : index + 1;
+  }
+  const index = GREGORIAN_MONTHS.indexOf(code);
+  return index === -1 ? 1 : index + 1;
+}
+
+function compareFraction(left: string, right: string): number {
+  const width = Math.max(left.length, right.length);
+  const leftPadded = left.padEnd(width, '0');
+  const rightPadded = right.padEnd(width, '0');
+  return leftPadded < rightPadded ? -1 : leftPadded > rightPadded ? 1 : 0;
 }
 
 function daysInMonth(year: number, month: number): number {

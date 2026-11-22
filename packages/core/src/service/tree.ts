@@ -1388,22 +1388,26 @@ export class TreeService {
   }
 
   updateTask(before: TaskRecord, after: TaskRecord): UndoRedoState {
-    const status = normalizeTaskStatus(after.status);
-    const closedAt =
-      status === 'closed'
-        ? before.status === 'closed'
-          ? (after.closedAt ?? before.closedAt)
-          : (after.closedAt ?? Date.now())
-        : undefined;
-    return this.apply(
-      updateTaskOp(before, {
+    return this.applyAfterCommit(() => {
+      const current = this.repo.getTask(before.id);
+      if (current === undefined) {
+        return undefined;
+      }
+      const status = normalizeTaskStatus(after.status);
+      const closedAt =
+        status === 'closed'
+          ? current.status === 'closed'
+            ? (after.closedAt ?? current.closedAt)
+            : (after.closedAt ?? Date.now())
+          : undefined;
+      return updateTaskOp(current, {
         ...after,
         priority: normalizeTaskPriority(after.priority),
         status,
-        createdAt: before.createdAt ?? after.createdAt,
+        createdAt: current.createdAt,
         closedAt,
-      }),
-    );
+      });
+    });
   }
 
   deleteTask(task: TaskRecord): UndoRedoState {

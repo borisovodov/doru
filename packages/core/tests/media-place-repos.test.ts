@@ -266,6 +266,16 @@ describe('place repo edge cases', () => {
         { id: 'PC1', code: '101000', date: expect.objectContaining({ component: { year: 2020 } }) },
         { id: 'PC2', code: '101001' },
       ]);
+
+      const postalDate = read.postalCodes?.[0]?.date;
+      expect(postalDate?.id).toBeDefined();
+      repo.updatePlace({
+        ...read,
+        names: [...read.names, { id: 'N4', kind: 'official', position: 1, value: 'Copy', date: postalDate }],
+      });
+      const after = repo.getPlace('P1')!;
+      expect(after.postalCodes?.find((entry) => entry.id === 'PC1')?.date?.id).toBe(postalDate?.id);
+      expect(after.names.find((entry) => entry.id === 'N4')?.date?.id).not.toBe(postalDate?.id);
     } finally {
       cleanupRepo(fixture);
     }

@@ -129,7 +129,15 @@ export function splitDateBounds(date?: DateValue): { start?: DateValue; end?: Da
           ...(date.time !== undefined ? { time: date.time } : {}),
         }
       : undefined;
-  const end = date.end !== undefined ? { quality: 'exact' as const, component: date.end } : undefined;
+  const end =
+    date.end !== undefined
+      ? {
+          quality: 'exact' as const,
+          component: date.end,
+          ...(start === undefined && date.text !== undefined ? { text: date.text } : {}),
+          ...(start === undefined && date.time !== undefined ? { time: date.time } : {}),
+        }
+      : undefined;
   if (start === undefined && end === undefined && date.text !== undefined) {
     return { start: { quality: 'unknown', text: date.text } };
   }

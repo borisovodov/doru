@@ -100,6 +100,23 @@ describe('TreeService research layer', () => {
     }
   });
 
+  it('keeps the generated createdAt when a stale draft updates a task', () => {
+    const { fixture, service } = makeService();
+    try {
+      service.addTask({ id: 'T1', text: 'Task' });
+      const stored = fixture.repo.getTask('T1')!;
+      expect(stored.createdAt).toBeTypeOf('number');
+
+      service.updateTask({ id: 'T1', text: 'Stale' }, { ...stored, text: 'Edited' });
+      expect(fixture.repo.getTask('T1')).toMatchObject({ text: 'Edited', createdAt: stored.createdAt });
+
+      service.undo();
+      expect(fixture.repo.getTask('T1')).toMatchObject({ text: 'Task', createdAt: stored.createdAt });
+    } finally {
+      cleanupRepo(fixture);
+    }
+  });
+
   it('adds, updates, deletes and restores a task with its attachments', () => {
     const { fixture, service } = makeService();
     try {

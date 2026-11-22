@@ -61,8 +61,8 @@ export class FamilyRepo {
         .prepare(`INSERT INTO family (id, xref, preferred, same_sex, union_kind, union_status,
         marriage_begin_status, marriage_end_status) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`)
         .run(...familyParams(family));
-      this.replaceLinks(family, new Map());
-      this.replaceDetails(family);
+      this.replaceLinks(family, new Map(), undefined, new Map());
+      this.replaceDetails(family, new Map());
     });
   }
 
@@ -74,12 +74,18 @@ export class FamilyRepo {
         .run(...familyParams(family).slice(1), family.id);
       const existingPartners = this.listPartnerRows(family.id);
       const existingChildren = this.listChildRows(family.id);
+      const existingStatuses = this.listMarriageStatuses(family.id);
+      const reservedDates = new Map([
+        ...dateReservations([...existingPartners.values()], 'family_partner'),
+        ...dateReservations(existingStatuses, 'family_marriage_status'),
+      ]);
       this.replaceLinks(
         family,
         new Map(existingPartners.map((row) => [row.person_id, row])),
         new Map(existingChildren.map((row) => [row.child_id, row])),
+        reservedDates,
       );
-      this.replaceDetails(family);
+      this.replaceDetails(family, reservedDates);
     });
   }
 
@@ -145,18 +151,13 @@ export class FamilyRepo {
   private replaceLinks(
     family: FamilyRecord,
     existingPartners: Map<string, PartnerRow>,
-    existingChildren?: Map<string, ChildRow>,
+    existingChildren: Map<string, ChildRow> | undefined,
+    reservedDates: ReadonlyMap<string, string>,
   ): void {
     const partnerLinks = family.partnerLinks ?? derivedPartnerLinks(family);
     const children = existingChildren ?? new Map<string, ChildRow>();
     const childLinks = family.childLinks ?? derivedChildLinks(family);
     const stalePartnerDates = [...existingPartners.values()].map((row) => row.date_id);
-    const partnerDateReservations = new Map<string, string>();
-    for (const row of existingPartners.values()) {
-      if (row.date_id !== null) {
-        partnerDateReservations.set(row.date_id, row.id);
-      }
-    }
 
     this.db.prepare('DELETE FROM family_partner WHERE family_id = ?').run(family.id);
     this.dates.deleteMany(stalePartnerDates);
@@ -175,7 +176,7 @@ export class FamilyRepo {
       const preferred = link.preferred === true;
       const dateId =
         link.date !== undefined
-          ? this.dates.create(link.date, { ownerKey: linkId, reserved: partnerDateReservations })
+          ? this.dates.create(link.date, { ownerKey: `family_partner:${linkId}`, reserved: reservedDates })
           : null;
       insertPartner.run(
         linkId,
@@ -317,15 +318,9 @@ export class FamilyRepo {
     ).map((row) => row.value);
   }
 
-  private replaceDetails(family: FamilyRecord): void {
+  private replaceDetails(family: FamilyRecord, reservedDates: ReadonlyMap<string, string>): void {
     const currentStatuses = this.listMarriageStatuses(family.id);
     const staleStatusDates = currentStatuses.map((status) => status.date_id);
-    const statusDateReservations = new Map<string, string>();
-    for (const status of currentStatuses) {
-      if (status.date_id !== null) {
-        statusDateReservations.set(status.date_id, status.id);
-      }
-    }
     this.db.prepare('DELETE FROM family_marriage_status WHERE family_id = ?').run(family.id);
     this.dates.deleteMany(staleStatusDates);
     this.db.prepare('DELETE FROM family_witness WHERE family_id = ?').run(family.id);
@@ -336,7 +331,7 @@ export class FamilyRepo {
     (family.marriageStatuses ?? []).forEach((status, position) => {
       const dateId =
         status.date !== undefined
-          ? this.dates.create(status.date, { ownerKey: status.id, reserved: statusDateReservations })
+          ? this.dates.create(status.date, { ownerKey: `family_marriage_status:${status.id}`, reserved: reservedDates })
           : null;
       insertStatus.run(status.id, family.id, status.status, status.placeId ?? null, position, dateId);
     });
@@ -347,6 +342,16 @@ export class FamilyRepo {
       insertWitness.run(crypto.randomUUID(), family.id, witness, position);
     });
   }
+}
+
+function dateReservations(rows: Array<{ id: string; date_id: string | null }>, ownerType: string): Map<string, string> {
+  const reservations = new Map<string, string>();
+  for (const row of rows) {
+    if (row.date_id !== null) {
+      reservations.set(row.date_id, `${ownerType}:${row.id}`);
+    }
+  }
+  return reservations;
 }
 
 function familyParams(family: FamilyRecord): Array<string | number | null> {

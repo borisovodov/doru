@@ -177,9 +177,11 @@ export class PlaceRepo {
     const postalRows = this.db
       .prepare('SELECT id, date_id FROM place_postal_code WHERE place_id = ?')
       .all(place.id) as unknown as Array<{ id: string; date_id: string | null }>;
-    const nameReservations = dateReservations(nameRows);
-    const hierarchyReservations = dateReservations(hierarchyRows);
-    const postalReservations = dateReservations(postalRows);
+    const reservedDates = new Map([
+      ...dateReservations(nameRows, 'place_name'),
+      ...dateReservations(hierarchyRows, 'place_hierarchy'),
+      ...dateReservations(postalRows, 'place_postal_code'),
+    ]);
     this.db.prepare('DELETE FROM place_name WHERE place_id = ?').run(place.id);
     this.db.prepare('DELETE FROM place_hierarchy WHERE child_id = ?').run(place.id);
     this.db.prepare('DELETE FROM place_postal_code WHERE place_id = ?').run(place.id);
@@ -192,7 +194,7 @@ export class PlaceRepo {
     place.names.forEach((name, position) => {
       const dateId =
         name.date !== undefined
-          ? this.dates.create(name.date, { ownerKey: name.id, reserved: nameReservations })
+          ? this.dates.create(name.date, { ownerKey: `place_name:${name.id}`, reserved: reservedDates })
           : null;
       this.insertName.run(
         name.id,
@@ -214,7 +216,7 @@ export class PlaceRepo {
     for (const parent of place.hierarchy ?? []) {
       const dateId =
         parent.date !== undefined
-          ? this.dates.create(parent.date, { ownerKey: parent.id, reserved: hierarchyReservations })
+          ? this.dates.create(parent.date, { ownerKey: `place_hierarchy:${parent.id}`, reserved: reservedDates })
           : null;
       insertHierarchy.run(parent.id, parent.parentId, place.id, parent.type ?? null, dateId);
     }
@@ -224,7 +226,7 @@ export class PlaceRepo {
     for (const postal of place.postalCodes ?? []) {
       const dateId =
         postal.date !== undefined
-          ? this.dates.create(postal.date, { ownerKey: postal.id, reserved: postalReservations })
+          ? this.dates.create(postal.date, { ownerKey: `place_postal_code:${postal.id}`, reserved: reservedDates })
           : null;
       insertPostal.run(postal.id, place.id, postal.code, dateId);
     }
@@ -306,11 +308,11 @@ export class PlaceRepo {
   }
 }
 
-function dateReservations(rows: Array<{ id: string; date_id: string | null }>): Map<string, string> {
+function dateReservations(rows: Array<{ id: string; date_id: string | null }>, ownerType: string): Map<string, string> {
   const reservations = new Map<string, string>();
   for (const row of rows) {
     if (row.date_id !== null) {
-      reservations.set(row.date_id, row.id);
+      reservations.set(row.date_id, `${ownerType}:${row.id}`);
     }
   }
   return reservations;

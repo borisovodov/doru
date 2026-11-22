@@ -93,8 +93,8 @@ export class SourceRepo {
            WHERE id = ?`,
         )
         .run(...sourceParams(source).slice(1), prepared.ids[0] ?? null, source.id);
-      this.dates.deleteMany(prepared.obsolete);
       this.replaceSourceDetails(source);
+      this.dates.deleteMany(prepared.obsolete);
     });
   }
 

@@ -1472,28 +1472,12 @@ function parseTaskTextDate(text: string | undefined): number | undefined {
 }
 
 function parseEncodedTaskDate(text: string): number | undefined {
-  if (!/^V\d{2}[A-Z]/i.test(text)) {
+  // My Family Tree writes one of these vendor prefixes followed by DDMMYYYY.
+  const match = /^(?:V05T00S0001|V02C0000S01)(\d{2})(\d{2})(\d{4})/.exec(text);
+  if (match === null) {
     return undefined;
   }
-  // The vendor prefix is followed by DDMMYYYY; scan for the first valid run
-  // so both serializations work without hard-coding their prefix lengths.
-  for (let index = 0; index + 8 <= text.length; index += 1) {
-    const candidate = text.slice(index, index + 8);
-    if (!/^\d{8}$/.test(candidate)) {
-      continue;
-    }
-    const value = localTimestamp(
-      Number(candidate.slice(4, 8)),
-      Number(candidate.slice(2, 4)),
-      Number(candidate.slice(0, 2)),
-      0,
-      0,
-    );
-    if (value !== undefined) {
-      return value;
-    }
-  }
-  return undefined;
+  return localTimestamp(Number(match[3]), Number(match[2]), Number(match[1]), 0, 0);
 }
 
 function parseIsoTaskDate(text: string): number | undefined {
@@ -1527,15 +1511,15 @@ function taskDateValueToTimestamp(date: DateValue | undefined): number | undefin
   if (component.calendar !== undefined) {
     return undefined;
   }
-  const value = localTimestamp(
+  return localTimestamp(
     component.year,
     component.month,
     component.day,
     date.time?.hour ?? 0,
     date.time?.minute ?? 0,
     date.time?.second ?? 0,
+    date.time?.utc === true,
   );
-  return value;
 }
 
 function localTimestamp(
@@ -1545,15 +1529,24 @@ function localTimestamp(
   hour: number,
   minute: number,
   second = 0,
+  utc = false,
 ): number | undefined {
-  const value = new Date(year, month - 1, day, hour, minute, second, 0);
+  const value = utc
+    ? new Date(Date.UTC(year, month - 1, day, hour, minute, second))
+    : new Date(year, month - 1, day, hour, minute, second, 0);
+  const actualYear = utc ? value.getUTCFullYear() : value.getFullYear();
+  const actualMonth = utc ? value.getUTCMonth() : value.getMonth();
+  const actualDay = utc ? value.getUTCDate() : value.getDate();
+  const actualHour = utc ? value.getUTCHours() : value.getHours();
+  const actualMinute = utc ? value.getUTCMinutes() : value.getMinutes();
+  const actualSecond = utc ? value.getUTCSeconds() : value.getSeconds();
   if (
-    value.getFullYear() !== year ||
-    value.getMonth() !== month - 1 ||
-    value.getDate() !== day ||
-    value.getHours() !== hour ||
-    value.getMinutes() !== minute ||
-    value.getSeconds() !== second
+    actualYear !== year ||
+    actualMonth !== month - 1 ||
+    actualDay !== day ||
+    actualHour !== hour ||
+    actualMinute !== minute ||
+    actualSecond !== second
   ) {
     return undefined;
   }

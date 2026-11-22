@@ -66,6 +66,76 @@ describe('fact date ordering', () => {
     }
   });
 
+  it('compares fractional seconds and calendar month codes', () => {
+    const fixture = makeRepo();
+    try {
+      fixture.repo.insertPerson({
+        id: 'P1',
+        names: [],
+        sex: 'U',
+        facts: [
+          fact('LATER', {
+            sortDate: {
+              quality: 'exact',
+              component: { year: 2022, month: 3, day: 27 },
+              time: { hour: 16, minute: 2, fraction: '900' },
+            },
+          }),
+          fact('EARLIER', {
+            sortDate: {
+              quality: 'exact',
+              component: { year: 2022, month: 3, day: 27 },
+              time: { hour: 16, minute: 2, fraction: '100' },
+            },
+          }),
+          fact('BRUM', {
+            sortDate: {
+              quality: 'exact',
+              component: { calendar: 'french_republican', year: 2, month: 'BRUM', day: 1 },
+            },
+          }),
+          fact('VEND', {
+            sortDate: {
+              quality: 'exact',
+              component: { calendar: 'french_republican', year: 2, month: 'VEND', day: 1 },
+            },
+          }),
+        ],
+      });
+
+      expect(fixture.repo.listFactsForPerson('P1').map((entry) => entry.id)).toEqual([
+        'VEND',
+        'BRUM',
+        'EARLIER',
+        'LATER',
+      ]);
+    } finally {
+      cleanupRepo(fixture);
+    }
+  });
+
+  it('uses the end of an open range that has no usable start', () => {
+    const fixture = makeRepo();
+    try {
+      fixture.repo.insertPerson({
+        id: 'P1',
+        names: [],
+        sex: 'U',
+        facts: [
+          fact('OPEN', {
+            sortDate: { quality: 'range', component: { month: 12, day: 31 }, end: { year: 1900 } },
+          }),
+          fact('PRIOR', { date: day(1899, 1, 1) }),
+          fact('NEXT', { date: day(1901, 1, 1) }),
+        ],
+      });
+
+      expect(fixture.repo.listFactsForPerson('P1').map((entry) => entry.id)).toEqual(['PRIOR', 'OPEN', 'NEXT']);
+    } finally {
+      cleanupRepo(fixture);
+    }
+  });
+
   it('falls back to date when sortDate only has a phrase', () => {
     const fixture = makeRepo();
     try {

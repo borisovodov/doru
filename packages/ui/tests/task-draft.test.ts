@@ -80,6 +80,38 @@ describe('taskDraft', () => {
     });
   });
 
+  it('preserves sub-minute instants when the visible draft is unchanged', () => {
+    const scheduledAt = new Date(2026, 2, 12, 9, 0, 31, 456).getTime();
+    const reminderAt = new Date(2026, 2, 11, 8, 15, 59, 999).getTime();
+    const source = task({ scheduledAt, reminderAt });
+    const draft = taskToDraft(source);
+    draft.text = 'Edited elsewhere';
+
+    const after = taskDraftToRecord(source, draft);
+    expect(after.scheduledAt).toBe(scheduledAt);
+    expect(after.reminderAt).toBe(reminderAt);
+  });
+
+  it('preserves the second occurrence of a repeated local time', () => {
+    const previous = process.env['TZ'];
+    process.env['TZ'] = 'America/New_York';
+    try {
+      const first = Date.parse('2024-11-03T05:30:00Z');
+      const second = Date.parse('2024-11-03T06:30:00Z');
+      expect(taskToDraft(task({ scheduledAt: first })).scheduledAt).toBe('2024-11-03T01:30');
+      expect(taskToDraft(task({ scheduledAt: second })).scheduledAt).toBe('2024-11-03T01:30');
+
+      const source = task({ scheduledAt: second });
+      expect(taskDraftToRecord(source, taskToDraft(source)).scheduledAt).toBe(second);
+    } finally {
+      if (previous === undefined) {
+        delete process.env['TZ'];
+      } else {
+        process.env['TZ'] = previous;
+      }
+    }
+  });
+
   it('detaches a task when the person is cleared', () => {
     const after = taskDraftToRecord(task({ targetType: 'person', targetId: 'P1' }), {
       ...taskToDraft(task({ targetType: 'person', targetId: 'P1' })),
