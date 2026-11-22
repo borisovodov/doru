@@ -105,10 +105,12 @@ and no separate task-result field.
 ## Dates are forward-referenced values
 
 A date is a value row in `date`, not a child row with a polymorphic owner.
-Each owner table has one column per date slot (`fact.date_id`,
-`task.created_date_id`, `association.period_start_date_id`, …) pointing at
-the value with `ON DELETE RESTRICT`. The column name is the role; there is no
-`owner_type`/`role` vocabulary.
+Each owner row has one column per date slot (`fact.date_id`,
+`task.created_date_id`, `association.period_date_id`, …) pointing at the
+value with `ON DELETE RESTRICT`. The column name is the role; there is no
+`owner_type`/`role` vocabulary. A period is one `range` value: the import
+layer folds two-slot wire dates (`_DATE2`, `_PERIOD`) into it, and export
+splits them back where the target format needs two slots.
 
 This gives the schema real foreign keys and makes a task's dates visible on
 the task row. The trade-off is that SQLite cannot express "exactly one owner"

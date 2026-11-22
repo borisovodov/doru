@@ -41,7 +41,6 @@ interface FactRow {
   map_latitude: number | null;
   map_longitude: number | null;
   date_id: string | null;
-  end_date_id: string | null;
   sort_date_id: string | null;
   rowid: number;
 }
@@ -50,15 +49,15 @@ const FACT_COLUMNS = `id, person_id, family_id, tag, type, value, negation, prim
   place_id, place_text, address_id, agency,
   religious_affiliation, cause, sentence, quality, place_prefix, event_number,
   birth_length, birth_weight, cemetery, fna, description_aware, map_latitude,
-  map_longitude, date_id, end_date_id, sort_date_id, rowid`;
+  map_longitude, date_id, sort_date_id, rowid`;
 
-type FactDateIds = Pick<FactRow, 'date_id' | 'end_date_id' | 'sort_date_id'>;
+type FactDateIds = Pick<FactRow, 'date_id' | 'sort_date_id'>;
 
 function factDateIds(ids: FactDateIds | undefined): Array<string | null> {
   if (ids === undefined) {
     return [];
   }
-  return [ids.date_id, ids.end_date_id, ids.sort_date_id];
+  return [ids.date_id, ids.sort_date_id];
 }
 
 /**
@@ -80,7 +79,6 @@ export class FactRepo {
 
   private insertFactRows(fact: FactRecord): void {
     const dateId = fact.date !== undefined ? this.dates.create(fact.date) : null;
-    const endDateId = fact.endDate !== undefined ? this.dates.create(fact.endDate) : null;
     const sortDateId = fact.sortDate !== undefined ? this.dates.create(fact.sortDate) : null;
     this.db
       .prepare(
@@ -88,10 +86,10 @@ export class FactRepo {
            place_id, place_text, address_id, agency,
            religious_affiliation, cause, sentence, quality, place_prefix, event_number,
            birth_length, birth_weight, cemetery, fna, description_aware, map_latitude,
-           map_longitude, date_id, end_date_id, sort_date_id)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+           map_longitude, date_id, sort_date_id)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       )
-      .run(fact.id, ...factValueParams(fact), dateId, endDateId, sortDateId);
+      .run(fact.id, ...factValueParams(fact), dateId, sortDateId);
     this.replaceSubRows(fact);
   }
 
@@ -100,16 +98,13 @@ export class FactRepo {
   }
 
   private updateFactRows(fact: FactRecord): void {
-    const current = this.db.prepare('SELECT date_id, end_date_id, sort_date_id FROM fact WHERE id = ?').get(fact.id) as
+    const current = this.db.prepare('SELECT date_id, sort_date_id FROM fact WHERE id = ?').get(fact.id) as
       | FactDateIds
       | undefined;
     if (current === undefined) {
       throw new Error(`fact ${fact.id} no longer exists`);
     }
-    const prepared = this.dates.prepareSlots(
-      [current.date_id, current.end_date_id, current.sort_date_id],
-      [fact.date, fact.endDate, fact.sortDate],
-    );
+    const prepared = this.dates.prepareSlots([current.date_id, current.sort_date_id], [fact.date, fact.sortDate]);
     this.db
       .prepare(
         `UPDATE fact SET person_id = ?, family_id = ?, tag = ?, type = ?, value = ?, negation = ?,
@@ -117,7 +112,7 @@ export class FactRepo {
            agency = ?, religious_affiliation = ?, cause = ?, sentence = ?, quality = ?,
            place_prefix = ?, event_number = ?, birth_length = ?, birth_weight = ?, cemetery = ?,
            fna = ?, description_aware = ?, map_latitude = ?, map_longitude = ?,
-           date_id = ?, end_date_id = ?, sort_date_id = ?
+           date_id = ?, sort_date_id = ?
          WHERE id = ?`,
       )
       .run(...factValueParams(fact), ...prepared.ids, fact.id);
@@ -138,7 +133,7 @@ export class FactRepo {
 
   deleteFact(id: string): boolean {
     return this.transactions.run(() => {
-      const current = this.db.prepare('SELECT date_id, end_date_id, sort_date_id FROM fact WHERE id = ?').get(id) as
+      const current = this.db.prepare('SELECT date_id, sort_date_id FROM fact WHERE id = ?').get(id) as
         | FactDateIds
         | undefined;
       const changed = this.db.prepare('DELETE FROM fact WHERE id = ?').run(id).changes > 0;
@@ -307,7 +302,7 @@ export class FactRepo {
   private deleteFactsForOwner(column: 'person_id' | 'family_id', id: string): void {
     this.transactions.run(() => {
       const rows = this.db
-        .prepare(`SELECT date_id, end_date_id, sort_date_id FROM fact WHERE ${column} = ?`)
+        .prepare(`SELECT date_id, sort_date_id FROM fact WHERE ${column} = ?`)
         .all(id) as unknown as FactDateIds[];
       const changed = this.db.prepare(`DELETE FROM fact WHERE ${column} = ?`).run(id).changes;
       if (changed > 0) {
@@ -353,7 +348,7 @@ export class FactRepo {
   /** Attaches each fact's dates and sub-rows and orders by sort year (unknown dates last, rowid as tiebreak). */
   private hydrate(rows: FactRow[]): FactRecord[] {
     const factIds = rows.map((row) => row.id);
-    const dates = this.dates.getMany(rows.flatMap((row) => [row.date_id, row.end_date_id, row.sort_date_id]));
+    const dates = this.dates.getMany(rows.flatMap((row) => [row.date_id, row.sort_date_id]));
     const agesByFact = this.agesForFacts(factIds);
     const participantsByFact = this.participantsForFacts(factIds);
     const flagsByFact = this.flagsForFacts(factIds);
@@ -640,7 +635,6 @@ function rowToFact(
     negation: row.negation === 1 ? true : undefined,
     primary: row.primary_flag === 1 ? true : undefined,
     date: row.date_id !== null ? dates.get(row.date_id) : undefined,
-    endDate: row.end_date_id !== null ? dates.get(row.end_date_id) : undefined,
     sortDate: row.sort_date_id !== null ? dates.get(row.sort_date_id) : undefined,
     ...(additionalPlaceIds !== undefined ? { additionalPlaceIds } : {}),
     placePrefix: row.place_prefix ?? undefined,

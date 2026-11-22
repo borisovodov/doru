@@ -26,8 +26,7 @@ describe('Phase 3: relations', () => {
         otherPersonId: 'P2',
         role: 'GODP',
         relationship: 'godparent',
-        periodStart: { quality: 'exact', component: { year: 1900 } },
-        periodEnd: { quality: 'exact', component: { year: 1905 } },
+        period: { quality: 'range', component: { year: 1900 }, end: { year: 1905 } },
       });
       expect(repo.listAssociationsFor('P1')).toEqual([
         expect.objectContaining({ id: 'A1', otherPersonId: 'P2', relationship: 'godparent' }),

@@ -290,8 +290,7 @@ describe('date cleanup on delete/update', () => {
         id: 'A1',
         personId: 'P1',
         otherPersonId: 'P2',
-        periodStart: { quality: 'exact', component: { year: 1920 } },
-        periodEnd: { quality: 'exact', component: { year: 1930 } },
+        period: { quality: 'range', component: { year: 1920 }, end: { year: 1930 } },
       });
       repo.deletePerson('P1');
       const count = (fixture.store.db.prepare('SELECT COUNT(*) AS n FROM date').get() as { n: number }).n;

@@ -46,10 +46,10 @@ export const DORU_APPLICATION_ID = 0x444f5255;
  * Bumped whenever the schema changes. There are no migrations before 1.0.0:
  * a newer version may simply not understand files written by older ones
  * (the store refuses to open them with a loud error). This schema uses
- * version 14, above every version written by an earlier build (the old model
- * reached 13), so the open guard cannot mistake an old file for this one.
+ * version 15, above every version written by an earlier build (the old model
+ * reached 14), so the open guard cannot mistake an old file for this one.
  */
-export const SCHEMA_VERSION = 14;
+export const SCHEMA_VERSION = 15;
 
 export const SCHEMA_SQL = `
 CREATE TABLE IF NOT EXISTS person (
@@ -192,7 +192,6 @@ CREATE TABLE IF NOT EXISTS fact (
   map_latitude REAL,
   map_longitude REAL,
   date_id TEXT REFERENCES date(id) ON DELETE RESTRICT,
-  end_date_id TEXT REFERENCES date(id) ON DELETE RESTRICT,
   sort_date_id TEXT REFERENCES date(id) ON DELETE RESTRICT,
   CHECK ((person_id IS NULL) + (family_id IS NULL) = 1)
 );
@@ -562,8 +561,7 @@ CREATE TABLE IF NOT EXISTS association (
   primary_flag INTEGER NOT NULL DEFAULT 0,
   specific_type TEXT,
   confidence TEXT,
-  period_start_date_id TEXT REFERENCES date(id) ON DELETE RESTRICT,
-  period_end_date_id TEXT REFERENCES date(id) ON DELETE RESTRICT,
+  period_date_id TEXT REFERENCES date(id) ON DELETE RESTRICT,
   CHECK ((person_id IS NULL) + (family_id IS NULL) = 1)
 );
 
@@ -661,7 +659,6 @@ CREATE INDEX IF NOT EXISTS idx_person_name_period_date ON person_name(period_dat
 CREATE INDEX IF NOT EXISTS idx_family_partner_date ON family_partner(date_id);
 CREATE INDEX IF NOT EXISTS idx_family_marriage_status_date ON family_marriage_status(date_id);
 CREATE INDEX IF NOT EXISTS idx_fact_date ON fact(date_id);
-CREATE INDEX IF NOT EXISTS idx_fact_end_date ON fact(end_date_id);
 CREATE INDEX IF NOT EXISTS idx_fact_sort_date ON fact(sort_date_id);
 CREATE INDEX IF NOT EXISTS idx_place_name_date ON place_name(date_id);
 CREATE INDEX IF NOT EXISTS idx_place_hierarchy_date ON place_hierarchy(date_id);
@@ -675,8 +672,7 @@ CREATE INDEX IF NOT EXISTS idx_task_created_date ON task(created_date_id);
 CREATE INDEX IF NOT EXISTS idx_task_scheduled_date ON task(scheduled_date_id);
 CREATE INDEX IF NOT EXISTS idx_task_reminder_date ON task(reminder_date_id);
 CREATE INDEX IF NOT EXISTS idx_task_closed_date ON task(closed_date_id);
-CREATE INDEX IF NOT EXISTS idx_association_period_start_date ON association(period_start_date_id);
-CREATE INDEX IF NOT EXISTS idx_association_period_end_date ON association(period_end_date_id);
+CREATE INDEX IF NOT EXISTS idx_association_period_date ON association(period_date_id);
 
 -- Foreign-key child columns. SQLite does not index these automatically, so
 -- deleting or updating a parent would otherwise scan the child table.

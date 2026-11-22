@@ -21,8 +21,7 @@ describe('emptyAssociationDraft', () => {
       primary: false,
       specificType: '',
       confidence: '',
-      periodStart: emptyDate(),
-      periodEnd: emptyDate(),
+      period: emptyDate(),
     });
   });
 });
@@ -38,8 +37,7 @@ describe('associationToDraft / associationDraftToRecord', () => {
     primary: true,
     specificType: 'WWII',
     confidence: 'high',
-    periodStart: { quality: 'exact', component: { year: 1942 } },
-    periodEnd: { quality: 'about', component: { year: 1946 } },
+    period: { quality: 'range', component: { year: 1942 }, end: { year: 1946 } },
   };
 
   it('round-trips every field', () => {
@@ -54,8 +52,7 @@ describe('associationToDraft / associationDraftToRecord', () => {
       primary: true,
       specificType: 'WWII',
       confidence: 'high',
-      periodStart: { ...emptyDate(), year: '1942' },
-      periodEnd: { ...emptyDate(), year: '1946', quality: 'about' },
+      period: { ...emptyDate(), year: '1942', endYear: '1946', quality: 'range' },
     });
     expect(associationDraftToRecord(draft)).toEqual(source);
   });
@@ -73,8 +70,7 @@ describe('associationToDraft / associationDraftToRecord', () => {
       primary: undefined,
       specificType: undefined,
       confidence: undefined,
-      periodStart: undefined,
-      periodEnd: undefined,
+      period: undefined,
     });
   });
 });

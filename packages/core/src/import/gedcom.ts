@@ -37,7 +37,7 @@ import type {
   TodoStructure,
 } from '@doru/gedcom';
 import type { TreeRepository } from '../db/repository';
-import { normalizeTaskPriority, normalizeTaskStatus } from '../model/types';
+import { mergeDateBounds, normalizeTaskPriority, normalizeTaskStatus } from '../model/types';
 import { detectParentCycles } from '../validate/validator';
 import type {
   AssociationRecord,
@@ -853,8 +853,7 @@ function mapFact(
     tag: base.tag,
     type: base.type,
     value: base.payload === undefined || base.payload === 'Y' ? undefined : String(base.payload),
-    date: mapDate(detail?.date),
-    endDate: mapDate(detail?.endDate),
+    date: mergeDateBounds(mapDate(detail?.date), mapDate(detail?.endDate)),
     sortDate: mapSortDate(detail?.sortDate),
     placeId: detail?.place ? importPlace(detail.place, ctx) : undefined,
     place: mapPlaceText(detail?.place),
@@ -1287,8 +1286,7 @@ function importFamily(record: GedcomFamilyRecord, ctx: ImportContext): void {
       primary: association.primary,
       specificType: association.specificType,
       confidence: association.confidence,
-      periodStart: mapDate(association.period?.start),
-      periodEnd: mapDate(association.period?.end),
+      period: mergeDateBounds(mapDate(association.period?.start), mapDate(association.period?.end)),
     });
     importCitations(association.citations, 'association', associationId, ctx);
     importNotes(association.notes, 'association', associationId, ctx);
@@ -1363,8 +1361,7 @@ function importPersonRelations(records: GedcomRecord[], ctx: ImportContext): voi
         primary: association.primary,
         specificType: association.specificType,
         confidence: association.confidence,
-        periodStart: mapDate(association.period?.start),
-        periodEnd: mapDate(association.period?.end),
+        period: mergeDateBounds(mapDate(association.period?.start), mapDate(association.period?.end)),
       };
       ctx.repo.insertAssociation(mapped);
       importCitations(association.citations, 'association', mapped.id, ctx);

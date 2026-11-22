@@ -76,6 +76,69 @@ export function signedYear(component: DateComponent | undefined): number | undef
   return component.epoch === 'BCE' ? 1 - component.year : component.year;
 }
 
+/**
+ * Merges two independently stored date bounds into one range value. Used by
+ * the GEDCOM import layer: `_DATE2` and the extension `_PERIOD` bounds become
+ * ordinary `range` dates in the tree model. When only the end survives, the
+ * result is an open-ended range (`TO end`).
+ */
+export function mergeDateBounds(start?: DateValue, end?: DateValue): DateValue | undefined {
+  if (start === undefined) {
+    if (end === undefined) {
+      return undefined;
+    }
+    const endComponent = end.component ?? end.end;
+    return {
+      quality: 'range',
+      ...(endComponent !== undefined ? { end: endComponent } : {}),
+      ...(end.text !== undefined ? { text: end.text } : {}),
+      ...(end.time !== undefined ? { time: end.time } : {}),
+    };
+  }
+  if (end === undefined) {
+    return start;
+  }
+  const endComponent = end.component ?? end.end ?? (start.quality === 'range' ? start.end : undefined);
+  return {
+    quality: 'range',
+    ...(start.component !== undefined ? { component: start.component } : {}),
+    ...(endComponent !== undefined ? { end: endComponent } : {}),
+    ...(start.text !== undefined ? { text: start.text } : end.text !== undefined ? { text: end.text } : {}),
+    ...(start.time !== undefined ? { time: start.time } : {}),
+  };
+}
+
+/**
+ * Splits a range value back into its two bounds for consumers that still
+ * have two slots (the GEDCOM `_PERIOD` extension). A non-range date becomes
+ * the start bound; a range with one bound yields only that bound.
+ */
+export function splitDateBounds(date?: DateValue): { start?: DateValue; end?: DateValue } {
+  if (date === undefined) {
+    return {};
+  }
+  if (date.quality !== 'range') {
+    return { start: date };
+  }
+  const start =
+    date.component !== undefined
+      ? {
+          quality: 'exact' as const,
+          component: date.component,
+          ...(date.text !== undefined ? { text: date.text } : {}),
+          ...(date.time !== undefined ? { time: date.time } : {}),
+        }
+      : undefined;
+  const end = date.end !== undefined ? { quality: 'exact' as const, component: date.end } : undefined;
+  if (start === undefined && end === undefined && date.text !== undefined) {
+    return { start: { quality: 'unknown', text: date.text } };
+  }
+  return {
+    ...(start !== undefined ? { start } : {}),
+    ...(end !== undefined ? { end } : {}),
+  };
+}
+
 // ---------------------------------------------------------------------------
 // Persons, families, facts
 // ---------------------------------------------------------------------------
@@ -207,9 +270,8 @@ export interface FactRecord {
   value?: string | undefined;
   /** The fact asserts the event did NOT happen (GEDCOM NO). */
   negation?: boolean | undefined;
+  /** The event date; a period is a `range` value with `component` and `end`. */
   date?: DateValue | undefined;
-  /** The end date of a period (vendor `_DATE2`). */
-  endDate?: DateValue | undefined;
   /** Sort date (GEDCOM SDATE): orders the fact when the display date cannot. */
   sortDate?: DateValue | undefined;
   /** The place entity this fact happened at; the raw string stays in `place`. */
@@ -798,8 +860,8 @@ export interface AssociationRecord {
   primary?: boolean | undefined;
   specificType?: string | undefined;
   confidence?: string | undefined;
-  periodStart?: DateValue | undefined;
-  periodEnd?: DateValue | undefined;
+  /** The period of the association; a range value when both bounds are known. */
+  period?: DateValue | undefined;
 }
 
 /** The canonical task statuses, in UI order. */

@@ -34,7 +34,6 @@ export interface FactDraft {
   value: string;
   negation: boolean;
   date: DateDraft;
-  endDate: DateDraft;
   sortDate: DateDraft;
   placeId?: string | undefined;
   additionalPlaceIds: string[];
@@ -97,7 +96,6 @@ export function emptyFactDraft(owner: { personId?: string; familyId?: string }):
     value: '',
     negation: false,
     date: emptyDate(),
-    endDate: emptyDate(),
     sortDate: emptyDate(),
     additionalPlaceIds: [],
     placePrefix: '',
@@ -134,7 +132,6 @@ export function factToDraft(fact: FactRecord): FactDraft {
     value: fact.value ?? '',
     negation: fact.negation === true,
     date: toDateDraft(fact.date, fact.place ?? ''),
-    endDate: toDateDraft(fact.endDate),
     sortDate: toDateDraft(fact.sortDate),
     placeId: fact.placeId,
     additionalPlaceIds: [...(fact.additionalPlaceIds ?? [])],
@@ -197,7 +194,6 @@ export function factDraftToRecord(draft: FactDraft, existing?: FactRecord): Fact
     value: draft.value.trim() || undefined,
     negation: draft.negation || undefined,
     date,
-    endDate: rebaseDate(fromDateDraft(draft.endDate), existing?.endDate),
     sortDate,
     place,
     placeId,

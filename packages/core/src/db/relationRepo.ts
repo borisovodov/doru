@@ -15,48 +15,42 @@ export class RelationRepo {
 
   insertAssociation(association: AssociationRecord): void {
     this.transactions.run(() => {
-      const periodStartDateId =
-        association.periodStart !== undefined ? this.dates.create(association.periodStart) : null;
-      const periodEndDateId = association.periodEnd !== undefined ? this.dates.create(association.periodEnd) : null;
+      const periodDateId = association.period !== undefined ? this.dates.create(association.period) : null;
       this.db
         .prepare(
           `INSERT INTO association (id, person_id, family_id, other_person_id, role, relationship, phrase,
-             primary_flag, specific_type, confidence, period_start_date_id, period_end_date_id)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+             primary_flag, specific_type, confidence, period_date_id)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         )
-        .run(...associationParams(association), periodStartDateId, periodEndDateId);
+        .run(...associationParams(association), periodDateId);
     });
   }
 
   updateAssociation(association: AssociationRecord): void {
     this.transactions.run(() => {
-      const current = this.db
-        .prepare('SELECT period_start_date_id, period_end_date_id FROM association WHERE id = ?')
-        .get(association.id) as AssociationDateIds | undefined;
+      const current = this.db.prepare('SELECT period_date_id FROM association WHERE id = ?').get(association.id) as
+        | AssociationDateIds
+        | undefined;
       if (current === undefined) {
         throw new Error(`association ${association.id} no longer exists`);
       }
-      const prepared = this.dates.prepareSlots(
-        [current.period_start_date_id, current.period_end_date_id],
-        [association.periodStart, association.periodEnd],
-      );
+      const prepared = this.dates.prepareSlots([current.period_date_id], [association.period]);
       this.db
         .prepare(
           `UPDATE association SET person_id = ?, family_id = ?, other_person_id = ?, role = ?, relationship = ?, phrase = ?,
-             primary_flag = ?, specific_type = ?, confidence = ?,
-             period_start_date_id = ?, period_end_date_id = ?
+             primary_flag = ?, specific_type = ?, confidence = ?, period_date_id = ?
            WHERE id = ?`,
         )
-        .run(...associationParams(association).slice(1), ...prepared.ids, association.id);
+        .run(...associationParams(association).slice(1), prepared.ids[0] ?? null, association.id);
       this.dates.deleteMany(prepared.obsolete);
     });
   }
 
   deleteAssociation(id: string): boolean {
     return this.transactions.run(() => {
-      const current = this.db
-        .prepare('SELECT period_start_date_id, period_end_date_id FROM association WHERE id = ?')
-        .get(id) as AssociationDateIds | undefined;
+      const current = this.db.prepare('SELECT period_date_id FROM association WHERE id = ?').get(id) as
+        | AssociationDateIds
+        | undefined;
       const changed = this.db.prepare('DELETE FROM association WHERE id = ?').run(id).changes > 0;
       if (changed) {
         this.dates.deleteMany(associationDateIds(current));
@@ -97,10 +91,7 @@ export class RelationRepo {
   private deleteAssociationsWhere(where: string, params: string[]): void {
     this.transactions.run(() => {
       const rows = this.db
-        .prepare(
-          `SELECT period_start_date_id, period_end_date_id FROM association
-           WHERE ${where}`,
-        )
+        .prepare(`SELECT period_date_id FROM association WHERE ${where}`)
         .all(...params) as unknown as AssociationDateIds[];
       const changed = this.db.prepare(`DELETE FROM association WHERE ${where}`).run(...params).changes;
       if (changed > 0) {
@@ -110,7 +101,7 @@ export class RelationRepo {
   }
 
   private hydrateMany(rows: AssociationRow[]): AssociationRecord[] {
-    const dates = this.dates.getMany(rows.flatMap((row) => [row.period_start_date_id, row.period_end_date_id]));
+    const dates = this.dates.getMany(rows.map((row) => row.period_date_id));
     return rows.map((row) => ({
       id: row.id,
       personId: row.person_id ?? undefined,
@@ -122,8 +113,7 @@ export class RelationRepo {
       primary: row.primary_flag === 1 ? true : undefined,
       specificType: row.specific_type ?? undefined,
       confidence: row.confidence ?? undefined,
-      periodStart: row.period_start_date_id !== null ? dates.get(row.period_start_date_id) : undefined,
-      periodEnd: row.period_end_date_id !== null ? dates.get(row.period_end_date_id) : undefined,
+      period: row.period_date_id !== null ? dates.get(row.period_date_id) : undefined,
     }));
   }
 
@@ -181,21 +171,17 @@ interface AssociationRow {
   primary_flag: number;
   specific_type: string | null;
   confidence: string | null;
-  period_start_date_id: string | null;
-  period_end_date_id: string | null;
+  period_date_id: string | null;
 }
 
-type AssociationDateIds = Pick<AssociationRow, 'period_start_date_id' | 'period_end_date_id'>;
+type AssociationDateIds = Pick<AssociationRow, 'period_date_id'>;
 
 const associationSelect = `SELECT id, person_id, family_id, other_person_id, role, relationship, phrase,
-  primary_flag, specific_type, confidence, period_start_date_id, period_end_date_id
+  primary_flag, specific_type, confidence, period_date_id
   FROM association`;
 
 function associationDateIds(ids: AssociationDateIds | undefined): Array<string | null> {
-  if (ids === undefined) {
-    return [];
-  }
-  return [ids.period_start_date_id, ids.period_end_date_id];
+  return ids === undefined ? [] : [ids.period_date_id];
 }
 
 function associationParams(association: AssociationRecord): Array<string | number | null> {

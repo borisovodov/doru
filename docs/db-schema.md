@@ -2,7 +2,7 @@
 
 A Dóru project is a single `.doru` file: a SQLite database branded with
 `application_id = 0x444F5255` ("DORU") and versioned with `user_version`.
-This document is the field-level reference for **schema version 14**. The
+This document is the field-level reference for **schema version 15**. The
 source of truth is [`packages/core/src/db/schema.ts`](../packages/core/src/db/schema.ts);
 the domain shapes that the repositories map onto the rows live in
 [`packages/core/src/model/types.ts`](../packages/core/src/model/types.ts).
@@ -16,7 +16,7 @@ model faithful; that guarantee does not extend to the tree database.
 
 ## At a glance
 
-- **50 tables**, **84 indexes**, and no date-delete triggers.
+- **50 tables**, **82 indexes**, and no date-delete triggers.
 - The core genealogy model is `person` → `person_name` / `fact`, with
   `family` joining people through `family_partner` and `family_child`.
 - Dates are normalized into one `date` value table; owner rows reference
@@ -263,7 +263,6 @@ erDiagram
         REAL map_latitude "vendor _COR"
         REAL map_longitude "vendor _COR"
         TEXT date_id FK "nullable, RESTRICT"
-        TEXT end_date_id FK "nullable, RESTRICT"
         TEXT sort_date_id FK "nullable, RESTRICT"
     }
 
@@ -327,8 +326,9 @@ erDiagram
 ```
 
 Fact dates live in the `date` table through the forward foreign keys
-`fact.date_id`, `fact.end_date_id`, and `fact.sort_date_id`. See
-[Dates](#dates).
+`fact.date_id` and `fact.sort_date_id`. A period is one `range` value. The
+import layer folds the vendor `_DATE2` second date into that range's end;
+export writes a single standard `DATE`. See [Dates](#dates).
 
 ## Associations
 
@@ -353,8 +353,7 @@ erDiagram
         INTEGER primary_flag "NOT NULL, default 0"
         TEXT specific_type
         TEXT confidence
-        TEXT period_start_date_id FK
-        TEXT period_end_date_id FK
+        TEXT period_date_id FK
     }
 
     person {
@@ -365,6 +364,10 @@ erDiagram
         TEXT id PK
     }
 ```
+
+`association.period_date_id` stores the whole period as one `range` value. The
+import layer folds `_PERIOD/_START` and `_PERIOD/_END` into that range; export
+splits the range back into the two extension slots.
 
 ## Dates
 
@@ -404,7 +407,7 @@ The role of a date is the name of the column that references it:
 | `person_name` | `period_date_id` |
 | `family_partner` | `date_id` |
 | `family_marriage_status` | `date_id` |
-| `fact` | `date_id`, `end_date_id`, `sort_date_id` |
+| `fact` | `date_id`, `sort_date_id` |
 | `place_name` | `date_id` |
 | `place_hierarchy` | `date_id` |
 | `place_postal_code` | `date_id` |
@@ -414,7 +417,7 @@ The role of a date is the name of the column that references it:
 | `media` | `date_id` |
 | `tag_link` | `date_id` |
 | `task` | `created_date_id`, `scheduled_date_id`, `reminder_date_id`, `closed_date_id` |
-| `association` | `period_start_date_id`, `period_end_date_id` |
+| `association` | `period_date_id` |
 
 A column is nullable and each slot holds at most one date. The foreign keys
 use `ON DELETE RESTRICT`: deleting a date row that is still referenced by any

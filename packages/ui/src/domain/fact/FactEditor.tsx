@@ -290,12 +290,6 @@ export function FactEditor({
           }
         }}
       />
-      <DateEditor
-        label={nls.t('features.tree.fact.endDate')}
-        value={draft.endDate}
-        onChange={(endDate) => set({ endDate })}
-        hidePlace
-      />
       <label className="fact-field">
         {nls.t('features.tree.fact.placeLink')}
         <Select

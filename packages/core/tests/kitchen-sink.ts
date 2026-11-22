@@ -305,8 +305,7 @@ export function buildKitchenSinkTree(fixture: RepoFixture): void {
     primary: true,
     specificType: 'comrade',
     confidence: 'high',
-    periodStart: { quality: 'exact', component: { year: 1940 } },
-    periodEnd: { quality: 'exact', component: { year: 1950 } },
+    period: { quality: 'range', component: { year: 1940 }, end: { year: 1950 } },
   });
   repo.insertAssociation({ id: 'AS2', personId: 'P2', otherPersonId: 'P1', role: 'witness' });
   repo.insertAlias('AL1', 'P1', 'P3');

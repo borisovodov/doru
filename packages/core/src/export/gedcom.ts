@@ -41,7 +41,7 @@ import type {
   PedigreeEnum,
 } from '@doru/gedcom';
 import type { TreeRepository } from '../db/repository';
-import { normalizeTaskPriority, normalizeTaskStatus } from '../model/types';
+import { normalizeTaskPriority, normalizeTaskStatus, splitDateBounds } from '../model/types';
 import type {
   AssociationRecord,
   DateComponent,
@@ -843,6 +843,9 @@ function buildAssociation(
   repo: TreeRepository,
   xrefs: Xrefs,
 ): import('@doru/gedcom').AssociationStructure {
+  const bounds = association.period !== undefined ? splitDateBounds(association.period) : undefined;
+  const periodStart = bounds?.start !== undefined ? buildDate(bounds.start) : undefined;
+  const periodEnd = bounds?.end !== undefined ? buildDate(bounds.end) : undefined;
   return {
     tag: 'ASSO',
     individual: xrefs.of(association.otherPersonId),
@@ -854,12 +857,12 @@ function buildAssociation(
     ...(association.primary === true ? { primary: true } : {}),
     ...(association.specificType !== undefined ? { specificType: association.specificType } : {}),
     ...(association.confidence !== undefined ? { confidence: association.confidence } : {}),
-    ...(association.periodStart !== undefined || association.periodEnd !== undefined
+    ...(periodStart !== undefined || periodEnd !== undefined
       ? {
           period: {
             tag: '_PERIOD',
-            ...(association.periodStart !== undefined ? { start: buildDate(association.periodStart) } : {}),
-            ...(association.periodEnd !== undefined ? { end: buildDate(association.periodEnd) } : {}),
+            ...(periodStart !== undefined ? { start: periodStart } : {}),
+            ...(periodEnd !== undefined ? { end: periodEnd } : {}),
           },
         }
       : {}),
@@ -868,7 +871,7 @@ function buildAssociation(
       : {}),
     ...withCitationList(repo, 'association', association.id, xrefs),
     ...withNoteList(repo, 'association', association.id, xrefs),
-  } as import('@doru/gedcom').AssociationStructure;
+  };
 }
 
 function withAliases(
@@ -1370,7 +1373,6 @@ function buildSource(source: SourceRecord, repo: TreeRepository, xrefs: Xrefs): 
 
 function buildDetail(fact: FactRecord, repo: TreeRepository, xrefs: Xrefs): EventDetail | undefined {
   const date = buildDate(fact.date);
-  const endDate = fact.endDate !== undefined ? buildDate(fact.endDate) : undefined;
   const additionalPlaces =
     fact.additionalPlaceIds !== undefined && fact.additionalPlaceIds.length > 0
       ? fact.additionalPlaceIds.map((placeId) => buildPlace(repo, placeId, xrefs))
@@ -1425,7 +1427,6 @@ function buildDetail(fact: FactRecord, repo: TreeRepository, xrefs: Xrefs): Even
   const primary = fact.primary === true;
   if (
     date === undefined &&
-    endDate === undefined &&
     place === undefined &&
     additionalPlaces === undefined &&
     address === undefined &&
@@ -1464,7 +1465,6 @@ function buildDetail(fact: FactRecord, repo: TreeRepository, xrefs: Xrefs): Even
   const firstAge = ages?.[0];
   return {
     ...(date !== undefined ? { date } : {}),
-    ...(endDate !== undefined ? { endDate } : {}),
     ...(fact.sortDate !== undefined ? { sortDate: buildSortDate(fact.sortDate) } : {}),
     ...(place !== undefined ? { place } : {}),
     ...(additionalPlaces !== undefined ? { additionalPlaces } : {}),

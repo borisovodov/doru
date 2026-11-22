@@ -21,7 +21,6 @@ function expectNoOrphanDates(fixture: RepoFixture): void {
          UNION ALL SELECT date_id FROM family_partner WHERE date_id IS NOT NULL
          UNION ALL SELECT date_id FROM family_marriage_status WHERE date_id IS NOT NULL
          UNION ALL SELECT date_id FROM fact WHERE date_id IS NOT NULL
-         UNION ALL SELECT end_date_id FROM fact WHERE end_date_id IS NOT NULL
          UNION ALL SELECT sort_date_id FROM fact WHERE sort_date_id IS NOT NULL
          UNION ALL SELECT date_id FROM place_name WHERE date_id IS NOT NULL
          UNION ALL SELECT date_id FROM place_hierarchy WHERE date_id IS NOT NULL
@@ -35,8 +34,7 @@ function expectNoOrphanDates(fixture: RepoFixture): void {
          UNION ALL SELECT scheduled_date_id FROM task WHERE scheduled_date_id IS NOT NULL
          UNION ALL SELECT reminder_date_id FROM task WHERE reminder_date_id IS NOT NULL
          UNION ALL SELECT closed_date_id FROM task WHERE closed_date_id IS NOT NULL
-         UNION ALL SELECT period_start_date_id FROM association WHERE period_start_date_id IS NOT NULL
-         UNION ALL SELECT period_end_date_id FROM association WHERE period_end_date_id IS NOT NULL
+         UNION ALL SELECT period_date_id FROM association WHERE period_date_id IS NOT NULL
        )`,
     )
     .all() as unknown as Array<{ id: string }>;
@@ -49,7 +47,6 @@ function expectNoOrphanDates(fixture: RepoFixture): void {
          UNION ALL SELECT date_id FROM family_partner WHERE date_id IS NOT NULL
          UNION ALL SELECT date_id FROM family_marriage_status WHERE date_id IS NOT NULL
          UNION ALL SELECT date_id FROM fact WHERE date_id IS NOT NULL
-         UNION ALL SELECT end_date_id FROM fact WHERE end_date_id IS NOT NULL
          UNION ALL SELECT sort_date_id FROM fact WHERE sort_date_id IS NOT NULL
          UNION ALL SELECT date_id FROM place_name WHERE date_id IS NOT NULL
          UNION ALL SELECT date_id FROM place_hierarchy WHERE date_id IS NOT NULL
@@ -63,8 +60,7 @@ function expectNoOrphanDates(fixture: RepoFixture): void {
          UNION ALL SELECT scheduled_date_id FROM task WHERE scheduled_date_id IS NOT NULL
          UNION ALL SELECT reminder_date_id FROM task WHERE reminder_date_id IS NOT NULL
          UNION ALL SELECT closed_date_id FROM task WHERE closed_date_id IS NOT NULL
-         UNION ALL SELECT period_start_date_id FROM association WHERE period_start_date_id IS NOT NULL
-         UNION ALL SELECT period_end_date_id FROM association WHERE period_end_date_id IS NOT NULL
+         UNION ALL SELECT period_date_id FROM association WHERE period_date_id IS NOT NULL
        ) GROUP BY date_id HAVING n > 1`,
     )
     .all() as unknown as Array<{ date_id: string; n: number }>;
@@ -84,8 +80,7 @@ describe('date ownership', () => {
             id: 'F1',
             personId: 'P1',
             tag: 'BIRT',
-            date: exact(1901),
-            endDate: exact(1902),
+            date: { quality: 'range' as const, component: { year: 1901 }, end: { year: 1902 } },
             sortDate: exact(1903),
           },
         ],
@@ -95,16 +90,16 @@ describe('date ownership', () => {
       const name = fixture.store.db.prepare('SELECT period_date_id FROM person_name WHERE id = ?').get('N1') as {
         period_date_id: string;
       };
-      const fact = fixture.store.db
-        .prepare('SELECT date_id, end_date_id, sort_date_id FROM fact WHERE id = ?')
-        .get('F1') as { date_id: string; end_date_id: string; sort_date_id: string };
-      const years = fixture.store.db.prepare('SELECT year FROM date WHERE id = ?');
+      const fact = fixture.store.db.prepare('SELECT date_id, sort_date_id FROM fact WHERE id = ?').get('F1') as {
+        date_id: string;
+        sort_date_id: string;
+      };
+      const dates = fixture.store.db.prepare('SELECT year, end_year FROM date WHERE id = ?');
 
-      expect((years.get(name.period_date_id) as { year: number }).year).toBe(1900);
-      expect((years.get(fact.date_id) as { year: number }).year).toBe(1901);
-      expect((years.get(fact.end_date_id) as { year: number }).year).toBe(1902);
-      expect((years.get(fact.sort_date_id) as { year: number }).year).toBe(1903);
-      expect(dateCount(fixture)).toBe(4);
+      expect((dates.get(name.period_date_id) as { year: number }).year).toBe(1900);
+      expect(dates.get(fact.date_id)).toEqual({ year: 1901, end_year: 1902 });
+      expect((dates.get(fact.sort_date_id) as { year: number }).year).toBe(1903);
+      expect(dateCount(fixture)).toBe(3);
       expectNoOrphanDates(fixture);
     } finally {
       cleanupRepo(fixture);
@@ -114,21 +109,24 @@ describe('date ownership', () => {
   it('replaces and clears date slots of an owner', () => {
     const fixture = makeRepo();
     try {
-      const fact = { id: 'F1', personId: 'P1', tag: 'BIRT', date: exact(1901), endDate: exact(1902) };
+      const fact = {
+        id: 'F1',
+        personId: 'P1',
+        tag: 'BIRT',
+        date: { quality: 'range' as const, component: { year: 1901 }, end: { year: 1902 } },
+      };
       fixture.repo.insertPerson({ id: 'P1', names: [], sex: 'M', facts: [fact] });
-      expect(dateCount(fixture)).toBe(2);
+      expect(dateCount(fixture)).toBe(1);
 
-      fixture.repo.updateFact({ ...fact, endDate: undefined });
-      const cleared = fixture.store.db.prepare('SELECT date_id, end_date_id FROM fact WHERE id = ?').get('F1') as {
+      fixture.repo.updateFact({ ...fact, date: exact(1901) });
+      const cleared = fixture.store.db.prepare('SELECT date_id FROM fact WHERE id = ?').get('F1') as {
         date_id: string | null;
-        end_date_id: string | null;
       };
       expect(cleared.date_id).not.toBeNull();
-      expect(cleared.end_date_id).toBeNull();
       expect(dateCount(fixture)).toBe(1);
       expectNoOrphanDates(fixture);
 
-      fixture.repo.updateFact({ ...fact, date: undefined, endDate: undefined });
+      fixture.repo.updateFact({ id: 'F1', personId: 'P1', tag: 'BIRT' });
       expect(dateCount(fixture)).toBe(0);
       expectNoOrphanDates(fixture);
     } finally {
@@ -190,8 +188,7 @@ describe('date ownership', () => {
         id: 'AS1',
         personId: 'P1',
         otherPersonId: 'P2',
-        periodStart: exact(1907),
-        periodEnd: exact(1908),
+        period: { quality: 'range', component: { year: 1907 }, end: { year: 1908 } },
       });
       fixture.repo.insertMedia({ id: 'M1', date: exact(1909) });
       fixture.repo.insertSource({
@@ -214,7 +211,7 @@ describe('date ownership', () => {
         targetId: 'P1',
         date: exact(1913),
       });
-      expect(dateCount(fixture)).toBe(14);
+      expect(dateCount(fixture)).toBe(13);
       expectNoOrphanDates(fixture);
 
       fixture.repo.deleteTask('T1');
@@ -325,24 +322,30 @@ describe('date ownership', () => {
         id: 'AS1',
         personId: 'P1',
         otherPersonId: 'P2',
-        periodStart: exact(1907),
-        periodEnd: exact(1908),
+        period: exact(1907),
       });
-      expect(dateCount(fixture)).toBe(8);
+      expect(dateCount(fixture)).toBe(7);
 
-      fixture.repo.updateTask({ ...fixture.repo.getTask('T1')!, scheduledDate: undefined });
-      fixture.repo.updateMedia({ ...fixture.repo.getMedia('M1')!, date: undefined });
+      const task = fixture.repo.getTask('T1')!;
+      delete task.scheduledDate;
+      fixture.repo.updateTask(task);
+      const media = fixture.repo.getMedia('M1')!;
+      delete media.date;
+      fixture.repo.updateMedia(media);
       fixture.repo.updateSource({
         ...fixture.repo.getSource('S1')!,
-        dataEvents: [{ id: 'E1', tag: 'EVEN', date: undefined }],
+        dataEvents: [{ id: 'E1', tag: 'EVEN' }],
       });
-      fixture.repo.updateCitation({ ...fixture.repo.getCitation('C1')!, date: undefined });
-      fixture.repo.updateTagLink({ ...fixture.repo.getTagLink('TL1')!, date: undefined });
-      fixture.repo.updateAssociation({
-        ...fixture.repo.listAssociations().find((entry) => entry.id === 'AS1')!,
-        periodEnd: undefined,
-      });
-      expect(dateCount(fixture)).toBe(2);
+      const citation = fixture.repo.getCitation('C1')!;
+      delete citation.date;
+      fixture.repo.updateCitation(citation);
+      const tagLink = fixture.repo.getTagLink('TL1')!;
+      delete tagLink.date;
+      fixture.repo.updateTagLink(tagLink);
+      const association = fixture.repo.listAssociations().find((entry) => entry.id === 'AS1')!;
+      delete association.period;
+      fixture.repo.updateAssociation(association);
+      expect(dateCount(fixture)).toBe(1);
       expectNoOrphanDates(fixture);
     } finally {
       cleanupRepo(fixture);
