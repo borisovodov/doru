@@ -49,7 +49,11 @@ export function addressDraftMatches(draft: AddressDraft, address: AddressRecord)
   const next = addressDraftToRecord(draft);
   return (
     next.lines.length === address.lines.length &&
-    next.lines.every((line, index) => line.value === address.lines[index]?.value) &&
+    next.lines.every((line, index) => {
+      const stored = address.lines[index];
+      // IDs make reordering identical-text lines visible as a change.
+      return stored !== undefined && line.id === stored.id && line.value === stored.value;
+    }) &&
     (next.city ?? '') === (address.city ?? '') &&
     (next.state ?? '') === (address.state ?? '') &&
     (next.postalCode ?? '') === (address.postalCode ?? '') &&

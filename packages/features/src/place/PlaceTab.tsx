@@ -230,7 +230,11 @@ function PlaceTabBody({
     enabled: !isNew,
     isDirty: () => {
       const persisted = lastSaved ?? record;
-      return persisted !== undefined && !placeDraftMatches(draft, persisted);
+      if (persisted === undefined) {
+        return false;
+      }
+      const normalized = placeToDraft(placeDraftToRecord(draft, persisted));
+      return !placeDraftMatches(normalized, persisted);
     },
     save,
   });
@@ -419,7 +423,7 @@ function PlaceTabBody({
             data-autosave-skip="true"
             onClick={() => {
               autoSave.cancel();
-              void remove();
+              void remove().catch(() => autoSave.resume());
             }}
           >
             {nls.t('features.tree.fact.delete')}

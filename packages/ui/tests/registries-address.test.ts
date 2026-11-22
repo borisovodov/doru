@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   addressDraftEmpty,
+  addressDraftMatches,
   addressDraftToRecord,
   addressLabel,
   addressToDraft,
@@ -53,6 +54,20 @@ describe('address draft helpers', () => {
     ]);
     expect(record.city).toBe('Tula');
     expect(record.state).toBeUndefined();
+  });
+
+  it('detects reordered lines with identical text', () => {
+    const stored = {
+      id: 'A1',
+      lines: [
+        { id: 'L1', value: 'Same' },
+        { id: 'L2', value: 'Same' },
+      ],
+    };
+    const reordered = addressToDraft(stored);
+    reordered.lines = [reordered.lines[1]!, reordered.lines[0]!];
+    expect(addressDraftMatches(reordered, stored)).toBe(false);
+    expect(addressDraftMatches(addressToDraft(stored), stored)).toBe(true);
   });
 
   it('detects emptiness', () => {

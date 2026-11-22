@@ -151,11 +151,7 @@ function RepositoryTabBody({
   const save = async () => {
     const next: RepositoryRecord = { id: base.id, xref: base.xref, name: name.trim() };
     if (linkedAddressId === undefined) {
-      try {
-        next.addressId = await saveAddress();
-      } catch {
-        return;
-      }
+      next.addressId = await saveAddress();
     } else {
       next.addressId = linkedAddressId;
     }
@@ -209,7 +205,7 @@ function RepositoryTabBody({
               size="sm"
               data-autosave-skip="true"
               disabled={name.trim() === ''}
-              onClick={() => void save()}
+              onClick={() => void save().catch(() => undefined)}
             >
               {nls.t('features.tree.create')}
             </Button>
@@ -420,7 +416,7 @@ function RepositoryTabBody({
             data-autosave-skip="true"
             onClick={() => {
               autoSave.cancel();
-              void remove();
+              void remove().catch(() => autoSave.resume());
             }}
           >
             {nls.t('features.tree.fact.delete')}

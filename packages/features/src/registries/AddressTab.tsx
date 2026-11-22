@@ -98,12 +98,7 @@ function AddressTabBody({
   const usageCount = usage.facts + usage.repositories + usage.submitters;
 
   const save = async () => {
-    let id: string | undefined;
-    try {
-      id = await saveAddress();
-    } catch {
-      return;
-    }
+    const id = await saveAddress();
     if (id === undefined) {
       return;
     }
@@ -139,7 +134,7 @@ function AddressTabBody({
               size="sm"
               data-autosave-skip="true"
               disabled={preview === ''}
-              onClick={() => void save()}
+              onClick={() => void save().catch(() => undefined)}
             >
               {nls.t('features.tree.create')}
             </Button>
@@ -188,7 +183,7 @@ function AddressTabBody({
             data-autosave-skip="true"
             onClick={() => {
               autoSave.cancel();
-              void remove();
+              void remove().catch(() => autoSave.resume());
             }}
           >
             {nls.t('features.tree.fact.delete')}

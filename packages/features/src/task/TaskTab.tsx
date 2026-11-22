@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { Button, DangerZone, EntityViewCard, InlineError, SectionCard, useAutoSaveOnBlur } from '@doru/ui';
+import { Button, DangerZone, EntityViewCard, SectionCard, useAutoSaveOnBlur } from '@doru/ui';
 import { MEDIA_VISIBLE } from '@doru/platform';
 import { AutoSaveError } from '../autoSaveFeedback';
 import { ListTodo } from 'lucide-react';
@@ -272,7 +272,6 @@ function TaskTabBody({
           targetTypes={VISIBLE_TARGET_TYPES}
           autoFocusText={isNew}
         />
-        {invalidTimestamp ? <InlineError>{nls.t('features.tasks.invalidTimestamp')}</InlineError> : null}
       </SectionCard>
       {targetId !== undefined && (
         <AttachmentsPanel
@@ -292,7 +291,7 @@ function TaskTabBody({
             data-autosave-skip="true"
             onClick={() => {
               autoSave.cancel();
-              void remove();
+              void remove().catch(() => autoSave.resume());
             }}
           >
             {nls.t('features.tree.fact.delete')}

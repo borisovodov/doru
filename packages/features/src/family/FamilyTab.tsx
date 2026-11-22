@@ -24,6 +24,26 @@ import {
 } from '@doru/ui/domain';
 import { nls } from '../nls';
 
+/** Keeps fields edited after submission, accepts refreshed values for the rest. */
+function mergeFamilyDraft(current: FamilyDraft, submitted: FamilyDraft, refreshed: FamilyDraft): FamilyDraft {
+  const field = <K extends keyof FamilyDraft>(key: K): FamilyDraft[K] =>
+    JSON.stringify(current[key]) === JSON.stringify(submitted[key]) ? refreshed[key] : current[key];
+  return {
+    id: current.id,
+    xref: field('xref'),
+    preferred: field('preferred'),
+    sameSex: field('sameSex'),
+    unionKind: field('unionKind'),
+    unionStatus: field('unionStatus'),
+    marriageBeginStatus: field('marriageBeginStatus'),
+    marriageEndStatus: field('marriageEndStatus'),
+    witnesses: field('witnesses'),
+    marriageStatuses: field('marriageStatuses'),
+    partnerLinks: field('partnerLinks'),
+    childLinks: field('childLinks'),
+  };
+}
+
 export function FamilyTab({
   entityId,
   families,
@@ -115,31 +135,57 @@ function FamilyTabBody({
     refresh: refreshAttachments,
   } = useAttachments('family', record.id, api, true);
   const recordRef = useRef(record);
+  const savedRef = useRef(record);
+  const submittedRef = useRef<FamilyDraft | undefined>(undefined);
 
   // Reset the draft only when it still equals the previous stored family —
-  // i.e. the user has no unsaved edits. Unrelated tree reloads (a fact
-  // added elsewhere) must not clobber in-progress edits.
+  // i.e. the user has no unsaved edits. A refresh that arrives while a write
+  // is pending is merged against the submitted draft so edits made after the
+  // submission survive.
   useEffect(() => {
     if (record === recordRef.current) {
       return;
     }
     const previous = recordRef.current;
     recordRef.current = record;
-    setDraft((current) => (familyDraftMatches(current, previous) ? familyToDraft(record) : current));
+    savedRef.current = record;
+    const submitted = submittedRef.current;
+    if (submitted !== undefined && familyDraftMatches(submitted, record)) {
+      submittedRef.current = undefined;
+    }
+    const base = submitted ?? familyToDraft(previous);
+    setDraft((current) => {
+      if (submitted === undefined && familyDraftMatches(current, previous)) {
+        return familyToDraft(record);
+      }
+      return mergeFamilyDraft(current, base, familyToDraft(record));
+    });
   }, [record]);
 
   const save = async () => {
-    await api.updateFamily(record, familyDraftToRecord(draft, record));
+    const base = savedRef.current;
+    const submission = draft;
+    const next = familyDraftToRecord(submission, base);
+    submittedRef.current = submission;
+    try {
+      await api.updateFamily(base, next);
+      savedRef.current = next;
+    } catch (error) {
+      if (submittedRef.current === submission) {
+        submittedRef.current = undefined;
+      }
+      throw error;
+    }
   };
 
   const remove = async () => {
-    await api.deleteFamily(record);
+    await api.deleteFamily(savedRef.current);
     onClose();
   };
 
   const autoSave = useAutoSaveOnBlur({
     enabled: true,
-    isDirty: () => !familyDraftMatches(draft, record),
+    isDirty: () => !familyDraftMatches(familyToDraft(familyDraftToRecord(draft, savedRef.current)), savedRef.current),
     save,
   });
 
@@ -319,7 +365,7 @@ function FamilyTabBody({
           data-autosave-skip="true"
           onClick={() => {
             autoSave.cancel();
-            void remove();
+            void remove().catch(() => autoSave.resume());
           }}
         >
           {nls.t('features.tree.fact.delete')}

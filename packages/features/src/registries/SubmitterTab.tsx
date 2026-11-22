@@ -169,11 +169,7 @@ function SubmitterTabBody({
       languages: languages.map((language) => language.trim()).filter((language) => language !== ''),
     };
     if (linkedAddressId === undefined) {
-      try {
-        next.addressId = await saveAddress();
-      } catch {
-        return;
-      }
+      next.addressId = await saveAddress();
     } else {
       next.addressId = linkedAddressId;
     }
@@ -250,7 +246,7 @@ function SubmitterTabBody({
               size="sm"
               data-autosave-skip="true"
               disabled={name.trim() === ''}
-              onClick={() => void save()}
+              onClick={() => void save().catch(() => undefined)}
             >
               {nls.t('features.tree.create')}
             </Button>
@@ -475,7 +471,7 @@ function SubmitterTabBody({
             data-autosave-skip="true"
             onClick={() => {
               autoSave.cancel();
-              void remove();
+              void remove().catch(() => autoSave.resume());
             }}
           >
             {nls.t('features.tree.fact.delete')}

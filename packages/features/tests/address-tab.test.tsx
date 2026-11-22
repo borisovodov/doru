@@ -63,7 +63,7 @@ describe('AddressTab', () => {
     deleted.value = true;
     fireEvent.blur(street, { relatedTarget: document.body });
     await waitFor(() => expect(updateAddress).toHaveBeenCalledTimes(1));
-    expect(await screen.findByRole('alert')).toHaveTextContent(nls.t('features.tree.address.saveFailed'));
+    expect(await screen.findByText(nls.t('features.tree.address.saveFailed'))).toBeInTheDocument();
 
     fireEvent.blur(street, { relatedTarget: document.body });
     await waitFor(() => expect(addAddress).toHaveBeenCalledTimes(1));
@@ -96,6 +96,6 @@ describe('AddressTab', () => {
     });
     fireEvent.click(screen.getByRole('button', { name: nls.t('features.tree.create') }));
     await waitFor(() => expect(addAddress).toHaveBeenCalledTimes(1));
-    expect(await screen.findByRole('alert')).toHaveTextContent(nls.t('features.tree.address.saveFailed'));
+    expect(await screen.findByText(nls.t('features.tree.address.saveFailed'))).toBeInTheDocument();
   });
 });

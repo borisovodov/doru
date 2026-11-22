@@ -238,7 +238,9 @@ function PersonTabBody({
               data-autosave-skip="true"
               onClick={() => {
                 autoSave.cancel();
-                void onDeletePerson(record).then(() => onClose());
+                void onDeletePerson(record)
+                  .then(() => onClose())
+                  .catch(() => autoSave.resume());
               }}
             >
               {nls.t('features.tree.fact.delete')}

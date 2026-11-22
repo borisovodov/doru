@@ -10,6 +10,7 @@ import type {
   TitleRecord,
   TaskRecord,
 } from '@doru/core';
+import { flushAutoSaves, hasAutoSaves } from '@doru/ui';
 import type { MediaWithPath } from '@doru/ui/domain';
 import type { TabInfo } from '@doru/workbench';
 import { tabDescriptors, tabLabel } from '../tabs/registry';
@@ -54,7 +55,16 @@ export function useTabs(
   }, []);
 
   const closeTab = useCallback((id: string) => {
-    setState((current) => closeTabState(current, id));
+    if (!hasAutoSaves()) {
+      setState((current) => closeTabState(current, id));
+      return;
+    }
+    // Keep a tab with a failed close-time save open; its editor shows Retry.
+    void flushAutoSaves().then((saved) => {
+      if (saved) {
+        setState((current) => closeTabState(current, id));
+      }
+    });
   }, []);
 
   const replaceTab = useCallback((oldId: string, newId: string) => {

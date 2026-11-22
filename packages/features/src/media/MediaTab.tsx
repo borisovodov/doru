@@ -406,7 +406,7 @@ function MediaTabBody({
         pendingSavesRef.current -= 1;
       });
     saveChainRef.current = task.catch(() => undefined);
-    return saveChainRef.current;
+    return task;
   };
 
   const autoSave = useAutoSaveOnBlur({
@@ -420,8 +420,13 @@ function MediaTabBody({
       return;
     }
     autoSave.cancel();
-    await api.deleteMedia(record);
-    onClose();
+    try {
+      await api.deleteMedia(record);
+      onClose();
+    } catch (error) {
+      autoSave.resume();
+      throw error;
+    }
   };
 
   const addFiles = async () => {

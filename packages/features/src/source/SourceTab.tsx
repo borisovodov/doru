@@ -313,7 +313,13 @@ function SourceTabBody({
     enabled: !isNew,
     isDirty: () => {
       const persisted = lastSaved ?? record;
-      return persisted !== undefined && !sourceDraftMatches(draft, persisted);
+      if (persisted === undefined) {
+        return false;
+      }
+      // Compare stored values, not raw input: trailing spaces must not trigger
+      // an autosave when the saved record would be unchanged.
+      const normalized = sourceToDraft(sourceDraftToRecord(draft, persisted));
+      return !sourceDraftMatches(normalized, persisted);
     },
     save,
   });
@@ -491,7 +497,7 @@ function SourceTabBody({
             data-autosave-skip="true"
             onClick={() => {
               autoSave.cancel();
-              void remove();
+              void remove().catch(() => autoSave.resume());
             }}
           >
             {nls.t('features.tree.fact.delete')}
