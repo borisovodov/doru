@@ -146,6 +146,11 @@ export function splitDateBounds(date?: DateValue): { start?: DateValue; end?: Da
   if (date.quality !== 'range') {
     return { start: date };
   }
+  // The time belongs to the endpoint that supplies the sortable year: the
+  // start when it has one, otherwise the end. A yearless start must not
+  // steal the end's time.
+  const startCarriesTime =
+    date.component !== undefined && (date.component.year !== undefined || date.end?.year === undefined);
   const start =
     date.component !== undefined
       ? {
@@ -154,7 +159,7 @@ export function splitDateBounds(date?: DateValue): { start?: DateValue; end?: Da
           quality: date.end === undefined ? ('range' as const) : ('exact' as const),
           component: date.component,
           ...(date.text !== undefined ? { text: date.text } : {}),
-          ...(date.time !== undefined ? { time: date.time } : {}),
+          ...(startCarriesTime && date.time !== undefined ? { time: date.time } : {}),
         }
       : undefined;
   const end =
@@ -163,7 +168,7 @@ export function splitDateBounds(date?: DateValue): { start?: DateValue; end?: Da
           quality: 'exact' as const,
           component: date.end,
           ...(start === undefined && date.text !== undefined ? { text: date.text } : {}),
-          ...(start === undefined && date.time !== undefined ? { time: date.time } : {}),
+          ...(!startCarriesTime && date.time !== undefined ? { time: date.time } : {}),
         }
       : undefined;
   if (start === undefined && end === undefined && date.text !== undefined) {

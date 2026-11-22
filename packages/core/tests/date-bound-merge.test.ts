@@ -53,6 +53,36 @@ describe('mergeDateBounds / splitDateBounds', () => {
     });
   });
 
+  it('keeps the selected end time on the end when splitting', () => {
+    const merged = mergeDateBounds(
+      { quality: 'exact', component: { month: 5, day: 2 }, time: { hour: 18, minute: 0 } },
+      { quality: 'exact', component: { year: 1900, month: 6, day: 1 }, time: { hour: 9, minute: 0 } },
+    );
+    expect(merged?.time).toEqual({ hour: 9, minute: 0 });
+    expect(splitDateBounds(merged)).toEqual({
+      start: { quality: 'exact', component: { month: 5, day: 2 } },
+      end: {
+        quality: 'exact',
+        component: { year: 1900, month: 6, day: 1 },
+        time: { hour: 9, minute: 0 },
+      },
+    });
+  });
+
+  it('keeps the time on a dated start when splitting', () => {
+    expect(
+      splitDateBounds({
+        quality: 'range',
+        component: { year: 1900 },
+        end: { year: 1910 },
+        time: { hour: 12, minute: 30 },
+      }),
+    ).toEqual({
+      start: { quality: 'exact', component: { year: 1900 }, time: { hour: 12, minute: 30 } },
+      end: { quality: 'exact', component: { year: 1910 } },
+    });
+  });
+
   it('keeps a start-only range open-ended on split', () => {
     expect(
       splitDateBounds({
