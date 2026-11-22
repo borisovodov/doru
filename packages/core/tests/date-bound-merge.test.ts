@@ -29,6 +29,20 @@ describe('mergeDateBounds / splitDateBounds', () => {
     expect(mergeDateBounds(before, { quality: 'unknown', text: 'before the war' })).toEqual(before);
   });
 
+  it('keeps the time of the only dated endpoint', () => {
+    expect(
+      mergeDateBounds(
+        { quality: 'unknown', text: 'start phrase' },
+        { quality: 'exact', component: { year: 1930 }, time: { hour: 12, minute: 30 } },
+      ),
+    ).toEqual({
+      quality: 'range',
+      end: { year: 1930 },
+      text: 'start phrase',
+      time: { hour: 12, minute: 30 },
+    });
+  });
+
   it('splits a range back into two exact bounds', () => {
     expect(
       splitDateBounds({

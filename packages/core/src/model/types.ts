@@ -104,14 +104,22 @@ export function mergeDateBounds(start?: DateValue, end?: DateValue): DateValue |
       // (BEF stays BEF instead of becoming an open-ended FROM range).
       return start;
     }
+    return {
+      quality: 'range',
+      ...(start.component !== undefined ? { component: start.component } : {}),
+      end: start.end,
+      ...(start.text !== undefined ? { text: start.text } : end.text !== undefined ? { text: end.text } : {}),
+      ...(start.time !== undefined ? { time: start.time } : {}),
+    };
   }
-  const endComponent = end.component ?? end.end ?? (start.quality === 'range' ? start.end : undefined);
+  // The time belongs to the value that supplied the end component.
+  const time = start.component !== undefined ? start.time : end.time;
   return {
     quality: 'range',
     ...(start.component !== undefined ? { component: start.component } : {}),
-    end: endComponent,
+    end: end.component ?? end.end,
     ...(start.text !== undefined ? { text: start.text } : end.text !== undefined ? { text: end.text } : {}),
-    ...(start.time !== undefined ? { time: start.time } : {}),
+    ...(time !== undefined ? { time } : {}),
   };
 }
 

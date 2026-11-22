@@ -754,13 +754,19 @@ function buildGedcomTodoRecord(task: TaskRecord, repo: TreeRepository, xrefs: Xr
   };
 }
 
+/** The task parser reads four-digit UTC years only; expanded years would not re-import. */
+function isExportableTaskDate(date: Date): boolean {
+  const year = date.getUTCFullYear();
+  return !Number.isNaN(date.getTime()) && year >= 0 && year <= 9999;
+}
+
 /** The vendor text slots carry a zone-qualified ISO timestamp. */
 function formatTaskTimestamp(value: number | undefined): string | undefined {
   if (value === undefined || !Number.isFinite(value)) {
     return undefined;
   }
   const date = new Date(value);
-  return Number.isNaN(date.getTime()) ? undefined : date.toISOString();
+  return isExportableTaskDate(date) ? date.toISOString() : undefined;
 }
 
 function taskTimestampToDateValue(value: number | undefined): DateValue | undefined {
@@ -768,7 +774,7 @@ function taskTimestampToDateValue(value: number | undefined): DateValue | undefi
     return undefined;
   }
   const date = new Date(value);
-  if (Number.isNaN(date.getTime())) {
+  if (!isExportableTaskDate(date)) {
     return undefined;
   }
   return {

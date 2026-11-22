@@ -163,6 +163,10 @@ describe('taskDraft', () => {
 
   it('treats every value outside the Date range as absent', () => {
     expect(timestampToInput(8_640_000_000_000_001)).toBe('');
+    const expandedYear = new Date(0);
+    expandedYear.setFullYear(10_000, 0, 1);
+    expandedYear.setHours(0, 0, 0, 0);
+    expect(timestampToInput(expandedYear.getTime())).toBe('');
   });
 
   it('detaches a task when the person is cleared', () => {

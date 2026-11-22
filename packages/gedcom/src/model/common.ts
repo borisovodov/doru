@@ -335,6 +335,11 @@ export interface CreationDate extends GedcomStructureBase {
 export interface DateStructure extends GedcomStructureBase {
   /** The DATE payload, {1:1} DateValue; absent when the payload is the empty string. */
   value?: DateValue;
+  /**
+   * GEDCOM 5.5.1 INT: the date was interpreted from the surrounding evidence,
+   * not recorded as a plain exact date. The phrase carries the interpretation.
+   */
+  interpreted?: boolean;
   /** TIME {0:1}, g7:TIME — asserts the event happened at a specific time on a single day. */
   time?: TimeValue;
   /** PHRASE {0:1}, g7:PHRASE — textual information that cannot be expressed in the payload. */

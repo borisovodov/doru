@@ -1514,11 +1514,20 @@ function parseIsoTaskDate(text: string): number | undefined {
   ) {
     return undefined;
   }
-  return timestamp;
+  return isExportableTaskInstant(timestamp) ? timestamp : undefined;
 }
 
-function taskDateValueToTimestamp(date: DateValue | undefined): number | undefined {
-  if (date === undefined || date.quality !== 'exact') {
+/**
+ * `toISOString()` writes an expanded year (`+010000`) outside 0000-9999,
+ * which the anchored task-date parser cannot read back.
+ */
+function isExportableTaskInstant(timestamp: number): boolean {
+  const year = new Date(timestamp).getUTCFullYear();
+  return year >= 0 && year <= 9999;
+}
+
+function taskDateValueToTimestamp(date: DateValue | undefined, interpreted = false): number | undefined {
+  if (interpreted || date === undefined || date.quality !== 'exact') {
     return undefined;
   }
   const component = date.component;
@@ -1590,7 +1599,8 @@ function localTimestamp(
   ) {
     return undefined;
   }
-  return value.getTime();
+  const timestamp = value.getTime();
+  return isExportableTaskInstant(timestamp) ? timestamp : undefined;
 }
 
 function importGedcomTodoStructure(
@@ -1611,9 +1621,12 @@ function importGedcomTodoStructure(
     priority: normalizeTaskPriority(structure.priority),
     status,
     createdAt: parseTaskTextDate(structure.createdDate),
-    scheduledAt: taskDateValueToTimestamp(mapDate(structure.date)),
-    reminderAt: taskDateValueToTimestamp(mapDate(structure.reminderDate)),
-    closedAt: status === 'closed' ? taskDateValueToTimestamp(mapDate(structure.closedDate)) : undefined,
+    scheduledAt: taskDateValueToTimestamp(mapDate(structure.date), structure.date?.interpreted),
+    reminderAt: taskDateValueToTimestamp(mapDate(structure.reminderDate), structure.reminderDate?.interpreted),
+    closedAt:
+      status === 'closed'
+        ? taskDateValueToTimestamp(mapDate(structure.closedDate), structure.closedDate?.interpreted)
+        : undefined,
   };
   ctx.repo.insertTask(mapped);
   importNotes(structure.notes, 'task', mapped.id, ctx);

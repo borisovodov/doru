@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { parse } from '@doru/gedcom';
+import { parse, type IndividualRecord } from '@doru/gedcom';
 import { importGedcomDataset } from '../src/import/gedcom';
 import { OpQueue } from '../src/ops/op';
 import { TreeService } from '../src/service/tree';
@@ -468,19 +468,35 @@ describe('importGedcomDataset', () => {
       '1 _TCDT 2026-01-02T03:04:05.500',
       '0 _TODO Ancient date',
       '1 _TCDT V05T00S000101010099',
-      '0 _TODO BCE date',
-      '1 DATE 1 JAN 1200 BCE',
+      '0 _TODO Expanded UTC date',
+      '1 _TCDT 9999-12-31T23:59:00-00:01',
+      '0 _TODO Early UTC date',
+      '1 _TCDT 0000-01-01T00:00:00+14:00',
       '0 @I1@ INDI',
       '1 NAME Task /Owner/',
       '1 _TODO UTC task',
       '2 DATE 1 JAN 1900',
       '3 TIME 12:00:00.500Z',
+      '1 _TODO BCE task',
+      '2 DATE 1 JAN 1200 BCE',
+      '1 _TODO Interpreted task',
+      '2 DATE INT 2 JAN 2026 (after the holidays)',
+      '1 _TODO Phrase task',
+      '2 DATE 3 JAN 2026 (from the register)',
       '0 TRLR',
     ].join('\n');
     const result = parse(new TextEncoder().encode(gedcom));
     if (!result.ok || result.value.kind !== 'dataset') {
       throw new Error('fixture failed to parse');
     }
+    const individual = result.value.dataset.records.find((entry): entry is IndividualRecord => entry.tag === 'INDI')!;
+    expect(individual.todos?.find((task) => task.payload === 'BCE task')?.date?.value).toMatchObject({
+      kind: 'date',
+      epoch: 'BCE',
+    });
+    expect(individual.todos?.find((task) => task.payload === 'Interpreted task')?.date?.interpreted).toBe(true);
+    expect(individual.todos?.find((task) => task.payload === 'Phrase task')?.date?.interpreted).toBeUndefined();
+
     const fixture = makeRepo();
     try {
       importGedcomDataset(result.value.dataset, fixture.repo);
@@ -493,9 +509,17 @@ describe('importGedcomDataset', () => {
       const offset = fixture.repo.listTasks().find((task) => task.text === 'Offset date')!;
       const fraction = fixture.repo.listTasks().find((task) => task.text === 'Fraction date')!;
       const ancient = fixture.repo.listTasks().find((task) => task.text === 'Ancient date')!;
-      const bce = fixture.repo.listTasks().find((task) => task.text === 'BCE date')!;
+      const bce = fixture.repo.listTasks().find((task) => task.text === 'BCE task')!;
+      const interpreted = fixture.repo.listTasks().find((task) => task.text === 'Interpreted task')!;
+      const phrase = fixture.repo.listTasks().find((task) => task.text === 'Phrase task')!;
+      const expanded = fixture.repo.listTasks().find((task) => task.text === 'Expanded UTC date')!;
+      const early = fixture.repo.listTasks().find((task) => task.text === 'Early UTC date')!;
       expect(invalid.createdAt).toBeUndefined();
       expect(bce.scheduledAt).toBeUndefined();
+      expect(interpreted.scheduledAt).toBeUndefined();
+      expect(phrase.scheduledAt).toBe(new Date(2026, 0, 3).getTime());
+      expect(expanded.createdAt).toBeUndefined();
+      expect(early.createdAt).toBeUndefined();
       expect(leap.createdAt).toBe(new Date(2024, 1, 29).getTime());
       expect(encoded.createdAt).toBe(new Date(2012, 1, 14).getTime());
       expect(secondEncoded.createdAt).toBe(new Date(2011, 7, 15).getTime());

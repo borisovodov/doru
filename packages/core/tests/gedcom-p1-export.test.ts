@@ -180,6 +180,9 @@ describe('P1 GEDCOM export gaps', () => {
     try {
       const { repo } = fixture;
       const outside = 8_640_000_000_000_001;
+      const expandedYear = new Date(0);
+      expandedYear.setUTCFullYear(10_000, 0, 1);
+      expandedYear.setUTCHours(0, 0, 0, 0);
       repo.insertPerson({ id: 'P1', names: [], sex: 'U', facts: [] });
       repo.insertTask({ id: 'T1', text: 'Free task', createdAt: outside, reminderAt: outside });
       repo.insertTask({
@@ -187,6 +190,7 @@ describe('P1 GEDCOM export gaps', () => {
         text: 'Attached task',
         targetType: 'person',
         targetId: 'P1',
+        createdAt: expandedYear.getTime(),
         scheduledAt: outside,
         closedAt: outside,
       });
@@ -199,6 +203,7 @@ describe('P1 GEDCOM export gaps', () => {
         }
         expect(serialized.value).not.toContain('_TCDT');
         expect(serialized.value).not.toContain('_TSDT');
+        expect(serialized.value).not.toContain('+010000');
       }
     } finally {
       cleanupRepo(fixture);

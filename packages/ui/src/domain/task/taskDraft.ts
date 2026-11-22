@@ -71,8 +71,12 @@ export function timestampToInput(value: number | undefined): string {
   if (Number.isNaN(date.getTime())) {
     return '';
   }
+  const year = date.getFullYear();
+  if (year < 0 || year > 9999) {
+    return '';
+  }
   const pad = (part: number, size = 2): string => String(part).padStart(size, '0');
-  return `${pad(date.getFullYear(), 4)}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+  return `${pad(year, 4)}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
 }
 
 /** Parses a `datetime-local` value as a local instant; invalid values mean "not set". */
