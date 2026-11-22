@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import { PanelRight } from 'lucide-react';
-import { CommandService, KeybindingService } from '@doru/platform';
+import { CommandService, KeybindingService, SEARCH_VISIBLE } from '@doru/platform';
 import { IconButton } from '@doru/ui';
 import { nls } from './nls';
 import { ActivityBar, type ActivityViewId } from './components/ActivityBar';
@@ -74,16 +74,20 @@ export function Workbench({
     const keybindings = new KeybindingService();
     keybindings.register('meta+w', 'workbench.closeActiveTab');
     keybindings.register('ctrl+w', 'workbench.closeActiveTab');
-    keybindings.register('meta+shift+f', 'workbench.showSearch');
-    keybindings.register('ctrl+shift+f', 'workbench.showSearch');
+    if (SEARCH_VISIBLE) {
+      keybindings.register('meta+shift+f', 'workbench.showSearch');
+      keybindings.register('ctrl+shift+f', 'workbench.showSearch');
+    }
     for (const binding of externalKeybindings) {
       keybindings.register(binding.key, binding.command, binding.args);
     }
-    const removeShowSearch = commands.register({
-      id: 'workbench.showSearch',
-      title: nls.t('workbench.activityBar.search'),
-      handler: () => onSelectView('search'),
-    });
+    const removeShowSearch = SEARCH_VISIBLE
+      ? commands.register({
+          id: 'workbench.showSearch',
+          title: nls.t('workbench.activityBar.search'),
+          handler: () => onSelectView('search'),
+        })
+      : undefined;
     const removeToggleAgentChat = commands.register({
       id: 'workbench.toggleAgentChat',
       title: nls.t('workbench.toggleAgentChat'),
@@ -120,7 +124,7 @@ export function Workbench({
     };
     window.addEventListener('keydown', onKeydown);
     return () => {
-      removeShowSearch.dispose();
+      removeShowSearch?.dispose();
       removeToggleAgentChat.dispose();
       removeCloseActiveTab.dispose();
       window.removeEventListener('keydown', onKeydown);
@@ -177,7 +181,7 @@ export function Workbench({
         <ActivityBar
           activeView={activeView}
           onSelectView={onSelectView}
-          shortcuts={{ search: isMac ? '⌘⇧F' : 'Ctrl+Shift+F' }}
+          shortcuts={SEARCH_VISIBLE ? { search: isMac ? '⌘⇧F' : 'Ctrl+Shift+F' } : undefined}
           onOpenSettings={onOpenSettings ?? (() => {})}
         />
         {activeView !== 'tree' && <SideBar label={nls.t(sideBarLabelKey(activeView))}>{sidebar}</SideBar>}

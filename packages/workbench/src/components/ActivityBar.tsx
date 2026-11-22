@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type FocusEvent, type MouseEvent, type ReactNode } from 'react';
 import { Blend, BookOpenText, Image, ListTodo, Map, Search, Settings, TreeDeciduous, User } from 'lucide-react';
+import { SEARCH_VISIBLE } from '@doru/platform';
 import { IconButton, Kbd } from '@doru/ui';
 import { nls } from '../nls';
 
@@ -65,11 +66,15 @@ export function ActivityBar({ activeView, onSelectView, onOpenSettings, shortcut
       title: nls.t('workbench.activityBar.tree'),
       icon: <TreeDeciduous size={ICON_SIZE} aria-hidden="true" />,
     },
-    {
-      id: 'search',
-      title: nls.t('workbench.activityBar.search'),
-      icon: <Search size={ICON_SIZE} aria-hidden="true" />,
-    },
+    ...(SEARCH_VISIBLE
+      ? [
+          {
+            id: 'search' as const,
+            title: nls.t('workbench.activityBar.search'),
+            icon: <Search size={ICON_SIZE} aria-hidden="true" />,
+          },
+        ]
+      : []),
     {
       id: 'people',
       title: nls.t('workbench.activityBar.people'),

@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { GEDCOM_INTEROP_VISIBLE } from '@doru/platform';
+import { GEDCOM_INTEROP_VISIBLE, SEARCH_VISIBLE } from '@doru/platform';
 import { Kbd } from '@doru/ui';
 import { nls } from '../nls';
 import './EmptyEditorPage.css';
@@ -51,7 +51,7 @@ export function EmptyEditorPage({ platform }: EmptyEditorPageProps) {
       { label: nls.t('workbench.createProject'), keys: [modKey, 'N'] },
       { label: nls.t('workbench.newWindow'), keys: [modKey, shiftKey, 'N'] },
       { label: nls.t('workbench.openProject'), keys: [modKey, 'O'] },
-      { label: nls.t('workbench.activityBar.search'), keys: [modKey, shiftKey, 'F'] },
+      ...(SEARCH_VISIBLE ? [{ label: nls.t('workbench.activityBar.search'), keys: [modKey, shiftKey, 'F'] }] : []),
       { label: nls.t('workbench.saveProject'), keys: [modKey, 'S'] },
       ...(GEDCOM_INTEROP_VISIBLE ? [{ label: nls.t('workbench.exportGedcom'), keys: [modKey, shiftKey, 'E'] }] : []),
       { label: nls.t('workbench.undo'), keys: [modKey, 'Z'] },
