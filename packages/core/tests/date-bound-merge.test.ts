@@ -7,6 +7,14 @@ import { cleanupRepo, makeRepo } from './helpers';
 
 const exact = (year: number): DateValue => ({ quality: 'exact', component: { year } });
 
+function parseDataset(text: string) {
+  const result = parse(new TextEncoder().encode(text));
+  if (!result.ok || result.value.kind !== 'dataset') {
+    throw new Error('fixture failed to parse');
+  }
+  return result.value.dataset;
+}
+
 describe('mergeDateBounds / splitDateBounds', () => {
   it('folds two bounds into one range', () => {
     expect(mergeDateBounds(exact(1900), exact(1910))).toEqual({
@@ -190,6 +198,18 @@ describe('GEDCOM date-slot folding', () => {
       }
       expect(serialized.value).toContain('3 _START FROM 1900');
       expect(serialized.value).not.toContain('3 _END');
+
+      const target = makeRepo();
+      try {
+        importGedcomDataset(parseDataset(serialized.value), target.repo);
+        expect(target.repo.listAssociations()[0]?.period).toMatchObject({
+          quality: 'range',
+          component: { year: 1900 },
+        });
+        expect(target.repo.listAssociations()[0]?.period?.end).toBeUndefined();
+      } finally {
+        cleanupRepo(target);
+      }
     } finally {
       cleanupRepo(fixture);
     }
