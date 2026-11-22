@@ -390,11 +390,12 @@ export function parseDateStructure(node: RawNode, ctx: Ctx): DateStructure {
   if (raw === undefined) {
     out.value = { kind: 'unknown' };
   } else {
-    if (raw.trim().toUpperCase().startsWith('INT ')) {
-      out.interpreted = true;
-    }
     try {
-      applyDateValue551(out, parseDateValue(raw, node.position, tagResolver(ctx)), raw);
+      const parsed = parseDateValue(raw, node.position, tagResolver(ctx));
+      if (parsed.interpreted === true) {
+        out.interpreted = true;
+      }
+      applyDateValue551(out, parsed, raw);
     } catch (error) {
       const code = (error as { code?: string }).code;
       if (code !== undefined && code.startsWith('date.')) {

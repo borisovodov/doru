@@ -1729,13 +1729,15 @@ function buildDateValue(date: DateValue): GedcomDateValue | undefined {
       return component !== undefined ? { kind: 'bound', modifier: 'AFT', date: component } : undefined;
     case 'range': {
       const end = date.end !== undefined ? buildDateFields(date.end) : undefined;
-      if (component !== undefined && end !== undefined) {
+      if (component !== undefined && end !== undefined && component.year !== undefined && end.year !== undefined) {
         return { kind: 'range', start: component, end };
       }
-      if (component !== undefined) {
+      // A bound without a year has no GEDCOM spelling; keep the exportable
+      // side instead of dropping the whole range.
+      if (component !== undefined && component.year !== undefined) {
         return { kind: 'period', from: component };
       }
-      if (end !== undefined) {
+      if (end !== undefined && end.year !== undefined) {
         return { kind: 'period', to: end };
       }
       return { kind: 'unknown' };

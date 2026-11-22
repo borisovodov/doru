@@ -102,7 +102,7 @@ export function mergeDateBounds(start?: DateValue, end?: DateValue): DateValue |
     if (start.quality !== 'range' || start.end === undefined) {
       // A phrase-only secondary date adds no bound; keep the primary qualifier
       // (BEF stays BEF instead of becoming an open-ended FROM range).
-      return start;
+      return start.text === undefined && end.text !== undefined ? { ...start, text: end.text } : start;
     }
     return {
       quality: 'range',
@@ -112,13 +112,24 @@ export function mergeDateBounds(start?: DateValue, end?: DateValue): DateValue |
       ...(start.time !== undefined ? { time: start.time } : {}),
     };
   }
-  // The time belongs to the value that supplied the end component.
-  const time = start.component !== undefined ? start.time : end.time;
+  const endComponent = end.component ?? end.end;
+  // The time belongs to the value that supplies the sortable date: the start
+  // when it has a year, otherwise the end. A yearless start cannot position
+  // the range, so its time must not drag the end's date to another hour.
+  const time =
+    start.component?.year !== undefined
+      ? start.time
+      : endComponent?.year !== undefined
+        ? end.time
+        : (start.time ?? end.time);
+  // A phrase from the end bound cannot be attached to the range: the split
+  // would put it on the start bound. Keep it only when the start is a phrase.
+  const text = start.text ?? (start.component === undefined ? end.text : undefined);
   return {
     quality: 'range',
     ...(start.component !== undefined ? { component: start.component } : {}),
-    end: end.component ?? end.end,
-    ...(start.text !== undefined ? { text: start.text } : end.text !== undefined ? { text: end.text } : {}),
+    end: endComponent,
+    ...(text !== undefined ? { text } : {}),
     ...(time !== undefined ? { time } : {}),
   };
 }
@@ -138,7 +149,9 @@ export function splitDateBounds(date?: DateValue): { start?: DateValue; end?: Da
   const start =
     date.component !== undefined
       ? {
-          quality: 'exact' as const,
+          // A range without an end is open-ended: keep the FROM qualifier
+          // in the start slot so it survives a round trip.
+          quality: date.end === undefined ? ('range' as const) : ('exact' as const),
           component: date.component,
           ...(date.text !== undefined ? { text: date.text } : {}),
           ...(date.time !== undefined ? { time: date.time } : {}),

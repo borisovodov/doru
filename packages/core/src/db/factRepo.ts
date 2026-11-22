@@ -661,12 +661,18 @@ const HEBREW_LEAP_MONTHS = ['TSH', 'CSH', 'KSL', 'TVT', 'SHV', 'ADR', 'ADS', 'NS
  * shown and sorted. A phrase-only hint cannot position an event, so it falls
  * back to the display date.
  */
-function effectiveSortDate(fact: FactRecord): DateValue | undefined {
+interface EffectiveSortDate {
+  date: DateValue | undefined;
+  /** True when `date` is the SDATE hint rather than the display date. */
+  hint: boolean;
+}
+
+function effectiveSortDate(fact: FactRecord): EffectiveSortDate {
   const sortDate = fact.sortDate;
-  if (sortDate === undefined || dateSortKey(sortDate) === undefined) {
-    return fact.date;
+  if (sortDate !== undefined && dateSortKey(sortDate, true) !== undefined && hasRecognisedCalendar(sortDate)) {
+    return { date: sortDate, hint: true };
   }
-  return hasRecognisedCalendar(sortDate) ? sortDate : fact.date;
+  return { date: fact.date, hint: false };
 }
 
 /** Extension calendars are opaque; their SDATE cannot position a fact. */
@@ -688,8 +694,10 @@ function hasRecognisedCalendar(date: DateValue): boolean {
 }
 
 function compareFactDates(left: FactRecord, right: FactRecord): number {
-  const leftKey = dateSortKey(effectiveSortDate(left));
-  const rightKey = dateSortKey(effectiveSortDate(right));
+  const leftDate = effectiveSortDate(left);
+  const rightDate = effectiveSortDate(right);
+  const leftKey = dateSortKey(leftDate.date, leftDate.hint);
+  const rightKey = dateSortKey(rightDate.date, rightDate.hint);
   if (leftKey === undefined) {
     return rightKey === undefined ? 0 : 1;
   }
@@ -712,7 +720,7 @@ function compareFactDates(left: FactRecord, right: FactRecord): number {
  * BEF sorts before its component and AFT after it. Ranges use their start,
  * or their end when the start is open.
  */
-function dateSortKey(date: DateValue | undefined): DateSortKey | undefined {
+function dateSortKey(date: DateValue | undefined, hint = false): DateSortKey | undefined {
   if (date === undefined) {
     return undefined;
   }
@@ -729,7 +737,10 @@ function dateSortKey(date: DateValue | undefined): DateSortKey | undefined {
   if (year === undefined) {
     return undefined;
   }
-  let month = monthPosition(component.calendar, component.year, component.month);
+  let month = monthPosition(component.calendar, component.year, component.month, hint);
+  if (month === undefined) {
+    return undefined;
+  }
   let day = component.day ?? 1;
   const bound = date.quality === 'before' ? 0 : date.quality === 'after' ? 2 : 1;
   if (date.quality === 'after' && component.month === undefined) {
@@ -745,7 +756,12 @@ function dateSortKey(date: DateValue | undefined): DateSortKey | undefined {
 }
 
 /** Month codes are calendar-specific; unknown extension calendars stay opaque. */
-function monthPosition(calendar: string | undefined, year: number, month: number | string | undefined): number {
+function monthPosition(
+  calendar: string | undefined,
+  year: number,
+  month: number | string | undefined,
+  hint: boolean,
+): number | undefined {
   if (typeof month === 'number') {
     return month;
   }
@@ -755,17 +771,19 @@ function monthPosition(calendar: string | undefined, year: number, month: number
   const code = month.toUpperCase();
   if (calendar === 'french_republican') {
     const index = FRENCH_MONTHS.indexOf(code);
-    return index === -1 ? 1 : index + 1;
+    return index === -1 ? (hint ? undefined : 1) : index + 1;
   }
   if (calendar === 'hebrew') {
     const index = (hebrewIsLeap(year) ? HEBREW_LEAP_MONTHS : HEBREW_COMMON_MONTHS).indexOf(code);
-    return index === -1 ? 1 : index + 1;
+    return index === -1 ? (hint ? undefined : 1) : index + 1;
   }
   if (calendar !== undefined && calendar !== 'julian') {
-    return 1;
+    // Opaque calendars still order display dates by year; an SDATE hint
+    // with an unresolved month cannot position the fact.
+    return hint ? undefined : 1;
   }
   const index = GREGORIAN_MONTHS.indexOf(code);
-  return index === -1 ? 1 : index + 1;
+  return index === -1 ? (hint ? undefined : 1) : index + 1;
 }
 
 function hebrewIsLeap(year: number): boolean {

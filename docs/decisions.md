@@ -69,12 +69,15 @@ group, tree-tag and GenoPro record families listed in `import/gedcom.ts`.
 
 ## GEDCOM round-trip is not an application requirement
 
-`@doru/gedcom` models and serializes the GEDCOM wire format; faithful
-round-trips are a requirement for that package. Dóru's `.doru` schema is a
-separate domain model. Import maps the GEDCOM data the model represents, and
-export writes that model back; fields outside the model are dropped and
-export synthesizes a fresh header. A `.ged → .doru → .ged` cycle is therefore
-not required to be lossless.
+`@doru/gedcom` models and serializes the GEDCOM wire format. Same-version
+round-trips are required for the structures that package models, except for
+the drops documented in `packages/gedcom/README.md` — for example
+non-underscore top-level vendor extensions and generic extension records,
+which neither target grammar can spell. Cross-version round-trips are lossy
+by design. Dóru's `.doru` schema is a separate domain model. Import maps the
+GEDCOM data the model represents, and export writes that model back; fields
+outside the model are dropped and export synthesizes a fresh header. A
+`.ged → .doru → .ged` cycle is therefore not required to be lossless.
 
 Schema and UI decisions should stand on the app's own domain needs. Do not
 justify a decision by GEDCOM round-trip fidelity alone: wire-format fidelity

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { DateValue, FactRecord } from '../src/model/types';
+import { mergeDateBounds, type DateValue, type FactRecord } from '../src/model/types';
 import { cleanupRepo, makeRepo } from './helpers';
 
 const day = (year: number, month: number, dayOfMonth: number, hour = 0, minute = 0): DateValue => ({
@@ -236,6 +236,48 @@ describe('fact date ordering', () => {
       });
 
       expect(fixture.repo.listFactsForPerson('P1').map((entry) => entry.id)).toEqual(['EARLIER', 'OPAQUE', 'LATER']);
+    } finally {
+      cleanupRepo(fixture);
+    }
+  });
+
+  it('falls back to the display date when a hint month cannot be resolved', () => {
+    const fixture = makeRepo();
+    try {
+      fixture.repo.insertPerson({
+        id: 'P1',
+        names: [],
+        sex: 'U',
+        facts: [
+          fact('ALIAS_HINT', {
+            date: day(1900, 3, 1),
+            sortDate: { quality: 'exact', component: { year: 1900, month: '_MAR', day: 1 } },
+          }),
+          fact('FEBRUARY', { sortDate: day(1900, 2, 1) }),
+        ],
+      });
+
+      expect(fixture.repo.listFactsForPerson('P1').map((entry) => entry.id)).toEqual(['FEBRUARY', 'ALIAS_HINT']);
+    } finally {
+      cleanupRepo(fixture);
+    }
+  });
+
+  it('uses the end time when a range sorts by its end', () => {
+    const fixture = makeRepo();
+    try {
+      const range = mergeDateBounds(
+        { quality: 'exact', component: { month: 5 }, time: { hour: 18, minute: 0 } },
+        { quality: 'exact', component: { year: 1900, month: 6, day: 1 }, time: { hour: 9, minute: 0 } },
+      );
+      fixture.repo.insertPerson({
+        id: 'P1',
+        names: [],
+        sex: 'U',
+        facts: [fact('RANGE', { sortDate: range }), fact('NOON', { sortDate: day(1900, 6, 1, 12, 0) })],
+      });
+
+      expect(fixture.repo.listFactsForPerson('P1').map((entry) => entry.id)).toEqual(['RANGE', 'NOON']);
     } finally {
       cleanupRepo(fixture);
     }

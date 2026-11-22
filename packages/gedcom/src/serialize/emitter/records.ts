@@ -1098,6 +1098,18 @@ export function emitDuplicateCandidateRecord(
   emitExtensions(w, version, 1, rec);
 }
 
+/**
+ * A task instant in a clock slot. GEDCOM 5.5.1 has no zone form, so writing
+ * UTC clock values as local times would move the instant; the field is
+ * omitted instead. 7.0 writes the `Z` suffix and keeps the instant.
+ */
+function emitTaskInstant(w: Writer, version: Version, level: number, tag: string, date: DateStructure): void {
+  if (version === '5.5.1' && date.time?.utc === true) {
+    return;
+  }
+  emitDate(w, version, level, tag, date);
+}
+
 /** Emits the `_TODO` substructure under INDI/FAM (see TodoStructure). */
 export function emitTodoStructure(w: Writer, version: Version, level: number, rec: TodoStructure): void {
   w.line(level, '_TODO', rec.payload === undefined ? {} : { value: rec.payload });
@@ -1120,7 +1132,7 @@ export function emitTodoStructure(w: Writer, version: Version, level: number, re
     w.line(level + 1, 'TYPE', { value: rec.type });
   }
   if (rec.date !== undefined) {
-    emitDate(w, version, level + 1, 'DATE', rec.date);
+    emitTaskInstant(w, version, level + 1, 'DATE', rec.date);
   }
   if (rec.createdDate !== undefined) {
     // The structure form of the record's creation date (see
@@ -1140,11 +1152,11 @@ export function emitTodoStructure(w: Writer, version: Version, level: number, re
   }
   if (rec.closedDate !== undefined) {
     // GEDCOM-L E1: the completion date (see TodoStructure.closedDate).
-    emitDate(w, version, level + 1, '_CDATE', rec.closedDate);
+    emitTaskInstant(w, version, level + 1, '_CDATE', rec.closedDate);
   }
   if (rec.reminderDate !== undefined) {
     // GEDCOM-L E1: the reminder date (see TodoStructure.reminderDate).
-    emitDate(w, version, level + 1, '_RDATE', rec.reminderDate);
+    emitTaskInstant(w, version, level + 1, '_RDATE', rec.reminderDate);
   }
   if (rec.repository !== undefined) {
     // GEDCOM-L E1: a pointer to a repository record (see

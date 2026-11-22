@@ -704,7 +704,7 @@ export function parseDateExact70(text: string, position: SourcePosition): DateEx
 export function parseDateValue551(
   text: string,
   position: SourcePosition,
-): { value: DateValue; dualYear: boolean; phrase?: string } {
+): { value: DateValue; dualYear: boolean; phrase?: string; interpreted?: boolean } {
   const trimmed = normalizeDateText(text);
   if (trimmed === '') {
     return { value: { kind: 'unknown' }, dualYear: false };
@@ -719,7 +719,12 @@ export function parseDateValue551(
   const intMatch = /^INT (.*)\(([^()]*)\)$/.exec(trimmed);
   if (intMatch) {
     const inner = parseDate551Body(intMatch[1] as string, position);
-    return { value: inner.value, dualYear: inner.dualYear, phrase: (intMatch[2] as string).trim() };
+    return {
+      value: inner.value,
+      dualYear: inner.dualYear,
+      phrase: (intMatch[2] as string).trim(),
+      interpreted: true,
+    };
   }
 
   // A trailing parenthesized phrase after a plain date (the same
@@ -746,7 +751,7 @@ export function parseDateValue(
   text: string,
   position: SourcePosition,
   resolve?: TagResolver,
-): { value: DateValue; dualYear: boolean; phrase?: string } {
+): { value: DateValue; dualYear: boolean; phrase?: string; interpreted?: boolean } {
   const trimmed = normalizeDateText(text);
   if (trimmed === '') {
     return { value: { kind: 'unknown' }, dualYear: false };
@@ -759,7 +764,12 @@ export function parseDateValue(
   const intMatch = /^INT (.*)\(([^()]*)\)$/.exec(trimmed);
   if (intMatch) {
     const inner = parseDateBody(intMatch[1] as string, position, resolve, true);
-    return { value: inner.value, dualYear: inner.dualYear, phrase: (intMatch[2] as string).trim() };
+    return {
+      value: inner.value,
+      dualYear: inner.dualYear,
+      phrase: (intMatch[2] as string).trim(),
+      interpreted: true,
+    };
   }
   // A trailing parenthesized phrase after a plain date (`1 Jan 2026
   // (Ancestry source: Publisher date)`, the GEDCOM.NET test tree):

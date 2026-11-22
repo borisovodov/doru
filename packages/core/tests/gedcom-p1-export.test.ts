@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { parse, serializeGedcom551, serializeGedcom70, type GedcomDataset } from '@doru/gedcom';
+import { parse, serializeGedcom551, serializeGedcom70, type GedcomDataset, type IndividualRecord } from '@doru/gedcom';
 import { buildGedcomDataset } from '../src/export/gedcom';
 import { importGedcomDataset } from '../src/import/gedcom';
 import { cleanupRepo, makeRepo } from './helpers';
@@ -205,6 +205,60 @@ describe('P1 GEDCOM export gaps', () => {
         expect(serialized.value).not.toContain('_TSDT');
         expect(serialized.value).not.toContain('+010000');
       }
+    } finally {
+      cleanupRepo(fixture);
+    }
+  });
+
+  it('omits zoned task instants from GEDCOM 5.5.1 but keeps them in 7.0', () => {
+    const fixture = makeRepo();
+    try {
+      const { repo } = fixture;
+      const createdAt = Date.UTC(2026, 0, 1, 8, 0);
+      const scheduledAt = Date.UTC(2026, 0, 2, 9, 0);
+      const reminderAt = Date.UTC(2026, 1, 3, 10, 0);
+      const closedAt = Date.UTC(2026, 2, 4, 11, 0);
+      repo.insertPerson({ id: 'P1', names: [], sex: 'U', facts: [] });
+      repo.insertTask({
+        id: 'T1',
+        text: 'Attached task',
+        targetType: 'person',
+        targetId: 'P1',
+        status: 'closed',
+        createdAt,
+        scheduledAt,
+        reminderAt,
+        closedAt,
+      });
+
+      const dataset = buildGedcomDataset(repo);
+      const serialized70 = serializeGedcom70(dataset);
+      expect(serialized70.ok).toBe(true);
+      if (!serialized70.ok) {
+        return;
+      }
+      const individual70 = parseDataset(serialized70.value).records.find(
+        (record): record is IndividualRecord => record.tag === 'INDI',
+      );
+      expect(individual70?.todos?.[0]).toMatchObject({
+        date: { time: { utc: true } },
+        reminderDate: { time: { utc: true } },
+        closedDate: { time: { utc: true } },
+      });
+
+      const serialized551 = serializeGedcom551(dataset);
+      expect(serialized551.ok).toBe(true);
+      if (!serialized551.ok) {
+        return;
+      }
+      const individual551 = parseDataset(serialized551.value).records.find(
+        (record): record is IndividualRecord => record.tag === 'INDI',
+      );
+      const task = individual551?.todos?.[0];
+      expect(task?.createdDate).toBeDefined();
+      expect(task?.date).toBeUndefined();
+      expect(task?.reminderDate).toBeUndefined();
+      expect(task?.closedDate).toBeUndefined();
     } finally {
       cleanupRepo(fixture);
     }

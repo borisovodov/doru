@@ -480,7 +480,7 @@ describe('importGedcomDataset', () => {
       '1 _TODO BCE task',
       '2 DATE 1 JAN 1200 BCE',
       '1 _TODO Interpreted task',
-      '2 DATE INT 2 JAN 2026 (after the holidays)',
+      '2 DATE Friday, INT 2 JAN 2026 (after the holidays)',
       '1 _TODO Phrase task',
       '2 DATE 3 JAN 2026 (from the register)',
       '0 TRLR',
