@@ -1,5 +1,5 @@
 ---
-source-hash: cb76eaf45583
+source-hash: ecff58fa2a2c
 ---
 
 # 설정
@@ -20,26 +20,28 @@ source-hash: cb76eaf45583
 {
   "$schema": "https://doru.family/settings.json",
 
-  // AI 제공자——설정(톱니바퀴 아이콘)에서 또는 여기서 직접 설정합니다.
+  // AI providers — set from Settings (gear icon) or here directly.
   "ai": {
-    // 활성 제공자: ollama | lmstudio | custom | acp
-    // (클라우드 프리셋은 하나씩 돌아옵니다).
+    // The active provider: ollama | lmstudio | custom | acp
+    // (cloud presets return one by one).
     "provider": "ollama",
 
-    // 제공자 ID별 설정입니다. 활성 제공자의 항목만 사용되며,
-    // 나머지는 값을 유지했다가 다시 전환할 때 복원됩니다.
+    // Per-provider settings, keyed by provider id. Only the entry of the
+    // active provider is used; the others keep their values and are
+    // restored when you switch back.
     "providers": {
       "ollama": {
-        "baseUrl": "", // 제공자의 기본 엔드포인트를 선택적으로 재정의
+        "baseUrl": "", // optional override of the provider's default endpoint
         "model": ""
       }
-      // "acp"에만 해당: 실행할 에이전트 바이너리.
+      // For "acp" only: the agent binary to spawn. Add a comma after the
+      // "ollama" object above when you enable it.
       // "acp": { "command": "my-agent", "args": [] }
     }
   },
 
-  // 테마: 다크와 라이트 섹션이 있는 하나의 팔레트 파일.
-  // OS 외관이 어떤 팔레트를 적용할지 결정합니다.
+  // Theme: one palette file with a dark and a light section. The OS
+  // appearance decides which palette applies.
   "theme": "doru"
 }
 ```

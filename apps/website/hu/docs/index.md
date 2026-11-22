@@ -1,12 +1,12 @@
 ---
-source-hash: 79e474cc44f1
+source-hash: 5471c61d8b86
 ---
 
 # Bevezetés
 
 A Dóru családfakutatás a mesterséges intelligencia korában: asztali alkalmazás a családfájához. A fa egy egyszerű mappában él a lemezén, teljesen offline működik, és MI-ügynökök vezérlik — a beépített chaten vagy bármely MCP/ACP-kliensen keresztül.
 
-- **Helyi adatok.** Semmi sem hagyja el a számítógépét, hacsak nem mondja. Egy projekt egyetlen `.doru` fájl; a fényképek a mellette lévő `media/` mappában élnek. Nincs fiók, nincs felhő, nincs telemetria — az adatai Önnél maradnak.
+- **Helyi adatok.** Egy projekt egyetlen `.doru` fájl; a fényképek a mellette lévő `media/` mappában élnek. Nincs fiók, nincs felhő, nincs telemetria. Az adatai a számítógépén maradnak, hacsak nem állít be távoli MI-szolgáltatót — akkor a csevegés üzenetei és a fa azon rekordjai, amelyeket az asszisztens az eszközein keresztül lekér, elküldésre kerülnek a szolgáltatónak. A helyi szolgáltatók teljesen offline futnak.
 - **Nyílt forráskód.** Az egész alkalmazás MIT-licencű — szabadon használható, módosítható és terjeszthető, a teljes forráskóddal együtt.
 - **MI-natív.** A beépített asszisztens, a Dóru AI, teljes egészében a gépén fut. A beépített csevegés olvassa és szerkeszti a fát, a külső eszközök (Claude Desktop, Cursor, kódoló ügynökök) pedig MCP/ACP-n keresztül működnek vele.
 - **Témák.** Kilenc beépített téma, mindegyik sötét és világos palettával, amelyek követik az operációs rendszer megjelenését.

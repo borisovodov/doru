@@ -1,5 +1,5 @@
 ---
-source-hash: 68e2d347ae32
+source-hash: a749debbbccf
 ---
 
 # Skróty klawiszowe
@@ -78,7 +78,7 @@ operacyjnego i nie są tu wymienione.
 ## Ściągawka
 
 Przy wszystkich zamkniętych kartach pusty edytor pokazuje rotacyjną próbkę
-pięciu skrótów jako przypomnienie; zamknij i otwórz kartę ponownie, aby
+pięciu skrótów jako przypomnienie; otwórz i zamknij kartę, aby
 zobaczyć inny zestaw.
 
 ## Uwagi

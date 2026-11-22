@@ -1,5 +1,5 @@
 ---
-source-hash: 68e2d347ae32
+source-hash: a749debbbccf
 ---
 
 # Atajos de teclado
@@ -79,7 +79,7 @@ enumeran aquí.
 ## Guía rápida
 
 Con todas las pestañas cerradas, el editor vacío muestra una selección rotativa de
-cinco atajos como recordatorio; cierra y vuelve a abrir una pestaña para ver otro
+cinco atajos como recordatorio; abre y cierra una pestaña para ver otro
 conjunto.
 
 ## Notas

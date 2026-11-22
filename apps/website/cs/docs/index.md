@@ -1,5 +1,5 @@
 ---
-source-hash: 79e474cc44f1
+source-hash: 5471c61d8b86
 ---
 
 # Úvod
@@ -8,9 +8,12 @@ Dóru je genealogie pro éru AI, desktopová aplikace pro váš rodokmen. Váš
 rodokmen žije v obyčejné složce na disku, funguje zcela offline a řídí ho AI
 agenti — prostřednictvím vestavěného chatu nebo jakéhokoli MCP/ACP klienta.
 
-- **Lokální data.** Nic neopustí váš počítač, dokud to sami neřeknete. Projekt
-  je jediný soubor `.doru`; fotky žijí ve složce `media/` vedle něj. Žádné
-  účty, žádný cloud, žádná telemetrie — vaše data zůstávají u vás.
+- **Lokální data.** Projekt je jediný soubor `.doru`; fotky žijí ve složce
+  `media/` vedle něj. Žádné účty, žádný cloud, žádná telemetrie. Vaše data
+  zůstávají na vašem počítači, dokud nenastavíte vzdáleného poskytovatele AI —
+  pak se zprávy z chatu a záznamy ze stromu, které asistent získá pomocí svých
+  nástrojů, odesílají tomuto poskytovateli. Místní poskytovatelé fungují zcela
+  offline.
 - **Open source.** Celá aplikace je pod licencí MIT — volná pro jakékoli
   použití, úpravy a šíření, s kompletním zdrojovým kódem k dispozici.
 - **Nativně AI.** Vestavěný asistent Dóru AI běží zcela na vašem počítači. Chat

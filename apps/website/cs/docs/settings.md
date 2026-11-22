@@ -1,5 +1,5 @@
 ---
-source-hash: cb76eaf45583
+source-hash: ecff58fa2a2c
 ---
 
 # Nastavení
@@ -32,27 +32,28 @@ konfiguruje v sekci `ai` tohoto souboru — viz [AI a agenti](agents.md).
 {
   "$schema": "https://doru.family/settings.json",
 
-  // Poskytovatelé AI — nastavte v Nastavení (ikona ozubeného kola) nebo přímo zde.
+  // AI providers — set from Settings (gear icon) or here directly.
   "ai": {
-    // Aktivní poskytovatel: ollama | lmstudio | custom | acp
-    // (cloudové předvolby se postupně vracejí).
+    // The active provider: ollama | lmstudio | custom | acp
+    // (cloud presets return one by one).
     "provider": "ollama",
 
-    // Nastavení jednotlivých poskytovatelů podle ID poskytovatele. Používá se
-    // jen položka aktivního poskytovatele; ostatní si zachovávají své hodnoty
-    // a obnoví se, když se k nim vrátíte.
+    // Per-provider settings, keyed by provider id. Only the entry of the
+    // active provider is used; the others keep their values and are
+    // restored when you switch back.
     "providers": {
       "ollama": {
-        "baseUrl": "", // volitelné přepsání výchozího endpointu poskytovatele
+        "baseUrl": "", // optional override of the provider's default endpoint
         "model": ""
       }
-      // Jen pro "acp": binárka agenta, která se má spustit.
+      // For "acp" only: the agent binary to spawn. Add a comma after the
+      // "ollama" object above when you enable it.
       // "acp": { "command": "my-agent", "args": [] }
     }
   },
 
-  // Motiv: jeden soubor palety s tmavou a světlou sekcí. O tom, která paleta
-  // platí, rozhoduje vzhled OS.
+  // Theme: one palette file with a dark and a light section. The OS
+  // appearance decides which palette applies.
   "theme": "doru"
 }
 ```

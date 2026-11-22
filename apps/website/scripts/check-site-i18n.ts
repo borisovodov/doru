@@ -1,16 +1,21 @@
 import { existsSync, readFileSync, readdirSync } from 'node:fs';
-import { join } from 'node:path';
+import { dirname, join, resolve } from 'node:path';
 import {
   SOURCE_PAGES,
   TRANSLATED_LOCALES,
+  codeBlocks,
   codeFenceCount,
   contentHash,
   hasH1,
+  headingAnchors,
   headingLevels,
   isDocPage,
+  listItemCount,
   readSourceHash,
+  relativeLinks,
   relativeLinkTargets,
   sourceFile,
+  tableRowCount,
   targetFile,
   websiteRoot,
 } from './site-i18n.ts';
@@ -68,6 +73,32 @@ for (const locale of TRANSLATED_LOCALES) {
       }
       if (codeFenceCount(text) !== codeFenceCount(sourceText)) {
         errors.push(`${locale}: ${page}: code block count differs from English`);
+      }
+      if (listItemCount(text) !== listItemCount(sourceText)) {
+        errors.push(`${locale}: ${page}: list item count differs from English`);
+      }
+      if (tableRowCount(text) !== tableRowCount(sourceText)) {
+        errors.push(`${locale}: ${page}: table row count differs from English`);
+      }
+      const sourceCode = codeBlocks(sourceText).filter((block) => block.info !== '');
+      const targetCode = codeBlocks(text).filter((block) => block.info !== '');
+      if (JSON.stringify(targetCode) !== JSON.stringify(sourceCode)) {
+        errors.push(`${locale}: ${page}: code block content differs from English`);
+      }
+
+      for (const link of relativeLinks(text)) {
+        if (link.fragment === undefined) continue;
+        const linkedFile = resolve(dirname(target), link.target);
+        if (!existsSync(linkedFile)) continue;
+        let fragment = link.fragment;
+        try {
+          fragment = decodeURIComponent(fragment);
+        } catch {
+          /* keep the raw fragment */
+        }
+        if (!headingAnchors(readFileSync(linkedFile, 'utf8')).has(fragment)) {
+          errors.push(`${locale}: ${page}: missing anchor #${fragment} in ${link.target}`);
+        }
       }
     }
   }

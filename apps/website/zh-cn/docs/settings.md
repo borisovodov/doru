@@ -1,5 +1,5 @@
 ---
-source-hash: cb76eaf45583
+source-hash: ecff58fa2a2c
 ---
 
 # 设置
@@ -20,26 +20,28 @@ source-hash: cb76eaf45583
 {
   "$schema": "https://doru.family/settings.json",
 
-  // AI 提供商——从设置（齿轮图标）或直接在此处设置。
+  // AI providers — set from Settings (gear icon) or here directly.
   "ai": {
-    // 活动提供商: ollama | lmstudio | custom | acp
-    // （云端预设会逐一回归）。
+    // The active provider: ollama | lmstudio | custom | acp
+    // (cloud presets return one by one).
     "provider": "ollama",
 
-    // 按提供商 ID 的提供商设置。仅使用活动提供商的条目；
-    // 其他条目保留其值，并在切换回来时恢复。
+    // Per-provider settings, keyed by provider id. Only the entry of the
+    // active provider is used; the others keep their values and are
+    // restored when you switch back.
     "providers": {
       "ollama": {
-        "baseUrl": "", // 可选：覆盖提供商的默认端点
+        "baseUrl": "", // optional override of the provider's default endpoint
         "model": ""
       }
-      // 仅适用于 "acp"：要启动的智能体二进制文件。
+      // For "acp" only: the agent binary to spawn. Add a comma after the
+      // "ollama" object above when you enable it.
       // "acp": { "command": "my-agent", "args": [] }
     }
   },
 
-  // 主题：一个包含深色和浅色部分的调色板文件。
-  // 操作系统外观决定应用哪个调色板。
+  // Theme: one palette file with a dark and a light section. The OS
+  // appearance decides which palette applies.
   "theme": "doru"
 }
 ```

@@ -14,7 +14,9 @@ const args = process.argv.slice(2).filter((arg) => !arg.startsWith('-'));
 const valid = new Set<string>(TRANSLATED_LOCALES);
 const pages = new Set<string>(SOURCE_PAGES);
 const locales = args.filter((arg) => valid.has(arg));
-const pageArgs = args.filter((arg) => !valid.has(arg)).map((arg) => (arg.startsWith('docs/') ? arg : `docs/${arg}`));
+const pageArgs = args
+  .filter((arg) => !valid.has(arg))
+  .map((arg) => (pages.has(arg) || arg.startsWith('docs/') ? arg : `docs/${arg}`));
 const invalidPages = pageArgs.filter((page) => !pages.has(page));
 if (invalidPages.length > 0) {
   console.error(`unknown locale or page: ${invalidPages.join(', ')}`);

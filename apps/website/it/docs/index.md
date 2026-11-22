@@ -1,5 +1,5 @@
 ---
-source-hash: 79e474cc44f1
+source-hash: 5471c61d8b86
 ---
 
 # Introduzione
@@ -9,10 +9,12 @@ genealogico. Il tuo albero vive in una semplice cartella sul disco, funziona
 completamente offline ed è guidato da agenti IA — tramite la chat integrata o
 qualsiasi client MCP/ACP.
 
-- **Dati locali.** Nulla lascia il tuo computer a meno che non lo dica tu. Un
-  progetto è un singolo file `.doru`; le foto vivono in una cartella `media/`
-  accanto ad esso. Nessun account, nessun cloud, nessuna telemetria — i tuoi
-  dati restano con te.
+- **Dati locali.** Un progetto è un singolo file `.doru`; le foto vivono in
+  una cartella `media/` accanto ad esso. Nessun account, nessun cloud, nessuna
+  telemetria. I tuoi dati restano sul tuo computer a meno che tu non configuri
+  un provider IA remoto — in tal caso i messaggi della chat e i record
+  dell'albero che l'assistente recupera tramite i suoi strumenti vengono
+  inviati a quel provider. I provider locali funzionano completamente offline.
 - **Open source.** L'intera app è sotto licenza MIT — libera per qualsiasi uso,
   modifica e ridistribuzione, con il codice sorgente completo disponibile.
 - **Nativamente IA.** L'assistente integrato, Dóru AI, gira interamente sulla

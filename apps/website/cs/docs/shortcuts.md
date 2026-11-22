@@ -1,5 +1,5 @@
 ---
-source-hash: 68e2d347ae32
+source-hash: a749debbbccf
 ---
 
 # Klávesové zkratky
@@ -76,7 +76,7 @@ systému a nejsou zde uvedeny.
 ## Tahák
 
 Když jsou všechny karty zavřené, prázdný editor zobrazuje střídající se ukázku
-pěti zkratek jako připomínku; zavřete a znovu otevřete kartu, abyste viděli
+pěti zkratek jako připomínku; otevřete a zavřete kartu, abyste viděli
 jinou sadu.
 
 ## Poznámky

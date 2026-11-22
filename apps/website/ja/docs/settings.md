@@ -1,5 +1,5 @@
 ---
-source-hash: cb76eaf45583
+source-hash: ecff58fa2a2c
 ---
 
 # 設定
@@ -20,26 +20,28 @@ source-hash: cb76eaf45583
 {
   "$schema": "https://doru.family/settings.json",
 
-  // AI プロバイダー——設定（歯車アイコン）から、またはここで直接設定します。
+  // AI providers — set from Settings (gear icon) or here directly.
   "ai": {
-    // アクティブなプロバイダー: ollama | lmstudio | custom | acp
-    // （クラウドプリセットは順次復活します）。
+    // The active provider: ollama | lmstudio | custom | acp
+    // (cloud presets return one by one).
     "provider": "ollama",
 
-    // プロバイダー ID ごとの設定。アクティブなプロバイダーの
-    // エントリだけが使用され、他は値を保持して切り替え時に復元されます。
+    // Per-provider settings, keyed by provider id. Only the entry of the
+    // active provider is used; the others keep their values and are
+    // restored when you switch back.
     "providers": {
       "ollama": {
-        "baseUrl": "", // プロバイダーのデフォルトエンドポイントの任意の上書き
+        "baseUrl": "", // optional override of the provider's default endpoint
         "model": ""
       }
-      // "acp" の場合のみ: 起動するエージェントバイナリ。
+      // For "acp" only: the agent binary to spawn. Add a comma after the
+      // "ollama" object above when you enable it.
       // "acp": { "command": "my-agent", "args": [] }
     }
   },
 
-  // テーマ: ダークとライトのセクションを持つ 1 つのパレットファイル。
-  // OS の外観がどちらのパレットを適用するかを決めます。
+  // Theme: one palette file with a dark and a light section. The OS
+  // appearance decides which palette applies.
   "theme": "doru"
 }
 ```

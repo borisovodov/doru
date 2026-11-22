@@ -1,5 +1,5 @@
 ---
-source-hash: 68e2d347ae32
+source-hash: a749debbbccf
 ---
 
 # Tastenkürzel
@@ -77,7 +77,7 @@ Konventionen Ihres Betriebssystems und sind hier nicht aufgeführt.
 ## Spickzettel
 
 Wenn alle Tabs geschlossen sind, zeigt der leere Editor eine rotierende Auswahl
-von fünf Tastenkürzeln als Erinnerung; schließen und öffnen Sie einen Tab, um
+von fünf Tastenkürzeln als Erinnerung; öffnen und schließen Sie einen Tab, um
 einen anderen Satz zu sehen.
 
 ## Hinweise

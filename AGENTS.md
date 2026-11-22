@@ -17,6 +17,10 @@ non-goals: [docs/decisions.md](docs/decisions.md).
 
 - All documents (README.md, AGENTS.md, CONTRIBUTING.md, docs/, commit
   messages) are written in **English only**.
+- Exception: the public website ships translated user documentation and
+  landing pages under `apps/website/<locale>/`. The English sources live in
+  `apps/website/index.md` and `apps/website/docs/`; translated pages are
+  maintained through the `source-hash` workflow described in CONTRIBUTING.md.
 - All code — identifiers, comments, docstrings — is written in **English
   only**.
 - Commit messages: English, concise, imperative mood.

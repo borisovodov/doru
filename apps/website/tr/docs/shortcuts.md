@@ -1,5 +1,5 @@
 ---
-source-hash: 68e2d347ae32
+source-hash: a749debbbccf
 ---
 
 # Klavye kısayolları
@@ -65,7 +65,7 @@ Dosya/Düzenle/Görünüm/Pencere menüleri platformun standart hızlandırıcı
 
 ## Kısa başvuru
 
-Tüm sekmeler kapalıyken boş düzenleyici, hatırlatıcı olarak dönen beş kısayol örneği gösterir; başka bir küme görmek için bir sekmeyi kapatıp yeniden açın.
+Tüm sekmeler kapalıyken boş düzenleyici, hatırlatıcı olarak dönen beş kısayol örneği gösterir; başka bir küme görmek için bir sekmeyi açıp kapatın.
 
 ## Notlar
 

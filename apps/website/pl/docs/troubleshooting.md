@@ -1,5 +1,5 @@
 ---
-source-hash: 77b60fd904c7
+source-hash: 6953c7a55202
 ---
 
 # Rozwiązywanie problemów
@@ -7,7 +7,7 @@ source-hash: 77b60fd904c7
 - **Projekt `.doru` ze starszej kompilacji odmawia otwarcia** — przed wersją
   1.0 schemat projektu zmienia się bez migracji, więc pliki zapisane przez inną
   kompilację nie są rozumiane. Otwórz projekt w kompilacji, która go utworzyła,
-  wyeksportuj GEDCOM i zaimportuj ten plik do tej kompilacji.
+  wyeksportuj GEDCOM i zaimportuj ten plik do bieżącej kompilacji.
 - **„Dostawca AI nie jest skonfigurowany”** — otwórz Ustawienia (ikona koła
   zębatego na lewym pasku), wybierz dostawcę i postępuj zgodnie z kreatorem:
   pobierz listę modeli (lub wybierz model) i zapisz klucz, jeśli jest wymagany.

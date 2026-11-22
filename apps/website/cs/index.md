@@ -1,5 +1,5 @@
 ---
-source-hash: afdcd6785cee
+source-hash: 2512c57f34c8
 layout: home
 
 hero:
@@ -9,7 +9,7 @@ hero:
 features:
   - icon: 🗂️
     title: Lokální data
-    details: "Projekt je jediný soubor .doru (SQLite); fotky žijí ve složce media vedle něj. Nic není skryto, nic se nenahrává. Záloha zkopírováním složky."
+    details: "Projekt je jediný soubor .doru (SQLite); fotky žijí ve složce media vedle něj. Nic není skryté a Dóru nemá žádnou cloudovou službu. Zálohujte zkopírováním složky."
   - icon: 🤖
     title: Nativně AI
     details: "Celá aplikace je nativně AI. Dóru AI, vestavěný asistent, běží lokálně a offline — bez účtu. Nebo připojte libovolného poskytovatele — Ollama, LM Studio, cloudové API, agenta ACP."

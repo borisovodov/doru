@@ -1,5 +1,5 @@
 ---
-source-hash: 77b60fd904c7
+source-hash: 6953c7a55202
 ---
 
 # Řešení problémů
@@ -7,7 +7,7 @@ source-hash: 77b60fd904c7
 - **Projekt `.doru` ze staršího buildu se odmítá otevřít** — před 1.0 se
   schéma projektu mění bez migrací, takže soubory zapsané jiným buildem nejsou
   srozumitelné. Otevřete projekt v buildu, který ho vytvořil, exportujte GEDCOM
-  a importujte tento soubor do tohoto buildu.
+  a importujte tento soubor do aktuálního buildu.
 - **„Poskytovatel AI není nakonfigurován“** — otevřete Nastavení (ikona
   ozubeného kola na levém panelu), vyberte poskytovatele a postupujte podle
   průvodce: načtěte seznam modelů (nebo vyberte model) a v případě potřeby

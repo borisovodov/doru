@@ -1,5 +1,5 @@
 ---
-source-hash: 68e2d347ae32
+source-hash: a749debbbccf
 ---
 
 # Raccourcis clavier
@@ -78,7 +78,7 @@ de votre système d'exploitation et ne sont pas listés ici.
 ## Aide-mémoire
 
 Lorsque tous les onglets sont fermés, l'éditeur vide affiche un échantillon rotatif
-de cinq raccourcis en guise de rappel ; fermez et rouvrez un onglet pour en voir un
+de cinq raccourcis en guise de rappel ; ouvrez puis fermez un onglet pour en voir un
 autre ensemble.
 
 ## Remarques

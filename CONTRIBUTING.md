@@ -10,11 +10,14 @@ covers how to set up the project and propose changes.
   rules, and architecture conventions that all contributions must follow.
 - [docs/architecture.md](docs/architecture.md) explains the "why" behind the
   design; [docs/decisions.md](docs/decisions.md) lists deliberate non-goals.
-  All documents and code are in English.
+  All documents and code are in English, except the translated website pages
+  under `apps/website/<locale>/`.
 
 ## Getting started
 
 Requirements: Node.js >= 22.13 (Dóru uses the built-in `node:sqlite`) and npm.
+The TypeScript dev helper scripts, including `check:site-i18n` and
+`stamp:site-i18n`, run through Node's type stripping and need Node 24 or later.
 
 ```sh
 npm install
@@ -63,7 +66,9 @@ The English user guide lives in `apps/website/docs/`; translations live in
 `apps/website/<locale>/docs/`, mirroring the English filenames. The landing
 pages are `apps/website/<locale>/index.md`.
 
-- Translate headings, prose, tables and link labels. Keep code, commands,
+- Translate headings, prose, tables and link labels. Keep fenced code blocks
+  with a language tag byte-identical to the English source, including
+  comments; untagged file-layout annotations may be translated. Keep commands,
   paths, filenames, MCP tool names, product names and relative link targets
   unchanged.
 - Keep the stable installation anchors `{#macos}`, `{#linux}` and
@@ -71,8 +76,9 @@ pages are `apps/website/<locale>/index.md`.
 - Every translated page and landing page carries a `source-hash` in its
   frontmatter. After updating a translation, stamp the current English source:
   `npm run stamp:site-i18n -- <locale> <page>` (for example,
-  `npm run stamp:site-i18n -- ru installation.md`). Omit the page only after
-  reviewing the whole locale.
+  `npm run stamp:site-i18n -- ru installation.md`). Use `index.md` for the
+  landing page and `docs/index.md` for the guide landing page. Omit the page
+  only after reviewing the whole locale.
 - `npm run check:site-i18n` is a blocking CI check: it verifies that every
   locale has the full page set, that none are extra, and that every
   `source-hash` matches the current English source. Run it with `--report`

@@ -1,5 +1,5 @@
 ---
-source-hash: afdcd6785cee
+source-hash: 2512c57f34c8
 layout: home
 
 hero:
@@ -9,7 +9,7 @@ hero:
 features:
   - icon: 🗂️
     title: Dati locali
-    details: "Un progetto è un singolo file .doru (SQLite); le foto vivono in una cartella media accanto. Nulla è nascosto, nulla viene caricato. Backup copiando una cartella."
+    details: "Un progetto è un singolo file .doru (SQLite); le foto vivono in una cartella media accanto. Nulla è nascosto e Dóru non ha alcun servizio cloud. Esegui il backup copiando una cartella."
   - icon: 🤖
     title: Nativamente IA
     details: "Tutta l'app è nativamente IA. Dóru AI, l'assistente integrato, gira in locale e offline — senza account. Oppure collega qualsiasi provider — Ollama, LM Studio, un'API cloud, un agente ACP."

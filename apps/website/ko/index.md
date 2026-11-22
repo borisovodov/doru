@@ -1,5 +1,5 @@
 ---
-source-hash: afdcd6785cee
+source-hash: 2512c57f34c8
 layout: home
 
 hero:
@@ -9,7 +9,7 @@ hero:
 features:
   - icon: 🗂️
     title: 로컬 퍼스트
-    details: "프로젝트는 단일 .doru 파일(SQLite)입니다. 사진은 옆의 media 폴더에 보관됩니다. 숨겨지는 것도 업로드되는 것도 없습니다. 폴더를 복사하는 것만으로 백업됩니다."
+    details: "프로젝트는 단일 .doru 파일(SQLite)입니다. 사진은 옆의 media 폴더에 보관됩니다. 숨겨지는 것은 없으며 Dóru에는 클라우드 서비스가 없습니다. 폴더를 복사하는 것만으로 백업할 수 있습니다."
   - icon: 🤖
     title: AI 네이티브
     details: "앱 전체가 AI 네이티브입니다. 내장 어시스턴트 Dóru AI는 로컬에서 오프라인으로 실행됩니다——계정이 필요 없습니다. 아니면 원하는 제공자를 연결하세요——Ollama, LM Studio, 클라우드 API, ACP 에이전트."

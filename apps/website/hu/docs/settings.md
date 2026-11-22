@@ -1,5 +1,5 @@
 ---
-source-hash: cb76eaf45583
+source-hash: ecff58fa2a2c
 ---
 
 # Beállítások
@@ -21,27 +21,28 @@ Teljes referencia:
 {
   "$schema": "https://doru.family/settings.json",
 
-  // MI-szolgáltatók — a Beállításokban (fogaskerék ikon) vagy itt közvetlenül állíthatók be.
+  // AI providers — set from Settings (gear icon) or here directly.
   "ai": {
-    // Az aktív szolgáltató: ollama | lmstudio | custom | acp
-    // (a felhő-előbeállítások egyenként térnek vissza).
+    // The active provider: ollama | lmstudio | custom | acp
+    // (cloud presets return one by one).
     "provider": "ollama",
 
-    // Szolgáltatónkénti beállítások, szolgáltató-azonosítóval kulcsolva. Csak az
-    // aktív szolgáltató bejegyzése használatos; a többi megtartja értékeit, és
-    // visszaáll, amikor visszavált.
+    // Per-provider settings, keyed by provider id. Only the entry of the
+    // active provider is used; the others keep their values and are
+    // restored when you switch back.
     "providers": {
       "ollama": {
-        "baseUrl": "", // a szolgáltató alapértelmezett végpontjának opcionális felülírása
+        "baseUrl": "", // optional override of the provider's default endpoint
         "model": ""
       }
-      // Csak az "acp" esetén: az indítandó ügynök bináris.
+      // For "acp" only: the agent binary to spawn. Add a comma after the
+      // "ollama" object above when you enable it.
       // "acp": { "command": "my-agent", "args": [] }
     }
   },
 
-  // Téma: egy palettafájl sötét és világos szakasszal. Az operációs rendszer
-  // megjelenése dönti el, melyik paletta érvényes.
+  // Theme: one palette file with a dark and a light section. The OS
+  // appearance decides which palette applies.
   "theme": "doru"
 }
 ```

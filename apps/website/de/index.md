@@ -1,5 +1,5 @@
 ---
-source-hash: afdcd6785cee
+source-hash: 2512c57f34c8
 layout: home
 
 hero:
@@ -9,7 +9,7 @@ hero:
 features:
   - icon: 🗂️
     title: Lokale Daten
-    details: "Ein Projekt ist eine einzelne .doru-Datei (SQLite); Fotos liegen in einem media-Ordner daneben. Nichts ist versteckt, nichts wird hochgeladen. Backup durch Kopieren eines Ordners."
+    details: "Ein Projekt ist eine einzelne .doru-Datei (SQLite); Fotos liegen in einem media-Ordner daneben. Nichts ist versteckt, und Dóru hat keinen Cloud-Dienst. Backup durch Kopieren eines Ordners."
   - icon: 🤖
     title: KI-nativ
     details: "Die ganze App ist KI-nativ. Dóru AI, der eingebaute Assistent, läuft lokal und offline — ohne Konto. Oder verbinden Sie einen beliebigen Anbieter — Ollama, LM Studio, eine Cloud-API, einen ACP-Agenten."

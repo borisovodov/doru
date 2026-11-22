@@ -1,5 +1,5 @@
 ---
-source-hash: 79e474cc44f1
+source-hash: 5471c61d8b86
 ---
 
 # Einführung
@@ -9,10 +9,12 @@ Stammbaum lebt in einem gewöhnlichen Ordner auf Ihrer Festplatte, funktioniert
 vollständig offline und wird von KI-Agenten gesteuert — über den eingebauten
 Chat oder jeden MCP/ACP-Client.
 
-- **Lokal zuerst.** Nichts verlässt Ihren Computer, wenn Sie es nicht sagen. Ein
-  Projekt ist eine einzelne `.doru`-Datei; Fotos liegen in einem `media/`-Ordner
-  daneben. Keine Konten, keine Cloud, keine Telemetrie — Ihre Daten bleiben bei
-  Ihnen.
+- **Lokal zuerst.** Ein Projekt ist eine einzelne `.doru`-Datei; Fotos liegen
+  in einem `media/`-Ordner daneben. Keine Konten, keine Cloud, keine
+  Telemetrie. Ihre Daten bleiben auf Ihrem Computer, es sei denn, Sie
+  konfigurieren einen entfernten KI-Anbieter — dann werden Chat-Nachrichten und
+  die Baumdatensätze, die der Assistent über seine Werkzeuge abruft, an diesen
+  Anbieter gesendet. Lokale Anbieter laufen vollständig offline.
 - **Open Source.** Die gesamte App steht unter der MIT-Lizenz — frei für jede
   Nutzung, Änderung und Weitergabe, mit vollständig verfügbarem Quellcode.
 - **KI-nativ.** Der eingebaute Assistent Dóru AI läuft vollständig auf Ihrer

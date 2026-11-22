@@ -1,5 +1,5 @@
 ---
-source-hash: cb76eaf45583
+source-hash: ecff58fa2a2c
 ---
 
 # Настройки
@@ -33,27 +33,28 @@ source-hash: cb76eaf45583
 {
   "$schema": "https://doru.family/settings.json",
 
-  // ИИ-провайдеры — задаются в «Настройках» (значок шестерёнки) или здесь напрямую.
+  // AI providers — set from Settings (gear icon) or here directly.
   "ai": {
-    // Активный провайдер: ollama | lmstudio | custom | acp
-    // (облачные пресеты возвращаются по одному).
+    // The active provider: ollama | lmstudio | custom | acp
+    // (cloud presets return one by one).
     "provider": "ollama",
 
-    // Настройки для каждого провайдера, с ключом по id провайдера. Используется
-    // только запись активного провайдера; остальные сохраняют значения и
-    // восстанавливаются при переключении обратно.
+    // Per-provider settings, keyed by provider id. Only the entry of the
+    // active provider is used; the others keep their values and are
+    // restored when you switch back.
     "providers": {
       "ollama": {
-        "baseUrl": "", // необязательное переопределение адреса провайдера по умолчанию
+        "baseUrl": "", // optional override of the provider's default endpoint
         "model": ""
       }
-      // Только для "acp": исполняемый файл агента для запуска.
+      // For "acp" only: the agent binary to spawn. Add a comma after the
+      // "ollama" object above when you enable it.
       // "acp": { "command": "my-agent", "args": [] }
     }
   },
 
-  // Тема: один файл палитры с тёмной и светлой секциями. Оформление ОС
-  // определяет, какая палитра применяется.
+  // Theme: one palette file with a dark and a light section. The OS
+  // appearance decides which palette applies.
   "theme": "doru"
 }
 ```

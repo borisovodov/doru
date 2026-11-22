@@ -43,7 +43,8 @@ Full reference:
         "baseUrl": "", // optional override of the provider's default endpoint
         "model": ""
       }
-      // For "acp" only: the agent binary to spawn.
+      // For "acp" only: the agent binary to spawn. Add a comma after the
+      // "ollama" object above when you enable it.
       // "acp": { "command": "my-agent", "args": [] }
     }
   },

@@ -1,5 +1,5 @@
 ---
-source-hash: cb76eaf45583
+source-hash: ecff58fa2a2c
 ---
 
 # Configurações
@@ -35,27 +35,28 @@ Referência completa:
 {
   "$schema": "https://doru.family/settings.json",
 
-  // Provedores de IA — defina em Configurações (ícone de engrenagem) ou aqui diretamente.
+  // AI providers — set from Settings (gear icon) or here directly.
   "ai": {
-    // O provedor ativo: ollama | lmstudio | custom | acp
-    // (as predefinições de nuvem voltam uma a uma).
+    // The active provider: ollama | lmstudio | custom | acp
+    // (cloud presets return one by one).
     "provider": "ollama",
 
-    // Configurações por provedor, indexadas pelo id do provedor. Apenas a
-    // entrada do provedor ativo é usada; as outras mantêm seus valores e são
-    // restauradas quando você volta.
+    // Per-provider settings, keyed by provider id. Only the entry of the
+    // active provider is used; the others keep their values and are
+    // restored when you switch back.
     "providers": {
       "ollama": {
-        "baseUrl": "", // substituição opcional do endpoint padrão do provedor
+        "baseUrl": "", // optional override of the provider's default endpoint
         "model": ""
       }
-      // Apenas para "acp": o binário do agente a iniciar.
+      // For "acp" only: the agent binary to spawn. Add a comma after the
+      // "ollama" object above when you enable it.
       // "acp": { "command": "my-agent", "args": [] }
     }
   },
 
-  // Tema: um arquivo de paleta com uma seção escura e uma clara. A aparência
-  // do sistema operacional decide qual paleta se aplica.
+  // Theme: one palette file with a dark and a light section. The OS
+  // appearance decides which palette applies.
   "theme": "doru"
 }
 ```

@@ -1,5 +1,5 @@
 ---
-source-hash: cb76eaf45583
+source-hash: ecff58fa2a2c
 ---
 
 # Ayarlar
@@ -21,27 +21,28 @@ Tam başvuru:
 {
   "$schema": "https://doru.family/settings.json",
 
-  // YZ sağlayıcıları — Ayarlar'dan (dişli simgesi) veya doğrudan buradan ayarlanır.
+  // AI providers — set from Settings (gear icon) or here directly.
   "ai": {
-    // Etkin sağlayıcı: ollama | lmstudio | custom | acp
-    // (bulut ön ayarları tek tek geri döner).
+    // The active provider: ollama | lmstudio | custom | acp
+    // (cloud presets return one by one).
     "provider": "ollama",
 
-    // Sağlayıcı kimliğine göre anahtarlanmış sağlayıcı başına ayarlar. Yalnızca
-    // etkin sağlayıcının girdisi kullanılır; diğerleri değerlerini korur ve
-    // geri döndüğünüzde geri yüklenir.
+    // Per-provider settings, keyed by provider id. Only the entry of the
+    // active provider is used; the others keep their values and are
+    // restored when you switch back.
     "providers": {
       "ollama": {
-        "baseUrl": "", // sağlayıcının varsayılan uç noktası için isteğe bağlı geçersiz kılma
+        "baseUrl": "", // optional override of the provider's default endpoint
         "model": ""
       }
-      // Yalnızca "acp" için: başlatılacak ajan ikilisi.
+      // For "acp" only: the agent binary to spawn. Add a comma after the
+      // "ollama" object above when you enable it.
       // "acp": { "command": "my-agent", "args": [] }
     }
   },
 
-  // Tema: koyu ve açık bölümü olan tek bir palet dosyası. Hangi paletin
-  // uygulanacağına işletim sistemi görünümü karar verir.
+  // Theme: one palette file with a dark and a light section. The OS
+  // appearance decides which palette applies.
   "theme": "doru"
 }
 ```

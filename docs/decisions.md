@@ -39,8 +39,8 @@ One caveat lives with this decision: the `.doru` file is a SQLite database,
 and live-syncing an **open** project with a file-sync tool can copy the file
 in a half-written state and corrupt it. Dóru uses a single-file journal mode
 (`journal_mode=DELETE`) to keep the file clean, but the safe practice is:
-close the project (or the app) before syncing. Copying a closed project is
-always safe.
+close the project (or the app) and stop any other writers before syncing.
+Copying a project that is closed and has no other writers is always safe.
 
 ## Settings and data locations
 

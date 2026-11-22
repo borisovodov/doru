@@ -1,5 +1,5 @@
 ---
-source-hash: 77b60fd904c7
+source-hash: 6953c7a55202
 ---
 
 # Solução de problemas
@@ -7,7 +7,7 @@ source-hash: 77b60fd904c7
 - **Um projeto `.doru` de uma versão anterior se recusa a abrir** — antes da
   1.0, o esquema do projeto muda sem migrações, então arquivos gravados por
   outra versão não são compreendidos. Abra o projeto na versão que o criou,
-  exporte GEDCOM e importe esse arquivo nesta versão.
+  exporte GEDCOM e importe esse arquivo na versão atual.
 - **“O provedor de IA não está configurado”** — abra as Configurações (ícone de
   engrenagem na barra à esquerda), escolha um provedor e siga o assistente:
   busque a lista de modelos (ou escolha um modelo) e salve uma chave quando

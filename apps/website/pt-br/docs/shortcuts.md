@@ -1,5 +1,5 @@
 ---
-source-hash: 68e2d347ae32
+source-hash: a749debbbccf
 ---
 
 # Atalhos de teclado
@@ -78,7 +78,7 @@ operacional e não estão listados aqui.
 ## Folha de consulta
 
 Com todas as abas fechadas, o editor vazio mostra uma amostra rotativa de cinco
-atalhos como lembrete; feche e reabra uma aba para ver outro conjunto.
+atalhos como lembrete; abra e feche uma aba para ver outro conjunto.
 
 ## Notas
 

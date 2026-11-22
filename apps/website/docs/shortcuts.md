@@ -71,7 +71,7 @@ These follow your operating system's conventions and are not listed here.
 ## Cheat sheet
 
 With all tabs closed, the empty editor shows a rotating sample of five
-shortcuts as a reminder; close and reopen a tab to see another set.
+shortcuts as a reminder; open and close a tab to see another set.
 
 ## Notes
 

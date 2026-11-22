@@ -1,12 +1,12 @@
 ---
-source-hash: 79e474cc44f1
+source-hash: 5471c61d8b86
 ---
 
 # Giriş
 
 Dóru, yapay zekâ çağında soyağacıdır — aile ağacınız için bir masaüstü uygulaması. Ağacınız diskinizde sıradan bir klasörde yaşar, tamamen çevrimdışı çalışır ve yapay zekâ ajanları tarafından yönlendirilir — yerleşik sohbet veya herhangi bir MCP/ACP istemcisi aracılığıyla.
 
-- **Yerel veriler.** Siz söylemedikçe hiçbir şey bilgisayarınızdan ayrılmaz. Bir proje tek bir `.doru` dosyasıdır; fotoğraflar yanındaki `media/` klasöründe yaşar. Hesap yok, bulut yok, telemetri yok — verileriniz sizinle kalır.
+- **Yerel veriler.** Bir proje tek bir `.doru` dosyasıdır; fotoğraflar yanındaki `media/` klasöründe yaşar. Hesap yok, bulut yok, telemetri yok. Uzak bir yapay zekâ sağlayıcısı yapılandırmadığınız sürece verileriniz bilgisayarınızda kalır — yapılandırırsanız sohbet mesajları ve asistanın araçları aracılığıyla getirdiği ağaç kayıtları o sağlayıcıya gönderilir. Yerel sağlayıcılar tamamen çevrimdışı çalışır.
 - **Açık kaynak.** Uygulamanın tamamı MIT lisanslıdır — her türlü kullanım, değişiklik ve yeniden dağıtım için özgürdür ve kaynak kodun tamamı mevcuttur.
 - **YZ-yerel.** Yerleşik asistan Dóru AI tamamen makinenizde çalışır. Uygulama içi sohbet ağacı okur ve düzenler; harici araçlar (Claude Desktop, Cursor, kodlama ajanları) da MCP/ACP üzerinden onunla çalışır.
 - **Temalar.** Dokuz yerleşik tema; her biri işletim sisteminizin görünümünü izleyen koyu ve açık paletlerle.

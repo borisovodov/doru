@@ -1,5 +1,5 @@
 ---
-source-hash: cb76eaf45583
+source-hash: ecff58fa2a2c
 ---
 
 # Настройки
@@ -21,27 +21,28 @@ source-hash: cb76eaf45583
 {
   "$schema": "https://doru.family/settings.json",
 
-  // Доставчици на ИИ — задават се от Настройки (икона със зъбно колело) или директно тук.
+  // AI providers — set from Settings (gear icon) or here directly.
   "ai": {
-    // Активният доставчик: ollama | lmstudio | custom | acp
-    // (облачните шаблони се връщат един по един).
+    // The active provider: ollama | lmstudio | custom | acp
+    // (cloud presets return one by one).
     "provider": "ollama",
 
-    // Настройки за всеки доставчик, ключовани по идентификатор. Използва се само
-    // записът на активния доставчик; останалите запазват стойностите си и се
-    // възстановяват при превключване обратно.
+    // Per-provider settings, keyed by provider id. Only the entry of the
+    // active provider is used; the others keep their values and are
+    // restored when you switch back.
     "providers": {
       "ollama": {
-        "baseUrl": "", // незадължително заместване на крайната точка по подразбиране на доставчика
+        "baseUrl": "", // optional override of the provider's default endpoint
         "model": ""
       }
-      // Само за "acp": двоичният файл на агента за стартиране.
+      // For "acp" only: the agent binary to spawn. Add a comma after the
+      // "ollama" object above when you enable it.
       // "acp": { "command": "my-agent", "args": [] }
     }
   },
 
-  // Тема: един файл с палитра със секция за тъмно и за светло. Външният вид
-  // на ОС решава коя палитра се прилага.
+  // Theme: one palette file with a dark and a light section. The OS
+  // appearance decides which palette applies.
   "theme": "doru"
 }
 ```

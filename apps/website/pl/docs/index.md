@@ -1,5 +1,5 @@
 ---
-source-hash: 79e474cc44f1
+source-hash: 5471c61d8b86
 ---
 
 # Wprowadzenie
@@ -9,10 +9,12 @@ genealogicznego. Twoje drzewo żyje w zwykłym folderze na dysku, działa
 całkowicie offline i jest prowadzone przez agentów AI — przez wbudowany czat
 lub dowolnego klienta MCP/ACP.
 
-- **Lokalność przede wszystkim.** Nic nie opuszcza Twojego komputera, chyba że
-  sam tego chcesz. Projekt to pojedynczy plik `.doru`; zdjęcia żyją w folderze
-  `media/` obok niego. Bez kont, bez chmury, bez telemetrii — Twoje dane
-  zostają z Tobą.
+- **Lokalność przede wszystkim.** Projekt to pojedynczy plik `.doru`; zdjęcia
+  żyją w folderze `media/` obok niego. Bez kont, bez chmury, bez telemetrii.
+  Twoje dane pozostają na Twoim komputerze, chyba że skonfigurujesz zdalnego
+  dostawcę AI — wtedy wiadomości z czatu i rekordy drzewa, które asystent
+  pobiera przez swoje narzędzia, są wysyłane do tego dostawcy. Lokalni
+  dostawcy działają całkowicie offline.
 - **Open source.** Cała aplikacja jest na licencji MIT — wolna do dowolnego
   użytku, modyfikacji i rozpowszechniania, z pełnym dostępnym kodem źródłowym.
 - **Natywna obsługa AI.** Wbudowany asystent Dóru AI działa w całości na Twoim

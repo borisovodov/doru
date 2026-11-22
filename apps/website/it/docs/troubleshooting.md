@@ -1,5 +1,5 @@
 ---
-source-hash: 77b60fd904c7
+source-hash: 6953c7a55202
 ---
 
 # Risoluzione dei problemi
@@ -7,7 +7,7 @@ source-hash: 77b60fd904c7
 - **Un progetto `.doru` di una build precedente rifiuta di aprirsi** — prima
   della 1.0 lo schema del progetto cambia senza migrazioni, quindi i file
   scritti da un'altra build non vengono compresi. Apri il progetto nella build
-  che l'ha creato, esporta in GEDCOM e importa quel file in questa build.
+  che l'ha creato, esporta in GEDCOM e importa quel file nella build attuale.
 - **«Il provider IA non è configurato»** — apri le Impostazioni (icona a
   ingranaggio nella barra a sinistra), scegli un provider e segui la procedura
   guidata: recupera l'elenco dei modelli (o scegli un modello) e salva una

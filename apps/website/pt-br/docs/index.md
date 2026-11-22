@@ -1,5 +1,5 @@
 ---
-source-hash: 79e474cc44f1
+source-hash: 5471c61d8b86
 ---
 
 # Introdução
@@ -9,10 +9,12 @@ genealógica. Sua árvore vive em uma pasta comum no seu disco, funciona
 totalmente offline e é conduzida por agentes de IA — pelo chat integrado ou por
 qualquer cliente MCP/ACP.
 
-- **Local em primeiro lugar.** Nada sai do seu computador a menos que você
-  diga. Um projeto é um único arquivo `.doru`; as fotos vivem em uma pasta
-  `media/` ao lado dele. Sem contas, sem nuvem, sem telemetria — seus dados
-  ficam com você.
+- **Local em primeiro lugar.** Um projeto é um único arquivo `.doru`; as fotos
+  vivem em uma pasta `media/` ao lado dele. Sem contas, sem nuvem, sem
+  telemetria. Seus dados ficam no seu computador, a menos que você configure um
+  provedor de IA remoto — nesse caso, as mensagens do chat e os registros da
+  árvore que o assistente recupera por meio de suas ferramentas são enviados a
+  esse provedor. Provedores locais funcionam totalmente offline.
 - **Código aberto.** O aplicativo inteiro está sob a licença MIT — livre para
   qualquer uso, modificação e redistribuição, com o código-fonte completo
   disponível.

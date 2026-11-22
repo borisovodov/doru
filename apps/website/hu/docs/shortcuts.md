@@ -1,5 +1,5 @@
 ---
-source-hash: 68e2d347ae32
+source-hash: a749debbbccf
 ---
 
 # Billentyűparancsok
@@ -65,7 +65,7 @@ A Fájl/Szerkesztés/Nézet/Ablak menük a platformszabványos gyorsítókat kí
 
 ## Puska
 
-Az összes lap bezárásakor az üres szerkesztő öt billentyűparancs forgó mintáját mutatja emlékeztetőként; zárjon be és nyisson meg egy lapot egy másik készlet megtekintéséhez.
+Az összes lap bezárásakor az üres szerkesztő öt billentyűparancs forgó mintáját mutatja emlékeztetőként; nyisson meg és zárjon be egy lapot egy másik készlet megtekintéséhez.
 
 ## Megjegyzések
 

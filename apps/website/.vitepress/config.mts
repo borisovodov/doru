@@ -190,7 +190,6 @@ function openGraphHead({ pageData, title, description }: TransformContext): Head
   tags.push(['link', { rel: 'canonical', href: canonical }]);
 
   for (const code of Object.keys(LOCALES) as LocaleCode[]) {
-    if (code === locale) continue;
     if (!existsSync(join(websiteRoot, alternatePath(pageData.relativePath, code)))) continue;
     tags.push([
       'link',
@@ -200,7 +199,16 @@ function openGraphHead({ pageData, title, description }: TransformContext): Head
         href: `${SITE_URL}${pagePath(alternatePath(pageData.relativePath, code))}`,
       },
     ]);
-    tags.push(['meta', { property: 'og:locale:alternate', content: OG_LOCALE[code] }]);
+    if (code !== locale) {
+      tags.push([
+        'meta',
+        {
+          id: `og-locale-alternate-${code}`,
+          property: 'og:locale:alternate',
+          content: OG_LOCALE[code],
+        },
+      ]);
+    }
   }
 
   const englishPath = alternatePath(pageData.relativePath, 'en');

@@ -1,5 +1,5 @@
 ---
-source-hash: 68e2d347ae32
+source-hash: a749debbbccf
 ---
 
 # Scorciatoie da tastiera
@@ -80,7 +80,7 @@ sistema operativo e non sono elencati qui.
 ## Promemoria
 
 Con tutte le schede chiuse, l'editor vuoto mostra un esempio a rotazione di
-cinque scorciatoie come promemoria; chiudi e riapri una scheda per vederne un
+cinque scorciatoie come promemoria; apri e chiudi una scheda per vederne un
 altro set.
 
 ## Note

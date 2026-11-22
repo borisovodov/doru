@@ -1,5 +1,5 @@
 ---
-source-hash: afdcd6785cee
+source-hash: 2512c57f34c8
 layout: home
 
 hero:
@@ -9,7 +9,7 @@ hero:
 features:
   - icon: 🗂️
     title: 本地優先
-    details: "專案就是一個 .doru 檔案（SQLite）；照片存放在它旁邊的 media 資料夾裡。沒有隱藏，沒有上傳。複製資料夾即可備份。"
+    details: "專案就是一個 .doru 檔案（SQLite）；照片存放在它旁邊的 media 資料夾裡。沒有任何隱藏，Dóru 也沒有雲端服務。複製資料夾即可備份。"
   - icon: 🤖
     title: AI 原生
     details: "整個應用程式都是 AI 原生。內建助手 Dóru AI 在本地離線執行——無需帳戶。也可以連接任何提供者——Ollama、LM Studio、雲端 API、ACP 代理人。"

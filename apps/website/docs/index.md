@@ -4,9 +4,11 @@ Dóru is genealogy for the AI era, a desktop app for your family tree. Your
 tree lives in a plain folder on your disk, works fully offline, and is
 driven by AI agents — through the built-in chat or any MCP/ACP client.
 
-- **Local-first.** Nothing leaves your computer unless you say so. A project
-  is a single `.doru` file; photos live in a `media/` folder next to it. No
-  accounts, no cloud, no telemetry — your data stays with you.
+- **Local-first.** A project is a single `.doru` file; photos live in a
+  `media/` folder next to it. No accounts, no cloud, no telemetry. Your data
+  stays on your computer unless you configure a remote AI provider — then chat
+  messages and the tree records the assistant retrieves through its tools are
+  sent to that provider. Local providers run fully offline.
 - **Open source.** The whole app is MIT-licensed — free for any use,
   modification, and redistribution, with the full source available.
 - **AI-native.** The built-in assistant, Dóru AI, runs entirely on your
