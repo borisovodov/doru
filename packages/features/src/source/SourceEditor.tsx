@@ -1,4 +1,4 @@
-import { IconButton, useAutoFocusSelect } from '@doru/ui';
+import { IconButton, InlineError, useAutoFocusSelect } from '@doru/ui';
 import { useState, type FocusEventHandler, type ReactNode } from 'react';
 import { Input } from '@doru/ui';
 import { Select, Textarea } from '@doru/ui';
@@ -412,24 +412,34 @@ export function SourceEditor({
 /** Creates a repository by name only — the full repository editor comes later. */
 function NewRepositoryInput({ onAddRepository }: { onAddRepository: (repository: RepositoryRecord) => Promise<void> }) {
   const [name, setName] = useState('');
+  const [failed, setFailed] = useState(false);
   const create = async () => {
     const trimmed = name.trim();
     if (trimmed === '') {
       return;
     }
-    await onAddRepository({ id: crypto.randomUUID(), name: trimmed });
-    setName('');
+    setFailed(false);
+    try {
+      await onAddRepository({ id: crypto.randomUUID(), name: trimmed });
+      setName('');
+    } catch {
+      setFailed(true);
+    }
   };
   return (
     <div className="source-sub-row new-repository">
       <Input
         placeholder={nls.t('features.tree.source.repositories.new')}
         value={name}
-        onChange={(event) => setName(event.target.value)}
+        onChange={(event) => {
+          setFailed(false);
+          setName(event.target.value);
+        }}
       />
       <Button variant="secondary" onClick={() => void create()}>
         {nls.t('features.tree.source.repositories.create')}
       </Button>
+      {failed ? <InlineError>{nls.t('features.tree.autosaveFailed')}</InlineError> : null}
     </div>
   );
 }

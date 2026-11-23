@@ -3,6 +3,7 @@ import { basename, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import type { ProjectBinding } from '@doru/core';
 import { APP_MENU, LocalizationService, menuPlatformOf, menuVisible, resolveLocale } from '@doru/platform';
+import { flushWindowBeforeClose, hasFlushedBeforeClose } from './closeGuard';
 import { closeProjectRuntime } from './runtime';
 import { updateSession } from './session';
 import { projectWindows, untitledProjects, windowProject } from './state';
@@ -202,6 +203,25 @@ export function createWindow(projectKey: string | null): BrowserWindow {
   if (process.platform === 'darwin') {
     app.focus({ steal: true });
   }
+
+  let closePending = false;
+  window.on('close', (event) => {
+    if (hasFlushedBeforeClose(window)) {
+      return;
+    }
+    event.preventDefault();
+    if (closePending) {
+      return;
+    }
+    closePending = true;
+    void flushWindowBeforeClose(window).then((saved) => {
+      closePending = false;
+      if (!saved || window.isDestroyed()) {
+        return;
+      }
+      window.close();
+    });
+  });
 
   window.on('closed', () => {
     const boundProject = windowProject.get(webContentsId);

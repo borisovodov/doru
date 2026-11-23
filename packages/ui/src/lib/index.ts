@@ -2,6 +2,7 @@ export { cx } from './cx';
 export { useAutoFocusSelect } from './useAutoFocusSelect';
 export {
   AutoSaveTabProvider,
+  flushAllAutoSaves,
   flushAutoSaves,
   hasAutoSaves,
   registerAutoSaveFlush,

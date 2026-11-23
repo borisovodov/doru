@@ -4,7 +4,7 @@ import { PersonEditor } from './PersonEditor';
 import type { MediaTargetApi, PersonEditorApi } from './types';
 import { nls } from '../nls';
 import { AutoSaveError } from '../autoSaveFeedback';
-import { Button, DangerZone, useAutoSaveOnBlur } from '@doru/ui';
+import { Button, DangerZone, InlineError, useAutoSaveOnBlur } from '@doru/ui';
 import { draftToRecord, newPersonDraft, personDraftMatches, personToDraft, type PersonDraft } from '@doru/ui/domain';
 
 const sameDraftValue = (left: unknown, right: unknown): boolean => JSON.stringify(left) === JSON.stringify(right);
@@ -160,67 +160,74 @@ function PersonTabBody({
   }, [personId, persons, isNew]);
 
   const [created, setCreated] = useState(false);
+  const [saveError, setSaveError] = useState(false);
 
   const save = async () => {
-    const before = committedRef.current ?? persons.find((entry) => entry.id === draft.id);
-    const next = draftToRecord(draft, before);
-    if (before === undefined) {
-      await api.addPerson(next);
-      setCreated(true);
-      onCreated(next.id);
-      return;
-    }
-    const submission = draft;
-    const token = {};
-    submissionTokenRef.current = token;
-    submittedRef.current = submission;
+    setSaveError(false);
     try {
-      await api.updatePerson(before, next);
-      if (submissionTokenRef.current === token) {
-        committedRef.current = next;
-        submittedRecordRef.current = next;
+      const before = committedRef.current ?? persons.find((entry) => entry.id === draft.id);
+      const next = draftToRecord(draft, before);
+      if (before === undefined) {
+        await api.addPerson(next);
+        setCreated(true);
+        onCreated(next.id);
+        return;
       }
-    } catch (error) {
-      if (submissionTokenRef.current === token) {
-        // Retry from the latest published snapshot rather than reusing a
-        // baseline whose facts another writer may have deleted.
-        committedRef.current = undefined;
-        if (submittedRef.current === submission) {
-          submittedRef.current = undefined;
-          submittedRecordRef.current = undefined;
+      const submission = draft;
+      const token = {};
+      submissionTokenRef.current = token;
+      submittedRef.current = submission;
+      try {
+        await api.updatePerson(before, next);
+        if (submissionTokenRef.current === token) {
+          committedRef.current = next;
+          submittedRecordRef.current = next;
         }
+      } catch (error) {
+        if (submissionTokenRef.current === token) {
+          // Retry from the latest published snapshot rather than reusing a
+          // baseline whose facts another writer may have deleted.
+          committedRef.current = undefined;
+          if (submittedRef.current === submission) {
+            submittedRef.current = undefined;
+            submittedRecordRef.current = undefined;
+          }
+        }
+        throw error;
       }
+      const persisted = personToDraft(next);
+      setDraft((current) => {
+        const patch: Partial<PersonDraft> = {};
+        if (current.sex === draft.sex) {
+          patch.sex = persisted.sex;
+          patch.sexTouched = false;
+        }
+        if (current.deathStatus === draft.deathStatus) {
+          patch.deathStatus = persisted.deathStatus;
+          patch.deathStatusTouched = false;
+        }
+        if (current.addressId === draft.addressId) {
+          patch.addressId = persisted.addressId;
+          patch.addressTouched = false;
+        }
+        if (sameDraftValue(current.names, draft.names)) {
+          patch.names = persisted.names;
+          patch.namesTouched = false;
+        }
+        if (sameDraftValue(current.birth, draft.birth)) {
+          patch.birth = persisted.birth;
+          patch.birthTouched = false;
+        }
+        if (sameDraftValue(current.death, draft.death)) {
+          patch.death = persisted.death;
+          patch.deathTouched = false;
+        }
+        return Object.keys(patch).length > 0 ? { ...current, ...patch } : current;
+      });
+    } catch (error) {
+      setSaveError(true);
       throw error;
     }
-    const persisted = personToDraft(next);
-    setDraft((current) => {
-      const patch: Partial<PersonDraft> = {};
-      if (current.sex === draft.sex) {
-        patch.sex = persisted.sex;
-        patch.sexTouched = false;
-      }
-      if (current.deathStatus === draft.deathStatus) {
-        patch.deathStatus = persisted.deathStatus;
-        patch.deathStatusTouched = false;
-      }
-      if (current.addressId === draft.addressId) {
-        patch.addressId = persisted.addressId;
-        patch.addressTouched = false;
-      }
-      if (sameDraftValue(current.names, draft.names)) {
-        patch.names = persisted.names;
-        patch.namesTouched = false;
-      }
-      if (sameDraftValue(current.birth, draft.birth)) {
-        patch.birth = persisted.birth;
-        patch.birthTouched = false;
-      }
-      if (sameDraftValue(current.death, draft.death)) {
-        patch.death = persisted.death;
-        patch.deathTouched = false;
-      }
-      return Object.keys(patch).length > 0 ? { ...current, ...patch } : current;
-    });
   };
 
   const autoSave = useAutoSaveOnBlur({
@@ -238,14 +245,20 @@ function PersonTabBody({
       onBlur={autoSave.onBlur}
       draft={draft}
       persons={persons}
-      onChange={setDraft}
-      onSave={() => void save()}
+      onChange={(next) => {
+        setSaveError(false);
+        setDraft(next);
+      }}
+      onSave={() => void save().catch(() => undefined)}
       onCancel={draft.isNew && !created ? () => onClose() : undefined}
       api={api}
       mediaApi={mediaApi}
       onOpenMedia={onOpenMedia}
       notice={
-        <AutoSaveError failed={autoSave.failed} retryDisabled={autoSave.pendingDelete} onRetry={autoSave.retry} />
+        <>
+          <AutoSaveError failed={autoSave.failed} retryDisabled={autoSave.pendingDelete} onRetry={autoSave.retry} />
+          {isNew && saveError ? <InlineError>{nls.t('features.tree.autosaveFailed')}</InlineError> : null}
+        </>
       }
       footer={
         !isNew && record !== undefined ? (

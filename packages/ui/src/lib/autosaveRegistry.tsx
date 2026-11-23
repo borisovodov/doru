@@ -65,3 +65,9 @@ export async function flushAutoSaves(tabId: string): Promise<boolean> {
   }
   return false;
 }
+
+/** Flushes every open editor; used before the whole window closes. */
+export async function flushAllAutoSaves(): Promise<boolean> {
+  const results = await Promise.all([...flushes.keys()].map((tabId) => flushAutoSaves(tabId)));
+  return results.every(Boolean);
+}

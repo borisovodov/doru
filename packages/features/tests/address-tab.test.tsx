@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { fireEvent, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, screen, waitFor } from '@testing-library/react';
 import { AddressTab } from '@doru/features/registries';
 import type { AddressRecord } from '@doru/core';
 import type { RegistriesEditorApi } from '../src/person';
@@ -68,6 +68,36 @@ describe('AddressTab', () => {
     fireEvent.blur(street, { relatedTarget: document.body });
     await waitFor(() => expect(addAddress).toHaveBeenCalledTimes(1));
     expect(updateAddress).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not accept edits until the stored address has loaded', async () => {
+    let resolveLoaded!: (value: AddressRecord | undefined) => void;
+    const getAddress = vi.fn(
+      () =>
+        new Promise<AddressRecord | undefined>((resolve) => {
+          resolveLoaded = resolve;
+        }),
+    );
+    const api = apiStub({ getAddress });
+
+    renderUi(
+      <AddressTab
+        entityId="A1"
+        addresses={[record]}
+        facts={[]}
+        repositories={[]}
+        submitters={[]}
+        sources={[]}
+        api={api}
+        onClose={vi.fn()}
+        onOpenSource={vi.fn()}
+        onCreated={vi.fn()}
+      />,
+    );
+
+    expect(screen.queryByDisplayValue('Main street 1')).not.toBeInTheDocument();
+    await act(async () => resolveLoaded(record));
+    expect(await screen.findByDisplayValue('Main street 1')).toBeInTheDocument();
   });
 
   it('shows a failed save when creating an address fails', async () => {

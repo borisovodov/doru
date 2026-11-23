@@ -98,6 +98,9 @@ function AddressTabBody({
   const usageCount = usage.facts + usage.repositories + usage.submitters;
 
   const save = async () => {
+    if (!addressLoaded) {
+      throw new Error('The address is still loading.');
+    }
     if (addressDraftEmpty(address)) {
       throw new Error('An address must have at least one field.');
     }
@@ -146,20 +149,22 @@ function AddressTabBody({
       />
       <AutoSaveError failed={autoSave.failed} retryDisabled={autoSave.pendingDelete} onRetry={autoSave.retry} />
       <SectionCard title={nls.t('features.tree.address.title')}>
-        <AddressFields
-          address={address}
-          autoFocus={isNew}
-          onChange={setAddress}
-          renderAttachments={(lineId) => (
-            <AttachmentsPanel
-              targetType="address_line"
-              targetId={lineId}
-              api={api}
-              sources={sources}
-              onOpenSource={onOpenSource}
-            />
-          )}
-        />
+        {addressLoaded ? (
+          <AddressFields
+            address={address}
+            autoFocus={isNew}
+            onChange={setAddress}
+            renderAttachments={(lineId) => (
+              <AttachmentsPanel
+                targetType="address_line"
+                targetId={lineId}
+                api={api}
+                sources={sources}
+                onOpenSource={onOpenSource}
+              />
+            )}
+          />
+        ) : null}
         {addressSaveFailed && (
           <p className="side-registries-note" role="alert">
             {nls.t('features.tree.address.saveFailed')}

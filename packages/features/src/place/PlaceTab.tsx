@@ -4,7 +4,7 @@ import { AttachmentsPanel, CitationAttachments, NoteAttachments, useAttachments 
 import { MediaSection } from '../media/MediaSection';
 import { AutoSaveError } from '../autoSaveFeedback';
 import { EntityTab } from '../sidebar';
-import { Button, DangerZone, useAutoSaveOnBlur } from '@doru/ui';
+import { Button, DangerZone, InlineError, useAutoSaveOnBlur } from '@doru/ui';
 import type { MediaTargetApi, PlaceEditorApi } from '../person/types';
 import { PlaceEditor } from './PlaceEditor';
 import { PlaceFactsList } from './PlaceFactsList';
@@ -133,6 +133,7 @@ function PlaceTabBody({
     isNew ? newPlaceDraft() : record ? placeToDraft(record) : newPlaceDraft(),
   );
   const [lastSaved, setLastSaved] = useState<PlaceRecord | undefined>(record);
+  const [saveError, setSaveError] = useState(false);
   const recordRef = useRef(record);
   const draftRef = useRef(draft);
   const baselineRef = useRef(record);
@@ -195,40 +196,46 @@ function PlaceTabBody({
   }, [record, isNew]);
 
   const save = async () => {
-    const target = lastSaved ?? record;
-    const base = lastSaved ?? record ?? baselineRef.current;
-    const next = placeDraftToRecord(draftRef.current, base);
-    if (isNew && lastSaved === undefined) {
-      await api.addPlace(next);
-      onCreated(next.id);
-    } else {
-      if (target === undefined) {
-        return;
-      }
-      const submission = draftRef.current;
-      const token = {};
-      submissionTokenRef.current = token;
-      submittedRef.current = submission;
-      submittedBaselineRef.current = base !== undefined ? placeToDraft(base) : undefined;
-      try {
-        await api.updatePlace(target, next);
-        if (submissionTokenRef.current === token) {
-          submittedRecordRef.current = next;
+    setSaveError(false);
+    try {
+      const target = lastSaved ?? record;
+      const base = lastSaved ?? record ?? baselineRef.current;
+      const next = placeDraftToRecord(draftRef.current, base);
+      if (isNew && lastSaved === undefined) {
+        await api.addPlace(next);
+        onCreated(next.id);
+      } else {
+        if (target === undefined) {
+          return;
         }
-      } catch (error) {
-        if (submissionTokenRef.current === token && submittedRef.current === submission) {
-          submittedRef.current = undefined;
-          submittedBaselineRef.current = undefined;
-          submittedRecordRef.current = undefined;
+        const submission = draftRef.current;
+        const token = {};
+        submissionTokenRef.current = token;
+        submittedRef.current = submission;
+        submittedBaselineRef.current = base !== undefined ? placeToDraft(base) : undefined;
+        try {
+          await api.updatePlace(target, next);
+          if (submissionTokenRef.current === token) {
+            submittedRecordRef.current = next;
+          }
+        } catch (error) {
+          if (submissionTokenRef.current === token && submittedRef.current === submission) {
+            submittedRef.current = undefined;
+            submittedBaselineRef.current = undefined;
+            submittedRecordRef.current = undefined;
+          }
+          throw error;
         }
-        throw error;
+        if (submissionTokenRef.current !== token) {
+          return;
+        }
       }
-      if (submissionTokenRef.current !== token) {
-        return;
-      }
+      baselineRef.current = next;
+      setLastSaved(next);
+    } catch (error) {
+      setSaveError(true);
+      throw error;
     }
-    baselineRef.current = next;
-    setLastSaved(next);
   };
 
   const autoSave = useAutoSaveOnBlur({
@@ -267,11 +274,17 @@ function PlaceTabBody({
         draft={draft}
         onBlur={autoSave.onBlur}
         notice={
-          <AutoSaveError failed={autoSave.failed} retryDisabled={autoSave.pendingDelete} onRetry={autoSave.retry} />
+          <>
+            <AutoSaveError failed={autoSave.failed} retryDisabled={autoSave.pendingDelete} onRetry={autoSave.retry} />
+            {isNew && saveError ? <InlineError>{nls.t('features.tree.autosaveFailed')}</InlineError> : null}
+          </>
         }
-        onChange={setDraft}
+        onChange={(next) => {
+          setSaveError(false);
+          setDraft(next);
+        }}
         places={places}
-        onSave={() => void save()}
+        onSave={() => void save().catch(() => undefined)}
         renderAttachments={(linkId) => (
           <AttachmentsPanel
             targetType="place_hierarchy"

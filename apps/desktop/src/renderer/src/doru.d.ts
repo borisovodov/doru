@@ -75,6 +75,8 @@ declare global {
       createChatSession(projectKey: string): Promise<ChatSessionMeta>;
       deleteChatSession(projectKey: string, id: string): Promise<void>;
       getChatTranscript(projectKey: string, id: string): Promise<ChatTranscriptMessage[]>;
+      /** Persists every open editor before the window is allowed to close. */
+      onFlushAutosaves(callback: () => Promise<boolean>): () => void;
       /** Fires when the project file changed on disk outside the app (agents, MCP clients). */
       onTreeExternalChange(callback: () => void): () => void;
       getThemeState(): Promise<{

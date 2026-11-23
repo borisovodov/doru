@@ -68,6 +68,13 @@ export function useRegistryAddress(api: RegistriesEditorApi, addressId: string |
     }
     if (addressDraftEmpty(address)) {
       setAddressBefore(undefined);
+      // The stored row still exists; drop every identity so a later save
+      // inserts a fresh address instead of colliding with it.
+      setAddress((current) => ({
+        ...current,
+        id: undefined,
+        lines: current.lines.map((line) => ({ ...line, id: undefined })),
+      }));
       return undefined;
     }
     const submitted = address;

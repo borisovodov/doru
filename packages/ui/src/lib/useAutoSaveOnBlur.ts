@@ -31,6 +31,7 @@ export function useAutoSaveOnBlur({ enabled, isDirty, save }: AutoSaveOnBlurOpti
   const flushPromiseRef = useRef<Promise<boolean> | null>(null);
   const queuedRef = useRef<boolean>(false);
   const deletePendingRef = useRef<boolean>(false);
+  const deletedRef = useRef<boolean>(false);
   const [failed, setFailed] = useState(false);
   const [pendingDelete, setPendingDelete] = useState(false);
 
@@ -117,6 +118,7 @@ export function useAutoSaveOnBlur({ enabled, isDirty, save }: AutoSaveOnBlurOpti
     cancelledRef.current = true;
     closeBlockedRef.current = true;
     deletePendingRef.current = true;
+    deletedRef.current = false;
     queuedRef.current = false;
     if (mountedRef.current) {
       setPendingDelete(true);
@@ -128,6 +130,7 @@ export function useAutoSaveOnBlur({ enabled, isDirty, save }: AutoSaveOnBlurOpti
     cancelledRef.current = false;
     closeBlockedRef.current = false;
     deletePendingRef.current = false;
+    deletedRef.current = false;
     if (mountedRef.current) {
       setPendingDelete(false);
     }
@@ -137,6 +140,7 @@ export function useAutoSaveOnBlur({ enabled, isDirty, save }: AutoSaveOnBlurOpti
   const release = useCallback(() => {
     closeBlockedRef.current = false;
     deletePendingRef.current = false;
+    deletedRef.current = true;
     if (mountedRef.current) {
       setPendingDelete(false);
     }
@@ -148,6 +152,7 @@ export function useAutoSaveOnBlur({ enabled, isDirty, save }: AutoSaveOnBlurOpti
     }
     cancelledRef.current = false;
     closeBlockedRef.current = false;
+    deletedRef.current = false;
     void flush();
   }, [flush]);
 
@@ -169,7 +174,9 @@ export function useAutoSaveOnBlur({ enabled, isDirty, save }: AutoSaveOnBlurOpti
     }
     return registerAutoSaveFlush(tabId, {
       flush: flushForClose,
-      isDirty: () => !cancelledRef.current && dirtyRef.current(),
+      // A pending delete keeps the editor registered and dirty; only a
+      // successful release (the entity is gone) makes the draft clean.
+      isDirty: () => !deletedRef.current && dirtyRef.current(),
     });
   }, [enabled, flushForClose, tabId]);
 

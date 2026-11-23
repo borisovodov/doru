@@ -56,6 +56,15 @@ const api = {
     ipcRenderer.invoke('chat:sessions:delete', { projectKey, id }),
   getChatTranscript: (projectKey: string, id: string): Promise<unknown> =>
     ipcRenderer.invoke('chat:sessions:transcript', { projectKey, id }),
+  onFlushAutosaves: (callback: () => Promise<boolean>): (() => void) => {
+    const listener = (_event: unknown, id: string) => {
+      void callback()
+        .then((ok) => ipcRenderer.send('app:flush-autosaves:result', id, ok))
+        .catch(() => ipcRenderer.send('app:flush-autosaves:result', id, false));
+    };
+    ipcRenderer.on('app:flush-autosaves', listener);
+    return () => ipcRenderer.removeListener('app:flush-autosaves', listener);
+  },
   onTreeExternalChange: (callback: () => void): (() => void) => {
     const listener = () => callback();
     ipcRenderer.on('tree:externalChange', listener);

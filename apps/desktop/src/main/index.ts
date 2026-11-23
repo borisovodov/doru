@@ -7,6 +7,7 @@ import { pathToFileURL } from 'node:url';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { DoruMcpServer, TreeMcpBackend } from '@doru/ai';
 import { RecentProjects } from '@doru/core';
+import { flushWindowBeforeClose, hasFlushedBeforeClose } from './closeGuard';
 import { watchSettings } from './settings';
 import { registerChatIpc } from './ipc-chat';
 import { registerMenuIpc } from './ipc-menu';
@@ -298,6 +299,25 @@ if (gotLock) {
     closeAllRuntimes();
     void stopDoruServer();
     removeMcpScratchUserData();
+  });
+
+  let quitFlushPending = false;
+  app.on('before-quit', (event) => {
+    const windows = BrowserWindow.getAllWindows().filter((window) => !window.isDestroyed());
+    if (windows.length === 0 || windows.every(hasFlushedBeforeClose)) {
+      return;
+    }
+    event.preventDefault();
+    if (quitFlushPending) {
+      return;
+    }
+    quitFlushPending = true;
+    void Promise.all(windows.map((window) => flushWindowBeforeClose(window))).then((results) => {
+      quitFlushPending = false;
+      if (results.every(Boolean)) {
+        app.quit();
+      }
+    });
   });
 
   app.on('window-all-closed', () => {

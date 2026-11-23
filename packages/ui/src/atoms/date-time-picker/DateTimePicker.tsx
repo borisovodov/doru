@@ -123,7 +123,14 @@ export function DateTimePicker({
         value={value}
         invalid={invalid || ariaInvalid === true}
         aria-describedby={describedBy}
-        onChange={(event) => onChange(event.target.value)}
+        onChange={(event) => {
+          onChange(event.target.value);
+          // Manual entry can move the date to another month; close the
+          // calendar instead of leaving it on a stale month.
+          if (open) {
+            setOpen(false);
+          }
+        }}
       />
       <IconButton
         ref={triggerRef}

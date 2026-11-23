@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Save } from 'lucide-react';
-import { AppMenu, AutoSaveTabProvider, IconButton } from '@doru/ui';
+import { AppMenu, AutoSaveTabProvider, IconButton, flushAllAutoSaves } from '@doru/ui';
 import { ChatPanel, ChatSetupPlaceholder, EmptyEditorPage, WelcomePage } from '@doru/features';
 import { Workbench, nls, type ActivityViewId } from '@doru/workbench';
 import { setSystemLocale } from '@doru/platform';
@@ -57,6 +57,8 @@ export function App() {
   const theme = useTheme();
   const { commands, keybindings } = useAppCommands(project, tabs, tree);
   const [version, setVersion] = useState('');
+
+  useEffect(() => window.doru.onFlushAutosaves(() => flushAllAutoSaves()), []);
 
   useEffect(() => {
     void window.doru.getAbout().then((info) => {

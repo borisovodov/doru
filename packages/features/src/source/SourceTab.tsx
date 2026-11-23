@@ -12,7 +12,7 @@ import type {
 } from '@doru/core';
 import { CitationAttachments, NoteAttachments, useAttachments } from '../attachments';
 import { AutoSaveError } from '../autoSaveFeedback';
-import { Button, DangerZone, useAutoSaveOnBlur } from '@doru/ui';
+import { Button, DangerZone, InlineError, useAutoSaveOnBlur } from '@doru/ui';
 import { MediaSection } from '../media/MediaSection';
 import { EntityTab, SourceCitationsList } from '../sidebar';
 import type { MediaTargetApi, SourceEditorApi } from '../person/types';
@@ -146,6 +146,7 @@ function SourceTabBody({
     isNew ? newSourceDraft() : record ? sourceToDraft(record) : newSourceDraft(),
   );
   const [lastSaved, setLastSaved] = useState<SourceRecord | undefined>(record);
+  const [saveError, setSaveError] = useState(false);
   const [repositories, setRepositories] = useState<RepositoryRecord[]>([]);
   const [titles, setTitles] = useState<TitleRecord[]>([]);
   const recordRef = useRef(record);
@@ -267,6 +268,7 @@ function SourceTabBody({
     if (savingRef.current) {
       return;
     }
+    setSaveError(false);
     savingRef.current = true;
     try {
       const target = lastSaved ?? record;
@@ -287,6 +289,7 @@ function SourceTabBody({
           await api.updateSource(target, next);
         }
       } catch (error) {
+        setSaveError(true);
         if (submittedRef.current === submission) {
           submittedRef.current = undefined;
           refreshBaselineRef.current = undefined;
@@ -332,9 +335,15 @@ function SourceTabBody({
         isNew={isNew}
         onBlur={autoSave.onBlur}
         notice={
-          <AutoSaveError failed={autoSave.failed} retryDisabled={autoSave.pendingDelete} onRetry={autoSave.retry} />
+          <>
+            <AutoSaveError failed={autoSave.failed} retryDisabled={autoSave.pendingDelete} onRetry={autoSave.retry} />
+            {isNew && saveError ? <InlineError>{nls.t('features.tree.autosaveFailed')}</InlineError> : null}
+          </>
         }
-        onChange={setDraft}
+        onChange={(next) => {
+          setSaveError(false);
+          setDraft(next);
+        }}
         repositories={repositories}
         titles={titles}
         places={places}
@@ -342,7 +351,7 @@ function SourceTabBody({
           await api.addRepository(repository);
           setRepositories(await api.getRepositories());
         }}
-        onSave={() => void save()}
+        onSave={() => void save().catch(() => undefined)}
       />
       {currentSource !== undefined && (
         <>

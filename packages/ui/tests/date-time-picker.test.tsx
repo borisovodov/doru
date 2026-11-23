@@ -109,6 +109,22 @@ describe('DateTimePicker', () => {
     expect(onChange).toHaveBeenLastCalledWith('2026-11-10T09:00');
   });
 
+  it('closes the calendar when manual entry changes the date', () => {
+    const { container } = renderUi(
+      <DateTimePicker value="2026-11-22T18:30" onChange={() => undefined} locale="en" labels={labels} />,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: labels.chooseDate }));
+    expect(screen.getByRole('dialog', { name: labels.chooseDate })).toBeInTheDocument();
+
+    const input = container.querySelector('input[type="datetime-local"]');
+    if (input === null) {
+      throw new Error('the picker input is missing');
+    }
+    fireEvent.change(input, { target: { value: '2026-12-03T18:30' } });
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+  });
+
   it('closes on Escape and returns focus to the trigger', () => {
     renderUi(<DateTimePicker value="2026-11-22T18:30" onChange={() => undefined} locale="en" labels={labels} />);
 

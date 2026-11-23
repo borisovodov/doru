@@ -1,5 +1,5 @@
-import { useMemo, useState } from 'react';
-import { Button, DangerZone, EntityViewCard, SectionCard, useAutoSaveOnBlur } from '@doru/ui';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { Button, DangerZone, EntityViewCard, InlineError, SectionCard, useAutoSaveOnBlur } from '@doru/ui';
 import { MEDIA_VISIBLE } from '@doru/platform';
 import { AutoSaveError } from '../autoSaveFeedback';
 import { ListTodo } from 'lucide-react';
@@ -33,6 +33,21 @@ import {
   type TaskDraft,
 } from '@doru/ui/domain';
 import { nls } from '../nls';
+
+/** Keeps locally edited task fields while adopting refreshed untouched ones. */
+function mergeTaskDraft(current: TaskDraft, base: TaskDraft, refreshed: TaskDraft): TaskDraft {
+  const field = <K extends keyof TaskDraft>(key: K): TaskDraft[K] =>
+    current[key] === base[key] ? refreshed[key] : current[key];
+  return {
+    text: field('text'),
+    priority: field('priority'),
+    status: field('status'),
+    scheduledAt: field('scheduledAt'),
+    reminderAt: field('reminderAt'),
+    targetType: field('targetType'),
+    targetId: field('targetId'),
+  };
+}
 
 /** Media targets stay out of the picker while media editing is hidden. */
 const VISIBLE_TARGET_TYPES = MEDIA_VISIBLE
@@ -161,15 +176,34 @@ function TaskTabBody({
   onCreated: (realId: string) => void;
 }) {
   const base = record ?? { id: crypto.randomUUID(), text: '' };
+  const recordRef = useRef(record);
+  const savedRef = useRef<TaskRecord>(record ?? base);
   const [lastSaved, setLastSaved] = useState<TaskRecord | undefined>(record);
+  const [saveError, setSaveError] = useState(false);
   const [draft, setDraft] = useState<TaskDraft>(() =>
     isNew ? { ...emptyTaskDraft(), text: nls.t('features.tasks.newTask') } : taskToDraft(base),
   );
+
+  // Adopt external task changes for fields that are not locally edited.
+  useEffect(() => {
+    if (record === undefined || record === recordRef.current) {
+      return;
+    }
+    const previous = recordRef.current;
+    recordRef.current = record;
+    savedRef.current = record;
+    setLastSaved(record);
+    const baseDraft = previous !== undefined ? taskToDraft(previous) : taskToDraft(record);
+    setDraft((current) => mergeTaskDraft(current, baseDraft, taskToDraft(record)));
+  }, [record]);
   const invalidTimestamp = taskDraftHasInvalidTimestamp(draft);
   const targetId = lastSaved?.id ?? record?.id;
   const displayTitle = draft.text.trim() !== '' ? draft.text.trim() : isNew ? nls.t('features.tasks.newTask') : '—';
 
-  const patch = (update: Partial<TaskDraft>) => setDraft((current) => ({ ...current, ...update }));
+  const patch = (update: Partial<TaskDraft>) => {
+    setSaveError(false);
+    setDraft((current) => ({ ...current, ...update }));
+  };
 
   const targetData = useMemo(
     () => ({
@@ -212,26 +246,32 @@ function TaskTabBody({
   }
 
   const save = async () => {
+    setSaveError(false);
     if (draft.text.trim() === '' || invalidTimestamp) {
       throw new Error('The task text and timestamp must be valid before saving.');
     }
-    const after = taskDraftToRecord(base, draft);
-    if (isNew && lastSaved === undefined) {
-      await api.addTask(after);
-      onCreated(after.id);
-    } else {
-      await api.updateTask(lastSaved ?? base, after);
+    const before = savedRef.current;
+    const after = taskDraftToRecord(before, draft);
+    try {
+      if (isNew && lastSaved === undefined) {
+        await api.addTask(after);
+        onCreated(after.id);
+      } else {
+        await api.updateTask(before, after);
+      }
+      savedRef.current = after;
+      setLastSaved(after);
+    } catch (error) {
+      setSaveError(true);
+      throw error;
     }
-    setLastSaved(after);
   };
 
   const autoSave = useAutoSaveOnBlur({
     enabled: !isNew,
     isDirty: () => {
-      const persisted = lastSaved ?? record;
-      return (
-        persisted !== undefined && JSON.stringify(taskDraftToRecord(persisted, draft)) !== JSON.stringify(persisted)
-      );
+      const persisted = savedRef.current;
+      return JSON.stringify(taskDraftToRecord(persisted, draft)) !== JSON.stringify(persisted);
     },
     save,
   });
@@ -256,7 +296,7 @@ function TaskTabBody({
               size="sm"
               data-autosave-skip="true"
               disabled={draft.text.trim() === '' || invalidTimestamp}
-              onClick={() => void save()}
+              onClick={() => void save().catch(() => undefined)}
             >
               {nls.t('features.tree.create')}
             </Button>
@@ -264,6 +304,7 @@ function TaskTabBody({
         }
       />
       <AutoSaveError failed={autoSave.failed} retryDisabled={autoSave.pendingDelete} onRetry={autoSave.retry} />
+      {isNew && saveError ? <InlineError>{nls.t('features.tree.autosaveFailed')}</InlineError> : null}
 
       <SectionCard title={nls.t('features.tree.details')}>
         <TaskEditorFields
