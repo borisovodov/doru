@@ -208,6 +208,7 @@ export function NamesSection({
             expandedPartId={expandedPartId}
             onTogglePart={(partId) => setExpandedPartId(expandedPartId === partId ? null : partId)}
             renderPartAttachments={renderPartAttachments}
+            onNameRemoved={onNameRemoved}
           />
           <details className={styles['vendorFields']}>
             <summary>{nls.t('features.tree.names.additional')}</summary>

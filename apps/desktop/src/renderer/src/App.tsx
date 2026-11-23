@@ -123,9 +123,10 @@ export function App() {
     async (info: ProjectBinding) => {
       // The autosave flush runs against the current render's project path;
       // a transfer barrier guarantees it is clean before this reset.
-      if (!(await tabs.resetToTree())) {
-        return;
-      }
+      await tabs.resetToTree();
+      // After Save As the old store is gone, so the new binding is the only
+      // place a kept tab can retry its failed write. Install it even when a
+      // draft could not be flushed; the editor keeps its failure state.
       setProjectPath(info.path);
       setProjectUntitled(info.untitled);
       setUntitledName(info.untitled ? info.name : null);

@@ -284,143 +284,147 @@ export async function saveProject(projectKey: string): Promise<ProjectBinding | 
   if (!untitled) {
     return null;
   }
-  const parent = projectWindows.get(projectKey) ?? focusedWindow();
-  const dialogOptions: SaveDialogOptions = {
-    filters: [{ name: nls.t('project.dialog.open.filter'), extensions: ['doru'] }],
-    title: nls.t('project.dialog.save.title'),
-    buttonLabel: nls.t('project.dialog.save.button'),
-    defaultPath: `${untitled.name.replace(/\.(ged|gdz)$/i, '')}.doru`,
-  };
-  const result =
-    parent !== null ? await dialog.showSaveDialog(parent, dialogOptions) : await dialog.showSaveDialog(dialogOptions);
-  if (result.canceled || !result.filePath) {
+  if (savingProjects.has(projectKey)) {
     return null;
   }
-  const filePath = result.filePath.toLowerCase().endsWith(TREE_FILE_EXTENSION)
-    ? result.filePath
-    : `${result.filePath}${TREE_FILE_EXTENSION}`;
-  const openElsewhere = projectWindows.get(filePath);
-  if (openElsewhere && !openElsewhere.isDestroyed()) {
-    const message = nls.t('project.dialog.error.openInAnotherWindow');
-    if (parent) {
-      await dialog.showMessageBox(parent, { type: 'error', message });
-    } else {
-      dialog.showErrorBox(nls.t('project.dialog.save.title'), message);
-    }
-    return null;
-  }
-
-  // Pending drafts belong to the temporary store; block editing, then
-  // persist them before the store closes so a failed write cannot discard
-  // the editor's work. The barrier stays until the window is rebound.
-  const sourceWindow = projectWindows.get(projectKey);
-  const setTransfer = (active: boolean): void => {
-    if (sourceWindow && !sourceWindow.isDestroyed()) {
-      sourceWindow.webContents.send('project:transfer', active);
-    }
-  };
-  setTransfer(true);
-  if (sourceWindow && !sourceWindow.isDestroyed() && !(await requestRendererAutosaves(sourceWindow))) {
-    setTransfer(false);
-    const message = nls.t('project.dialog.error.saveFailed', nls.t('features.tree.autosaveFailed'));
-    if (parent) {
-      await dialog.showMessageBox(parent, { type: 'error', message });
-    } else {
-      dialog.showErrorBox(nls.t('project.dialog.save.title'), message);
-    }
-    return null;
-  }
-
-  // Flush and detach the temporary store before moving its files. The
-  // temporary files are kept: they are moved below.
   savingProjects.add(projectKey);
-  closeProjectRuntime(projectKey, { removeUntitledFiles: false });
   try {
-    await fs.mkdir(dirname(filePath));
-    await fs.copyFile(untitled.tempPath, filePath);
-    const tempMediaDir = join(untitled.tempDir, MEDIA_DIR_NAME);
-    if (await fs.exists(tempMediaDir)) {
-      const mediaDir = join(dirname(filePath), MEDIA_DIR_NAME);
-      await fs.mkdir(mediaDir);
-      for (const entry of await fs.readdir(tempMediaDir)) {
-        await fs.copyFile(join(tempMediaDir, entry), join(mediaDir, entry));
+    const parent = projectWindows.get(projectKey) ?? focusedWindow();
+    const dialogOptions: SaveDialogOptions = {
+      filters: [{ name: nls.t('project.dialog.open.filter'), extensions: ['doru'] }],
+      title: nls.t('project.dialog.save.title'),
+      buttonLabel: nls.t('project.dialog.save.button'),
+      defaultPath: `${untitled.name.replace(/\.(ged|gdz)$/i, '')}.doru`,
+    };
+    const result =
+      parent !== null ? await dialog.showSaveDialog(parent, dialogOptions) : await dialog.showSaveDialog(dialogOptions);
+    if (result.canceled || !result.filePath) {
+      return null;
+    }
+    const filePath = result.filePath.toLowerCase().endsWith(TREE_FILE_EXTENSION)
+      ? result.filePath
+      : `${result.filePath}${TREE_FILE_EXTENSION}`;
+    const openElsewhere = projectWindows.get(filePath);
+    if (openElsewhere && !openElsewhere.isDestroyed()) {
+      const message = nls.t('project.dialog.error.openInAnotherWindow');
+      if (parent) {
+        await dialog.showMessageBox(parent, { type: 'error', message });
+      } else {
+        dialog.showErrorBox(nls.t('project.dialog.save.title'), message);
       }
+      return null;
     }
-  } catch (error) {
-    // The temporary files stay where they were; reopen the store so the
-    // window keeps working and the project can be saved again.
+
+    // Pending drafts belong to the temporary store; block editing, then
+    // persist them before the store closes so a failed write cannot discard
+    // the editor's work. The barrier stays until the window is rebound.
+    const sourceWindow = projectWindows.get(projectKey);
+    const setTransfer = (active: boolean): void => {
+      if (sourceWindow && !sourceWindow.isDestroyed()) {
+        sourceWindow.webContents.send('project:transfer', active);
+      }
+    };
+    setTransfer(true);
+    if (sourceWindow && !sourceWindow.isDestroyed() && !(await requestRendererAutosaves(sourceWindow))) {
+      setTransfer(false);
+      const message = nls.t('project.dialog.error.saveFailed', nls.t('features.tree.autosaveFailed'));
+      if (parent) {
+        await dialog.showMessageBox(parent, { type: 'error', message });
+      } else {
+        dialog.showErrorBox(nls.t('project.dialog.save.title'), message);
+      }
+      return null;
+    }
+
+    // Flush and detach the temporary store before moving its files. The
+    // temporary files are kept: they are moved below.
+    closeProjectRuntime(projectKey, { removeUntitledFiles: false });
+    try {
+      await fs.mkdir(dirname(filePath));
+      await fs.copyFile(untitled.tempPath, filePath);
+      const tempMediaDir = join(untitled.tempDir, MEDIA_DIR_NAME);
+      if (await fs.exists(tempMediaDir)) {
+        const mediaDir = join(dirname(filePath), MEDIA_DIR_NAME);
+        await fs.mkdir(mediaDir);
+        for (const entry of await fs.readdir(tempMediaDir)) {
+          await fs.copyFile(join(tempMediaDir, entry), join(mediaDir, entry));
+        }
+      }
+    } catch (error) {
+      // The temporary files stay where they were; reopen the store so the
+      // window keeps working and the project can be saved again.
+      setTransfer(false);
+      if (sourceWindow && !sourceWindow.isDestroyed()) {
+        openUntitledStore(projectKey, untitled.tempPath);
+      } else {
+        closeProjectRuntime(projectKey);
+      }
+      const message = nls.t('project.dialog.error.saveFailed', error instanceof Error ? error.message : String(error));
+      if (parent) {
+        await dialog.showMessageBox(parent, { type: 'error', message });
+      } else {
+        dialog.showErrorBox(nls.t('project.dialog.save.title'), message);
+      }
+      return null;
+    }
+
+    let summary: ProjectSummary;
+    try {
+      ({ summary } = await ensureRuntime(filePath));
+    } catch (error) {
+      // Keep the temporary store usable: the destination copy can be reopened
+      // later, while the window must stay editable after the barrier lifts.
+      setTransfer(false);
+      if (sourceWindow && !sourceWindow.isDestroyed()) {
+        openUntitledStore(projectKey, untitled.tempPath);
+      } else {
+        closeProjectRuntime(projectKey);
+      }
+      const message = nls.t('project.dialog.error.saveFailed', error instanceof Error ? error.message : String(error));
+      if (parent) {
+        await dialog.showMessageBox(parent, { type: 'error', message });
+      } else {
+        dialog.showErrorBox(nls.t('project.dialog.save.title'), message);
+      }
+      return null;
+    }
+
+    // The destination is open; the temporary copy is no longer needed.
+    try {
+      await fs.remove(untitled.tempDir);
+    } catch (error) {
+      log.warn('could not remove the temporary project copy', error);
+    }
+    untitledProjects.delete(projectKey);
+
+    const window = projectWindows.get(projectKey);
+    projectWindows.delete(projectKey);
+    if (window && !window.isDestroyed()) {
+      bindWindowToProject(window, filePath);
+      const acknowledged = await waitForTransferAck(window);
+      if (acknowledged && !window.isDestroyed()) {
+        window.webContents.send('project:transfer', false);
+      } else if (!acknowledged) {
+        // Keep editing blocked rather than exposing the old, removed store.
+        log.error('renderer did not acknowledge the rebound project', { path: filePath });
+      }
+    } else {
+      createWindow(filePath);
+    }
+    startTreeWatcher(filePath);
+    const binding = bindingOf(filePath);
+    if (recents.current) {
+      const bookmark = await createBookmark(summary.path);
+      await recents.current.touch(summary.path, bookmark);
+    }
+    updateSession((session) => {
+      const paths = session.paths.filter((entry) => entry !== filePath);
+      return { paths: [...paths, filePath], activePath: filePath };
+    });
+    return binding;
+  } finally {
     savingProjects.delete(projectKey);
-    setTransfer(false);
-    if (sourceWindow && !sourceWindow.isDestroyed()) {
-      openUntitledStore(projectKey, untitled.tempPath);
-    } else {
-      closeProjectRuntime(projectKey);
-    }
-    const message = nls.t('project.dialog.error.saveFailed', error instanceof Error ? error.message : String(error));
-    if (parent) {
-      await dialog.showMessageBox(parent, { type: 'error', message });
-    } else {
-      dialog.showErrorBox(nls.t('project.dialog.save.title'), message);
-    }
-    return null;
   }
-
-  let summary: ProjectSummary;
-  try {
-    ({ summary } = await ensureRuntime(filePath));
-  } catch (error) {
-    // Keep the temporary store usable: the destination copy can be reopened
-    // later, while the window must stay editable after the barrier lifts.
-    savingProjects.delete(projectKey);
-    setTransfer(false);
-    if (sourceWindow && !sourceWindow.isDestroyed()) {
-      openUntitledStore(projectKey, untitled.tempPath);
-    } else {
-      closeProjectRuntime(projectKey);
-    }
-    const message = nls.t('project.dialog.error.saveFailed', error instanceof Error ? error.message : String(error));
-    if (parent) {
-      await dialog.showMessageBox(parent, { type: 'error', message });
-    } else {
-      dialog.showErrorBox(nls.t('project.dialog.save.title'), message);
-    }
-    return null;
-  }
-
-  // The destination is open; the temporary copy is no longer needed.
-  try {
-    await fs.remove(untitled.tempDir);
-  } catch (error) {
-    log.warn('could not remove the temporary project copy', error);
-  }
-  untitledProjects.delete(projectKey);
-
-  const window = projectWindows.get(projectKey);
-  projectWindows.delete(projectKey);
-  if (window && !window.isDestroyed()) {
-    bindWindowToProject(window, filePath);
-    const acknowledged = await waitForTransferAck(window);
-    if (acknowledged && !window.isDestroyed()) {
-      window.webContents.send('project:transfer', false);
-    } else if (!acknowledged) {
-      // Keep editing blocked rather than exposing the old, removed store.
-      log.error('renderer did not acknowledge the rebound project', { path: filePath });
-    }
-  } else {
-    createWindow(filePath);
-  }
-  savingProjects.delete(projectKey);
-  startTreeWatcher(filePath);
-  const binding = bindingOf(filePath);
-  if (recents.current) {
-    const bookmark = await createBookmark(summary.path);
-    await recents.current.touch(summary.path, bookmark);
-  }
-  updateSession((session) => {
-    const paths = session.paths.filter((entry) => entry !== filePath);
-    return { paths: [...paths, filePath], activePath: filePath };
-  });
-  return binding;
 }
 
 export function openExternalPath(path: string): void {

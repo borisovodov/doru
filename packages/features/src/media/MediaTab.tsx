@@ -370,7 +370,11 @@ function MediaTabBody({
       refreshed.keywords = (next ?? base).keywords;
     }
     if (!dirty.files || next !== undefined) {
-      const titles = mergeFileTitles(fileTitlesRef.current, submitted.fileTitles, fileTitlesFrom(latest.files));
+      const acknowledged =
+        next !== undefined
+          ? { ...fileTitlesFrom(latest.files), ...fileTitlesFrom(next.files) }
+          : fileTitlesFrom(latest.files);
+      const titles = mergeFileTitles(fileTitlesRef.current, submitted.fileTitles, acknowledged);
       fileTitlesRef.current = titles;
       setFileTitles(titles);
     }
