@@ -155,6 +155,30 @@ describe('placeToDraft / placeDraftToRecord', () => {
     expect(saved.postalCodes?.[0]?.date?.id).toBe('D4');
   });
 
+  it('preserves rows added externally while a local submission is pending', () => {
+    const previous = place();
+    const refreshed = place({
+      names: [
+        { id: 'N1', position: 0, value: 'Tula' },
+        { id: 'N2', position: 1, value: 'Tula Oblast' },
+      ],
+      postalCodes: [{ id: 'PC1', code: '300000' }],
+      hierarchy: [{ id: 'H1', parentId: 'PL2', type: 'poli' }],
+    });
+    const baseline = placeToDraft(previous);
+    const submitted = placeToDraft(previous);
+    submitted.names[0]!.value = 'Tula city';
+
+    const merged = mergePlaceDraft(submitted, previous, refreshed, undefined, submitted, baseline);
+
+    expect(merged.names.map((name) => [name.id, name.value])).toEqual([
+      ['N1', 'Tula city'],
+      ['N2', 'Tula Oblast'],
+    ]);
+    expect(merged.postalCodes).toEqual([expect.objectContaining({ id: 'PC1', code: '300000' })]);
+    expect(merged.hierarchy).toEqual([expect.objectContaining({ id: 'H1', parentId: 'PL2' })]);
+  });
+
   it('drops empty names, links and postal codes; parses coordinates', () => {
     const record = placeDraftToRecord({
       ...emptyPlaceDraft(),

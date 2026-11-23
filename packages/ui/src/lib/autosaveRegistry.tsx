@@ -68,6 +68,18 @@ export async function flushAutoSaves(tabId: string): Promise<boolean> {
 
 /** Flushes every open editor; used before the whole window closes. */
 export async function flushAllAutoSaves(): Promise<boolean> {
-  const results = await Promise.all([...flushes.keys()].map((tabId) => flushAutoSaves(tabId)));
-  return results.every(Boolean);
+  for (let round = 0; round < 2; round += 1) {
+    const results = await Promise.all([...flushes.keys()].map((tabId) => flushAutoSaves(tabId)));
+    if (!results.every(Boolean)) {
+      return false;
+    }
+    // A fast tab may become dirty again while a slower one is still saving;
+    // recheck every registered entry before claiming the window is safe.
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    const dirty = [...flushes.values()].some((set) => [...set].some((entry) => entry.isDirty()));
+    if (!dirty) {
+      return true;
+    }
+  }
+  return false;
 }

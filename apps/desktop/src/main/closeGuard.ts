@@ -29,6 +29,22 @@ export function hasFlushedBeforeClose(window: BrowserWindow): boolean {
   return flushed.has(window);
 }
 
+/** Drops close permissions from a quit attempt that did not complete. */
+export function forgetFlushedBeforeClose(windows: Iterable<BrowserWindow>): void {
+  for (const window of windows) {
+    flushed.delete(window);
+    inFlight.delete(window);
+  }
+}
+
+/**
+ * Asks a renderer to persist every open editor without granting a close.
+ * File moves and project rebinds use this before the old store goes away.
+ */
+export function requestRendererAutosaves(window: BrowserWindow): Promise<boolean> {
+  return requestRendererFlush(window);
+}
+
 function requestRendererFlush(window: BrowserWindow): Promise<boolean> {
   const contents = window.webContents;
   if (contents.isDestroyed() || contents.isLoading()) {

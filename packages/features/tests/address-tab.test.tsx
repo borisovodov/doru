@@ -95,6 +95,7 @@ describe('AddressTab', () => {
       />,
     );
 
+    expect(screen.queryByPlaceholderText(nls.t('features.tree.address.line'))).not.toBeInTheDocument();
     expect(screen.queryByDisplayValue('Main street 1')).not.toBeInTheDocument();
     await act(async () => resolveLoaded(record));
     expect(await screen.findByDisplayValue('Main street 1')).toBeInTheDocument();

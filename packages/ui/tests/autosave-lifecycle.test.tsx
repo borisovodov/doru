@@ -1,7 +1,13 @@
 import { describe, expect, it, vi } from 'vitest';
 import { act, renderHook } from '@testing-library/react';
 import type { ReactNode } from 'react';
-import { AutoSaveTabProvider, flushAllAutoSaves, flushAutoSaves, useAutoSaveOnBlur } from '../src/lib';
+import {
+  AutoSaveTabProvider,
+  flushAllAutoSaves,
+  flushAutoSaves,
+  registerAutoSaveFlush,
+  useAutoSaveOnBlur,
+} from '../src/lib';
 
 function provider(tabId: string) {
   return function Wrapper({ children }: { children: ReactNode }) {
@@ -50,6 +56,36 @@ describe('autosave lifecycle', () => {
     expect(await flushAutoSaves('task:t1')).toBe(true);
     expect(save).toHaveBeenCalledTimes(1);
     unmount();
+  });
+
+  it('rechecks tabs that became dirty while another tab was still saving', async () => {
+    let releaseSlow!: () => void;
+    const slow = new Promise<void>((resolve) => {
+      releaseSlow = resolve;
+    });
+    const dirty = { value: false };
+    const unregisterFast = registerAutoSaveFlush('person:fast', {
+      flush: async () => true,
+      isDirty: () => dirty.value,
+    });
+    const unregisterSlow = registerAutoSaveFlush('person:slow', {
+      flush: async () => {
+        await slow;
+        return true;
+      },
+      isDirty: () => false,
+    });
+
+    const closing = flushAllAutoSaves();
+    // Let the fast tab finish its clean check while the slow one is pending,
+    // then make the fast tab dirty as if the user typed again.
+    await new Promise((resolve) => setTimeout(resolve, 10));
+    dirty.value = true;
+    releaseSlow();
+
+    expect(await closing).toBe(false);
+    unregisterFast();
+    unregisterSlow();
   });
 
   it('flushes every registered tab before a window closes', async () => {

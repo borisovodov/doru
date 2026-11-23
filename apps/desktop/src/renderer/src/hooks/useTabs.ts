@@ -10,7 +10,7 @@ import type {
   TitleRecord,
   TaskRecord,
 } from '@doru/core';
-import { flushAutoSaves, hasAutoSaves } from '@doru/ui';
+import { flushAllAutoSaves, flushAutoSaves, hasAutoSaves } from '@doru/ui';
 import type { MediaWithPath } from '@doru/ui/domain';
 import type { TabInfo } from '@doru/workbench';
 import { tabDescriptors, tabLabel } from '../tabs/registry';
@@ -88,9 +88,13 @@ export function useTabs(
     setState((current) => replaceTabState(current, oldId, newId));
   }, []);
 
-  const resetToTree = useCallback(() => {
+  const resetToTree = useCallback(async () => {
+    if (!(await flushAllAutoSaves())) {
+      return false;
+    }
     tokensRef.current = new Map([[TREE_TAB_ID, crypto.randomUUID()]]);
     setState({ openTabs: [{ id: TREE_TAB_ID, closable: true }], activeTabId: TREE_TAB_ID });
+    return true;
   }, []);
 
   const ensureTreeTab = useCallback(() => {

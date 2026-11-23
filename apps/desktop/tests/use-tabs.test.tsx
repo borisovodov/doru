@@ -66,15 +66,42 @@ describe('useTabs', () => {
     unregisterSuccess();
   });
 
-  it('resets to the tree tab and closes back to it', () => {
+  it('resets to the tree tab and closes back to it', async () => {
     const { result } = renderTabs();
 
     act(() => result.current.open.person('p1'));
-    act(() => result.current.resetToTree());
+    await act(async () => {
+      expect(await result.current.resetToTree()).toBe(true);
+    });
     expect(result.current.openTabs.map((tab) => tab.id)).toEqual(['tree']);
 
     act(() => result.current.closeTab('tree'));
     expect(result.current.openTabs).toEqual([]);
     expect(result.current.activeTabId).toBeNull();
+  });
+
+  it('keeps tabs open when a reset-time save fails', async () => {
+    const { result } = renderTabs();
+    act(() => result.current.open.person('p1'));
+
+    const unregisterFailure = registerAutoSaveFlush('person:p1', {
+      flush: async () => false,
+      isDirty: () => true,
+    });
+    await act(async () => {
+      expect(await result.current.resetToTree()).toBe(false);
+    });
+    expect(result.current.openTabs.map((tab) => tab.id)).toEqual(['person:p1']);
+    unregisterFailure();
+
+    const unregisterSuccess = registerAutoSaveFlush('person:p1', {
+      flush: async () => true,
+      isDirty: () => false,
+    });
+    await act(async () => {
+      expect(await result.current.resetToTree()).toBe(true);
+    });
+    expect(result.current.openTabs.map((tab) => tab.id)).toEqual(['tree']);
+    unregisterSuccess();
   });
 });

@@ -14,11 +14,14 @@ function mergePersonDraft(
   base: PersonDraft,
   refreshed: PersonDraft,
   protectedDraft?: PersonDraft,
+  protectedBase?: PersonDraft,
 ): PersonDraft {
   // Fields touched by an in-flight write keep the current value (including a
-  // post-submission reversal) until the write is acknowledged.
+  // post-submission reversal) until the write is acknowledged. Compare them
+  // with the submission's baseline so a value another writer changed does not
+  // turn an untouched submitted field into a protected one.
   const protectedField = (key: keyof PersonDraft): boolean =>
-    protectedDraft !== undefined && !sameDraftValue(protectedDraft[key], base[key]);
+    protectedDraft !== undefined && !sameDraftValue(protectedDraft[key], (protectedBase ?? base)[key]);
   const names = protectedField('names') || !sameDraftValue(current.names, base.names) ? current.names : refreshed.names;
   const birth = protectedField('birth') || !sameDraftValue(current.birth, base.birth) ? current.birth : refreshed.birth;
   const death = protectedField('death') || !sameDraftValue(current.death, base.death) ? current.death : refreshed.death;
@@ -113,6 +116,7 @@ function PersonTabBody({
   const personRef = useRef(record);
   const committedRef = useRef<PersonRecord | undefined>(undefined);
   const submittedRef = useRef<PersonDraft | undefined>(undefined);
+  const submittedBaselineRef = useRef<PersonDraft | undefined>(undefined);
   const submittedRecordRef = useRef<PersonRecord | undefined>(undefined);
   const submissionTokenRef = useRef<object | undefined>(undefined);
 
@@ -138,9 +142,12 @@ function PersonTabBody({
       JSON.stringify(personToDraft(person)) === JSON.stringify(personToDraft(submittedRecord));
     const submitted = confirms ? submittedRef.current : undefined;
     const protectedDraft = submittedRef.current !== undefined && !confirms ? submittedRef.current : undefined;
+    const protectedBase = protectedDraft !== undefined ? submittedBaselineRef.current : undefined;
     if (confirms) {
       submittedRef.current = undefined;
+      submittedBaselineRef.current = undefined;
       submittedRecordRef.current = undefined;
+      submissionTokenRef.current = undefined;
       committedRef.current = undefined;
     } else {
       // A newer authoritative snapshot replaces the fallback: later saves
@@ -155,7 +162,7 @@ function PersonTabBody({
       if (submitted === undefined && personDraftMatches(current, previous)) {
         return refreshed;
       }
-      return mergePersonDraft(current, submitted ?? personToDraft(previous), refreshed, protectedDraft);
+      return mergePersonDraft(current, submitted ?? personToDraft(previous), refreshed, protectedDraft, protectedBase);
     });
   }, [personId, persons, isNew]);
 
@@ -177,6 +184,9 @@ function PersonTabBody({
       const token = {};
       submissionTokenRef.current = token;
       submittedRef.current = submission;
+      submittedBaselineRef.current = personToDraft(before);
+      // A new write invalidates the previous write's acknowledgement.
+      submittedRecordRef.current = undefined;
       try {
         await api.updatePerson(before, next);
         if (submissionTokenRef.current === token) {
@@ -190,6 +200,7 @@ function PersonTabBody({
           committedRef.current = undefined;
           if (submittedRef.current === submission) {
             submittedRef.current = undefined;
+            submittedBaselineRef.current = undefined;
             submittedRecordRef.current = undefined;
           }
         }

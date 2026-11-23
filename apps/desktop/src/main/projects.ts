@@ -3,6 +3,7 @@ import { basename, dirname, join } from 'node:path';
 import { MEDIA_DIR_NAME, TREE_FILE_EXTENSION, type ProjectBinding, type ProjectSummary } from '@doru/core';
 import { GEDCOM_INTEROP_VISIBLE } from '@doru/platform';
 import { createBookmark, releaseBookmarkAccess, startAccessing } from './bookmarks';
+import { requestRendererAutosaves } from './closeGuard';
 import { NodeFileSystem } from './filesystem';
 import { openGedcomAsProject } from './gedcom';
 import { log } from './log';
@@ -267,6 +268,19 @@ export async function saveProject(projectKey: string): Promise<ProjectBinding | 
   const openElsewhere = projectWindows.get(filePath);
   if (openElsewhere && !openElsewhere.isDestroyed()) {
     const message = nls.t('project.dialog.error.openInAnotherWindow');
+    if (parent) {
+      await dialog.showMessageBox(parent, { type: 'error', message });
+    } else {
+      dialog.showErrorBox(nls.t('project.dialog.save.title'), message);
+    }
+    return null;
+  }
+
+  // Pending drafts belong to the temporary store; persist them before the
+  // store closes so a failed write cannot discard the editor's work.
+  const sourceWindow = projectWindows.get(projectKey);
+  if (sourceWindow && !sourceWindow.isDestroyed() && !(await requestRendererAutosaves(sourceWindow))) {
+    const message = nls.t('project.dialog.error.saveFailed', nls.t('features.tree.autosaveFailed'));
     if (parent) {
       await dialog.showMessageBox(parent, { type: 'error', message });
     } else {

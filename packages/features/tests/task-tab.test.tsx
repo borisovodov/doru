@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { fireEvent, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, screen, waitFor } from '@testing-library/react';
 import type { TaskRecord } from '@doru/core';
 import { TaskTab } from '@doru/features/task';
 import type { TaskEditorApi } from '../src/person';
@@ -75,6 +75,31 @@ describe('TaskTab', () => {
     const after = updateTask.mock.calls[0]?.[1];
     expect(after?.text).toBe('New text');
     expect(after?.status).toBe('closed');
+  });
+
+  it('keeps a post-submission status reversal', async () => {
+    const openTask: TaskRecord = { id: 'T1', text: 'Old text', status: 'open' };
+    const closedTask: TaskRecord = { ...openTask, status: 'closed' };
+    let finishSave!: () => void;
+    const updateTask = vi.fn(
+      (_before: TaskRecord, _after: TaskRecord) =>
+        new Promise<void>((resolve) => {
+          finishSave = resolve;
+        }),
+    );
+    const api = apiStub({ updateTask });
+    const view = renderUi(taskElement(openTask.id, [openTask], api));
+
+    const status = screen.getByLabelText(nls.t('features.tasks.status'));
+    fireEvent.change(status, { target: { value: 'closed' } });
+    fireEvent.blur(status, { relatedTarget: document.body });
+    await waitFor(() => expect(updateTask).toHaveBeenCalledTimes(1));
+
+    fireEvent.change(status, { target: { value: 'open' } });
+    await act(async () => finishSave());
+    view.rerender(taskElement(closedTask.id, [closedTask], api));
+
+    await waitFor(() => expect(status).toHaveValue('open'));
   });
 
   it('shows a creation error when adding a task fails', async () => {

@@ -288,12 +288,26 @@ export function mergePlaceDraft(
     }
     return draft[key] === base[key] ? next[key] : draft[key];
   };
-  const pendingNames =
-    pending !== undefined && JSON.stringify(pending.names) !== JSON.stringify(submissionBaseline.names);
-  const pendingPostalCodes =
-    pending !== undefined && JSON.stringify(pending.postalCodes) !== JSON.stringify(submissionBaseline.postalCodes);
-  const pendingHierarchy =
-    pending !== undefined && JSON.stringify(pending.hierarchy) !== JSON.stringify(submissionBaseline.hierarchy);
+  // Rows added by another writer must survive an in-flight local submission.
+  // Compare against the submission's own baseline so unchanged rows still
+  // adopt concurrent additions, while user edits and removals win.
+  const names =
+    pending === undefined
+      ? mergePlaceRows(draft.names, base.names, previousDraft.names, next.names)
+      : mergePlaceRows(draft.names, submissionBaseline.names, submissionBaseline.names, next.names);
+  const postalCodes =
+    pending === undefined
+      ? mergePlaceRows(draft.postalCodes, base.postalCodes, previousDraft.postalCodes, next.postalCodes)
+      : mergePlaceRows(
+          draft.postalCodes,
+          submissionBaseline.postalCodes,
+          submissionBaseline.postalCodes,
+          next.postalCodes,
+        );
+  const hierarchy =
+    pending === undefined
+      ? mergePlaceRows(draft.hierarchy, base.hierarchy, previousDraft.hierarchy, next.hierarchy)
+      : mergePlaceRows(draft.hierarchy, submissionBaseline.hierarchy, submissionBaseline.hierarchy, next.hierarchy);
   return {
     id: draft.id,
     xref: scalar('xref'),
@@ -306,17 +320,9 @@ export function mergePlaceDraft(
     govId: scalar('govId'),
     maidenhead: scalar('maidenhead'),
     placeType: scalar('placeType'),
-    names: pendingNames
-      ? draft.names
-      : mergePlaceRows(draft.names, base.names, previousDraft.names, next.names).sort(
-          (left, right) => left.position - right.position,
-        ),
-    postalCodes: pendingPostalCodes
-      ? draft.postalCodes
-      : mergePlaceRows(draft.postalCodes, base.postalCodes, previousDraft.postalCodes, next.postalCodes),
-    hierarchy: pendingHierarchy
-      ? draft.hierarchy
-      : mergePlaceRows(draft.hierarchy, base.hierarchy, previousDraft.hierarchy, next.hierarchy),
+    names: names.sort((left, right) => left.position - right.position),
+    postalCodes,
+    hierarchy,
   };
 }
 

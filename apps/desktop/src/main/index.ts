@@ -7,7 +7,7 @@ import { pathToFileURL } from 'node:url';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { DoruMcpServer, TreeMcpBackend } from '@doru/ai';
 import { RecentProjects } from '@doru/core';
-import { flushWindowBeforeClose, hasFlushedBeforeClose } from './closeGuard';
+import { flushWindowBeforeClose, forgetFlushedBeforeClose, hasFlushedBeforeClose } from './closeGuard';
 import { watchSettings } from './settings';
 import { registerChatIpc } from './ipc-chat';
 import { registerMenuIpc } from './ipc-menu';
@@ -316,6 +316,10 @@ if (gotLock) {
       quitFlushPending = false;
       if (results.every(Boolean)) {
         app.quit();
+      } else {
+        // A later quit must ask every window again; a successful flush from
+        // this aborted attempt cannot authorize closing a window.
+        forgetFlushedBeforeClose(windows);
       }
     });
   });

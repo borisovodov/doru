@@ -76,3 +76,23 @@ function preserveTimestamp(original: number | undefined, input: string): number 
   }
   return inputToTimestamp(input);
 }
+
+/**
+ * Keeps locally edited task fields while adopting refreshed untouched values.
+ * The target type and id move together so the merge cannot invent a mixed
+ * target that neither writer stored.
+ */
+export function mergeTaskDraft(current: TaskDraft, base: TaskDraft, refreshed: TaskDraft): TaskDraft {
+  const field = <K extends keyof TaskDraft>(key: K): TaskDraft[K] =>
+    current[key] === base[key] ? refreshed[key] : current[key];
+  return {
+    text: field('text'),
+    priority: field('priority'),
+    status: field('status'),
+    scheduledAt: field('scheduledAt'),
+    reminderAt: field('reminderAt'),
+    ...(current.targetType === base.targetType && current.targetId === base.targetId
+      ? { targetType: refreshed.targetType, targetId: refreshed.targetId }
+      : { targetType: current.targetType, targetId: current.targetId }),
+  };
+}

@@ -28,15 +28,22 @@ import { nls } from '../nls';
  * Keeps fields edited after submission, accepts refreshed values for the rest.
  * `protectedDraft` marks fields touched by an in-flight write: those always
  * keep the current (possibly reverted) value until the write is confirmed.
+ * Protection compares against the submission's own baseline, not the latest
+ * previous record, so an unchanged submitted value does not become a change
+ * merely because another writer refreshed it.
  */
 function mergeFamilyDraft(
   current: FamilyDraft,
   base: FamilyDraft,
   refreshed: FamilyDraft,
   protectedDraft?: FamilyDraft,
+  protectedBase?: FamilyDraft,
 ): FamilyDraft {
   const field = <K extends keyof FamilyDraft>(key: K): FamilyDraft[K] => {
-    if (protectedDraft !== undefined && JSON.stringify(protectedDraft[key]) !== JSON.stringify(base[key])) {
+    if (
+      protectedDraft !== undefined &&
+      JSON.stringify(protectedDraft[key]) !== JSON.stringify((protectedBase ?? base)[key])
+    ) {
       return current[key];
     }
     return JSON.stringify(current[key]) === JSON.stringify(base[key]) ? refreshed[key] : current[key];
@@ -150,6 +157,7 @@ function FamilyTabBody({
   const recordRef = useRef(record);
   const savedRef = useRef(record);
   const submittedRef = useRef<FamilyDraft | undefined>(undefined);
+  const submittedBaselineRef = useRef<FamilyDraft | undefined>(undefined);
 
   // Reset the draft only when it still equals the previous stored family —
   // i.e. the user has no unsaved edits. A refresh that arrives while a write
@@ -168,17 +176,19 @@ function FamilyTabBody({
     const confirmed = normalizedSubmitted !== undefined && familyDraftMatches(normalizedSubmitted, record);
     if (confirmed) {
       submittedRef.current = undefined;
+      submittedBaselineRef.current = undefined;
     }
     // Only a record that confirms the pending write may use the submitted
     // draft as its base; an unrelated refresh must compare against the
     // previous stored snapshot.
     const base = normalizedSubmitted !== undefined && confirmed ? normalizedSubmitted : familyToDraft(previous);
     const protectedDraft = normalizedSubmitted !== undefined && !confirmed ? normalizedSubmitted : undefined;
+    const protectedBase = protectedDraft !== undefined ? submittedBaselineRef.current : undefined;
     setDraft((current) => {
       if (submitted === undefined && familyDraftMatches(current, previous)) {
         return familyToDraft(record);
       }
-      return mergeFamilyDraft(current, base, familyToDraft(record), protectedDraft);
+      return mergeFamilyDraft(current, base, familyToDraft(record), protectedDraft, protectedBase);
     });
   }, [record]);
 
@@ -187,12 +197,14 @@ function FamilyTabBody({
     const submission = draft;
     const next = familyDraftToRecord(submission, base);
     submittedRef.current = submission;
+    submittedBaselineRef.current = familyToDraft(base);
     try {
       await api.updateFamily(base, next);
       savedRef.current = next;
     } catch (error) {
       if (submittedRef.current === submission) {
         submittedRef.current = undefined;
+        submittedBaselineRef.current = undefined;
       }
       throw error;
     }

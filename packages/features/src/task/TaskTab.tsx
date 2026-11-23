@@ -28,26 +28,12 @@ import {
   emptyTaskDraft,
   taskTargetLabel,
   taskDraftHasInvalidTimestamp,
+  mergeTaskDraft,
   taskDraftToRecord,
   taskToDraft,
   type TaskDraft,
 } from '@doru/ui/domain';
 import { nls } from '../nls';
-
-/** Keeps locally edited task fields while adopting refreshed untouched ones. */
-function mergeTaskDraft(current: TaskDraft, base: TaskDraft, refreshed: TaskDraft): TaskDraft {
-  const field = <K extends keyof TaskDraft>(key: K): TaskDraft[K] =>
-    current[key] === base[key] ? refreshed[key] : current[key];
-  return {
-    text: field('text'),
-    priority: field('priority'),
-    status: field('status'),
-    scheduledAt: field('scheduledAt'),
-    reminderAt: field('reminderAt'),
-    targetType: field('targetType'),
-    targetId: field('targetId'),
-  };
-}
 
 /** Media targets stay out of the picker while media editing is hidden. */
 const VISIBLE_TARGET_TYPES = MEDIA_VISIBLE
@@ -178,6 +164,9 @@ function TaskTabBody({
   const base = record ?? { id: crypto.randomUUID(), text: '' };
   const recordRef = useRef(record);
   const savedRef = useRef<TaskRecord>(record ?? base);
+  const submittedRef = useRef<TaskDraft | undefined>(undefined);
+  const submittedRecordRef = useRef<TaskRecord | undefined>(undefined);
+  const submissionTokenRef = useRef<object | undefined>(undefined);
   const [lastSaved, setLastSaved] = useState<TaskRecord | undefined>(record);
   const [saveError, setSaveError] = useState(false);
   const [draft, setDraft] = useState<TaskDraft>(() =>
@@ -193,7 +182,19 @@ function TaskTabBody({
     recordRef.current = record;
     savedRef.current = record;
     setLastSaved(record);
-    const baseDraft = previous !== undefined ? taskToDraft(previous) : taskToDraft(record);
+    const submittedRecord = submittedRecordRef.current;
+    const confirms =
+      submittedRecord !== undefined &&
+      JSON.stringify(taskToDraft(record)) === JSON.stringify(taskToDraft(submittedRecord));
+    const submitted = confirms ? submittedRef.current : undefined;
+    if (confirms) {
+      submittedRef.current = undefined;
+      submittedRecordRef.current = undefined;
+      submissionTokenRef.current = undefined;
+    }
+    // A confirming refresh may carry the value the user changed after the
+    // write started; merge against the submitted draft, not the old record.
+    const baseDraft = submitted ?? (previous !== undefined ? taskToDraft(previous) : taskToDraft(record));
     setDraft((current) => mergeTaskDraft(current, baseDraft, taskToDraft(record)));
   }, [record]);
   const invalidTimestamp = taskDraftHasInvalidTimestamp(draft);
@@ -256,11 +257,29 @@ function TaskTabBody({
       if (isNew && lastSaved === undefined) {
         await api.addTask(after);
         onCreated(after.id);
+        savedRef.current = after;
+        setLastSaved(after);
       } else {
-        await api.updateTask(before, after);
+        const submission = draft;
+        const token = {};
+        submissionTokenRef.current = token;
+        submittedRef.current = submission;
+        submittedRecordRef.current = undefined;
+        try {
+          await api.updateTask(before, after);
+          if (submissionTokenRef.current === token) {
+            submittedRecordRef.current = after;
+            savedRef.current = after;
+            setLastSaved(after);
+          }
+        } catch (error) {
+          if (submissionTokenRef.current === token && submittedRef.current === submission) {
+            submittedRef.current = undefined;
+            submittedRecordRef.current = undefined;
+          }
+          throw error;
+        }
       }
-      savedRef.current = after;
-      setLastSaved(after);
     } catch (error) {
       setSaveError(true);
       throw error;
@@ -270,6 +289,9 @@ function TaskTabBody({
   const autoSave = useAutoSaveOnBlur({
     enabled: !isNew,
     isDirty: () => {
+      if (taskDraftHasInvalidTimestamp(draft)) {
+        return true;
+      }
       const persisted = savedRef.current;
       return JSON.stringify(taskDraftToRecord(persisted, draft)) !== JSON.stringify(persisted);
     },

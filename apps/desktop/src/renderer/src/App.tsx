@@ -84,11 +84,11 @@ export function App() {
   }, [tabs.activeTabId, theme.refreshThemes, ai.refreshModelsOnSettingsOpen]);
 
   const startProject = useCallback(
-    (info: ProjectBinding) => {
+    async (info: ProjectBinding) => {
       setProjectPath(info.path);
       setProjectUntitled(info.untitled);
       setUntitledName(info.untitled ? info.name : null);
-      tabs.resetToTree();
+      await tabs.resetToTree();
     },
     // oxlint-disable-next-line react/exhaustive-deps -- the tabs hook object changes every render
     [tabs.resetToTree],
@@ -97,7 +97,7 @@ export function App() {
   useEffect(() => {
     void window.doru.getCurrentProject().then((binding) => {
       if (binding) {
-        startProject(binding);
+        void startProject(binding);
       } else {
         setProjectPath(null);
         setProjectUntitled(false);
@@ -108,7 +108,7 @@ export function App() {
 
   useEffect(() => {
     return window.doru.onProjectBound((info) => {
-      startProject(info);
+      void startProject(info);
     });
   }, [startProject]);
 
