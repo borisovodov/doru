@@ -64,5 +64,8 @@ export const untitledProjects = new Map<string, UntitledProjectInfo>();
 /** Untitled projects whose files are currently being moved by Save As. */
 export const savingProjects = new Set<string>();
 
+/** Destination paths reserved by an in-progress Save As. */
+export const savingDestinations = new Set<string>();
+
 /** Stop functions for bookmarks whose access is currently held, by project path (macOS). */
 export const activeBookmarks = new Map<string, () => void>();

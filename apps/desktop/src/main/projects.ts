@@ -23,6 +23,7 @@ import {
   projectWindows,
   recents,
   runtimes,
+  savingDestinations,
   savingProjects,
   untitledProjects,
 } from './state';
@@ -288,6 +289,7 @@ export async function saveProject(projectKey: string): Promise<ProjectBinding | 
     return null;
   }
   savingProjects.add(projectKey);
+  let reservedDestination: string | undefined;
   try {
     const parent = projectWindows.get(projectKey) ?? focusedWindow();
     const dialogOptions: SaveDialogOptions = {
@@ -305,7 +307,7 @@ export async function saveProject(projectKey: string): Promise<ProjectBinding | 
       ? result.filePath
       : `${result.filePath}${TREE_FILE_EXTENSION}`;
     const openElsewhere = projectWindows.get(filePath);
-    if (openElsewhere && !openElsewhere.isDestroyed()) {
+    if ((openElsewhere && !openElsewhere.isDestroyed()) || savingDestinations.has(filePath)) {
       const message = nls.t('project.dialog.error.openInAnotherWindow');
       if (parent) {
         await dialog.showMessageBox(parent, { type: 'error', message });
@@ -314,6 +316,8 @@ export async function saveProject(projectKey: string): Promise<ProjectBinding | 
       }
       return null;
     }
+    savingDestinations.add(filePath);
+    reservedDestination = filePath;
 
     // Pending drafts belong to the temporary store; block editing, then
     // persist them before the store closes so a failed write cannot discard
@@ -424,6 +428,9 @@ export async function saveProject(projectKey: string): Promise<ProjectBinding | 
     return binding;
   } finally {
     savingProjects.delete(projectKey);
+    if (reservedDestination !== undefined) {
+      savingDestinations.delete(reservedDestination);
+    }
   }
 }
 
