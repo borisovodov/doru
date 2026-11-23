@@ -51,7 +51,7 @@ describe('useTabs', () => {
     });
     await act(async () => {
       result.current.closeTab('person:p1');
-      await Promise.resolve();
+      await new Promise((resolve) => setTimeout(resolve, 0));
     });
     expect(result.current.openTabs).toHaveLength(1);
     unregisterFailure();
@@ -62,7 +62,7 @@ describe('useTabs', () => {
     });
     await act(async () => {
       result.current.closeTab('person:p1');
-      await Promise.resolve();
+      await new Promise((resolve) => setTimeout(resolve, 0));
     });
     expect(result.current.openTabs).toHaveLength(0);
     unregisterSuccess();

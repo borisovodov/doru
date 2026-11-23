@@ -274,23 +274,26 @@ export function mergePlaceDraft(
   refreshed: PlaceRecord,
   submitted?: PlaceDraft,
   pending?: PlaceDraft,
+  pendingBaseline?: PlaceDraft,
 ): PlaceDraft {
   const previousDraft = placeToDraft(previous);
   const base = submitted ?? previousDraft;
   const next = placeToDraft(refreshed);
+  const submissionBaseline = pendingBaseline ?? previousDraft;
   const scalar = <K extends keyof PlaceDraft>(key: K): PlaceDraft[K] => {
     // A field touched by an in-flight write keeps the current (possibly
     // reverted) value until the write is confirmed.
-    if (pending !== undefined && JSON.stringify(pending[key]) !== JSON.stringify(previousDraft[key])) {
+    if (pending !== undefined && JSON.stringify(pending[key]) !== JSON.stringify(submissionBaseline[key])) {
       return draft[key];
     }
     return draft[key] === base[key] ? next[key] : draft[key];
   };
-  const pendingNames = pending !== undefined && JSON.stringify(pending.names) !== JSON.stringify(previousDraft.names);
+  const pendingNames =
+    pending !== undefined && JSON.stringify(pending.names) !== JSON.stringify(submissionBaseline.names);
   const pendingPostalCodes =
-    pending !== undefined && JSON.stringify(pending.postalCodes) !== JSON.stringify(previousDraft.postalCodes);
+    pending !== undefined && JSON.stringify(pending.postalCodes) !== JSON.stringify(submissionBaseline.postalCodes);
   const pendingHierarchy =
-    pending !== undefined && JSON.stringify(pending.hierarchy) !== JSON.stringify(previousDraft.hierarchy);
+    pending !== undefined && JSON.stringify(pending.hierarchy) !== JSON.stringify(submissionBaseline.hierarchy);
   return {
     id: draft.id,
     xref: scalar('xref'),

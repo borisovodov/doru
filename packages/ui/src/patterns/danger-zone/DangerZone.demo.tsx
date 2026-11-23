@@ -1,5 +1,6 @@
 import type { Demo, DemoMeta } from '../../../gallery/types';
 import { Button } from '../../atoms/button/Button';
+import { nls } from '../../nls';
 import { DangerZone } from './DangerZone';
 
 const meta = {
@@ -14,7 +15,7 @@ const meta = {
   ],
   render: () => (
     <DangerZone>
-      <Button variant="danger">Delete</Button>
+      <Button variant="danger">{nls.t('features.tree.fact.delete')}</Button>
     </DangerZone>
   ),
 } satisfies DemoMeta<typeof DangerZone>;

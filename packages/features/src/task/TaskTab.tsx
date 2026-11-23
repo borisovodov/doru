@@ -263,7 +263,7 @@ function TaskTabBody({
           ) : undefined
         }
       />
-      <AutoSaveError failed={autoSave.failed} onRetry={autoSave.retry} />
+      <AutoSaveError failed={autoSave.failed} retryDisabled={autoSave.pendingDelete} onRetry={autoSave.retry} />
 
       <SectionCard title={nls.t('features.tree.details')}>
         <TaskEditorFields

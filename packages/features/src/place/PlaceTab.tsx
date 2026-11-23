@@ -137,6 +137,7 @@ function PlaceTabBody({
   const draftRef = useRef(draft);
   const baselineRef = useRef(record);
   const submittedRef = useRef<PlaceDraft | undefined>(undefined);
+  const submittedBaselineRef = useRef<PlaceDraft | undefined>(undefined);
   const submittedRecordRef = useRef<PlaceRecord | undefined>(undefined);
   const submissionTokenRef = useRef<object | undefined>(undefined);
   const setDraft = (next: PlaceDraft) => {
@@ -184,13 +185,19 @@ function PlaceTabBody({
         baselineRef.current = record;
         setLastSaved(record);
       }
-      setDraft(mergePlaceDraft(draftRef.current, previous, record, submitted, protectedDraft));
+      if (confirms) {
+        submittedBaselineRef.current = undefined;
+      }
+      setDraft(
+        mergePlaceDraft(draftRef.current, previous, record, submitted, protectedDraft, submittedBaselineRef.current),
+      );
     }
   }, [record, isNew]);
 
   const save = async () => {
     const target = lastSaved ?? record;
-    const next = placeDraftToRecord(draftRef.current, lastSaved ?? record ?? baselineRef.current);
+    const base = lastSaved ?? record ?? baselineRef.current;
+    const next = placeDraftToRecord(draftRef.current, base);
     if (isNew && lastSaved === undefined) {
       await api.addPlace(next);
       onCreated(next.id);
@@ -202,6 +209,7 @@ function PlaceTabBody({
       const token = {};
       submissionTokenRef.current = token;
       submittedRef.current = submission;
+      submittedBaselineRef.current = base !== undefined ? placeToDraft(base) : undefined;
       try {
         await api.updatePlace(target, next);
         if (submissionTokenRef.current === token) {
@@ -210,6 +218,7 @@ function PlaceTabBody({
       } catch (error) {
         if (submissionTokenRef.current === token && submittedRef.current === submission) {
           submittedRef.current = undefined;
+          submittedBaselineRef.current = undefined;
           submittedRecordRef.current = undefined;
         }
         throw error;
@@ -257,7 +266,9 @@ function PlaceTabBody({
       <PlaceEditor
         draft={draft}
         onBlur={autoSave.onBlur}
-        notice={<AutoSaveError failed={autoSave.failed} onRetry={autoSave.retry} />}
+        notice={
+          <AutoSaveError failed={autoSave.failed} retryDisabled={autoSave.pendingDelete} onRetry={autoSave.retry} />
+        }
         onChange={setDraft}
         places={places}
         onSave={() => void save()}

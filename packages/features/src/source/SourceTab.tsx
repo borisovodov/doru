@@ -331,7 +331,9 @@ function SourceTabBody({
         draft={draft}
         isNew={isNew}
         onBlur={autoSave.onBlur}
-        notice={<AutoSaveError failed={autoSave.failed} onRetry={autoSave.retry} />}
+        notice={
+          <AutoSaveError failed={autoSave.failed} retryDisabled={autoSave.pendingDelete} onRetry={autoSave.retry} />
+        }
         onChange={setDraft}
         repositories={repositories}
         titles={titles}

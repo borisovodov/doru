@@ -244,7 +244,9 @@ function PersonTabBody({
       api={api}
       mediaApi={mediaApi}
       onOpenMedia={onOpenMedia}
-      notice={<AutoSaveError failed={autoSave.failed} onRetry={autoSave.retry} />}
+      notice={
+        <AutoSaveError failed={autoSave.failed} retryDisabled={autoSave.pendingDelete} onRetry={autoSave.retry} />
+      }
       footer={
         !isNew && record !== undefined ? (
           <DangerZone>

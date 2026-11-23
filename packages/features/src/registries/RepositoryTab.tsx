@@ -227,7 +227,7 @@ function RepositoryTabBody({
           ) : undefined
         }
       />
-      <AutoSaveError failed={autoSave.failed} onRetry={autoSave.retry} />
+      <AutoSaveError failed={autoSave.failed} retryDisabled={autoSave.pendingDelete} onRetry={autoSave.retry} />
       {isNew && saveError ? <InlineError>{nls.t('features.tree.autosaveFailed')}</InlineError> : null}
 
       <SectionCard title={nls.t('features.tree.details')}>

@@ -478,7 +478,7 @@ function MediaTabBody({
         title={title.trim() || '—'}
         subtitle={nls.t('features.tree.media.fileCount', record.files?.length ?? 0)}
       />
-      <AutoSaveError failed={autoSave.failed} onRetry={autoSave.retry} />
+      <AutoSaveError failed={autoSave.failed} retryDisabled={autoSave.pendingDelete} onRetry={autoSave.retry} />
 
       <SectionCard title={nls.t('features.tree.media.details')}>
         <Field label={nls.t('features.tree.media.titleField')}>

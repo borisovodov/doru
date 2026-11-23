@@ -30,7 +30,9 @@ export function useAutoSaveOnBlur({ enabled, isDirty, save }: AutoSaveOnBlurOpti
   const timerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const flushPromiseRef = useRef<Promise<boolean> | null>(null);
   const queuedRef = useRef<boolean>(false);
+  const deletePendingRef = useRef<boolean>(false);
   const [failed, setFailed] = useState(false);
+  const [pendingDelete, setPendingDelete] = useState(false);
 
   useEffect(() => {
     saveRef.current = save;
@@ -114,21 +116,36 @@ export function useAutoSaveOnBlur({ enabled, isDirty, save }: AutoSaveOnBlurOpti
   const cancel = useCallback(() => {
     cancelledRef.current = true;
     closeBlockedRef.current = true;
+    deletePendingRef.current = true;
     queuedRef.current = false;
+    if (mountedRef.current) {
+      setPendingDelete(true);
+    }
     clearTimer();
   }, [clearTimer]);
 
   const resume = useCallback(() => {
     cancelledRef.current = false;
     closeBlockedRef.current = false;
+    deletePendingRef.current = false;
+    if (mountedRef.current) {
+      setPendingDelete(false);
+    }
   }, []);
 
   /** Allows a successful deletion to close the tab while autosave stays off. */
   const release = useCallback(() => {
     closeBlockedRef.current = false;
+    deletePendingRef.current = false;
+    if (mountedRef.current) {
+      setPendingDelete(false);
+    }
   }, []);
 
   const retry = useCallback(() => {
+    if (deletePendingRef.current) {
+      return;
+    }
     cancelledRef.current = false;
     closeBlockedRef.current = false;
     void flush();
@@ -188,5 +205,5 @@ export function useAutoSaveOnBlur({ enabled, isDirty, save }: AutoSaveOnBlurOpti
     [clearTimer, enabled, flush],
   );
 
-  return { onBlur, failed, retry, cancel, resume, release };
+  return { onBlur, failed, pendingDelete, retry, cancel, resume, release };
 }

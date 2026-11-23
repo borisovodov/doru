@@ -56,6 +56,9 @@ export async function flushAutoSaves(tabId: string): Promise<boolean> {
     if (!results.every(Boolean)) {
       return false;
     }
+    // Let React commit the save's state updates before asking the editors
+    // whether the latest draft is now clean.
+    await new Promise((resolve) => setTimeout(resolve, 0));
     if (!entries.some((entry) => entry.isDirty())) {
       return true;
     }

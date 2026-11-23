@@ -67,6 +67,7 @@ export function useRegistryAddress(api: RegistriesEditorApi, addressId: string |
       return addressId;
     }
     if (addressDraftEmpty(address)) {
+      setAddressBefore(undefined);
       return undefined;
     }
     const submitted = address;
@@ -114,7 +115,10 @@ export function useRegistryAddress(api: RegistriesEditorApi, addressId: string |
     setAddress((current) => {
       const linesUnchanged =
         current.lines.length === submitted.lines.length &&
-        current.lines.every((line, index) => line.value === submitted.lines[index]?.value);
+        current.lines.every((line, index) => {
+          const submittedLine = submitted.lines[index];
+          return submittedLine !== undefined && line.id === submittedLine.id && line.value === submittedLine.value;
+        });
       return {
         ...current,
         id: record.id,
