@@ -118,6 +118,10 @@ export async function openProject(options: OpenProjectOptions, senderId?: number
   if (!filePath.toLowerCase().endsWith(TREE_FILE_EXTENSION)) {
     return null;
   }
+  if (savingDestinations.has(filePath)) {
+    log.warn('destination is reserved by an in-progress save', { path: filePath });
+    return null;
+  }
   const existingWindow = projectWindows.get(filePath);
   if (existingWindow) {
     if (existingWindow.isDestroyed()) {
@@ -251,6 +255,10 @@ export async function createProject(senderId?: number): Promise<ProjectSummary |
   const filePath = result.filePath.toLowerCase().endsWith(TREE_FILE_EXTENSION)
     ? result.filePath
     : `${result.filePath}${TREE_FILE_EXTENSION}`;
+  if (savingDestinations.has(filePath)) {
+    log.warn('destination is reserved by an in-progress save', { path: filePath });
+    return null;
+  }
   // The system save dialog already asked the user about replacing an
   // existing file, so honor that confirmation the way a document app would:
   // the project is replaced by a new, empty one. A window still showing the

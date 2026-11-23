@@ -10,6 +10,11 @@ import { draftToRecord, newPersonDraft, personDraftMatches, personToDraft, type 
 
 const sameDraftValue = (left: unknown, right: unknown): boolean => JSON.stringify(left) === JSON.stringify(right);
 
+const samePersonRecord = (left: PersonRecord | undefined, right: PersonRecord | undefined): boolean =>
+  left !== undefined &&
+  right !== undefined &&
+  JSON.stringify(personToDraft(left)) === JSON.stringify(personToDraft(right));
+
 function mergePersonDraft(
   current: PersonDraft,
   base: PersonDraft,
@@ -193,16 +198,19 @@ function PersonTabBody({
       try {
         await api.updatePerson(before, next);
         if (submissionTokenRef.current === token) {
-          if (committedRef.current === committedAtStart) {
+          const current = committedRef.current;
+          if (current === committedAtStart || samePersonRecord(current, before) || samePersonRecord(current, next)) {
             committedRef.current = next;
           }
           submittedRecordRef.current = next;
         }
       } catch (error) {
         if (submissionTokenRef.current === token) {
-          // A newer snapshot is the best retry baseline; otherwise keep the
-          // previously acknowledged one instead of clearing it.
-          committedRef.current = personRef.current !== personAtStart ? personRef.current : committedAtStart;
+          // Keep the acknowledged baseline unless the refresh is genuinely
+          // newer; a pre-write snapshot must not stand in for the write.
+          const current = personRef.current;
+          committedRef.current =
+            current === personAtStart || samePersonRecord(current, before) ? committedAtStart : current;
           if (submittedRef.current === submission) {
             submittedRef.current = undefined;
             submittedBaselineRef.current = undefined;

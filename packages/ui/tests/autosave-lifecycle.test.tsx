@@ -91,6 +91,53 @@ describe('autosave lifecycle', () => {
   it('saves a draft reverted while its previous write was pending', async () => {
     const dirty = { value: true };
     let releaseFirst!: () => void;
+    let releaseSecond!: () => void;
+    const first = new Promise<void>((resolve) => {
+      releaseFirst = resolve;
+    });
+    const second = new Promise<void>((resolve) => {
+      releaseSecond = resolve;
+    });
+    let saves = 0;
+    const save = vi.fn(async () => {
+      saves += 1;
+      if (saves === 1) {
+        await first;
+      } else if (saves === 2) {
+        await second;
+      }
+    });
+    const { unmount } = renderHook(() => useAutoSaveOnBlur({ enabled: true, isDirty: () => dirty.value, save }), {
+      wrapper: provider('person:p1'),
+    });
+
+    let firstSettled = false;
+    let secondSettled = false;
+    const firstFlush = flushAutoSaves('person:p1').then((result) => {
+      firstSettled = true;
+      return result;
+    });
+    expect(save).toHaveBeenCalledTimes(1);
+    dirty.value = false;
+    const secondFlush = flushAutoSaves('person:p1').then((result) => {
+      secondSettled = true;
+      return result;
+    });
+    releaseFirst();
+    await new Promise((resolve) => setTimeout(resolve, 10));
+    expect(firstSettled).toBe(false);
+    expect(secondSettled).toBe(false);
+    expect(save).toHaveBeenCalledTimes(2);
+
+    releaseSecond();
+    expect(await firstFlush).toBe(true);
+    expect(await secondFlush).toBe(true);
+    unmount();
+  });
+
+  it('fails both flushes when the follow-up write rejects', async () => {
+    const dirty = { value: true };
+    let releaseFirst!: () => void;
     const first = new Promise<void>((resolve) => {
       releaseFirst = resolve;
     });
@@ -99,6 +146,8 @@ describe('autosave lifecycle', () => {
       saves += 1;
       if (saves === 1) {
         await first;
+      } else {
+        throw new Error('follow-up failed');
       }
     });
     const { unmount } = renderHook(() => useAutoSaveOnBlur({ enabled: true, isDirty: () => dirty.value, save }), {
@@ -106,13 +155,12 @@ describe('autosave lifecycle', () => {
     });
 
     const firstFlush = flushAutoSaves('person:p1');
-    expect(save).toHaveBeenCalledTimes(1);
     dirty.value = false;
     const secondFlush = flushAutoSaves('person:p1');
     releaseFirst();
 
-    await firstFlush;
-    await secondFlush;
+    expect(await firstFlush).toBe(false);
+    expect(await secondFlush).toBe(false);
     expect(save).toHaveBeenCalledTimes(2);
     unmount();
   });
