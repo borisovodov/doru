@@ -21,7 +21,7 @@ const grace: PersonRecord = {
   facts: [],
 };
 
-async function renderEditor(overrides: { onSave?: () => void; onDelete?: () => void } = {}) {
+async function renderEditor() {
   const draft = emptyFamilyDraft();
   const onChange = vi.fn();
   const api = stubApi<FamilyEditorApi>({
@@ -41,8 +41,6 @@ async function renderEditor(overrides: { onSave?: () => void; onDelete?: () => v
       associations={[]}
       sources={[]}
       api={api}
-      onSave={overrides.onSave ?? vi.fn()}
-      onDelete={overrides.onDelete}
       onOpenSource={vi.fn()}
     />,
   );
@@ -69,10 +67,8 @@ describe('FamilyEditor', () => {
     );
   });
 
-  it('reports family details and the header actions', async () => {
-    const onSave = vi.fn();
-    const onDelete = vi.fn();
-    const { onChange } = await renderEditor({ onSave, onDelete });
+  it('reports family details through onChange', async () => {
+    const { onChange } = await renderEditor();
 
     expect(screen.getByLabelText(nls.t('features.tree.families.title'))).toBeInTheDocument();
 
@@ -80,11 +76,5 @@ describe('FamilyEditor', () => {
       target: { value: 'civil' },
     });
     expect(onChange).toHaveBeenCalledWith(expect.objectContaining({ unionKind: 'civil' }));
-
-    fireEvent.click(screen.getByRole('button', { name: nls.t('features.tree.save') }));
-    expect(onSave).toHaveBeenCalledTimes(1);
-
-    fireEvent.click(screen.getByRole('button', { name: nls.t('features.tree.fact.delete') }));
-    expect(onDelete).toHaveBeenCalledTimes(1);
   });
 });

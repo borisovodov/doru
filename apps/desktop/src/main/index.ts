@@ -7,6 +7,12 @@ import { pathToFileURL } from 'node:url';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { DoruMcpServer, TreeMcpBackend } from '@doru/ai';
 import { RecentProjects } from '@doru/core';
+import {
+  flushWindowBeforeClose,
+  forgetFlushedBeforeClose,
+  hasFlushedBeforeClose,
+  registerCloseGuardIpc,
+} from './closeGuard';
 import { watchSettings } from './settings';
 import { registerChatIpc } from './ipc-chat';
 import { registerMenuIpc } from './ipc-menu';
@@ -283,6 +289,7 @@ if (!gotLock) {
 }
 
 if (gotLock) {
+  registerCloseGuardIpc();
   // A failed startup must not leave a zombie process: an MCP helper that
   // rejects here would otherwise hang forever (never serving stdio) and the
   // client would wait out its whole startup timeout.
@@ -298,6 +305,29 @@ if (gotLock) {
     closeAllRuntimes();
     void stopDoruServer();
     removeMcpScratchUserData();
+  });
+
+  let quitFlushPending = false;
+  app.on('before-quit', (event) => {
+    const windows = BrowserWindow.getAllWindows().filter((window) => !window.isDestroyed());
+    if (windows.length === 0 || windows.every(hasFlushedBeforeClose)) {
+      return;
+    }
+    event.preventDefault();
+    if (quitFlushPending) {
+      return;
+    }
+    quitFlushPending = true;
+    void Promise.all(windows.map((window) => flushWindowBeforeClose(window))).then((results) => {
+      quitFlushPending = false;
+      if (results.every(Boolean)) {
+        app.quit();
+      } else {
+        // A later quit must ask every window again; a successful flush from
+        // this aborted attempt cannot authorize closing a window.
+        forgetFlushedBeforeClose(windows);
+      }
+    });
   });
 
   app.on('window-all-closed', () => {

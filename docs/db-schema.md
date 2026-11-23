@@ -845,7 +845,8 @@ erDiagram
 ```
 
 `record_submitter.kind` is `contributor`, `ancestor_interest`, or
-`descendant_interest`. The target may be any type in `TARGET_TYPES`.
+`descendant_interest`. The target may be any type in `TARGET_TYPES`, but the
+UI does not offer tasks as contributor targets.
 
 ## Attachments and research
 
@@ -954,13 +955,18 @@ The following tables use `(target_type, target_id)` without a foreign key:
 | `tag_link` | a tag |
 | `record_submitter` | a contributor or research-interest link |
 
-`task` also has an optional target pair. The allowed target types are:
+`task` also has an optional target pair. Its target picker excludes `source`,
+`task`, and `submitter`: a source is the thing a task researches rather than
+its parent record, task-to-task chains duplicate the research log, and a task
+is not a citation of a submitter's contribution. Existing rows with those
+legacy targets stay readable. Contributors and identifiers are likewise not
+offered on task pages. Every other target type remains available:
 
 ```text
 person, family, family_partner, family_child, family_marriage_status,
-fact, name, name_part, source, citation, note, media, media_file,
-media_link, place, place_name, place_hierarchy, repository, submitter,
-address, address_line, association, task, title
+fact, name, name_part, citation, note, media, media_file,
+media_link, place, place_name, place_hierarchy, repository,
+address, address_line, association, title
 ```
 
 `name` in this list refers to the `person_name` table. `family_witness` is

@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { EmptyText } from '@doru/ui';
+import { useRef, useState } from 'react';
+import { EmptyText, useAutoFocusSelect } from '@doru/ui';
 import { Input } from '@doru/ui';
 import { Select } from '@doru/ui';
 import { SectionCard } from '@doru/ui';
@@ -8,10 +8,12 @@ import { AttachmentRow, RowList } from '@doru/ui';
 import { BookMarked } from 'lucide-react';
 import type { RepositoryRecord, SourceRecord, TitleRecord } from '@doru/core';
 import { AttachmentsPanel } from '../attachments';
+import { AutoSaveError } from '../autoSaveFeedback';
+import { useEntityDelete } from '../entityDelete';
 import { EntityTab } from '../sidebar';
 import type { TitleEditorApi } from '../person/types';
 import { nls } from '../nls';
-import { Button } from '@doru/ui';
+import { Button, DangerZone, InlineError, useAutoSaveOnBlur } from '@doru/ui';
 import { EntityViewCard } from '@doru/ui';
 
 export function TitleTab({
@@ -78,8 +80,9 @@ function TitleTabBody({
   onCreated: (realId: string) => void;
 }) {
   const base = record ?? { id: crypto.randomUUID() };
+  const nameRef = useAutoFocusSelect<HTMLInputElement>(isNew);
   const [lastSaved, setLastSaved] = useState<TitleRecord | undefined>(record);
-  const [name, setName] = useState(base.name ?? '');
+  const [name, setName] = useState(isNew ? nls.t('features.tree.title.newTitle') : (base.name ?? ''));
   const [author, setAuthor] = useState(base.author ?? '');
   const [publisher, setPublisher] = useState(base.publisher ?? '');
   const [series, setSeries] = useState(base.series ?? '');
@@ -106,69 +109,163 @@ function TitleTabBody({
     repositoryId: repositoryId === '' ? undefined : repositoryId,
   });
 
+  const [saveError, setSaveError] = useState(false);
+  const creatingRef = useRef(false);
+  const clearSaveError = () => setSaveError(false);
+
   const save = async () => {
-    const after = build();
-    if (isNew && lastSaved === undefined) {
-      await api.addTitle(after);
-      onCreated(after.id);
-    } else {
-      await api.updateTitle(lastSaved ?? base, after);
+    setSaveError(false);
+    try {
+      const after = build();
+      if (isNew && lastSaved === undefined) {
+        if (creatingRef.current) {
+          return;
+        }
+        creatingRef.current = true;
+        try {
+          await api.addTitle(after);
+          onCreated(after.id);
+        } finally {
+          creatingRef.current = false;
+        }
+      } else {
+        await api.updateTitle(lastSaved ?? base, after);
+      }
+      setLastSaved(after);
+    } catch (error) {
+      setSaveError(true);
+      throw error;
     }
-    setLastSaved(after);
   };
+
+  const persisted = lastSaved ?? record;
+  const autoSave = useAutoSaveOnBlur({
+    enabled: !isNew,
+    isDirty: () => {
+      if (persisted === undefined) {
+        return false;
+      }
+      const current = build();
+      return (
+        current.name !== persisted.name ||
+        current.author !== persisted.author ||
+        current.publisher !== persisted.publisher ||
+        current.series !== persisted.series ||
+        current.abbreviation !== persisted.abbreviation ||
+        current.callNumber !== persisted.callNumber ||
+        current.sequence !== persisted.sequence ||
+        current.repositoryId !== persisted.repositoryId
+      );
+    },
+    save,
+  });
 
   const remove = async () => {
     const target = lastSaved ?? base;
     await api.deleteTitle(target);
-    onClose();
   };
 
+  const deletion = useEntityDelete(autoSave, remove, onClose);
+
   return (
-    <EntityTab>
+    <EntityTab onBlur={autoSave.onBlur}>
       <EntityViewCard
         media={<BookMarked size={20} aria-hidden="true" />}
-        title={name.trim() || '—'}
+        title={name.trim() || (isNew ? nls.t('features.tree.title.newTitle') : '—')}
         subtitle={subtitle !== '' ? subtitle : null}
         actions={
-          <>
-            <Button variant="primary" size="sm" onClick={() => void save()}>
-              {nls.t('features.tree.save')}
+          isNew ? (
+            <Button
+              variant="primary"
+              size="sm"
+              data-autosave-skip="true"
+              onClick={() => void save().catch(() => undefined)}
+            >
+              {nls.t('features.tree.create')}
             </Button>
-            {(!isNew || lastSaved !== undefined) && (
-              <Button variant="danger" size="sm" onClick={() => void remove()}>
-                {nls.t('features.tree.fact.delete')}
-              </Button>
-            )}
-          </>
+          ) : undefined
         }
       />
+      <AutoSaveError failed={autoSave.failed} retryDisabled={autoSave.pendingDelete} onRetry={autoSave.retry} />
+      {isNew && saveError ? <InlineError>{nls.t('features.tree.autosaveFailed')}</InlineError> : null}
+      {deletion.failed ? <InlineError>{nls.t('features.tree.deleteFailed')}</InlineError> : null}
 
       <SectionCard title={nls.t('features.tree.details')}>
         <Field label={nls.t('features.tree.title.name')}>
-          <Input value={name} onChange={(event) => setName(event.target.value)} />
+          <Input
+            ref={nameRef}
+            value={name}
+            onChange={(event) => {
+              clearSaveError();
+              setName(event.target.value);
+            }}
+          />
         </Field>
         <FieldGrid columns={2}>
           <Field label={nls.t('features.tree.title.author')}>
-            <Input value={author} onChange={(event) => setAuthor(event.target.value)} />
+            <Input
+              value={author}
+              onChange={(event) => {
+                clearSaveError();
+                setAuthor(event.target.value);
+              }}
+            />
           </Field>
           <Field label={nls.t('features.tree.title.publisher')}>
-            <Input value={publisher} onChange={(event) => setPublisher(event.target.value)} />
+            <Input
+              value={publisher}
+              onChange={(event) => {
+                clearSaveError();
+                setPublisher(event.target.value);
+              }}
+            />
           </Field>
           <Field label={nls.t('features.tree.title.series')}>
-            <Input value={series} onChange={(event) => setSeries(event.target.value)} />
+            <Input
+              value={series}
+              onChange={(event) => {
+                clearSaveError();
+                setSeries(event.target.value);
+              }}
+            />
           </Field>
           <Field label={nls.t('features.tree.title.abbreviation')}>
-            <Input value={abbreviation} onChange={(event) => setAbbreviation(event.target.value)} />
+            <Input
+              value={abbreviation}
+              onChange={(event) => {
+                clearSaveError();
+                setAbbreviation(event.target.value);
+              }}
+            />
           </Field>
           <Field label={nls.t('features.tree.title.callNumber')}>
-            <Input value={callNumber} onChange={(event) => setCallNumber(event.target.value)} />
+            <Input
+              value={callNumber}
+              onChange={(event) => {
+                clearSaveError();
+                setCallNumber(event.target.value);
+              }}
+            />
           </Field>
           <Field label={nls.t('features.tree.title.sequence')}>
-            <Input type="number" value={sequence} onChange={(event) => setSequence(event.target.value)} />
+            <Input
+              type="number"
+              value={sequence}
+              onChange={(event) => {
+                clearSaveError();
+                setSequence(event.target.value);
+              }}
+            />
           </Field>
         </FieldGrid>
         <Field label={nls.t('features.tree.title.repository')}>
-          <Select value={repositoryId} onChange={(event) => setRepositoryId(event.target.value)}>
+          <Select
+            value={repositoryId}
+            onChange={(event) => {
+              clearSaveError();
+              setRepositoryId(event.target.value);
+            }}
+          >
             <option value="">{nls.t('features.tree.title.none')}</option>
             {repositories.map((repository) => (
               <option key={repository.id} value={repository.id}>
@@ -208,6 +305,19 @@ function TitleTabBody({
           onOpenSource={onOpenSource}
           onOpenMedia={onOpenMedia}
         />
+      )}
+      {(!isNew || lastSaved !== undefined) && (
+        <DangerZone>
+          <Button
+            variant="danger"
+            size="sm"
+            data-autosave-skip="true"
+            disabled={deletion.deleting}
+            onClick={deletion.deleteEntity}
+          >
+            {nls.t('features.tree.fact.delete')}
+          </Button>
+        </DangerZone>
       )}
     </EntityTab>
   );

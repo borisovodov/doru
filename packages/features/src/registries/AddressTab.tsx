@@ -1,10 +1,19 @@
+import { useRef } from 'react';
 import { MapPin } from 'lucide-react';
 import type { AddressRecord, FactRecord, RepositoryRecord, SourceRecord, SubmitterRecord } from '@doru/core';
 import { AttachmentsPanel } from '../attachments';
+import { AutoSaveError } from '../autoSaveFeedback';
+import { useEntityDelete } from '../entityDelete';
 import { EntityTab } from '../sidebar';
 import type { RegistriesEditorApi } from '../person/types';
-import { AddressFields, addressDraftToRecord, addressLabel } from '@doru/ui/domain';
-import { Button, EntityViewCard, SectionCard } from '@doru/ui';
+import {
+  AddressFields,
+  addressDraftEmpty,
+  addressDraftMatches,
+  addressDraftToRecord,
+  addressLabel,
+} from '@doru/ui/domain';
+import { Button, DangerZone, EntityViewCard, InlineError, SectionCard, useAutoSaveOnBlur } from '@doru/ui';
 import { nls } from '../nls';
 import { useRegistryAddress } from './useRegistryAddress';
 
@@ -77,7 +86,8 @@ function AddressTabBody({
   onCreated: (realId: string) => void;
 }) {
   const base: AddressRecord = record ?? { id: crypto.randomUUID(), lines: [] };
-  const { address, setAddress, addressSaveFailed, saveAddress } = useRegistryAddress(api, record?.id);
+  const { address, setAddress, addressLoaded, addressLoadFailed, addressSaveFailed, retryLoad, saveAddress } =
+    useRegistryAddress(api, record?.id, isNew ? nls.t('features.tree.address.newAddress') : '');
   const preview = addressLabel(addressDraftToRecord(address));
   const usage = {
     facts: facts.filter((fact) => fact.addressId === base.id).length,
@@ -87,60 +97,92 @@ function AddressTabBody({
   const usageCount = usage.facts + usage.repositories + usage.submitters;
 
   const save = async () => {
-    let id: string | undefined;
-    try {
-      id = await saveAddress();
-    } catch {
-      return;
+    if (!addressLoaded) {
+      throw new Error('The address is still loading.');
     }
-    if (id === undefined) {
-      return;
+    if (addressDraftEmpty(address)) {
+      throw new Error('An address must have at least one field.');
     }
     if (isNew && record === undefined) {
-      onCreated(id);
+      if (creatingRef.current) {
+        return;
+      }
+      creatingRef.current = true;
+      try {
+        const id = await saveAddress();
+        if (id !== undefined) {
+          onCreated(id);
+        }
+      } finally {
+        creatingRef.current = false;
+      }
+      return;
     }
+    await saveAddress();
   };
+
+  const autoSave = useAutoSaveOnBlur({
+    enabled: !isNew,
+    isDirty: () => addressLoaded && record !== undefined && !addressDraftMatches(address, record),
+    save,
+  });
 
   const remove = async () => {
     if (record !== undefined) {
       await api.deleteAddress(record);
     }
-    onClose();
   };
 
+  const deletion = useEntityDelete(autoSave, remove, onClose);
+  const creatingRef = useRef(false);
+
   return (
-    <EntityTab>
+    <EntityTab onBlur={autoSave.onBlur}>
       <EntityViewCard
         media={<MapPin size={20} aria-hidden="true" />}
-        title={preview || '—'}
+        title={preview || (isNew ? nls.t('features.tree.address.newAddress') : '—')}
         subtitle={usageCount > 0 ? nls.t('features.tree.address.usage', usageCount) : null}
         actions={
-          <>
-            <Button variant="primary" size="sm" disabled={preview === ''} onClick={() => void save()}>
-              {nls.t('features.tree.save')}
+          isNew ? (
+            <Button
+              variant="primary"
+              size="sm"
+              data-autosave-skip="true"
+              disabled={preview === ''}
+              onClick={() => void save().catch(() => undefined)}
+            >
+              {nls.t('features.tree.create')}
             </Button>
-            {record !== undefined && (
-              <Button variant="danger" size="sm" onClick={() => void remove()}>
-                {nls.t('features.tree.fact.delete')}
-              </Button>
-            )}
-          </>
+          ) : undefined
         }
       />
+      <AutoSaveError failed={autoSave.failed} retryDisabled={autoSave.pendingDelete} onRetry={autoSave.retry} />
+      {deletion.failed ? <InlineError>{nls.t('features.tree.deleteFailed')}</InlineError> : null}
       <SectionCard title={nls.t('features.tree.address.title')}>
-        <AddressFields
-          address={address}
-          onChange={setAddress}
-          renderAttachments={(lineId) => (
-            <AttachmentsPanel
-              targetType="address_line"
-              targetId={lineId}
-              api={api}
-              sources={sources}
-              onOpenSource={onOpenSource}
-            />
-          )}
-        />
+        {addressLoadFailed ? (
+          <InlineError>
+            {nls.t('features.tree.address.loadFailed')}{' '}
+            <Button variant="link" size="sm" onClick={retryLoad}>
+              {nls.t('features.tree.retry')}
+            </Button>
+          </InlineError>
+        ) : null}
+        {addressLoaded ? (
+          <AddressFields
+            address={address}
+            autoFocus={isNew}
+            onChange={setAddress}
+            renderAttachments={(lineId) => (
+              <AttachmentsPanel
+                targetType="address_line"
+                targetId={lineId}
+                api={api}
+                sources={sources}
+                onOpenSource={onOpenSource}
+              />
+            )}
+          />
+        ) : null}
         {addressSaveFailed && (
           <p className="side-registries-note" role="alert">
             {nls.t('features.tree.address.saveFailed')}
@@ -158,6 +200,19 @@ function AddressTabBody({
           sources={sources}
           onOpenSource={onOpenSource}
         />
+      )}
+      {record !== undefined && (
+        <DangerZone>
+          <Button
+            variant="danger"
+            size="sm"
+            data-autosave-skip="true"
+            disabled={deletion.deleting}
+            onClick={deletion.deleteEntity}
+          >
+            {nls.t('features.tree.fact.delete')}
+          </Button>
+        </DangerZone>
       )}
     </EntityTab>
   );

@@ -50,9 +50,7 @@
   margin: 4px 0 0;
   padding: 4px;
   background: var(--doru-bg-popover);
-  box-shadow:
-    0 8px 24px rgb(0 0 0 / 35%),
-    var(--doru-ring);
+  box-shadow: var(--doru-shadow-popover), var(--doru-ring);
   border-radius: var(--doru-radius-md);
   max-height: 200px;
   overflow: auto;

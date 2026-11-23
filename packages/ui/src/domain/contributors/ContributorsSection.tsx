@@ -23,6 +23,7 @@ export function ContributorsSection({
   links,
   onAdd,
   onDelete,
+  canAdd = true,
 }: {
   targetType: string;
   targetId: string;
@@ -41,6 +42,8 @@ export function ContributorsSection({
     targetId: string,
     kind: RecordSubmitterLink['kind'],
   ) => Promise<void>;
+  /** False for targets that must not gain new contributor links (tasks). */
+  canAdd?: boolean;
 }) {
   const [adding, setAdding] = useState(false);
   const [selected, setSelected] = useState('');
@@ -59,11 +62,17 @@ export function ContributorsSection({
     setAdding(false);
   };
 
+  // A target that cannot gain contributors (a task) hides the empty section;
+  // legacy links stay visible and removable.
+  if (!canAdd && links.length === 0) {
+    return null;
+  }
+
   return (
     <SectionCard
       title={nls.t('features.tree.contributors.title')}
       actions={
-        !adding ? (
+        canAdd && !adding ? (
           <Button
             size="sm"
             variant="primary"
@@ -98,7 +107,7 @@ export function ContributorsSection({
           ))}
         </div>
       ) : null}
-      {adding ? (
+      {canAdd && adding ? (
         <>
           <Field label={nls.t('features.tree.contributors.title')}>
             <Select value={selected} onChange={(event) => setSelected(event.target.value)}>

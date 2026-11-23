@@ -5,6 +5,8 @@ export {
   type IconButtonSize,
   type IconButtonVariant,
 } from './icon-button/IconButton';
+export { Calendar, type CalendarProps } from './calendar/Calendar';
+export { DateTimePicker, type DateTimePickerLabels, type DateTimePickerProps } from './date-time-picker/DateTimePicker';
 export { Input, type ControlSize, type InputProps } from './form/Input';
 export { Select, type SelectProps } from './form/Select';
 export { Textarea, type TextareaProps } from './form/Textarea';

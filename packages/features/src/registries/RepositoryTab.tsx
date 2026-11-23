@@ -1,10 +1,12 @@
-import { useState } from 'react';
-import { Input } from '@doru/ui';
+import { useRef, useState } from 'react';
+import { Input, useAutoFocusSelect } from '@doru/ui';
 import { SectionCard } from '@doru/ui';
 import { Field } from '@doru/ui';
 import { Archive } from 'lucide-react';
 import type { AddressRecord, RepositoryRecord, SourceRecord, TitleRecord } from '@doru/core';
 import { AttachmentsPanel, CitationAttachments, NoteAttachments, useAttachments } from '../attachments';
+import { AutoSaveError } from '../autoSaveFeedback';
+import { useEntityDelete } from '../entityDelete';
 import { MediaSection } from '../media/MediaSection';
 import { EntityTab } from '../sidebar';
 import type { MediaTargetApi, RegistriesEditorApi } from '../person/types';
@@ -20,10 +22,12 @@ import {
   TagsSection,
   TasksSection,
   SourceLink,
+  addressDraftEmpty,
+  addressDraftMatches,
   addressLabel,
 } from '@doru/ui/domain';
 import { nls } from '../nls';
-import { Button } from '@doru/ui';
+import { Button, DangerZone, InlineError, useAutoSaveOnBlur } from '@doru/ui';
 import { EntityViewCard } from '@doru/ui';
 import { useRegistryAddress } from './useRegistryAddress';
 
@@ -116,8 +120,9 @@ function RepositoryTabBody({
   onCreated: (realId: string) => void;
 }) {
   const base: RepositoryRecord = record ?? { id: crypto.randomUUID(), name: '' };
+  const nameRef = useAutoFocusSelect<HTMLInputElement>(isNew);
   const [lastSaved, setLastSaved] = useState<RepositoryRecord | undefined>(record);
-  const [name, setName] = useState(base.name);
+  const [name, setName] = useState(isNew ? nls.t('features.tree.repository.newRepository') : base.name);
   const [linkedAddressId, setLinkedAddressId] = useState<string | undefined>(base.addressId);
   const { address, setAddress, addressBefore, addressSaveFailed, saveAddress, unlinkAddress, clearAddressSaveFailure } =
     useRegistryAddress(api, linkedAddressId);
@@ -137,7 +142,11 @@ function RepositoryTabBody({
     refresh: refreshAttachments,
   } = useAttachments('repository', targetId, api, true);
 
+  const [saveError, setSaveError] = useState(false);
+  const creatingRef = useRef(false);
+
   const selectAddress = (addressId: string | undefined) => {
+    setSaveError(false);
     setLinkedAddressId(addressId);
     if (addressId === undefined) {
       unlinkAddress();
@@ -145,31 +154,68 @@ function RepositoryTabBody({
   };
 
   const save = async () => {
-    const next: RepositoryRecord = { id: base.id, xref: base.xref, name: name.trim() };
-    if (linkedAddressId === undefined) {
-      try {
-        next.addressId = await saveAddress();
-      } catch {
+    const creating = isNew && lastSaved === undefined;
+    if (creating) {
+      if (creatingRef.current) {
         return;
       }
-    } else {
-      next.addressId = linkedAddressId;
+      creatingRef.current = true;
     }
-    if (isNew && lastSaved === undefined) {
-      await api.addRepository(next);
-      onCreated(next.id);
-    } else {
-      await api.updateRepository(lastSaved ?? base, next);
+    setSaveError(false);
+    if (name.trim() === '') {
+      if (creating) {
+        creatingRef.current = false;
+      }
+      setSaveError(true);
+      throw new Error('A repository name is required.');
     }
-    clearAddressSaveFailure();
-    setLastSaved(next);
+    try {
+      const next: RepositoryRecord = { id: base.id, xref: base.xref, name: name.trim() };
+      if (linkedAddressId === undefined) {
+        next.addressId = await saveAddress();
+      } else {
+        next.addressId = linkedAddressId;
+      }
+      if (creating) {
+        await api.addRepository(next);
+        onCreated(next.id);
+      } else {
+        await api.updateRepository(lastSaved ?? base, next);
+      }
+      clearAddressSaveFailure();
+      setLastSaved(next);
+    } catch (error) {
+      setSaveError(true);
+      throw error;
+    } finally {
+      if (creating) {
+        creatingRef.current = false;
+      }
+    }
   };
+
+  const persisted = lastSaved ?? record;
+  const autoSave = useAutoSaveOnBlur({
+    enabled: !isNew,
+    isDirty: () => {
+      if (persisted === undefined) {
+        return false;
+      }
+      const addressDirty =
+        linkedAddressId === undefined &&
+        (addressBefore !== undefined ? !addressDraftMatches(address, addressBefore) : !addressDraftEmpty(address));
+      const effectiveAddressId = linkedAddressId ?? addressBefore?.id;
+      return name.trim() !== persisted.name || effectiveAddressId !== persisted.addressId || addressDirty;
+    },
+    save,
+  });
 
   const remove = async () => {
     const target = lastSaved ?? base;
     await api.deleteRepository(target);
-    onClose();
   };
+
+  const deletion = useEntityDelete(autoSave, remove, onClose);
 
   const usedBySources =
     targetId !== undefined
@@ -178,35 +224,49 @@ function RepositoryTabBody({
   const usedByTitles = targetId !== undefined ? titles.filter((title) => title.repositoryId === targetId) : [];
 
   return (
-    <EntityTab>
+    <EntityTab onBlur={autoSave.onBlur}>
       <EntityViewCard
         media={<Archive size={20} aria-hidden="true" />}
-        title={name.trim() || '—'}
+        title={name.trim() || (isNew ? nls.t('features.tree.repository.newRepository') : '—')}
         subtitle={addressText !== '' ? addressText : null}
         actions={
-          <>
-            <Button variant="primary" size="sm" disabled={name.trim() === ''} onClick={() => void save()}>
-              {nls.t('features.tree.save')}
+          isNew ? (
+            <Button
+              variant="primary"
+              size="sm"
+              data-autosave-skip="true"
+              disabled={name.trim() === ''}
+              onClick={() => void save().catch(() => undefined)}
+            >
+              {nls.t('features.tree.create')}
             </Button>
-            {(!isNew || lastSaved !== undefined) && (
-              <Button variant="danger" size="sm" onClick={() => void remove()}>
-                {nls.t('features.tree.fact.delete')}
-              </Button>
-            )}
-          </>
+          ) : undefined
         }
       />
+      <AutoSaveError failed={autoSave.failed} retryDisabled={autoSave.pendingDelete} onRetry={autoSave.retry} />
+      {isNew && saveError ? <InlineError>{nls.t('features.tree.autosaveFailed')}</InlineError> : null}
+      {deletion.failed ? <InlineError>{nls.t('features.tree.deleteFailed')}</InlineError> : null}
 
       <SectionCard title={nls.t('features.tree.details')}>
         <Field label={nls.t('features.tree.repository.name')}>
-          <Input value={name} onChange={(event) => setName(event.target.value)} />
+          <Input
+            ref={nameRef}
+            value={name}
+            onChange={(event) => {
+              setSaveError(false);
+              setName(event.target.value);
+            }}
+          />
         </Field>
         <AddressLinkField
           addresses={addresses}
           addressId={linkedAddressId}
           address={address}
           onSelect={selectAddress}
-          onChange={setAddress}
+          onChange={(next) => {
+            setSaveError(false);
+            setAddress(next);
+          }}
           onOpen={onOpenAddress}
           renderAttachments={(lineId) => (
             <AttachmentsPanel
@@ -390,6 +450,19 @@ function RepositoryTabBody({
           />
           <TasksSection targetType="repository" targetId={targetId} api={api} />
         </>
+      )}
+      {(!isNew || lastSaved !== undefined) && (
+        <DangerZone>
+          <Button
+            variant="danger"
+            size="sm"
+            data-autosave-skip="true"
+            disabled={deletion.deleting}
+            onClick={deletion.deleteEntity}
+          >
+            {nls.t('features.tree.fact.delete')}
+          </Button>
+        </DangerZone>
       )}
     </EntityTab>
   );

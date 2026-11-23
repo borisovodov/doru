@@ -134,8 +134,10 @@ test('attachments, addresses and task fields round-trip through the desktop IPC'
   await expect(tasks).toBeVisible();
   await tasks.getByRole('button', { name: 'Open task' }).click();
   await expect(page.getByLabel('Related to')).toBeVisible();
-  await expect(page.getByLabel('Related to').locator('option')).toHaveCount(22);
   await expect(page.getByLabel('Related to').getByRole('option', { name: 'Event', exact: true })).toHaveCount(1);
   await expect(page.getByLabel('Related to').getByRole('option', { name: 'Media link', exact: true })).toHaveCount(0);
+  await expect(page.getByLabel('Related to').getByRole('option', { name: 'Source', exact: true })).toHaveCount(0);
+  await expect(page.getByLabel('Related to').getByRole('option', { name: 'Task', exact: true })).toHaveCount(0);
+  await expect(page.getByLabel('Related to').getByRole('option', { name: 'Submitter', exact: true })).toHaveCount(0);
   await expect(page.getByLabel('Related to').getByRole('option', { name: 'Sex sources', exact: true })).toHaveCount(0);
 });

@@ -89,7 +89,7 @@ export function emptyPlaceDraft(): PlaceDraft {
     govId: '',
     maidenhead: '',
     placeType: '',
-    names: [],
+    names: [emptyPlaceNameDraft()],
     postalCodes: [],
     hierarchy: [],
   };
@@ -219,6 +219,89 @@ function mergePlaceRow<T extends { id: string }>(draft: T, previous: T, refreshe
   return merged;
 }
 
+function mergeProtectedPlaceRow<T extends { id: string }>(
+  draft: T,
+  pending: T,
+  baseline: T,
+  previous: T,
+  refreshed: T,
+): T {
+  const merged: T = { ...draft };
+  for (const key of Object.keys(draft) as Array<keyof T>) {
+    if (key === 'date') {
+      const draftDate = (draft as unknown as { date: DateDraft }).date;
+      const pendingDate = (pending as unknown as { date: DateDraft }).date;
+      const baselineDate = (baseline as unknown as { date: DateDraft }).date;
+      const previousDate = (previous as unknown as { date: DateDraft }).date;
+      if (dateDraftsEqual(pendingDate, baselineDate) && dateDraftsEqual(draftDate, previousDate)) {
+        (merged as unknown as { date: DateDraft }).date = (refreshed as unknown as { date: DateDraft }).date;
+      }
+    } else if (JSON.stringify(pending[key]) !== JSON.stringify(baseline[key])) {
+      // The submission changed this field; keep the draft even if the user
+      // has already reverted it to the stored value.
+      merged[key] = draft[key];
+    } else if (JSON.stringify(draft[key]) === JSON.stringify(previous[key])) {
+      merged[key] = refreshed[key];
+    }
+  }
+  return merged;
+}
+
+function mergePendingPlaceRows<T extends { id: string }>(
+  draftRows: T[],
+  pendingRows: T[],
+  baselineRows: T[],
+  previousRows: T[],
+  refreshedRows: T[],
+): T[] {
+  const pendingById = new Map(pendingRows.map((row) => [row.id, row]));
+  const baselineById = new Map(baselineRows.map((row) => [row.id, row]));
+  const previousById = new Map(previousRows.map((row) => [row.id, row]));
+  const refreshedById = new Map(refreshedRows.map((row) => [row.id, row]));
+  const draftIds = new Set(draftRows.map((row) => row.id));
+  const merged: T[] = [];
+  for (const row of draftRows) {
+    const pending = pendingById.get(row.id);
+    const baseline = baselineById.get(row.id);
+    const refreshed = refreshedById.get(row.id);
+    const previous = previousById.get(row.id);
+    if (pending === undefined || baseline === undefined) {
+      if (previous !== undefined && refreshed !== undefined) {
+        merged.push(mergePlaceRow(row, previous, refreshed));
+        continue;
+      }
+      const pendingLocal =
+        pending !== undefined && (baseline === undefined || JSON.stringify(pending) !== JSON.stringify(baseline));
+      if (
+        !pendingLocal &&
+        previous !== undefined &&
+        JSON.stringify(row) === JSON.stringify(previous) &&
+        refreshed === undefined
+      ) {
+        continue;
+      }
+      merged.push(row);
+      continue;
+    }
+    if (refreshed === undefined) {
+      const pendingLocal = JSON.stringify(pending) !== JSON.stringify(baseline);
+      const currentLocal = JSON.stringify(row) !== JSON.stringify(previous ?? baseline);
+      if (!pendingLocal && !currentLocal) {
+        continue;
+      }
+      merged.push(row);
+      continue;
+    }
+    merged.push(mergeProtectedPlaceRow(row, pending, baseline, previous ?? baseline, refreshed));
+  }
+  for (const row of refreshedRows) {
+    if (!draftIds.has(row.id) && !previousById.has(row.id) && !pendingById.has(row.id)) {
+      merged.push(row);
+    }
+  }
+  return merged;
+}
+
 function mergePlaceRows<T extends { id: string }>(
   draftRows: T[],
   comparisonRows: T[],
@@ -273,12 +356,48 @@ export function mergePlaceDraft(
   previous: PlaceRecord,
   refreshed: PlaceRecord,
   submitted?: PlaceDraft,
+  pending?: PlaceDraft,
+  pendingBaseline?: PlaceDraft,
 ): PlaceDraft {
   const previousDraft = placeToDraft(previous);
   const base = submitted ?? previousDraft;
   const next = placeToDraft(refreshed);
-  const scalar = <K extends keyof PlaceDraft>(key: K): PlaceDraft[K] =>
-    draft[key] === base[key] ? next[key] : draft[key];
+  const submissionBaseline = pendingBaseline ?? previousDraft;
+  const scalar = <K extends keyof PlaceDraft>(key: K): PlaceDraft[K] => {
+    // A field touched by an in-flight write keeps the current (possibly
+    // reverted) value until the write is confirmed.
+    if (pending !== undefined && JSON.stringify(pending[key]) !== JSON.stringify(submissionBaseline[key])) {
+      return draft[key];
+    }
+    return draft[key] === base[key] ? next[key] : draft[key];
+  };
+  // Rows added by another writer must survive an in-flight local submission.
+  // Compare against the submission's own baseline so unchanged rows still
+  // adopt concurrent additions, while user edits and removals win.
+  const names =
+    pending === undefined
+      ? mergePlaceRows(draft.names, base.names, previousDraft.names, next.names)
+      : mergePendingPlaceRows(draft.names, pending.names, submissionBaseline.names, previousDraft.names, next.names);
+  const postalCodes =
+    pending === undefined
+      ? mergePlaceRows(draft.postalCodes, base.postalCodes, previousDraft.postalCodes, next.postalCodes)
+      : mergePendingPlaceRows(
+          draft.postalCodes,
+          pending.postalCodes,
+          submissionBaseline.postalCodes,
+          previousDraft.postalCodes,
+          next.postalCodes,
+        );
+  const hierarchy =
+    pending === undefined
+      ? mergePlaceRows(draft.hierarchy, base.hierarchy, previousDraft.hierarchy, next.hierarchy)
+      : mergePendingPlaceRows(
+          draft.hierarchy,
+          pending.hierarchy,
+          submissionBaseline.hierarchy,
+          previousDraft.hierarchy,
+          next.hierarchy,
+        );
   return {
     id: draft.id,
     xref: scalar('xref'),
@@ -291,11 +410,9 @@ export function mergePlaceDraft(
     govId: scalar('govId'),
     maidenhead: scalar('maidenhead'),
     placeType: scalar('placeType'),
-    names: mergePlaceRows(draft.names, base.names, previousDraft.names, next.names).sort(
-      (left, right) => left.position - right.position,
-    ),
-    postalCodes: mergePlaceRows(draft.postalCodes, base.postalCodes, previousDraft.postalCodes, next.postalCodes),
-    hierarchy: mergePlaceRows(draft.hierarchy, base.hierarchy, previousDraft.hierarchy, next.hierarchy),
+    names: names.sort((left, right) => left.position - right.position),
+    postalCodes,
+    hierarchy,
   };
 }
 

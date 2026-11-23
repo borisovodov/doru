@@ -15,7 +15,17 @@ import type {
   TitleRecord,
   TaskRecord,
 } from '@doru/core';
-import { placeName } from '@doru/core/model';
+import { placeName, TARGET_TYPES } from '@doru/core/model';
+
+/**
+ * The target types a task can be linked to. Sources, other tasks, and
+ * submitters are excluded: a citation or a task-to-task chain would
+ * duplicate the research record, and a task is not a contribution to a
+ * submitter's record.
+ */
+export const TASK_TARGET_TYPES = TARGET_TYPES.filter(
+  (type) => type !== 'source' && type !== 'task' && type !== 'submitter',
+);
 import { displayName, factOwnerName, familyLabel, formatAddress, formatDate } from '../format/format';
 
 /** Everything the task editor needs to offer a target of every supported type. */

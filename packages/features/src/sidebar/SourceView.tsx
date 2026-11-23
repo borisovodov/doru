@@ -1,4 +1,4 @@
-import { useMemo, type ReactNode } from 'react';
+import { useMemo, type FocusEventHandler, type ReactNode } from 'react';
 import { BookOpenText } from 'lucide-react';
 import type { CitationRecord, FactRecord, FamilyRecord, NoteRecord, PersonRecord, SourceRecord } from '@doru/core';
 import { nls } from '../nls';
@@ -116,6 +116,12 @@ function citationTarget(
 }
 
 /** Wraps a list in the editor page shell (used by the source tab). */
-export function EntityTab({ children }: { children: ReactNode }) {
-  return <EditorPage>{children}</EditorPage>;
+export function EntityTab({
+  children,
+  onBlur,
+}: {
+  children: ReactNode;
+  onBlur?: FocusEventHandler<HTMLElement> | undefined;
+}) {
+  return <EditorPage onBlur={onBlur}>{children}</EditorPage>;
 }

@@ -60,4 +60,11 @@
 
   /* Rings — 0.5px hairline "border" via box-shadow */
   --doru-ring: 0 0 0 0.5px rgb(255 255 255 / 14%);
+
+  /* Floating panels */
+  --doru-shadow-popover: 0 8px 24px rgb(0 0 0 / 35%);
+  --doru-shadow-tooltip: 0 4px 12px rgb(0 0 0 / 25%);
+  --doru-scrim: rgb(0 0 0 / 55%);
+  --doru-scrim-strong: rgb(0 0 0 / 75%);
+  --doru-on-scrim: #fff;
 }

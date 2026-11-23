@@ -3,9 +3,10 @@ import { basename, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import type { ProjectBinding } from '@doru/core';
 import { APP_MENU, LocalizationService, menuPlatformOf, menuVisible, resolveLocale } from '@doru/platform';
+import { flushWindowBeforeClose, hasFlushedBeforeClose } from './closeGuard';
 import { closeProjectRuntime } from './runtime';
 import { updateSession } from './session';
-import { projectWindows, untitledProjects, windowProject } from './state';
+import { projectWindows, savingProjects, untitledProjects, windowProject } from './state';
 import { titleBarOverlayOptions, windowBackgroundColor } from './themes';
 
 export function iconPath(): string {
@@ -203,12 +204,34 @@ export function createWindow(projectKey: string | null): BrowserWindow {
     app.focus({ steal: true });
   }
 
+  let closePending = false;
+  window.on('close', (event) => {
+    if (hasFlushedBeforeClose(window)) {
+      return;
+    }
+    event.preventDefault();
+    if (closePending) {
+      return;
+    }
+    closePending = true;
+    void flushWindowBeforeClose(window).then((saved) => {
+      closePending = false;
+      if (!saved || window.isDestroyed()) {
+        return;
+      }
+      window.close();
+    });
+  });
+
   window.on('closed', () => {
     const boundProject = windowProject.get(webContentsId);
     windowProject.delete(webContentsId);
     if (boundProject) {
       projectWindows.delete(boundProject);
-      closeProjectRuntime(boundProject);
+      // Save As owns the temporary files and the runtime until it finishes.
+      if (!savingProjects.has(boundProject)) {
+        closeProjectRuntime(boundProject);
+      }
       updateSession((session) => ({
         paths: session.paths.filter((entry) => entry !== boundProject),
         activePath: session.activePath === boundProject ? null : session.activePath,

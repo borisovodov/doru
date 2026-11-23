@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { TaskTargetData } from '../src/domain/task/taskTargets';
-import { taskTargetLabel } from '../src/domain/task/taskTargets';
+import { TASK_TARGET_TYPES, taskTargetLabel } from '../src/domain/task/taskTargets';
 
 const data: TaskTargetData = {
   persons: [{ id: 'P1', sex: 'U', names: [{ id: 'N1', given: 'Alice' }], facts: [] }],
@@ -25,6 +25,16 @@ const data: TaskTargetData = {
   associations: [],
   tasks: [],
 };
+
+describe('TASK_TARGET_TYPES', () => {
+  it('does not offer sources, other tasks, or submitters as task targets', () => {
+    expect(TASK_TARGET_TYPES).not.toContain('source');
+    expect(TASK_TARGET_TYPES).not.toContain('task');
+    expect(TASK_TARGET_TYPES).not.toContain('submitter');
+    expect(TASK_TARGET_TYPES).toContain('person');
+    expect(TASK_TARGET_TYPES).toContain('citation');
+  });
+});
 
 describe('taskTargetLabel', () => {
   it('resolves a known top-level media link to its readable label', () => {

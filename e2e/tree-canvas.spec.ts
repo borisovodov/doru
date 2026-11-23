@@ -127,8 +127,7 @@ test('rename and delete with undo on the canvas', async () => {
   const editor = page.getByRole('region', { name: 'Person editor' });
   await expect(editor).toBeVisible();
   await editor.getByRole('textbox', { name: 'Given name' }).first().fill('Petya');
-  await editor.getByRole('button', { name: 'Save' }).first().click();
-  // Back to the tree tab to see the renamed card.
+  // Leaving the editor autosaves the rename.
   await page.getByRole('tab', { name: 'Family Tree' }).click();
   await expect(page.getByRole('group', { name: 'Petya Ivanov', exact: true })).toBeVisible();
 

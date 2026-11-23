@@ -75,6 +75,14 @@ declare global {
       createChatSession(projectKey: string): Promise<ChatSessionMeta>;
       deleteChatSession(projectKey: string, id: string): Promise<void>;
       getChatTranscript(projectKey: string, id: string): Promise<ChatTranscriptMessage[]>;
+      /** Persists every open editor before the window is allowed to close. */
+      onFlushAutosaves(callback: () => Promise<boolean>): () => void;
+      /** Marks this window as edited after its last successful close flush. */
+      invalidateCloseFlush(): void;
+      /** Blocks editing while a Save As transfer moves the project store. */
+      onProjectTransfer(callback: (active: boolean) => void): () => void;
+      /** Reports that the destination project binding has been installed. */
+      acknowledgeProjectTransfer(): void;
       /** Fires when the project file changed on disk outside the app (agents, MCP clients). */
       onTreeExternalChange(callback: () => void): () => void;
       getThemeState(): Promise<{
@@ -84,7 +92,7 @@ declare global {
       }>;
       setTheme(name: string): Promise<string>;
       openThemesFolder(): Promise<void>;
-      getAbout(): Promise<{ version: string }>;
+      getAbout(): Promise<{ version: string; systemLocale: string }>;
       copyText(text: string): Promise<void>;
       openLogs(): Promise<string>;
       getThemeCss(name: string, mode: 'dark' | 'light'): Promise<string>;

@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import { fireEvent, screen, waitFor } from '@testing-library/react';
+import type { SourceRecord } from '@doru/core';
 import { SourceTab } from '@doru/features/source';
 import type { MediaTargetApi, SourceEditorApi } from '@doru/features/person';
 import { nls } from '../src/nls';
@@ -42,11 +43,21 @@ function renderTab(overrides: { entityId?: string; onCreated?: (realId: string) 
 }
 
 describe('SourceTab', () => {
+  it('prefills the new-source title, focuses it and selects the text', () => {
+    renderTab();
+    const title = nls.t('features.tree.source.newSource');
+    expect(screen.getByRole('heading', { name: title })).toBeInTheDocument();
+    const titleInput = screen.getByDisplayValue(title);
+    expect(titleInput).toHaveFocus();
+    expect((titleInput as HTMLInputElement).selectionStart).toBe(0);
+    expect((titleInput as HTMLInputElement).selectionEnd).toBe(title.length);
+  });
+
   it('saves a new source and reports the created id', async () => {
     const onCreated = vi.fn();
     const { addSource } = renderTab({ onCreated });
 
-    fireEvent.click(screen.getByRole('button', { name: nls.t('features.tree.save') }));
+    fireEvent.click(screen.getAllByRole('button', { name: nls.t('features.tree.create') })[0]!);
 
     await waitFor(() => expect(addSource).toHaveBeenCalledTimes(1));
     expect(onCreated).toHaveBeenCalledWith(expect.any(String));
@@ -86,8 +97,9 @@ describe('SourceTab', () => {
         onCreated={vi.fn()}
       />,
     );
-    fireEvent.click(screen.getByRole('button', { name: nls.t('features.tree.save') }));
-    fireEvent.click(screen.getByRole('button', { name: nls.t('features.tree.save') }));
+    const create = screen.getAllByRole('button', { name: nls.t('features.tree.create') })[0]!;
+    fireEvent.click(create);
+    fireEvent.click(create);
     await waitFor(() => expect(addSource).toHaveBeenCalledTimes(1));
     resolveSave();
   });
@@ -144,7 +156,7 @@ describe('SourceTab', () => {
 
     const view = renderSource(source);
     fireEvent.change(screen.getByDisplayValue('Old title'), { target: { value: 'New title' } });
-    fireEvent.click(screen.getByRole('button', { name: nls.t('features.tree.save') }));
+    fireEvent.blur(screen.getByDisplayValue('New title'), { relatedTarget: document.body });
     await waitFor(() => expect(updateSource).toHaveBeenCalledTimes(1));
 
     // After Save, the user restores the previous title while a concurrent
@@ -178,7 +190,7 @@ describe('SourceTab', () => {
   it('keeps the submitted draft when a stale refresh arrives before the save settles', async () => {
     let resolveSave!: () => void;
     const updateSource = vi.fn(
-      async () =>
+      (_before: SourceRecord, _after: SourceRecord) =>
         new Promise<void>((resolve) => {
           resolveSave = resolve;
         }),
@@ -225,12 +237,75 @@ describe('SourceTab', () => {
     );
     const view = renderUi(props(source));
     fireEvent.change(screen.getByDisplayValue('Old'), { target: { value: 'New' } });
-    fireEvent.click(screen.getByRole('button', { name: nls.t('features.tree.save') }));
+    fireEvent.blur(screen.getByDisplayValue('New'), { relatedTarget: document.body });
     await waitFor(() => expect(updateSource).toHaveBeenCalledTimes(1));
 
     view.rerender(props({ ...source }));
     expect(screen.getByDisplayValue('New')).toBeInTheDocument();
     resolveSave();
+  });
+
+  it('advances the baseline when a fresh pre-write record arrives before completion', async () => {
+    let resolveSave!: () => void;
+    const updateSource = vi.fn(
+      (_before: SourceRecord, _after: SourceRecord) =>
+        new Promise<void>((resolve) => {
+          resolveSave = resolve;
+        }),
+    );
+    const api = stubApi<SourceEditorApi>({
+      updateSource,
+      getRepositories: async () => [],
+      getTitles: async () => [],
+      getNotes: async () => [],
+      getAllNotes: async () => [],
+      getCitations: async () => [],
+      getTags: async () => [],
+      getTagLinks: async () => [],
+      getIdentifiers: async () => [],
+      getContacts: async () => [],
+      getRestrictions: async () => [],
+      getSubmitters: async () => [],
+      getRecordSubmitters: async () => [],
+      getMediaFor: async () => [],
+      getAllMedia: async () => [],
+      getTasksFor: async () => [],
+    });
+    const mediaApi = stubApi<MediaTargetApi>({ getMediaFor: async () => [], getAllMedia: async () => [] });
+    const source = { id: 'S1', title: 'Old', author: 'Alice' };
+    const props = (record: typeof source) => (
+      <SourceTab
+        entityId="S1"
+        sources={[record]}
+        api={api}
+        persons={[]}
+        families={[]}
+        facts={[]}
+        places={[]}
+        citations={[]}
+        notes={[]}
+        media={[]}
+        mediaApi={mediaApi}
+        onOpenPerson={vi.fn()}
+        onOpenMedia={vi.fn()}
+        onOpenSource={vi.fn()}
+        onClose={vi.fn()}
+        onCreated={vi.fn()}
+      />
+    );
+    const view = renderUi(props(source));
+    fireEvent.change(screen.getByDisplayValue('Old'), { target: { value: 'New' } });
+    fireEvent.blur(screen.getByDisplayValue('New'), { relatedTarget: document.body });
+    await waitFor(() => expect(updateSource).toHaveBeenCalledTimes(1));
+
+    view.rerender(props({ ...source }));
+    resolveSave();
+    await waitFor(() => expect(updateSource.mock.calls[0]?.[1]).toMatchObject({ title: 'New' }));
+
+    fireEvent.change(screen.getByDisplayValue('New'), { target: { value: 'Old' } });
+    fireEvent.blur(screen.getByDisplayValue('Old'), { relatedTarget: document.body });
+    await waitFor(() => expect(updateSource).toHaveBeenCalledTimes(2));
+    expect(updateSource.mock.calls[1]?.[1]).toMatchObject({ title: 'Old' });
   });
 
   it('lets successive refreshes advance untouched fields while a save is pending', async () => {
@@ -282,7 +357,7 @@ describe('SourceTab', () => {
     );
     const view = renderUi(renderSource('A'));
     fireEvent.change(screen.getByDisplayValue('Old'), { target: { value: 'New' } });
-    fireEvent.click(screen.getByRole('button', { name: nls.t('features.tree.save') }));
+    fireEvent.blur(screen.getByDisplayValue('New'), { relatedTarget: document.body });
     await waitFor(() => expect(updateSource).toHaveBeenCalledTimes(1));
 
     view.rerender(renderSource('B'));

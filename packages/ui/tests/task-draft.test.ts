@@ -3,6 +3,7 @@ import type { TaskRecord } from '@doru/core';
 import {
   emptyTaskDraft,
   inputToTimestamp,
+  mergeTaskDraft,
   taskDraftHasInvalidTimestamp,
   taskDraftToRecord,
   taskToDraft,
@@ -64,6 +65,25 @@ describe('taskDraft', () => {
     expect(taskToDraft(task({ status: 'Completed' })).status).toBe('closed');
     expect(taskToDraft(task({ status: 'needs review' })).status).toBe('open');
     expect(taskToDraft(task({ status: 'waiting' })).status).toBe('waiting');
+  });
+
+  it('merges the task target as one atomic pair', () => {
+    const base = { ...emptyTaskDraft(), targetType: 'person', targetId: 'P1' };
+    const current = { ...base, targetId: 'P2' };
+    const refreshed = { ...base, targetType: 'place', targetId: 'L1' };
+
+    const merged = mergeTaskDraft(current, base, refreshed);
+    expect(merged.targetType).toBe('person');
+    expect(merged.targetId).toBe('P2');
+  });
+
+  it('adopts both refreshed target fields when neither was edited', () => {
+    const base = { ...emptyTaskDraft(), targetType: 'person', targetId: 'P1' };
+    const refreshed = { ...base, targetType: 'place', targetId: 'L1' };
+
+    const merged = mergeTaskDraft(base, base, refreshed);
+    expect(merged.targetType).toBe('place');
+    expect(merged.targetId).toBe('L1');
   });
 
   it('writes the edited fields and clears emptied ones', () => {

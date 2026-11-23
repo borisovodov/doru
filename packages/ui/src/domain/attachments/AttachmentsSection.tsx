@@ -46,6 +46,7 @@ export function IdentifiersSection({
   onAdd,
   onUpdate,
   onDelete,
+  canAdd = true,
 }: {
   targetType: string;
   targetId: string;
@@ -53,6 +54,8 @@ export function IdentifiersSection({
   onAdd: (identifier: IdentifierRecord) => Promise<void>;
   onUpdate: (before: IdentifierRecord, after: IdentifierRecord) => Promise<void>;
   onDelete: (identifier: IdentifierRecord) => Promise<void>;
+  /** False for targets that must not gain new identifiers (tasks). */
+  canAdd?: boolean;
 }) {
   const [namespace, setNamespace] = useState('');
   const [type, setType] = useState('');
@@ -111,6 +114,11 @@ export function IdentifiersSection({
   // `rin` was removed from the Dóru model; legacy rows stay in old files but
   // must not surface in the UI.
   const visibleIdentifiers = identifiers.filter((identifier) => identifier.namespace !== 'rin');
+  // A target that cannot gain identifiers (a task) hides the empty section;
+  // legacy identifiers stay visible and removable.
+  if (!canAdd && visibleIdentifiers.length === 0) {
+    return null;
+  }
 
   return (
     <SectionCard title={nls.t('features.tree.identifiers.title')}>
@@ -167,32 +175,34 @@ export function IdentifiersSection({
           </li>
         ))}
       </ul>
-      <div className="attachment-add">
-        <Input
-          list="doru-id-namespaces"
-          placeholder={nls.t('features.tree.identifiers.namespace')}
-          value={namespace}
-          onChange={(event) => setNamespace(event.target.value)}
-        />
-        <datalist id="doru-id-namespaces">
-          {ID_NAMESPACES.map((entry) => (
-            <option key={entry} value={entry} />
-          ))}
-        </datalist>
-        <Input
-          placeholder={nls.t('features.tree.place.names.type')}
-          value={type}
-          onChange={(event) => setType(event.target.value)}
-        />
-        <Input
-          placeholder={nls.t('features.tree.identifiers.value')}
-          value={value}
-          onChange={(event) => setValue(event.target.value)}
-        />
-        <Button variant="primary" onClick={() => void add()}>
-          {nls.t('features.tree.identifiers.add')}
-        </Button>
-      </div>
+      {canAdd && (
+        <div className="attachment-add">
+          <Input
+            list="doru-id-namespaces"
+            placeholder={nls.t('features.tree.identifiers.namespace')}
+            value={namespace}
+            onChange={(event) => setNamespace(event.target.value)}
+          />
+          <datalist id="doru-id-namespaces">
+            {ID_NAMESPACES.map((entry) => (
+              <option key={entry} value={entry} />
+            ))}
+          </datalist>
+          <Input
+            placeholder={nls.t('features.tree.place.names.type')}
+            value={type}
+            onChange={(event) => setType(event.target.value)}
+          />
+          <Input
+            placeholder={nls.t('features.tree.identifiers.value')}
+            value={value}
+            onChange={(event) => setValue(event.target.value)}
+          />
+          <Button variant="primary" onClick={() => void add()}>
+            {nls.t('features.tree.identifiers.add')}
+          </Button>
+        </div>
+      )}
     </SectionCard>
   );
 }

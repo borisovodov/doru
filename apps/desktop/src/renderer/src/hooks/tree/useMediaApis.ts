@@ -3,11 +3,21 @@ import type { MediaFile } from '@doru/core';
 import type { MediaAdminApi, MediaTargetApi } from '@doru/features';
 import type { RefreshTree } from './types';
 
+// Writes are committed by the main process; a failed tree refresh must not
+// turn a successful write into a save failure in the editor.
+async function refreshAfterWrite(refreshTree: RefreshTree): Promise<void> {
+  try {
+    await refreshTree();
+  } catch {
+    // The next successful refresh will catch up.
+  }
+}
+
 export function useMediaApis(projectPath: string | null | undefined, refreshTree: RefreshTree) {
   const addStandaloneMedia = useCallback(async () => {
     if (!projectPath) return;
     await window.doru.addStandaloneMedia(projectPath);
-    await refreshTree();
+    await refreshAfterWrite(refreshTree);
   }, [projectPath, refreshTree]);
 
   const mediaApi = useMemo<MediaTargetApi>(
@@ -20,28 +30,28 @@ export function useMediaApis(projectPath: string | null | undefined, refreshTree
           return;
         }
         await window.doru.addMedia(projectPath, targetType, targetId);
-        await refreshTree();
+        await refreshAfterWrite(refreshTree);
       },
       attachMedia: async (link) => {
         if (!projectPath) {
           return;
         }
         await window.doru.attachMedia(projectPath, link);
-        await refreshTree();
+        await refreshAfterWrite(refreshTree);
       },
       detachMedia: async (link) => {
         if (!projectPath) {
           return;
         }
         await window.doru.detachMedia(projectPath, link);
-        await refreshTree();
+        await refreshAfterWrite(refreshTree);
       },
       deleteMedia: async (media) => {
         if (!projectPath) {
           return;
         }
         await window.doru.deleteMedia(projectPath, media);
-        await refreshTree();
+        await refreshAfterWrite(refreshTree);
       },
     }),
     [projectPath, refreshTree],
@@ -62,28 +72,28 @@ export function useMediaApis(projectPath: string | null | undefined, refreshTree
           return;
         }
         await window.doru.updateMedia(projectPath, before, after);
-        await refreshTree();
+        await refreshAfterWrite(refreshTree);
       },
       addMediaFile: async (mediaId) => {
         if (!projectPath) {
           return;
         }
         await window.doru.addMediaFile(projectPath, mediaId);
-        await refreshTree();
+        await refreshAfterWrite(refreshTree);
       },
       removeMediaFile: async (media, file: MediaFile) => {
         if (!projectPath) {
           return;
         }
         await window.doru.removeMediaFile(projectPath, media, file);
-        await refreshTree();
+        await refreshAfterWrite(refreshTree);
       },
       updateMediaLink: async (before, after) => {
         if (!projectPath) {
           return;
         }
         await window.doru.updateMediaLink(projectPath, before, after);
-        await refreshTree();
+        await refreshAfterWrite(refreshTree);
       },
     }),
     [mediaApi, projectPath, refreshTree],

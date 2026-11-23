@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Save } from 'lucide-react';
-import { AppMenu, IconButton } from '@doru/ui';
+import { AppMenu, AutoSaveTabProvider, IconButton, flushAllAutoSaves } from '@doru/ui';
 import { ChatPanel, ChatSetupPlaceholder, EmptyEditorPage, WelcomePage } from '@doru/features';
 import { Workbench, nls, type ActivityViewId } from '@doru/workbench';
+import { setSystemLocale } from '@doru/platform';
 import type { ProjectBinding } from '@doru/core';
 import { SidebarView } from './components/SidebarView';
 import { useChat } from './hooks/useChat';
@@ -22,6 +23,8 @@ export function App() {
   const [activeView, setActiveView] = useState<ActivityViewId>('tree');
   const [searchFocusNonce, setSearchFocusNonce] = useState(0);
   const [canvasFocus, setCanvasFocus] = useState<{ personId: string; nonce: number } | null>(null);
+  const [projectTransfer, setProjectTransfer] = useState(false);
+  const [bindVersion, setBindVersion] = useState(0);
 
   const tree = useTreeData(projectPath);
 
@@ -57,8 +60,49 @@ export function App() {
   const { commands, keybindings } = useAppCommands(project, tabs, tree);
   const [version, setVersion] = useState('');
 
+  useEffect(() => window.doru.onFlushAutosaves(() => flushAllAutoSaves()), []);
+
   useEffect(() => {
-    void window.doru.getAbout().then((info) => setVersion(info.version));
+    const offTransfer = window.doru.onProjectTransfer(setProjectTransfer);
+    const invalidate = () => window.doru.invalidateCloseFlush();
+    document.addEventListener('input', invalidate, true);
+    document.addEventListener('change', invalidate, true);
+    return () => {
+      offTransfer();
+      document.removeEventListener('input', invalidate, true);
+      document.removeEventListener('change', invalidate, true);
+    };
+  }, []);
+
+  // A project transfer moves the store: block editing and blur the focused
+  // field so its pending draft reaches the pre-transfer flush.
+  useEffect(() => {
+    document.body.toggleAttribute('inert', projectTransfer);
+    if (projectTransfer) {
+      const active = document.activeElement;
+      if (active instanceof HTMLElement) {
+        active.blur();
+      }
+    }
+    return () => document.body.removeAttribute('inert');
+  }, [projectTransfer]);
+
+  // The main process keeps the transfer barrier until this acknowledgement;
+  // the effect runs after the new project binding has been committed.
+  useEffect(() => {
+    if (bindVersion === 0) {
+      return;
+    }
+    window.doru.acknowledgeProjectTransfer();
+  }, [bindVersion]);
+
+  useEffect(() => {
+    void window.doru.getAbout().then((info) => {
+      setVersion(info.version);
+      // Regional settings (the first day of the week) follow the OS, not the
+      // app UI language.
+      setSystemLocale(info.systemLocale);
+    });
   }, []);
 
   // Re-read the theme list whenever the Settings tab opens: user themes are
@@ -76,11 +120,18 @@ export function App() {
   }, [tabs.activeTabId, theme.refreshThemes, ai.refreshModelsOnSettingsOpen]);
 
   const startProject = useCallback(
-    (info: ProjectBinding) => {
+    async (info: ProjectBinding) => {
+      // The autosave flush runs against the current render's project path;
+      // a transfer barrier guarantees it is clean before this reset. A failed
+      // flush keeps the tabs (and their drafts) on the old binding rather than
+      // letting a project switch unmount them.
+      if (!(await tabs.resetToTree())) {
+        return;
+      }
       setProjectPath(info.path);
       setProjectUntitled(info.untitled);
       setUntitledName(info.untitled ? info.name : null);
-      tabs.resetToTree();
+      setBindVersion((current) => current + 1);
     },
     // oxlint-disable-next-line react/exhaustive-deps -- the tabs hook object changes every render
     [tabs.resetToTree],
@@ -89,7 +140,7 @@ export function App() {
   useEffect(() => {
     void window.doru.getCurrentProject().then((binding) => {
       if (binding) {
-        startProject(binding);
+        void startProject(binding);
       } else {
         setProjectPath(null);
         setProjectUntitled(false);
@@ -100,7 +151,7 @@ export function App() {
 
   useEffect(() => {
     return window.doru.onProjectBound((info) => {
-      startProject(info);
+      void startProject(info);
     });
   }, [startProject]);
 
@@ -171,7 +222,7 @@ export function App() {
       <div className="editor-stack">
         {tabs.openTabs.map((tab) => (
           <div key={tab.id} className={tab.id === tabs.activeTabId ? 'editor-pane active' : 'editor-pane'}>
-            {renderTab(tab.id, tabContext)}
+            <AutoSaveTabProvider tabId={tab.id}>{renderTab(tab.id, tabContext)}</AutoSaveTabProvider>
           </div>
         ))}
       </div>

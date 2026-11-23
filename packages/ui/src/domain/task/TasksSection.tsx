@@ -10,6 +10,7 @@ import { Input } from '../../atoms/form/Input';
 import { SectionCard } from '../../patterns/section-card/SectionCard';
 import { nls } from '../../nls';
 import { formatTimestamp } from '../format/format';
+import { TASK_TARGET_TYPES } from './taskTargets';
 import './TasksSection.css';
 
 /** The task operations an entity editor needs for one target. */
@@ -78,6 +79,11 @@ export function TasksSection({
   const sorted = [...tasks].sort(
     (a, b) => Number(normalizeTaskStatus(a.status) === 'closed') - Number(normalizeTaskStatus(b.status) === 'closed'),
   );
+  const canAdd = (TASK_TARGET_TYPES as readonly string[]).includes(targetType);
+  // Sources and tasks cannot gain child tasks; legacy links stay visible.
+  if (!canAdd && sorted.length === 0) {
+    return null;
+  }
 
   return (
     <SectionCard title={nls.t('features.tasks.title')}>
@@ -112,21 +118,23 @@ export function TasksSection({
           </li>
         ))}
       </ul>
-      <div className="tasks-section-add">
-        <Input
-          value={draft}
-          placeholder={nls.t('features.tasks.newTask')}
-          onChange={(event) => setDraft(event.target.value)}
-          onKeyDown={(event) => {
-            if (event.key === 'Enter') {
-              void add();
-            }
-          }}
-        />
-        <Button variant="primary" onClick={() => void add()}>
-          {nls.t('features.tasks.add')}
-        </Button>
-      </div>
+      {canAdd && (
+        <div className="tasks-section-add">
+          <Input
+            value={draft}
+            placeholder={nls.t('features.tasks.newTask')}
+            onChange={(event) => setDraft(event.target.value)}
+            onKeyDown={(event) => {
+              if (event.key === 'Enter') {
+                void add();
+              }
+            }}
+          />
+          <Button variant="primary" onClick={() => void add()}>
+            {nls.t('features.tasks.add')}
+          </Button>
+        </div>
+      )}
     </SectionCard>
   );
 }

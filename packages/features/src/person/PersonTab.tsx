@@ -3,28 +3,54 @@ import type { PersonRecord } from '@doru/core';
 import { PersonEditor } from './PersonEditor';
 import type { MediaTargetApi, PersonEditorApi } from './types';
 import { nls } from '../nls';
+import { AutoSaveError } from '../autoSaveFeedback';
+import { useEntityDelete } from '../entityDelete';
+import { Button, DangerZone, InlineError, useAutoSaveOnBlur } from '@doru/ui';
 import { draftToRecord, newPersonDraft, personDraftMatches, personToDraft, type PersonDraft } from '@doru/ui/domain';
 
 const sameDraftValue = (left: unknown, right: unknown): boolean => JSON.stringify(left) === JSON.stringify(right);
 
-function mergePersonDraft(current: PersonDraft, base: PersonDraft, refreshed: PersonDraft): PersonDraft {
-  const names = sameDraftValue(current.names, base.names) ? refreshed.names : current.names;
-  const birth = sameDraftValue(current.birth, base.birth) ? refreshed.birth : current.birth;
-  const death = sameDraftValue(current.death, base.death) ? refreshed.death : current.death;
+const samePersonRecord = (left: PersonRecord | undefined, right: PersonRecord | undefined): boolean =>
+  left !== undefined &&
+  right !== undefined &&
+  JSON.stringify(personToDraft(left)) === JSON.stringify(personToDraft(right));
+
+function mergePersonDraft(
+  current: PersonDraft,
+  base: PersonDraft,
+  refreshed: PersonDraft,
+  protectedDraft?: PersonDraft,
+  protectedBase?: PersonDraft,
+): PersonDraft {
+  // Fields touched by an in-flight write keep the current value (including a
+  // post-submission reversal) until the write is acknowledged. Compare them
+  // with the submission's baseline so a value another writer changed does not
+  // turn an untouched submitted field into a protected one.
+  const protectedField = (key: keyof PersonDraft): boolean =>
+    protectedDraft !== undefined && !sameDraftValue(protectedDraft[key], (protectedBase ?? base)[key]);
+  const names = protectedField('names') || !sameDraftValue(current.names, base.names) ? current.names : refreshed.names;
+  const birth = protectedField('birth') || !sameDraftValue(current.birth, base.birth) ? current.birth : refreshed.birth;
+  const death = protectedField('death') || !sameDraftValue(current.death, base.death) ? current.death : refreshed.death;
   return {
     ...current,
     names,
-    namesTouched: names === refreshed.names ? false : current.namesTouched,
-    sex: current.sex === base.sex ? refreshed.sex : current.sex,
-    sexTouched: current.sex === base.sex ? false : current.sexTouched,
-    deathStatus: current.deathStatus === base.deathStatus ? refreshed.deathStatus : current.deathStatus,
-    deathStatusTouched: current.deathStatus === base.deathStatus ? false : current.deathStatusTouched,
-    addressId: current.addressId === base.addressId ? refreshed.addressId : current.addressId,
-    addressTouched: current.addressId === base.addressId ? false : current.addressTouched,
+    namesTouched: protectedField('names') || names !== refreshed.names ? current.namesTouched : false,
+    sex: protectedField('sex') || current.sex !== base.sex ? current.sex : refreshed.sex,
+    sexTouched: protectedField('sex') || current.sex !== base.sex ? current.sexTouched : false,
+    deathStatus:
+      protectedField('deathStatus') || current.deathStatus !== base.deathStatus
+        ? current.deathStatus
+        : refreshed.deathStatus,
+    deathStatusTouched:
+      protectedField('deathStatus') || current.deathStatus !== base.deathStatus ? current.deathStatusTouched : false,
+    addressId:
+      protectedField('addressId') || current.addressId !== base.addressId ? current.addressId : refreshed.addressId,
+    addressTouched:
+      protectedField('addressId') || current.addressId !== base.addressId ? current.addressTouched : false,
     birth,
-    birthTouched: birth === refreshed.birth ? false : current.birthTouched,
+    birthTouched: protectedField('birth') || birth !== refreshed.birth ? current.birthTouched : false,
     death,
-    deathTouched: death === refreshed.death ? false : current.deathTouched,
+    deathTouched: protectedField('death') || death !== refreshed.death ? current.deathTouched : false,
   };
 }
 
@@ -91,11 +117,12 @@ function PersonTabBody({
 }) {
   const record = persons.find((person) => person.id === personId);
   const [draft, setDraft] = useState<PersonDraft>(() =>
-    isNew ? newPersonDraft() : record ? personToDraft(record) : newPersonDraft(),
+    isNew ? newPersonDraft(nls.t('features.tree.person.newPerson')) : record ? personToDraft(record) : newPersonDraft(),
   );
   const personRef = useRef(record);
   const committedRef = useRef<PersonRecord | undefined>(undefined);
   const submittedRef = useRef<PersonDraft | undefined>(undefined);
+  const submittedBaselineRef = useRef<PersonDraft | undefined>(undefined);
   const submittedRecordRef = useRef<PersonRecord | undefined>(undefined);
   const submissionTokenRef = useRef<object | undefined>(undefined);
 
@@ -120,9 +147,13 @@ function PersonTabBody({
       submittedRecord !== undefined &&
       JSON.stringify(personToDraft(person)) === JSON.stringify(personToDraft(submittedRecord));
     const submitted = confirms ? submittedRef.current : undefined;
+    const protectedDraft = submittedRef.current !== undefined && !confirms ? submittedRef.current : undefined;
+    const protectedBase = protectedDraft !== undefined ? submittedBaselineRef.current : undefined;
     if (confirms) {
       submittedRef.current = undefined;
+      submittedBaselineRef.current = undefined;
       submittedRecordRef.current = undefined;
+      submissionTokenRef.current = undefined;
       committedRef.current = undefined;
     } else {
       // A newer authoritative snapshot replaces the fallback: later saves
@@ -134,95 +165,160 @@ function PersonTabBody({
         return personToDraft(person);
       }
       const refreshed = personToDraft(person);
-      if (submitted === undefined && personDraftMatches(current, previous)) {
+      if (submitted === undefined && submittedRef.current === undefined && personDraftMatches(current, previous)) {
         return refreshed;
       }
-      return mergePersonDraft(current, submitted ?? personToDraft(previous), refreshed);
+      return mergePersonDraft(current, submitted ?? personToDraft(previous), refreshed, protectedDraft, protectedBase);
     });
   }, [personId, persons, isNew]);
 
   const [created, setCreated] = useState(false);
+  const [saveError, setSaveError] = useState(false);
 
   const save = async () => {
-    const before = committedRef.current ?? persons.find((entry) => entry.id === draft.id);
-    const next = draftToRecord(draft, before);
-    if (before === undefined) {
-      await api.addPerson(next);
-      setCreated(true);
-      onCreated(next.id);
-      return;
-    }
-    const submission = draft;
-    const token = {};
-    submissionTokenRef.current = token;
-    submittedRef.current = submission;
+    setSaveError(false);
     try {
-      await api.updatePerson(before, next);
-      if (submissionTokenRef.current === token) {
-        committedRef.current = next;
-        submittedRecordRef.current = next;
+      const committedAtStart = committedRef.current;
+      const before = committedAtStart ?? persons.find((entry) => entry.id === draft.id);
+      const next = draftToRecord(draft, before);
+      if (before === undefined) {
+        await api.addPerson(next);
+        setCreated(true);
+        onCreated(next.id);
+        return;
       }
-    } catch (error) {
-      if (submissionTokenRef.current === token) {
-        // Retry from the latest published snapshot rather than reusing a
-        // baseline whose facts another writer may have deleted.
-        committedRef.current = undefined;
-        if (submittedRef.current === submission) {
-          submittedRef.current = undefined;
-          submittedRecordRef.current = undefined;
+      const submission = draft;
+      const personAtStart = personRef.current;
+      const token = {};
+      submissionTokenRef.current = token;
+      submittedRef.current = submission;
+      submittedBaselineRef.current = personToDraft(before);
+      // A new write invalidates the previous write's acknowledgement.
+      submittedRecordRef.current = undefined;
+      try {
+        await api.updatePerson(before, next);
+        if (submissionTokenRef.current === token) {
+          const current = committedRef.current;
+          if (
+            current === committedAtStart ||
+            samePersonRecord(current, personAtStart) ||
+            samePersonRecord(current, before) ||
+            samePersonRecord(current, next)
+          ) {
+            committedRef.current = next;
+          }
+          submittedRecordRef.current = next;
         }
+      } catch (error) {
+        if (submissionTokenRef.current === token) {
+          // Keep the acknowledged baseline unless the refresh is genuinely
+          // newer; a pre-write snapshot must not stand in for the write.
+          const current = personRef.current;
+          committedRef.current =
+            current === personAtStart || samePersonRecord(current, personAtStart) || samePersonRecord(current, before)
+              ? committedAtStart
+              : current;
+          if (submittedRef.current === submission) {
+            submittedRef.current = undefined;
+            submittedBaselineRef.current = undefined;
+            submittedRecordRef.current = undefined;
+          }
+        }
+        throw error;
       }
+      const persisted = personToDraft(next);
+      setDraft((current) => {
+        const patch: Partial<PersonDraft> = {};
+        if (current.sex === draft.sex) {
+          const storedSex = personRef.current !== personAtStart ? personRef.current?.sex : persisted.sex;
+          patch.sex = current.sex;
+          patch.sexTouched = storedSex !== current.sex;
+        }
+        if (current.deathStatus === draft.deathStatus) {
+          patch.deathStatus = persisted.deathStatus;
+          patch.deathStatusTouched = false;
+        }
+        if (current.addressId === draft.addressId) {
+          patch.addressId = persisted.addressId;
+          patch.addressTouched = false;
+        }
+        if (sameDraftValue(current.names, draft.names)) {
+          patch.names = persisted.names;
+          patch.namesTouched = false;
+        }
+        if (sameDraftValue(current.birth, draft.birth)) {
+          patch.birth = persisted.birth;
+          patch.birthTouched = false;
+        }
+        if (sameDraftValue(current.death, draft.death)) {
+          patch.death = persisted.death;
+          patch.deathTouched = false;
+        }
+        return Object.keys(patch).length > 0 ? { ...current, ...patch } : current;
+      });
+    } catch (error) {
+      setSaveError(true);
       throw error;
     }
-    const persisted = personToDraft(next);
-    setDraft((current) => {
-      const patch: Partial<PersonDraft> = {};
-      if (current.sex === draft.sex) {
-        patch.sex = persisted.sex;
-        patch.sexTouched = false;
-      }
-      if (current.deathStatus === draft.deathStatus) {
-        patch.deathStatus = persisted.deathStatus;
-        patch.deathStatusTouched = false;
-      }
-      if (current.addressId === draft.addressId) {
-        patch.addressId = persisted.addressId;
-        patch.addressTouched = false;
-      }
-      if (sameDraftValue(current.names, draft.names)) {
-        patch.names = persisted.names;
-        patch.namesTouched = false;
-      }
-      if (sameDraftValue(current.birth, draft.birth)) {
-        patch.birth = persisted.birth;
-        patch.birthTouched = false;
-      }
-      if (sameDraftValue(current.death, draft.death)) {
-        patch.death = persisted.death;
-        patch.deathTouched = false;
-      }
-      return Object.keys(patch).length > 0 ? { ...current, ...patch } : current;
-    });
   };
+
+  const autoSave = useAutoSaveOnBlur({
+    enabled: !isNew,
+    isDirty: () => {
+      const persisted = committedRef.current ?? persons.find((entry) => entry.id === draft.id);
+      return persisted !== undefined && !personDraftMatches(draft, persisted);
+    },
+    save,
+  });
+
+  const deletion = useEntityDelete(
+    autoSave,
+    async () => {
+      if (record !== undefined) {
+        await onDeletePerson(record);
+      }
+    },
+    onClose,
+  );
 
   return (
     <PersonEditor
       key={draft.isNew ? `new:${draft.id}` : draft.id}
+      onBlur={autoSave.onBlur}
       draft={draft}
       persons={persons}
-      onChange={setDraft}
-      onSave={() => void save()}
-      onDelete={
-        !draft.isNew && record !== undefined
-          ? () => {
-              void onDeletePerson(record).then(() => onClose());
-            }
-          : undefined
-      }
+      onChange={(next) => {
+        setSaveError(false);
+        setDraft(next);
+      }}
+      onSave={() => void save().catch(() => undefined)}
+      onNameRemoved={autoSave.saveSoon}
       onCancel={draft.isNew && !created ? () => onClose() : undefined}
       api={api}
       mediaApi={mediaApi}
       onOpenMedia={onOpenMedia}
+      notice={
+        <>
+          <AutoSaveError failed={autoSave.failed} retryDisabled={autoSave.pendingDelete} onRetry={autoSave.retry} />
+          {isNew && saveError ? <InlineError>{nls.t('features.tree.autosaveFailed')}</InlineError> : null}
+          {deletion.failed ? <InlineError>{nls.t('features.tree.deleteFailed')}</InlineError> : null}
+        </>
+      }
+      footer={
+        !isNew && record !== undefined ? (
+          <DangerZone>
+            <Button
+              variant="danger"
+              size="sm"
+              data-autosave-skip="true"
+              disabled={deletion.deleting}
+              onClick={deletion.deleteEntity}
+            >
+              {nls.t('features.tree.fact.delete')}
+            </Button>
+          </DangerZone>
+        ) : undefined
+      }
     />
   );
 }

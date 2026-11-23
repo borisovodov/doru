@@ -11,6 +11,9 @@ import type {
   TitleRecord,
 } from '@doru/core';
 import { CitationAttachments, NoteAttachments, useAttachments } from '../attachments';
+import { AutoSaveError } from '../autoSaveFeedback';
+import { useEntityDelete } from '../entityDelete';
+import { Button, DangerZone, InlineError, useAutoSaveOnBlur } from '@doru/ui';
 import { MediaSection } from '../media/MediaSection';
 import { EntityTab, SourceCitationsList } from '../sidebar';
 import type { MediaTargetApi, SourceEditorApi } from '../person/types';
@@ -33,6 +36,11 @@ import {
   type SourceDraft,
 } from '@doru/ui/domain';
 import { nls } from '../nls';
+
+/** A new source starts with the placeholder text as its editable default title. */
+function newSourceDraft(): SourceDraft {
+  return { ...emptySourceDraft(), title: nls.t('features.tree.source.newSource') };
+}
 
 export function SourceTab({
   entityId,
@@ -136,9 +144,10 @@ function SourceTabBody({
   onCreated: (realId: string) => void;
 }) {
   const [draft, setDraftState] = useState<SourceDraft>(() =>
-    isNew ? emptySourceDraft() : record ? sourceToDraft(record) : emptySourceDraft(),
+    isNew ? newSourceDraft() : record ? sourceToDraft(record) : newSourceDraft(),
   );
   const [lastSaved, setLastSaved] = useState<SourceRecord | undefined>(record);
+  const [saveError, setSaveError] = useState(false);
   const [repositories, setRepositories] = useState<RepositoryRecord[]>([]);
   const [titles, setTitles] = useState<TitleRecord[]>([]);
   const recordRef = useRef(record);
@@ -260,15 +269,17 @@ function SourceTabBody({
     if (savingRef.current) {
       return;
     }
+    setSaveError(false);
     savingRef.current = true;
     try {
-      const target = record ?? lastSaved;
-      const next = sourceDraftToRecord(draftRef.current, record ?? lastSaved ?? baselineRef.current);
+      const target = lastSaved ?? record;
+      const recordAtStart = recordRef.current;
+      const next = sourceDraftToRecord(draftRef.current, lastSaved ?? record ?? baselineRef.current);
       const submission = sourceToDraft(next);
       submittedRef.current = submission;
       refreshBaselineRef.current = submission;
       submissionOriginRef.current =
-        baselineRef.current !== undefined ? sourceToDraft(baselineRef.current) : emptySourceDraft();
+        baselineRef.current !== undefined ? sourceToDraft(baselineRef.current) : newSourceDraft();
       try {
         if (isNew && lastSaved === undefined) {
           await api.addSource(next);
@@ -280,6 +291,7 @@ function SourceTabBody({
           await api.updateSource(target, next);
         }
       } catch (error) {
+        setSaveError(true);
         if (submittedRef.current === submission) {
           submittedRef.current = undefined;
           refreshBaselineRef.current = undefined;
@@ -287,26 +299,62 @@ function SourceTabBody({
         }
         throw error;
       }
-      baselineRef.current = next;
-      setLastSaved(next);
+      const current = recordRef.current;
+      const currentMatchesStart =
+        current !== undefined &&
+        recordAtStart !== undefined &&
+        sourceDraftMatches(sourceToDraft(current), recordAtStart);
+      const currentMatchesWritten = current !== undefined && sourceDraftMatches(sourceToDraft(current), next);
+      if (current === recordAtStart || currentMatchesStart || currentMatchesWritten) {
+        baselineRef.current = next;
+        setLastSaved(next);
+      }
     } finally {
       savingRef.current = false;
     }
   };
+
+  const autoSave = useAutoSaveOnBlur({
+    enabled: !isNew,
+    isDirty: () => {
+      const persisted = lastSaved ?? record;
+      if (persisted === undefined) {
+        return false;
+      }
+      // Compare stored values, not raw input: trailing spaces must not trigger
+      // an autosave when the saved record would be unchanged.
+      const normalized = sourceToDraft(sourceDraftToRecord(draft, persisted));
+      return !sourceDraftMatches(normalized, persisted);
+    },
+    save,
+  });
 
   const remove = async () => {
     const target = lastSaved ?? record;
     if (target) {
       await api.deleteSource(target);
     }
-    onClose();
   };
+
+  const deletion = useEntityDelete(autoSave, remove, onClose);
 
   return (
     <EntityTab>
       <SourceEditor
         draft={draft}
-        onChange={setDraft}
+        isNew={isNew}
+        onBlur={autoSave.onBlur}
+        notice={
+          <>
+            <AutoSaveError failed={autoSave.failed} retryDisabled={autoSave.pendingDelete} onRetry={autoSave.retry} />
+            {isNew && saveError ? <InlineError>{nls.t('features.tree.autosaveFailed')}</InlineError> : null}
+            {deletion.failed ? <InlineError>{nls.t('features.tree.deleteFailed')}</InlineError> : null}
+          </>
+        }
+        onChange={(next) => {
+          setSaveError(false);
+          setDraft(next);
+        }}
         repositories={repositories}
         titles={titles}
         places={places}
@@ -314,8 +362,7 @@ function SourceTabBody({
           await api.addRepository(repository);
           setRepositories(await api.getRepositories());
         }}
-        onSave={() => void save()}
-        onDelete={!isNew || lastSaved !== undefined ? () => void remove() : undefined}
+        onSave={() => void save().catch(() => undefined)}
       />
       {currentSource !== undefined && (
         <>
@@ -464,6 +511,19 @@ function SourceTabBody({
             </>
           )}
         </>
+      )}
+      {(!isNew || lastSaved !== undefined) && (
+        <DangerZone>
+          <Button
+            variant="danger"
+            size="sm"
+            data-autosave-skip="true"
+            disabled={deletion.deleting}
+            onClick={deletion.deleteEntity}
+          >
+            {nls.t('features.tree.fact.delete')}
+          </Button>
+        </DangerZone>
       )}
     </EntityTab>
   );

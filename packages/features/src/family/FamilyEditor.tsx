@@ -3,7 +3,7 @@ import { EmptyText } from '@doru/ui';
 import { useEffect, useMemo, useState } from 'react';
 import { Checkbox, Field, FieldGrid, InlineForm, Input, ReorderButtons, Select, SectionCard, Subcard } from '@doru/ui';
 import { Paperclip, Plus, Users, X } from 'lucide-react';
-import type { ReactNode } from 'react';
+import type { FocusEventHandler, ReactNode } from 'react';
 import type {
   AddressRecord,
   AssociationRecord,
@@ -53,9 +53,10 @@ export function FamilyEditor({
   savedLinkIds,
   renderLinkAttachments,
   renderStatusAttachments,
-  onSave,
-  onDelete,
+  notice,
   onOpenSource,
+  onBlur,
+  onRowsChanged,
 }: {
   draft: FamilyDraft;
   savedLinkIds?: ReadonlySet<string> | undefined;
@@ -67,9 +68,13 @@ export function FamilyEditor({
   associations: AssociationRecord[];
   sources: SourceRecord[];
   api: FamilyEditorApi;
-  onSave: () => void;
-  onDelete: (() => void) | undefined;
+  /** Inline notice rendered under the header (autosave failure). */
+  notice?: ReactNode;
   onOpenSource: (sourceId: string) => void;
+  /** Autosave trigger from the tab; fires when a field loses focus. */
+  onBlur?: FocusEventHandler<HTMLElement> | undefined;
+  /** Requests a save after a focused row-remove button disappears. */
+  onRowsChanged?: (() => void) | undefined;
 }) {
   const [facts, setFacts] = useState<FactRecord[]>([]);
   const [places, setPlaces] = useState<PlaceRecord[]>([]);
@@ -125,24 +130,32 @@ export function FamilyEditor({
 
   const patchPartner = (index: number, values: Partial<PartnerLinkDraft>) =>
     set({ partnerLinks: draft.partnerLinks.map((link, i) => (i === index ? { ...link, ...values } : link)) });
-  const removePartner = (index: number) => set({ partnerLinks: draft.partnerLinks.filter((_, i) => i !== index) });
+  const removePartner = (index: number) => {
+    set({ partnerLinks: draft.partnerLinks.filter((_, i) => i !== index) });
+    onRowsChanged?.();
+  };
   const addPartner = () => {
     if (newPartnerId === '') {
       return;
     }
     set({ partnerLinks: [...draft.partnerLinks, emptyPartnerLinkDraft(newPartnerId)] });
     setNewPartnerId('');
+    onRowsChanged?.();
   };
 
   const patchChild = (index: number, values: Partial<ChildLinkDraft>) =>
     set({ childLinks: draft.childLinks.map((link, i) => (i === index ? { ...link, ...values } : link)) });
-  const removeChild = (index: number) => set({ childLinks: draft.childLinks.filter((_, i) => i !== index) });
+  const removeChild = (index: number) => {
+    set({ childLinks: draft.childLinks.filter((_, i) => i !== index) });
+    onRowsChanged?.();
+  };
   const addChild = () => {
     if (newChildId === '') {
       return;
     }
     set({ childLinks: [...draft.childLinks, emptyChildLinkDraft(newChildId)] });
     setNewChildId('');
+    onRowsChanged?.();
   };
 
   const partnerNames = draft.partnerLinks
@@ -151,24 +164,13 @@ export function FamilyEditor({
   const label = partnerNames.length > 0 ? partnerNames.join(' & ') : '—';
 
   return (
-    <EditorPage label={nls.t('features.tree.families.title')}>
+    <EditorPage label={nls.t('features.tree.families.title')} onBlur={onBlur}>
       <EntityViewCard
         media={<Users size={20} aria-hidden="true" />}
         title={label}
         subtitle={nls.t('features.sidebar.children', draft.childLinks.length)}
-        actions={
-          <>
-            <Button variant="primary" size="sm" onClick={onSave}>
-              {nls.t('features.tree.save')}
-            </Button>
-            {onDelete && (
-              <Button variant="danger" size="sm" onClick={onDelete}>
-                {nls.t('features.tree.fact.delete')}
-              </Button>
-            )}
-          </>
-        }
       />
+      {notice}
 
       <SectionCard title={nls.t('features.tree.families.details')}>
         <Checkbox
@@ -216,11 +218,21 @@ export function FamilyEditor({
               size="sm"
               label={nls.t('features.tree.family.removeWitness')}
               icon={<X size={13} aria-hidden="true" />}
-              onClick={() => set({ witnesses: draft.witnesses.filter((_, i) => i !== index) })}
+              onClick={() => {
+                set({ witnesses: draft.witnesses.filter((_, i) => i !== index) });
+                onRowsChanged?.();
+              }}
             />
           </div>
         ))}
-        <Button size="sm" variant="secondary" onClick={() => set({ witnesses: [...draft.witnesses, ''] })}>
+        <Button
+          size="sm"
+          variant="secondary"
+          onClick={() => {
+            set({ witnesses: [...draft.witnesses, ''] });
+            onRowsChanged?.();
+          }}
+        >
           <Plus size={13} aria-hidden="true" />
           {nls.t('features.tree.family.addWitness')}
         </Button>
@@ -254,7 +266,10 @@ export function FamilyEditor({
                 size="sm"
                 label={nls.t('features.tree.family.removeWitness')}
                 icon={<X size={13} aria-hidden="true" />}
-                onClick={() => set({ marriageStatuses: draft.marriageStatuses.filter((_, i) => i !== index) })}
+                onClick={() => {
+                  set({ marriageStatuses: draft.marriageStatuses.filter((_, i) => i !== index) });
+                  onRowsChanged?.();
+                }}
               />
             </div>
             {expandedStatusId === status.id && renderStatusAttachments?.(status.id)}
@@ -292,7 +307,10 @@ export function FamilyEditor({
         <Button
           size="sm"
           variant="secondary"
-          onClick={() => set({ marriageStatuses: [...draft.marriageStatuses, emptyMarriageStatusDraft()] })}
+          onClick={() => {
+            set({ marriageStatuses: [...draft.marriageStatuses, emptyMarriageStatusDraft()] });
+            onRowsChanged?.();
+          }}
         >
           <Plus size={13} aria-hidden="true" />
           {nls.t('features.tree.family.addMarriageStatus')}

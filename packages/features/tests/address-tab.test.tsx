@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { fireEvent, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, screen, waitFor } from '@testing-library/react';
 import { AddressTab } from '@doru/features/registries';
 import type { AddressRecord } from '@doru/core';
 import type { RegistriesEditorApi } from '../src/person';
@@ -58,15 +58,113 @@ describe('AddressTab', () => {
       />,
     );
 
-    await screen.findByDisplayValue('Main street 1');
+    const street = await screen.findByDisplayValue('Main street 1');
+    fireEvent.change(street, { target: { value: 'Main street 2' } });
     deleted.value = true;
-    fireEvent.click(screen.getByRole('button', { name: nls.t('features.tree.save') }));
+    fireEvent.blur(street, { relatedTarget: document.body });
     await waitFor(() => expect(updateAddress).toHaveBeenCalledTimes(1));
-    expect(await screen.findByRole('alert')).toHaveTextContent(nls.t('features.tree.address.saveFailed'));
+    expect(await screen.findByText(nls.t('features.tree.address.saveFailed'))).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole('button', { name: nls.t('features.tree.save') }));
+    fireEvent.blur(street, { relatedTarget: document.body });
     await waitFor(() => expect(addAddress).toHaveBeenCalledTimes(1));
     expect(updateAddress).toHaveBeenCalledTimes(1);
+  });
+
+  it('shows a delete failure and clears it on retry', async () => {
+    let failing = true;
+    const deleteAddress = vi.fn(async () => {
+      if (failing) {
+        failing = false;
+        throw new Error('still referenced');
+      }
+    });
+    const api = apiStub({ getAddress: async () => record, deleteAddress });
+
+    renderUi(
+      <AddressTab
+        entityId="A1"
+        addresses={[record]}
+        facts={[]}
+        repositories={[]}
+        submitters={[]}
+        sources={[]}
+        api={api}
+        onClose={vi.fn()}
+        onOpenSource={vi.fn()}
+        onCreated={vi.fn()}
+      />,
+    );
+
+    await screen.findByDisplayValue('Main street 1');
+    fireEvent.click(screen.getByRole('button', { name: nls.t('features.tree.fact.delete') }));
+    expect(await screen.findByText(nls.t('features.tree.deleteFailed'))).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: nls.t('features.tree.fact.delete') }));
+    await waitFor(() => expect(screen.queryByText(nls.t('features.tree.deleteFailed'))).not.toBeInTheDocument());
+    expect(deleteAddress).toHaveBeenCalledTimes(2);
+  });
+
+  it('shows a load failure and retries the address lookup', async () => {
+    let attempts = 0;
+    const getAddress = vi.fn(async () => {
+      attempts += 1;
+      if (attempts === 1) {
+        throw new Error('offline');
+      }
+      return record;
+    });
+    const api = apiStub({ getAddress });
+
+    renderUi(
+      <AddressTab
+        entityId="A1"
+        addresses={[record]}
+        facts={[]}
+        repositories={[]}
+        submitters={[]}
+        sources={[]}
+        api={api}
+        onClose={vi.fn()}
+        onOpenSource={vi.fn()}
+        onCreated={vi.fn()}
+      />,
+    );
+
+    expect(await screen.findByText(nls.t('features.tree.address.loadFailed'))).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: nls.t('features.tree.retry') }));
+    expect(await screen.findByDisplayValue('Main street 1')).toBeInTheDocument();
+    expect(getAddress).toHaveBeenCalledTimes(2);
+  });
+
+  it('does not accept edits until the stored address has loaded', async () => {
+    let resolveLoaded!: (value: AddressRecord | undefined) => void;
+    const getAddress = vi.fn(
+      () =>
+        new Promise<AddressRecord | undefined>((resolve) => {
+          resolveLoaded = resolve;
+        }),
+    );
+    const api = apiStub({ getAddress });
+
+    renderUi(
+      <AddressTab
+        entityId="A1"
+        addresses={[record]}
+        facts={[]}
+        repositories={[]}
+        submitters={[]}
+        sources={[]}
+        api={api}
+        onClose={vi.fn()}
+        onOpenSource={vi.fn()}
+        onCreated={vi.fn()}
+      />,
+    );
+
+    expect(screen.queryByPlaceholderText(nls.t('features.tree.address.line'))).not.toBeInTheDocument();
+    expect(screen.queryByDisplayValue('Main street 1')).not.toBeInTheDocument();
+    await act(async () => resolveLoaded(record));
+    expect(await screen.findByDisplayValue('Main street 1')).toBeInTheDocument();
   });
 
   it('shows a failed save when creating an address fails', async () => {
@@ -93,8 +191,8 @@ describe('AddressTab', () => {
     fireEvent.change(screen.getByPlaceholderText(nls.t('features.tree.address.city')), {
       target: { value: 'Moscow' },
     });
-    fireEvent.click(screen.getByRole('button', { name: nls.t('features.tree.save') }));
+    fireEvent.click(screen.getByRole('button', { name: nls.t('features.tree.create') }));
     await waitFor(() => expect(addAddress).toHaveBeenCalledTimes(1));
-    expect(await screen.findByRole('alert')).toHaveTextContent(nls.t('features.tree.address.saveFailed'));
+    expect(await screen.findByText(nls.t('features.tree.address.saveFailed'))).toBeInTheDocument();
   });
 });

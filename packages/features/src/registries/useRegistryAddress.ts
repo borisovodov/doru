@@ -9,6 +9,15 @@ import {
   type AddressDraft,
 } from '@doru/ui/domain';
 
+/** An empty address draft whose first line carries the tab's default title. */
+function emptyAddressDraftWithLine(line: string): AddressDraft {
+  const draft = emptyAddressDraft();
+  const first = draft.lines[0];
+  return first === undefined || line === ''
+    ? draft
+    : { ...draft, lines: [{ ...first, value: line }, ...draft.lines.slice(1)] };
+}
+
 /**
  * The address sub-form state shared by the repository and submitter tabs.
  *
@@ -17,9 +26,12 @@ import {
  * only clears the draft/link — the AddressRecord itself is never deleted
  * here, because it may be shared with other records.
  */
-export function useRegistryAddress(api: RegistriesEditorApi, addressId: string | undefined) {
-  const [address, setAddress] = useState<AddressDraft>(emptyAddressDraft());
+export function useRegistryAddress(api: RegistriesEditorApi, addressId: string | undefined, defaultLine = '') {
+  const defaultLineRef = useRef(defaultLine);
+  const [address, setAddress] = useState<AddressDraft>(() => emptyAddressDraftWithLine(defaultLineRef.current));
   const [addressLoaded, setAddressLoaded] = useState(false);
+  const [addressLoadFailed, setAddressLoadFailed] = useState(false);
+  const [loadAttempt, setLoadAttempt] = useState(0);
   const [addressBefore, setAddressBefore] = useState<AddressRecord | undefined>(undefined);
   const [addressSaveFailed, setAddressSaveFailed] = useState(false);
   const apiRef = useRef(api);
@@ -27,21 +39,32 @@ export function useRegistryAddress(api: RegistriesEditorApi, addressId: string |
 
   useEffect(() => {
     let cancelled = false;
+    setAddressLoadFailed(false);
     if (addressId !== undefined) {
-      void apiRef.current.getAddress(addressId).then((loaded) => {
-        if (!cancelled) {
+      setAddressLoaded(false);
+      void apiRef.current
+        .getAddress(addressId)
+        .then((loaded) => {
+          if (cancelled) {
+            return;
+          }
           if (loaded) {
             setAddress(addressToDraft(loaded));
             setAddressBefore(loaded);
           } else {
-            setAddress(emptyAddressDraft());
+            setAddress(emptyAddressDraftWithLine(defaultLineRef.current));
             setAddressBefore(undefined);
           }
           setAddressLoaded(true);
-        }
-      });
+        })
+        .catch(() => {
+          if (!cancelled) {
+            setAddressLoaded(false);
+            setAddressLoadFailed(true);
+          }
+        });
     } else {
-      setAddress(emptyAddressDraft());
+      setAddress(emptyAddressDraftWithLine(defaultLineRef.current));
       setAddressBefore(undefined);
       setAddressLoaded(true);
     }
@@ -49,7 +72,13 @@ export function useRegistryAddress(api: RegistriesEditorApi, addressId: string |
     return () => {
       cancelled = true;
     };
-  }, [addressId]);
+  }, [addressId, loadAttempt]);
+
+  const retryLoad = () => {
+    setAddressLoadFailed(false);
+    setAddressLoaded(false);
+    setLoadAttempt((current) => current + 1);
+  };
 
   /** Persists a new/edited private address and returns the id to store. */
   const saveAddress = async (): Promise<string | undefined> => {
@@ -57,9 +86,18 @@ export function useRegistryAddress(api: RegistriesEditorApi, addressId: string |
       return addressId;
     }
     if (addressDraftEmpty(address)) {
+      setAddressBefore(undefined);
+      // The stored row still exists; drop every identity so a later save
+      // inserts a fresh address instead of colliding with it.
+      setAddress((current) => ({
+        ...current,
+        id: undefined,
+        lines: current.lines.map((line) => ({ ...line, id: undefined })),
+      }));
       return undefined;
     }
-    const record = addressDraftToRecord(address);
+    const submitted = address;
+    const record = addressDraftToRecord(submitted);
     if (addressBefore) {
       try {
         await api.updateAddress(addressBefore, record);
@@ -88,14 +126,43 @@ export function useRegistryAddress(api: RegistriesEditorApi, addressId: string |
       }
     }
     setAddressSaveFailed(false);
-    setAddress((current) => ({ ...current, id: record.id }));
+    const idBySubmittedIndex = new Map<number, string>();
+    let storedIndex = 0;
+    submitted.lines.forEach((line, index) => {
+      if (line.value.trim() === '') {
+        return;
+      }
+      const stored = record.lines[storedIndex];
+      storedIndex += 1;
+      if (stored !== undefined) {
+        idBySubmittedIndex.set(index, stored.id);
+      }
+    });
+    setAddress((current) => {
+      const linesUnchanged =
+        current.lines.length === submitted.lines.length &&
+        current.lines.every((line, index) => {
+          const submittedLine = submitted.lines[index];
+          return submittedLine !== undefined && line.id === submittedLine.id && line.value === submittedLine.value;
+        });
+      return {
+        ...current,
+        id: record.id,
+        lines: linesUnchanged
+          ? current.lines.map((line, index) => {
+              const id = idBySubmittedIndex.get(index);
+              return id === undefined ? line : { ...line, id };
+            })
+          : current.lines,
+      };
+    });
     setAddressBefore(record);
     return record.id;
   };
 
   /** Clears the local draft after the owner drops its address link. */
   const unlinkAddress = () => {
-    setAddress(emptyAddressDraft());
+    setAddress(emptyAddressDraftWithLine(defaultLineRef.current));
     setAddressBefore(undefined);
     setAddressLoaded(true);
   };
@@ -106,8 +173,10 @@ export function useRegistryAddress(api: RegistriesEditorApi, addressId: string |
     address,
     setAddress,
     addressLoaded,
+    addressLoadFailed,
     addressBefore,
     addressSaveFailed,
+    retryLoad,
     saveAddress,
     unlinkAddress,
     clearAddressSaveFailure,

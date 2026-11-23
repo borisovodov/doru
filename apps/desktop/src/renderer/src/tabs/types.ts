@@ -63,7 +63,8 @@ export interface TabsApi {
   activeTabId: string | null;
   tabInfos: TabInfo[];
   setActiveTabId: (id: string | null) => void;
-  resetToTree: () => void;
+  /** Persists open drafts, then closes every tab. False keeps them open. */
+  resetToTree: () => Promise<boolean>;
   ensureTreeTab: () => void;
   openTab: (id: string) => void;
   closeTab: (id: string) => void;

@@ -1,15 +1,33 @@
-import { BrowserWindow, dialog, type OpenDialogOptions, type SaveDialogOptions } from 'electron';
+import {
+  BrowserWindow,
+  dialog,
+  ipcMain,
+  type IpcMainEvent,
+  type OpenDialogOptions,
+  type SaveDialogOptions,
+} from 'electron';
 import { basename, dirname, join } from 'node:path';
 import { MEDIA_DIR_NAME, TREE_FILE_EXTENSION, type ProjectBinding, type ProjectSummary } from '@doru/core';
 import { GEDCOM_INTEROP_VISIBLE } from '@doru/platform';
 import { createBookmark, releaseBookmarkAccess, startAccessing } from './bookmarks';
+import { requestRendererAutosaves } from './closeGuard';
 import { NodeFileSystem } from './filesystem';
 import { openGedcomAsProject } from './gedcom';
 import { log } from './log';
 import { nls } from './nls';
 import { closeProjectRuntime, ensureRuntime, openUntitledStore } from './runtime';
 import { updateSession } from './session';
-import { activeBookmarks, isUntitledKey, projectWindows, recents, runtimes, untitledProjects } from './state';
+import {
+  activeBookmarks,
+  isUntitledKey,
+  projectWindows,
+  recents,
+  runtimes,
+  openingDestinations,
+  savingDestinations,
+  savingProjects,
+  untitledProjects,
+} from './state';
 import { startTreeWatcher } from './tree-watcher';
 import {
   bindingOf,
@@ -21,6 +39,25 @@ import {
 } from './windows';
 
 const fs = new NodeFileSystem();
+const TRANSFER_ACK_TIMEOUT_MS = 2000;
+
+/** Waits until the renderer has committed the rebound project path. */
+function waitForTransferAck(window: BrowserWindow): Promise<boolean> {
+  return new Promise((resolve) => {
+    const finish = (acknowledged: boolean) => {
+      clearTimeout(timer);
+      ipcMain.removeListener('project:transfer-ack', onAck);
+      resolve(acknowledged);
+    };
+    const onAck = (event: IpcMainEvent) => {
+      if (event.sender === window.webContents) {
+        finish(true);
+      }
+    };
+    const timer = setTimeout(() => finish(false), TRANSFER_ACK_TIMEOUT_MS);
+    ipcMain.on('project:transfer-ack', onAck);
+  });
+}
 
 /** File extensions the app opens directly (imports or opens a project). */
 export const GEDCOM_EXTENSIONS = ['.ged', '.gdz'];
@@ -82,55 +119,64 @@ export async function openProject(options: OpenProjectOptions, senderId?: number
   if (!filePath.toLowerCase().endsWith(TREE_FILE_EXTENSION)) {
     return null;
   }
-  const existingWindow = projectWindows.get(filePath);
-  if (existingWindow) {
-    if (existingWindow.isDestroyed()) {
-      projectWindows.delete(filePath);
-    } else {
-      if (existingWindow.isMinimized()) {
-        existingWindow.restore();
-      }
-      existingWindow.focus();
-      return {
-        path: filePath,
-        schemaVersion: runtimes.get(filePath)?.store.userVersion() ?? 0,
-        created: false,
-      };
-    }
-  }
-  let summary: ProjectSummary;
-  try {
-    await grantAccess(filePath);
-    summary = (await ensureRuntime(filePath)).summary;
-  } catch (error) {
-    // The file is not readable: a sandboxed build without a working bookmark,
-    // the file was moved or deleted, or its schema version is not understood
-    // by this build. Log the reason and drop the held access, if any.
-    log.error('failed to open project', filePath, error);
-    releaseAccess(filePath);
-    if (fromPicker) {
-      // The user already chose this file; reopening the picker would just
-      // loop on the same broken file. Report the failure instead.
-      await showOpenProjectError(filePath, error, senderId);
-      return null;
-    }
-    if (senderId !== undefined) {
-      // A user-initiated reopen failed — let them pick the file again.
-      return openProject({ dialog: true }, senderId);
-    }
+  if (savingDestinations.has(filePath) || openingDestinations.has(filePath)) {
+    log.warn('destination is reserved by an in-progress operation', { path: filePath });
     return null;
   }
-  openProjectInWindow(filePath, senderId);
-  startTreeWatcher(filePath);
-  if (recents.current) {
-    const bookmark = await createBookmark(summary.path);
-    await recents.current.touch(summary.path, bookmark);
-    updateSession((session) => {
-      const paths = session.paths.filter((entry) => entry !== summary.path);
-      return { paths: [...paths, summary.path], activePath: summary.path };
-    });
+  openingDestinations.add(filePath);
+  try {
+    const existingWindow = projectWindows.get(filePath);
+    if (existingWindow) {
+      if (existingWindow.isDestroyed()) {
+        projectWindows.delete(filePath);
+      } else {
+        if (existingWindow.isMinimized()) {
+          existingWindow.restore();
+        }
+        existingWindow.focus();
+        return {
+          path: filePath,
+          schemaVersion: runtimes.get(filePath)?.store.userVersion() ?? 0,
+          created: false,
+        };
+      }
+    }
+    let summary: ProjectSummary;
+    try {
+      await grantAccess(filePath);
+      summary = (await ensureRuntime(filePath)).summary;
+    } catch (error) {
+      // The file is not readable: a sandboxed build without a working bookmark,
+      // the file was moved or deleted, or its schema version is not understood
+      // by this build. Log the reason and drop the held access, if any.
+      log.error('failed to open project', filePath, error);
+      releaseAccess(filePath);
+      if (fromPicker) {
+        // The user already chose this file; reopening the picker would just
+        // loop on the same broken file. Report the failure instead.
+        await showOpenProjectError(filePath, error, senderId);
+        return null;
+      }
+      if (senderId !== undefined) {
+        // A user-initiated reopen failed — let them pick the file again.
+        return await openProject({ dialog: true }, senderId);
+      }
+      return null;
+    }
+    openProjectInWindow(filePath, senderId);
+    startTreeWatcher(filePath);
+    if (recents.current) {
+      const bookmark = await createBookmark(summary.path);
+      await recents.current.touch(summary.path, bookmark);
+      updateSession((session) => {
+        const paths = session.paths.filter((entry) => entry !== summary.path);
+        return { paths: [...paths, summary.path], activePath: summary.path };
+      });
+    }
+    return summary;
+  } finally {
+    openingDestinations.delete(filePath);
   }
-  return summary;
 }
 
 /** Shows the failure of a user-picked file in the locale of the app. */
@@ -215,24 +261,46 @@ export async function createProject(senderId?: number): Promise<ProjectSummary |
   const filePath = result.filePath.toLowerCase().endsWith(TREE_FILE_EXTENSION)
     ? result.filePath
     : `${result.filePath}${TREE_FILE_EXTENSION}`;
-  // The system save dialog already asked the user about replacing an
-  // existing file, so honor that confirmation the way a document app would:
-  // the project is replaced by a new, empty one. A window still showing the
-  // old project is closed first so the store and the file watcher release
-  // the path (Windows cannot delete a file that is open).
-  const existingWindow = projectWindows.get(filePath);
-  if (existingWindow && !existingWindow.isDestroyed()) {
-    await new Promise<void>((resolve) => {
-      existingWindow.once('closed', resolve);
-      existingWindow.close();
-    });
-  } else {
-    closeProjectRuntime(filePath);
+  if (savingDestinations.has(filePath) || openingDestinations.has(filePath)) {
+    log.warn('destination is reserved by an in-progress operation', { path: filePath });
+    return null;
   }
-  if (await fs.exists(filePath)) {
-    await fs.remove(filePath);
+  openingDestinations.add(filePath);
+  try {
+    // The system save dialog already asked the user about replacing an
+    // existing file, so honor that confirmation the way a document app would:
+    // the project is replaced by a new, empty one. A window still showing the
+    // old project is closed first so the store and the file watcher release
+    // the path (Windows cannot delete a file that is open).
+    const existingWindow = projectWindows.get(filePath);
+    if (existingWindow && !existingWindow.isDestroyed()) {
+      const closed = await new Promise<boolean>((resolve) => {
+        const timer = setTimeout(() => finish(false), 5000);
+        const finish = (value: boolean) => {
+          clearTimeout(timer);
+          existingWindow.removeListener('closed', onClosed);
+          resolve(value);
+        };
+        const onClosed = () => finish(true);
+        existingWindow.once('closed', onClosed);
+        existingWindow.close();
+      });
+      if (!closed) {
+        return null;
+      }
+    } else {
+      closeProjectRuntime(filePath);
+    }
+    if (await fs.exists(filePath)) {
+      await fs.remove(filePath);
+    }
+    // Hand the reservation to openProject, which checks and re-claims it
+    // synchronously before its first await.
+    openingDestinations.delete(filePath);
+    return await openProject({ path: filePath, fromPicker: true }, senderId);
+  } finally {
+    openingDestinations.delete(filePath);
   }
-  return openProject({ path: filePath, fromPicker: true }, senderId);
 }
 
 /**
@@ -249,82 +317,159 @@ export async function saveProject(projectKey: string): Promise<ProjectBinding | 
   if (!untitled) {
     return null;
   }
-  const parent = projectWindows.get(projectKey) ?? focusedWindow();
-  const dialogOptions: SaveDialogOptions = {
-    filters: [{ name: nls.t('project.dialog.open.filter'), extensions: ['doru'] }],
-    title: nls.t('project.dialog.save.title'),
-    buttonLabel: nls.t('project.dialog.save.button'),
-    defaultPath: `${untitled.name.replace(/\.(ged|gdz)$/i, '')}.doru`,
-  };
-  const result =
-    parent !== null ? await dialog.showSaveDialog(parent, dialogOptions) : await dialog.showSaveDialog(dialogOptions);
-  if (result.canceled || !result.filePath) {
+  if (savingProjects.has(projectKey)) {
     return null;
   }
-  const filePath = result.filePath.toLowerCase().endsWith(TREE_FILE_EXTENSION)
-    ? result.filePath
-    : `${result.filePath}${TREE_FILE_EXTENSION}`;
-  const openElsewhere = projectWindows.get(filePath);
-  if (openElsewhere && !openElsewhere.isDestroyed()) {
-    const message = nls.t('project.dialog.error.openInAnotherWindow');
-    if (parent) {
-      await dialog.showMessageBox(parent, { type: 'error', message });
-    } else {
-      dialog.showErrorBox(nls.t('project.dialog.save.title'), message);
-    }
-    return null;
-  }
-
-  // Flush and detach the temporary store before moving its files. The
-  // temporary files are kept: they are moved below.
-  closeProjectRuntime(projectKey, { removeUntitledFiles: false });
+  savingProjects.add(projectKey);
+  let reservedDestination: string | undefined;
   try {
-    await fs.mkdir(dirname(filePath));
-    await fs.copyFile(untitled.tempPath, filePath);
-    const tempMediaDir = join(untitled.tempDir, MEDIA_DIR_NAME);
-    if (await fs.exists(tempMediaDir)) {
-      const mediaDir = join(dirname(filePath), MEDIA_DIR_NAME);
-      await fs.mkdir(mediaDir);
-      for (const entry of await fs.readdir(tempMediaDir)) {
-        await fs.copyFile(join(tempMediaDir, entry), join(mediaDir, entry));
+    const parent = projectWindows.get(projectKey) ?? focusedWindow();
+    const dialogOptions: SaveDialogOptions = {
+      filters: [{ name: nls.t('project.dialog.open.filter'), extensions: ['doru'] }],
+      title: nls.t('project.dialog.save.title'),
+      buttonLabel: nls.t('project.dialog.save.button'),
+      defaultPath: `${untitled.name.replace(/\.(ged|gdz)$/i, '')}.doru`,
+    };
+    const result =
+      parent !== null ? await dialog.showSaveDialog(parent, dialogOptions) : await dialog.showSaveDialog(dialogOptions);
+    if (result.canceled || !result.filePath) {
+      return null;
+    }
+    const filePath = result.filePath.toLowerCase().endsWith(TREE_FILE_EXTENSION)
+      ? result.filePath
+      : `${result.filePath}${TREE_FILE_EXTENSION}`;
+    const openElsewhere = projectWindows.get(filePath);
+    if (
+      (openElsewhere && !openElsewhere.isDestroyed()) ||
+      savingDestinations.has(filePath) ||
+      openingDestinations.has(filePath)
+    ) {
+      const message = nls.t('project.dialog.error.openInAnotherWindow');
+      if (parent) {
+        await dialog.showMessageBox(parent, { type: 'error', message });
+      } else {
+        dialog.showErrorBox(nls.t('project.dialog.save.title'), message);
       }
+      return null;
     }
-  } catch (error) {
-    // The temporary files stay where they were; reopen the store so the
-    // window keeps working and the project can be saved again.
-    openUntitledStore(projectKey, untitled.tempPath);
-    const message = nls.t('project.dialog.error.saveFailed', error instanceof Error ? error.message : String(error));
-    if (parent) {
-      await dialog.showMessageBox(parent, { type: 'error', message });
+    savingDestinations.add(filePath);
+    reservedDestination = filePath;
+
+    // Pending drafts belong to the temporary store; block editing, then
+    // persist them before the store closes so a failed write cannot discard
+    // the editor's work. The barrier stays until the window is rebound.
+    const sourceWindow = projectWindows.get(projectKey);
+    const setTransfer = (active: boolean): void => {
+      if (sourceWindow && !sourceWindow.isDestroyed()) {
+        sourceWindow.webContents.send('project:transfer', active);
+      }
+    };
+    setTransfer(true);
+    if (sourceWindow && !sourceWindow.isDestroyed() && !(await requestRendererAutosaves(sourceWindow))) {
+      setTransfer(false);
+      const message = nls.t('project.dialog.error.saveFailed', nls.t('features.tree.autosaveFailed'));
+      if (parent) {
+        await dialog.showMessageBox(parent, { type: 'error', message });
+      } else {
+        dialog.showErrorBox(nls.t('project.dialog.save.title'), message);
+      }
+      return null;
+    }
+
+    // Flush and detach the temporary store before moving its files. The
+    // temporary files are kept: they are moved below.
+    closeProjectRuntime(projectKey, { removeUntitledFiles: false });
+    try {
+      await fs.mkdir(dirname(filePath));
+      await fs.copyFile(untitled.tempPath, filePath);
+      const tempMediaDir = join(untitled.tempDir, MEDIA_DIR_NAME);
+      if (await fs.exists(tempMediaDir)) {
+        const mediaDir = join(dirname(filePath), MEDIA_DIR_NAME);
+        await fs.mkdir(mediaDir);
+        for (const entry of await fs.readdir(tempMediaDir)) {
+          await fs.copyFile(join(tempMediaDir, entry), join(mediaDir, entry));
+        }
+      }
+    } catch (error) {
+      // The temporary files stay where they were; reopen the store so the
+      // window keeps working and the project can be saved again.
+      setTransfer(false);
+      if (sourceWindow && !sourceWindow.isDestroyed()) {
+        openUntitledStore(projectKey, untitled.tempPath);
+      } else {
+        closeProjectRuntime(projectKey);
+      }
+      const message = nls.t('project.dialog.error.saveFailed', error instanceof Error ? error.message : String(error));
+      if (parent) {
+        await dialog.showMessageBox(parent, { type: 'error', message });
+      } else {
+        dialog.showErrorBox(nls.t('project.dialog.save.title'), message);
+      }
+      return null;
+    }
+
+    let summary: ProjectSummary;
+    try {
+      ({ summary } = await ensureRuntime(filePath));
+    } catch (error) {
+      // Keep the temporary store usable: the destination copy can be reopened
+      // later, while the window must stay editable after the barrier lifts.
+      setTransfer(false);
+      if (sourceWindow && !sourceWindow.isDestroyed()) {
+        openUntitledStore(projectKey, untitled.tempPath);
+      } else {
+        closeProjectRuntime(projectKey);
+      }
+      const message = nls.t('project.dialog.error.saveFailed', error instanceof Error ? error.message : String(error));
+      if (parent) {
+        await dialog.showMessageBox(parent, { type: 'error', message });
+      } else {
+        dialog.showErrorBox(nls.t('project.dialog.save.title'), message);
+      }
+      return null;
+    }
+
+    // The destination is open; the temporary copy is no longer needed.
+    try {
+      await fs.remove(untitled.tempDir);
+    } catch (error) {
+      log.warn('could not remove the temporary project copy', error);
+    }
+    untitledProjects.delete(projectKey);
+
+    const window = projectWindows.get(projectKey);
+    projectWindows.delete(projectKey);
+    if (window && !window.isDestroyed()) {
+      bindWindowToProject(window, filePath);
+      const acknowledged = await waitForTransferAck(window);
+      if (acknowledged && !window.isDestroyed()) {
+        window.webContents.send('project:transfer', false);
+      } else if (!acknowledged) {
+        // Reloading installs the destination binding from getCurrentProject and
+        // clears the stale transfer barrier without exposing the removed store.
+        log.error('renderer did not acknowledge the rebound project; reloading', { path: filePath });
+        window.webContents.reload();
+      }
     } else {
-      dialog.showErrorBox(nls.t('project.dialog.save.title'), message);
+      createWindow(filePath);
     }
-    return null;
+    startTreeWatcher(filePath);
+    const binding = bindingOf(filePath);
+    if (recents.current) {
+      const bookmark = await createBookmark(summary.path);
+      await recents.current.touch(summary.path, bookmark);
+    }
+    updateSession((session) => {
+      const paths = session.paths.filter((entry) => entry !== filePath);
+      return { paths: [...paths, filePath], activePath: filePath };
+    });
+    return binding;
+  } finally {
+    savingProjects.delete(projectKey);
+    if (reservedDestination !== undefined) {
+      savingDestinations.delete(reservedDestination);
+    }
   }
-
-  // The destination holds the project now; drop the temporary copy.
-  await fs.remove(untitled.tempDir);
-  untitledProjects.delete(projectKey);
-
-  const { summary } = await ensureRuntime(filePath);
-  const window = projectWindows.get(projectKey);
-  projectWindows.delete(projectKey);
-  if (window && !window.isDestroyed()) {
-    bindWindowToProject(window, filePath);
-  } else {
-    createWindow(filePath);
-  }
-  startTreeWatcher(filePath);
-  const binding = bindingOf(filePath);
-  if (recents.current) {
-    const bookmark = await createBookmark(summary.path);
-    await recents.current.touch(summary.path, bookmark);
-  }
-  updateSession((session) => {
-    const paths = session.paths.filter((entry) => entry !== filePath);
-    return { paths: [...paths, filePath], activePath: filePath };
-  });
-  return binding;
 }
 
 export function openExternalPath(path: string): void {

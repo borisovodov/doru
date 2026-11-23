@@ -2,11 +2,13 @@ import { normalizeTaskPriority, normalizeTaskStatus, TARGET_TYPES, type TargetTy
 import { nls } from '../../nls';
 import { Field } from '../../atoms/field/Field';
 import { FieldGrid } from '../../atoms/field-grid/FieldGrid';
+import { DateTimePicker } from '../../atoms/date-time-picker/DateTimePicker';
 import { Input } from '../../atoms/form/Input';
 import { Select } from '../../atoms/form/Select';
+import { useAutoFocusSelect } from '../../lib/useAutoFocusSelect';
 import type { TaskTargetData } from './taskTargets';
 import { taskTargetLabel, taskTargetOptions } from './taskTargets';
-import type { TaskDraft } from './taskDraft';
+import { inputToTimestamp, type TaskDraft } from './taskDraft';
 
 /**
  * The editable fields of a task, shared by the task tab editor: the text,
@@ -19,26 +21,42 @@ export function TaskEditorFields({
   data,
   onChange,
   targetTypes = TARGET_TYPES,
+  autoFocusText = false,
 }: {
   edit: TaskDraft;
   data: TaskTargetData;
   onChange: (update: Partial<TaskDraft>) => void;
   /** The target types offered by the picker; stored targets outside it stay visible. */
   targetTypes?: readonly TargetType[];
+  /** Focuses the task text when a new task tab opens. */
+  autoFocusText?: boolean;
 }) {
+  const textRef = useAutoFocusSelect<HTMLInputElement>(autoFocusText);
   const knownTarget = (targetTypes as readonly string[]).includes(edit.targetType);
   // A stored target outside the offered types (e.g. media while its editor is
-  // hidden) stays visible as a single read-only reference. Canonical types
-  // keep their translated label; only genuinely unknown types show the raw id.
+  // hidden, or a legacy source/submitter link) stays visible as a single
+  // read-only reference. Canonical types keep their translated label; only
+  // genuinely unknown types show the raw id.
   const offeredTargetLabel = (type: string): string =>
     (TARGET_TYPES as readonly string[]).includes(type) ? nls.t(`features.tasks.target.${type as TargetType}`) : type;
   const targetOptions = knownTarget ? taskTargetOptions(edit.targetType, data) : [];
   const knownTargetId = targetOptions.some((option) => option.id === edit.targetId);
+  const dateTimeLabels = {
+    chooseDate: nls.t('features.tasks.chooseDate'),
+    previousMonth: nls.t('features.tasks.previousMonth'),
+    nextMonth: nls.t('features.tasks.nextMonth'),
+    today: nls.t('features.tasks.today'),
+    clear: nls.t('features.tasks.clear'),
+  };
+  const invalidTimestamp = nls.t('features.tasks.invalidTimestamp');
+  const scheduledInvalid = edit.scheduledAt.trim() !== '' && inputToTimestamp(edit.scheduledAt) === undefined;
+  const reminderInvalid = edit.reminderAt.trim() !== '' && inputToTimestamp(edit.reminderAt) === undefined;
 
   return (
     <>
       <Field label={nls.t('features.tasks.text')}>
         <Input
+          ref={textRef}
           value={edit.text}
           placeholder={nls.t('features.tasks.text')}
           onChange={(event) => onChange({ text: event.target.value })}
@@ -111,18 +129,20 @@ export function TaskEditorFields({
         </Field>
       </FieldGrid>
       <FieldGrid columns={2}>
-        <Field label={nls.t('features.tasks.scheduled')}>
-          <Input
-            type="datetime-local"
+        <Field label={nls.t('features.tasks.scheduled')} {...(scheduledInvalid ? { error: invalidTimestamp } : {})}>
+          <DateTimePicker
             value={edit.scheduledAt}
-            onChange={(event) => onChange({ scheduledAt: event.target.value })}
+            onChange={(value) => onChange({ scheduledAt: value })}
+            locale={nls.locale}
+            labels={dateTimeLabels}
           />
         </Field>
-        <Field label={nls.t('features.tasks.reminder')}>
-          <Input
-            type="datetime-local"
+        <Field label={nls.t('features.tasks.reminder')} {...(reminderInvalid ? { error: invalidTimestamp } : {})}>
+          <DateTimePicker
             value={edit.reminderAt}
-            onChange={(event) => onChange({ reminderAt: event.target.value })}
+            onChange={(value) => onChange({ reminderAt: value })}
+            locale={nls.locale}
+            labels={dateTimeLabels}
           />
         </Field>
       </FieldGrid>

@@ -26,10 +26,10 @@ describe('emptyPlaceDraft', () => {
       latitude: '',
       longitude: '',
       verified: false,
-      names: [],
       postalCodes: [],
       hierarchy: [],
     });
+    expect(draft.names).toEqual([expect.objectContaining({ kind: 'official', position: 0, value: '' })]);
   });
 });
 
@@ -153,6 +153,61 @@ describe('placeToDraft / placeDraftToRecord', () => {
     const saved = placeDraftToRecord(merged, refreshed);
     expect(saved.names[0]?.date?.id).toBe('D3');
     expect(saved.postalCodes?.[0]?.date?.id).toBe('D4');
+  });
+
+  it('keeps a name added after the submission started', () => {
+    const previous = place();
+    const refreshed = place({
+      names: [
+        { id: 'N1', position: 0, value: 'Tula' },
+        { id: 'N2', position: 1, value: 'Tula Oblast' },
+      ],
+    });
+    const baseline = placeToDraft(previous);
+    const pending = placeToDraft(previous);
+    const current = placeToDraft(previous);
+    current.names.push({ ...emptyPlaceNameDraft(2), id: 'N3', value: 'Tula city' });
+
+    const merged = mergePlaceDraft(current, previous, refreshed, undefined, pending, baseline);
+
+    expect(merged.names.map((name) => name.id)).toEqual(['N1', 'N2', 'N3']);
+  });
+
+  it('keeps a submission-time row edit even after the user restores the old value', () => {
+    const previous = place();
+    const refreshed = place({ names: [{ id: 'N1', position: 0, value: 'Tula Oblast' }] });
+    const baseline = placeToDraft(previous);
+    const submitted = placeToDraft(previous);
+    submitted.names[0]!.value = 'Tula city';
+    const reverted = placeToDraft(previous);
+
+    const merged = mergePlaceDraft(reverted, previous, refreshed, undefined, submitted, baseline);
+
+    expect(merged.names[0]?.value).toBe('Tula');
+  });
+
+  it('preserves rows added externally while a local submission is pending', () => {
+    const previous = place();
+    const refreshed = place({
+      names: [
+        { id: 'N1', position: 0, value: 'Tula' },
+        { id: 'N2', position: 1, value: 'Tula Oblast' },
+      ],
+      postalCodes: [{ id: 'PC1', code: '300000' }],
+      hierarchy: [{ id: 'H1', parentId: 'PL2', type: 'poli' }],
+    });
+    const baseline = placeToDraft(previous);
+    const submitted = placeToDraft(previous);
+    submitted.names[0]!.value = 'Tula city';
+
+    const merged = mergePlaceDraft(submitted, previous, refreshed, undefined, submitted, baseline);
+
+    expect(merged.names.map((name) => [name.id, name.value])).toEqual([
+      ['N1', 'Tula city'],
+      ['N2', 'Tula Oblast'],
+    ]);
+    expect(merged.postalCodes).toEqual([expect.objectContaining({ id: 'PC1', code: '300000' })]);
+    expect(merged.hierarchy).toEqual([expect.objectContaining({ id: 'H1', parentId: 'PL2' })]);
   });
 
   it('drops empty names, links and postal codes; parses coordinates', () => {
