@@ -409,8 +409,10 @@ export async function saveProject(projectKey: string): Promise<ProjectBinding | 
       if (acknowledged && !window.isDestroyed()) {
         window.webContents.send('project:transfer', false);
       } else if (!acknowledged) {
-        // Keep editing blocked rather than exposing the old, removed store.
-        log.error('renderer did not acknowledge the rebound project', { path: filePath });
+        // Reloading installs the destination binding from getCurrentProject and
+        // clears the stale transfer barrier without exposing the removed store.
+        log.error('renderer did not acknowledge the rebound project; reloading', { path: filePath });
+        window.webContents.reload();
       }
     } else {
       createWindow(filePath);
