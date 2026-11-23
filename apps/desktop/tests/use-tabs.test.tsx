@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { act, renderHook } from '@testing-library/react';
+import { act, renderHook, waitFor } from '@testing-library/react';
 import type { PersonRecord } from '@doru/core';
 import { registerAutoSaveFlush } from '@doru/ui';
 import { nls } from '@doru/workbench';
@@ -51,9 +51,8 @@ describe('useTabs', () => {
     });
     await act(async () => {
       result.current.closeTab('person:p1');
-      await new Promise((resolve) => setTimeout(resolve, 0));
     });
-    expect(result.current.openTabs).toHaveLength(1);
+    await waitFor(() => expect(result.current.openTabs).toHaveLength(1));
     unregisterFailure();
 
     const unregisterSuccess = registerAutoSaveFlush('person:p1', {
@@ -62,9 +61,8 @@ describe('useTabs', () => {
     });
     await act(async () => {
       result.current.closeTab('person:p1');
-      await new Promise((resolve) => setTimeout(resolve, 0));
     });
-    expect(result.current.openTabs).toHaveLength(0);
+    await waitFor(() => expect(result.current.openTabs).toHaveLength(0));
     unregisterSuccess();
   });
 
