@@ -38,6 +38,7 @@ export function PlaceEditor({
   renderAttachments,
   renderNameAttachments,
   onBlur,
+  onRowRemoved,
 }: {
   draft: PlaceDraft;
   onChange: (draft: PlaceDraft) => void;
@@ -49,6 +50,8 @@ export function PlaceEditor({
   renderNameAttachments?: ((nameId: string) => ReactNode) | undefined;
   /** Autosave trigger from the tab; fires when a field loses focus. */
   onBlur?: FocusEventHandler<HTMLElement> | undefined;
+  /** Requests a save after a focused row-remove button disappears. */
+  onRowRemoved?: (() => void) | undefined;
 }) {
   const [expandedLinkId, setExpandedLinkId] = useState<string | null>(null);
   const [expandedNameId, setExpandedNameId] = useState<string | null>(null);
@@ -60,8 +63,10 @@ export function PlaceEditor({
     set({
       names: withPlaceNamePositions([...draft.names, emptyPlaceNameDraft(draft.names.length)]),
     });
-  const removeName = (index: number) =>
+  const removeName = (index: number) => {
     set({ names: withPlaceNamePositions(draft.names.filter((_, i) => i !== index)) });
+    onRowRemoved?.();
+  };
   const moveName = (index: number, to: number) =>
     set({ names: withPlaceNamePositions(moveItem(draft.names, index, to)) });
 
@@ -69,7 +74,10 @@ export function PlaceEditor({
     set({ postalCodes: draft.postalCodes.map((postal, i) => (i === index ? { ...postal, ...values } : postal)) });
   const addPostal = () =>
     set({ postalCodes: [...draft.postalCodes, { id: crypto.randomUUID(), code: '', date: emptyDate() }] });
-  const removePostal = (index: number) => set({ postalCodes: draft.postalCodes.filter((_, i) => i !== index) });
+  const removePostal = (index: number) => {
+    set({ postalCodes: draft.postalCodes.filter((_, i) => i !== index) });
+    onRowRemoved?.();
+  };
 
   const patchHierarchy = (index: number, values: Partial<HierarchyDraft>) =>
     set({ hierarchy: draft.hierarchy.map((link, i) => (i === index ? { ...link, ...values } : link)) });
@@ -77,7 +85,10 @@ export function PlaceEditor({
     set({
       hierarchy: [...draft.hierarchy, { id: crypto.randomUUID(), parentId: '', type: '', date: emptyDate() }],
     });
-  const removeHierarchy = (index: number) => set({ hierarchy: draft.hierarchy.filter((_, i) => i !== index) });
+  const removeHierarchy = (index: number) => {
+    set({ hierarchy: draft.hierarchy.filter((_, i) => i !== index) });
+    onRowRemoved?.();
+  };
 
   /** The place itself and everything below it — never a valid parent. */
   const excludedIds = useMemo(() => {

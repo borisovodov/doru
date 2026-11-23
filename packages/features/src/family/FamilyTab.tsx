@@ -72,6 +72,9 @@ function mergeFamilyRows<T extends { id: string }>(
   const protectedById = new Map((protectedRows ?? []).map((row) => [row.id, row]));
   const protectedBaseById = new Map((protectedBaseRows ?? []).map((row) => [row.id, row]));
   const draftIds = new Set(draftRows.map((row) => row.id));
+  const draftOrder = draftRows.map((row) => row.id).filter((id) => baseById.has(id));
+  const baseOrder = baseRows.map((row) => row.id).filter((id) => draftIds.has(id));
+  const orderChanged = draftOrder.join('\u0000') !== baseOrder.join('\u0000');
   const merged: T[] = [];
   for (const row of draftRows) {
     const base = baseById.get(row.id);
@@ -95,11 +98,30 @@ function mergeFamilyRows<T extends { id: string }>(
     merged.push(mergeFamilyRow(row, base, refreshed, protectedRow, protectedBaseRow));
   }
   for (const row of refreshedRows) {
-    if (!draftIds.has(row.id) && !baseById.has(row.id)) {
+    if (!draftIds.has(row.id) && !baseById.has(row.id) && !protectedById.has(row.id)) {
       merged.push(row);
     }
   }
-  return merged;
+  if (orderChanged) {
+    return merged;
+  }
+  const mergedById = new Map(merged.map((row) => [row.id, row]));
+  const ordered: T[] = [];
+  for (const row of refreshedRows) {
+    const mergedRow = mergedById.get(row.id);
+    if (mergedRow !== undefined) {
+      ordered.push(mergedRow);
+      mergedById.delete(row.id);
+    }
+  }
+  for (const row of merged) {
+    const remaining = mergedById.get(row.id);
+    if (remaining !== undefined) {
+      ordered.push(remaining);
+      mergedById.delete(row.id);
+    }
+  }
+  return ordered;
 }
 
 export function mergeFamilyDraft(
@@ -327,7 +349,7 @@ function FamilyTabBody({
           </>
         }
         onChange={setDraft}
-        onRowRemoved={autoSave.saveSoon}
+        onRowsChanged={autoSave.saveSoon}
         persons={persons}
         families={families}
         associations={familyAssociations}

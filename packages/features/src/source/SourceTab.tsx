@@ -272,6 +272,7 @@ function SourceTabBody({
     savingRef.current = true;
     try {
       const target = lastSaved ?? record;
+      const recordAtStart = recordRef.current;
       const next = sourceDraftToRecord(draftRef.current, lastSaved ?? record ?? baselineRef.current);
       const submission = sourceToDraft(next);
       submittedRef.current = submission;
@@ -297,8 +298,10 @@ function SourceTabBody({
         }
         throw error;
       }
-      baselineRef.current = next;
-      setLastSaved(next);
+      if (recordRef.current === recordAtStart) {
+        baselineRef.current = next;
+        setLastSaved(next);
+      }
     } finally {
       savingRef.current = false;
     }

@@ -57,6 +57,37 @@ describe('FamilyTab reconciliation', () => {
     expect(merged.childLinks.find((row) => row.id === 'C2')?.status).toBe('B');
   });
 
+  it('keeps refreshed order when links were not reordered locally', () => {
+    const baseDraft = emptyFamilyDraft();
+    baseDraft.childLinks = [
+      { ...emptyChildLinkDraft('P1'), id: 'C1' },
+      { ...emptyChildLinkDraft('P2'), id: 'C2' },
+    ];
+    const refreshed = {
+      ...baseDraft,
+      childLinks: [baseDraft.childLinks[1]!, baseDraft.childLinks[0]!],
+    };
+
+    const merged = mergeFamilyDraft(baseDraft, baseDraft, refreshed);
+
+    expect(merged.childLinks.map((row) => row.id)).toEqual(['C2', 'C1']);
+  });
+
+  it('does not restore a pending link removed after submission', () => {
+    const baseDraft = emptyFamilyDraft();
+    baseDraft.childLinks = [{ ...emptyChildLinkDraft('P1'), id: 'C1' }];
+    const pending = {
+      ...baseDraft,
+      childLinks: [...baseDraft.childLinks, { ...emptyChildLinkDraft('P2'), id: 'C2' }],
+    };
+    const current = { ...baseDraft };
+    const refreshed = { ...baseDraft, unionStatus: 'S1', childLinks: pending.childLinks };
+
+    const merged = mergeFamilyDraft(current, baseDraft, refreshed, pending, baseDraft);
+
+    expect(merged.childLinks.map((row) => row.id)).toEqual(['C1']);
+  });
+
   it('saves a child removal without waiting for a blur', async () => {
     const updateFamily = vi.fn(async (_before: FamilyRecord, _after: FamilyRecord) => undefined);
     const api = apiStub({ updateFamily });

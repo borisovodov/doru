@@ -7,7 +7,12 @@ import { pathToFileURL } from 'node:url';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { DoruMcpServer, TreeMcpBackend } from '@doru/ai';
 import { RecentProjects } from '@doru/core';
-import { flushWindowBeforeClose, forgetFlushedBeforeClose, hasFlushedBeforeClose } from './closeGuard';
+import {
+  flushWindowBeforeClose,
+  forgetFlushedBeforeClose,
+  hasFlushedBeforeClose,
+  registerCloseGuardIpc,
+} from './closeGuard';
 import { watchSettings } from './settings';
 import { registerChatIpc } from './ipc-chat';
 import { registerMenuIpc } from './ipc-menu';
@@ -284,6 +289,7 @@ if (!gotLock) {
 }
 
 if (gotLock) {
+  registerCloseGuardIpc();
   // A failed startup must not leave a zombie process: an MCP helper that
   // rejects here would otherwise hang forever (never serving stdio) and the
   // client would wait out its whole startup timeout.

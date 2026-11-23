@@ -68,6 +68,7 @@ export function useAutoSaveOnBlur({ enabled, isDirty, save }: AutoSaveOnBlurOpti
           break;
         }
         if (!dirtyRef.current()) {
+          queuedRef.current = false;
           setFailure(false);
           break;
         }

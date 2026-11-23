@@ -244,10 +244,12 @@ function mergePendingPlaceRows<T extends { id: string }>(
   draftRows: T[],
   pendingRows: T[],
   baselineRows: T[],
+  previousRows: T[],
   refreshedRows: T[],
 ): T[] {
   const pendingById = new Map(pendingRows.map((row) => [row.id, row]));
   const baselineById = new Map(baselineRows.map((row) => [row.id, row]));
+  const previousById = new Map(previousRows.map((row) => [row.id, row]));
   const refreshedById = new Map(refreshedRows.map((row) => [row.id, row]));
   const draftIds = new Set(draftRows.map((row) => row.id));
   const merged: T[] = [];
@@ -256,6 +258,10 @@ function mergePendingPlaceRows<T extends { id: string }>(
     const baseline = baselineById.get(row.id);
     const refreshed = refreshedById.get(row.id);
     if (pending === undefined || baseline === undefined) {
+      const previous = previousById.get(row.id);
+      if (previous !== undefined && JSON.stringify(row) === JSON.stringify(previous) && refreshed === undefined) {
+        continue;
+      }
       merged.push(row);
       continue;
     }
@@ -269,7 +275,7 @@ function mergePendingPlaceRows<T extends { id: string }>(
     merged.push(mergeProtectedPlaceRow(row, pending, baseline, refreshed));
   }
   for (const row of refreshedRows) {
-    if (!draftIds.has(row.id) && !baselineById.has(row.id) && !pendingById.has(row.id)) {
+    if (!draftIds.has(row.id) && !previousById.has(row.id) && !pendingById.has(row.id)) {
       merged.push(row);
     }
   }
@@ -351,15 +357,27 @@ export function mergePlaceDraft(
   const names =
     pending === undefined
       ? mergePlaceRows(draft.names, base.names, previousDraft.names, next.names)
-      : mergePendingPlaceRows(draft.names, pending.names, submissionBaseline.names, next.names);
+      : mergePendingPlaceRows(draft.names, pending.names, submissionBaseline.names, previousDraft.names, next.names);
   const postalCodes =
     pending === undefined
       ? mergePlaceRows(draft.postalCodes, base.postalCodes, previousDraft.postalCodes, next.postalCodes)
-      : mergePendingPlaceRows(draft.postalCodes, pending.postalCodes, submissionBaseline.postalCodes, next.postalCodes);
+      : mergePendingPlaceRows(
+          draft.postalCodes,
+          pending.postalCodes,
+          submissionBaseline.postalCodes,
+          previousDraft.postalCodes,
+          next.postalCodes,
+        );
   const hierarchy =
     pending === undefined
       ? mergePlaceRows(draft.hierarchy, base.hierarchy, previousDraft.hierarchy, next.hierarchy)
-      : mergePendingPlaceRows(draft.hierarchy, pending.hierarchy, submissionBaseline.hierarchy, next.hierarchy);
+      : mergePendingPlaceRows(
+          draft.hierarchy,
+          pending.hierarchy,
+          submissionBaseline.hierarchy,
+          previousDraft.hierarchy,
+          next.hierarchy,
+        );
   return {
     id: draft.id,
     xref: scalar('xref'),

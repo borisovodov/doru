@@ -58,6 +58,27 @@ function taskElement(entityId: string, tasks: TaskRecord[], api: TaskEditorApi) 
 }
 
 describe('TaskTab', () => {
+  it('runs one create request for repeated clicks', async () => {
+    let finishCreate!: () => void;
+    const addTask = vi.fn(
+      (_task: TaskRecord) =>
+        new Promise<void>((resolve) => {
+          finishCreate = resolve;
+        }),
+    );
+    const api = apiStub({ addTask });
+    renderUi(taskElement('new:1', [], api));
+
+    fireEvent.change(screen.getByPlaceholderText(nls.t('features.tasks.text')), {
+      target: { value: 'Write a report' },
+    });
+    const create = screen.getByRole('button', { name: nls.t('features.tree.create') });
+    fireEvent.click(create);
+    fireEvent.click(create);
+    expect(addTask).toHaveBeenCalledTimes(1);
+    await act(async () => finishCreate());
+  });
+
   it('keeps a refreshed status when only the text is edited', async () => {
     const openTask: TaskRecord = { id: 'T1', text: 'Old text', status: 'open' };
     const closedTask: TaskRecord = { ...openTask, status: 'closed' };

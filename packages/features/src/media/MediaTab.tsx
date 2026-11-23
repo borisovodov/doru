@@ -75,7 +75,7 @@ function fileTitlesFrom(files: MediaFile[] | undefined): Record<string, string> 
 function sameTitleMaps(left: Record<string, string>, right: Record<string, string>): boolean {
   const ids = new Set([...Object.keys(left), ...Object.keys(right)]);
   for (const id of ids) {
-    if ((left[id] ?? '') !== (right[id] ?? '')) {
+    if ((left[id] ?? '').trim() !== (right[id] ?? '').trim()) {
       return false;
     }
   }
@@ -109,10 +109,12 @@ function mergeFileTitles(
   const ids = new Set([...Object.keys(current), ...Object.keys(previous), ...Object.keys(refreshed)]);
   for (const id of ids) {
     const currentTitle = current[id];
+    if (refreshed[id] === undefined) {
+      // The file no longer exists; a stale title must not keep the tab dirty.
+      continue;
+    }
     if (currentTitle === previous[id]) {
-      if (refreshed[id] !== undefined) {
-        merged[id] = refreshed[id];
-      }
+      merged[id] = refreshed[id];
     } else if (currentTitle !== undefined) {
       merged[id] = currentTitle;
     }
@@ -185,7 +187,7 @@ function MediaTabBody({
   const baselineRef = useRef<MediaRecord>(record);
   const savedRef = useRef<MediaRecord>(record);
   const savedMetadataRef = useRef<MediaRecord>(record);
-  const submittedRef = useRef<typeof metadataRef.current | undefined>(undefined);
+  const submittedRef = useRef<MediaDraftSnapshot | undefined>(undefined);
   const submissionTokenRef = useRef<object | undefined>(undefined);
   const submittedDirtyRef = useRef<MediaDirtyFields | undefined>(undefined);
   const saveChainRef = useRef<Promise<void>>(Promise.resolve());
@@ -844,6 +846,7 @@ function mediaRecordHasSubmission(
     objectType: string;
     description: string;
     keywords: string;
+    fileTitles: Record<string, string>;
   },
   dirty: {
     title: boolean;
@@ -852,6 +855,7 @@ function mediaRecordHasSubmission(
     objectType: boolean;
     description: boolean;
     keywords: boolean;
+    files: boolean;
   },
 ): boolean {
   return (
@@ -860,7 +864,8 @@ function mediaRecordHasSubmission(
     (!dirty.place || (values.place.trim() === (record.place ?? '') && values.placeId === (record.placeId ?? ''))) &&
     (!dirty.objectType || values.objectType.trim() === (record.objectType ?? '')) &&
     (!dirty.description || values.description.trim() === (record.description ?? '')) &&
-    (!dirty.keywords || values.keywords.trim() === (record.keywords ?? ''))
+    (!dirty.keywords || values.keywords.trim() === (record.keywords ?? '')) &&
+    (!dirty.files || sameTitleMaps(fileTitlesFrom(record.files), values.fileTitles))
   );
 }
 

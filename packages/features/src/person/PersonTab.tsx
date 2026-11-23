@@ -183,6 +183,7 @@ function PersonTabBody({
         return;
       }
       const submission = draft;
+      const personAtStart = personRef.current;
       const token = {};
       submissionTokenRef.current = token;
       submittedRef.current = submission;
@@ -214,8 +215,9 @@ function PersonTabBody({
       setDraft((current) => {
         const patch: Partial<PersonDraft> = {};
         if (current.sex === draft.sex) {
-          patch.sex = persisted.sex;
-          patch.sexTouched = false;
+          const storedSex = personRef.current !== personAtStart ? personRef.current?.sex : persisted.sex;
+          patch.sex = current.sex;
+          patch.sexTouched = storedSex !== current.sex;
         }
         if (current.deathStatus === draft.deathStatus) {
           patch.deathStatus = persisted.deathStatus;

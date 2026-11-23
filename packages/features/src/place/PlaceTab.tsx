@@ -227,6 +227,10 @@ function PlaceTabBody({
             submittedRef.current = undefined;
             submittedBaselineRef.current = undefined;
             submittedRecordRef.current = undefined;
+            if (recordRef.current !== recordAtStart) {
+              baselineRef.current = recordRef.current;
+              setLastSaved(recordRef.current);
+            }
           }
           throw error;
         }
@@ -293,6 +297,7 @@ function PlaceTabBody({
           setSaveError(false);
           setDraft(next);
         }}
+        onRowRemoved={autoSave.saveSoon}
         places={places}
         onSave={() => void save().catch(() => undefined)}
         renderAttachments={(linkId) => (

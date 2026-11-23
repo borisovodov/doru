@@ -325,11 +325,31 @@ export async function saveProject(projectKey: string): Promise<ProjectBinding | 
     return null;
   }
 
-  // The destination holds the project now; drop the temporary copy.
-  await fs.remove(untitled.tempDir);
+  let summary: ProjectSummary;
+  try {
+    ({ summary } = await ensureRuntime(filePath));
+  } catch (error) {
+    // Keep the temporary store usable: the destination copy can be reopened
+    // later, while the window must stay editable after the barrier lifts.
+    setTransfer(false);
+    openUntitledStore(projectKey, untitled.tempPath);
+    const message = nls.t('project.dialog.error.saveFailed', error instanceof Error ? error.message : String(error));
+    if (parent) {
+      await dialog.showMessageBox(parent, { type: 'error', message });
+    } else {
+      dialog.showErrorBox(nls.t('project.dialog.save.title'), message);
+    }
+    return null;
+  }
+
+  // The destination is open; the temporary copy is no longer needed.
+  try {
+    await fs.remove(untitled.tempDir);
+  } catch (error) {
+    log.warn('could not remove the temporary project copy', error);
+  }
   untitledProjects.delete(projectKey);
 
-  const { summary } = await ensureRuntime(filePath);
   const window = projectWindows.get(projectKey);
   projectWindows.delete(projectKey);
   if (window && !window.isDestroyed()) {

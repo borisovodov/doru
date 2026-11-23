@@ -167,6 +167,7 @@ function TaskTabBody({
   const submittedRef = useRef<TaskDraft | undefined>(undefined);
   const submittedRecordRef = useRef<TaskRecord | undefined>(undefined);
   const submissionTokenRef = useRef<object | undefined>(undefined);
+  const creatingRef = useRef(false);
   const [lastSaved, setLastSaved] = useState<TaskRecord | undefined>(record);
   const [saveError, setSaveError] = useState(false);
   const [draft, setDraft] = useState<TaskDraft>(() =>
@@ -255,10 +256,18 @@ function TaskTabBody({
     const after = taskDraftToRecord(before, draft);
     try {
       if (isNew && lastSaved === undefined) {
-        await api.addTask(after);
-        onCreated(after.id);
-        savedRef.current = after;
-        setLastSaved(after);
+        if (creatingRef.current) {
+          return;
+        }
+        creatingRef.current = true;
+        try {
+          await api.addTask(after);
+          onCreated(after.id);
+          savedRef.current = after;
+          setLastSaved(after);
+        } finally {
+          creatingRef.current = false;
+        }
       } else {
         const submission = draft;
         const token = {};

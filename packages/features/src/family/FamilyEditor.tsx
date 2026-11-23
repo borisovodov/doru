@@ -56,7 +56,7 @@ export function FamilyEditor({
   notice,
   onOpenSource,
   onBlur,
-  onRowRemoved,
+  onRowsChanged,
 }: {
   draft: FamilyDraft;
   savedLinkIds?: ReadonlySet<string> | undefined;
@@ -74,7 +74,7 @@ export function FamilyEditor({
   /** Autosave trigger from the tab; fires when a field loses focus. */
   onBlur?: FocusEventHandler<HTMLElement> | undefined;
   /** Requests a save after a focused row-remove button disappears. */
-  onRowRemoved?: (() => void) | undefined;
+  onRowsChanged?: (() => void) | undefined;
 }) {
   const [facts, setFacts] = useState<FactRecord[]>([]);
   const [places, setPlaces] = useState<PlaceRecord[]>([]);
@@ -132,7 +132,7 @@ export function FamilyEditor({
     set({ partnerLinks: draft.partnerLinks.map((link, i) => (i === index ? { ...link, ...values } : link)) });
   const removePartner = (index: number) => {
     set({ partnerLinks: draft.partnerLinks.filter((_, i) => i !== index) });
-    onRowRemoved?.();
+    onRowsChanged?.();
   };
   const addPartner = () => {
     if (newPartnerId === '') {
@@ -140,13 +140,14 @@ export function FamilyEditor({
     }
     set({ partnerLinks: [...draft.partnerLinks, emptyPartnerLinkDraft(newPartnerId)] });
     setNewPartnerId('');
+    onRowsChanged?.();
   };
 
   const patchChild = (index: number, values: Partial<ChildLinkDraft>) =>
     set({ childLinks: draft.childLinks.map((link, i) => (i === index ? { ...link, ...values } : link)) });
   const removeChild = (index: number) => {
     set({ childLinks: draft.childLinks.filter((_, i) => i !== index) });
-    onRowRemoved?.();
+    onRowsChanged?.();
   };
   const addChild = () => {
     if (newChildId === '') {
@@ -154,6 +155,7 @@ export function FamilyEditor({
     }
     set({ childLinks: [...draft.childLinks, emptyChildLinkDraft(newChildId)] });
     setNewChildId('');
+    onRowsChanged?.();
   };
 
   const partnerNames = draft.partnerLinks
@@ -218,12 +220,19 @@ export function FamilyEditor({
               icon={<X size={13} aria-hidden="true" />}
               onClick={() => {
                 set({ witnesses: draft.witnesses.filter((_, i) => i !== index) });
-                onRowRemoved?.();
+                onRowsChanged?.();
               }}
             />
           </div>
         ))}
-        <Button size="sm" variant="secondary" onClick={() => set({ witnesses: [...draft.witnesses, ''] })}>
+        <Button
+          size="sm"
+          variant="secondary"
+          onClick={() => {
+            set({ witnesses: [...draft.witnesses, ''] });
+            onRowsChanged?.();
+          }}
+        >
           <Plus size={13} aria-hidden="true" />
           {nls.t('features.tree.family.addWitness')}
         </Button>
@@ -259,7 +268,7 @@ export function FamilyEditor({
                 icon={<X size={13} aria-hidden="true" />}
                 onClick={() => {
                   set({ marriageStatuses: draft.marriageStatuses.filter((_, i) => i !== index) });
-                  onRowRemoved?.();
+                  onRowsChanged?.();
                 }}
               />
             </div>
@@ -298,7 +307,10 @@ export function FamilyEditor({
         <Button
           size="sm"
           variant="secondary"
-          onClick={() => set({ marriageStatuses: [...draft.marriageStatuses, emptyMarriageStatusDraft()] })}
+          onClick={() => {
+            set({ marriageStatuses: [...draft.marriageStatuses, emptyMarriageStatusDraft()] });
+            onRowsChanged?.();
+          }}
         >
           <Plus size={13} aria-hidden="true" />
           {nls.t('features.tree.family.addMarriageStatus')}

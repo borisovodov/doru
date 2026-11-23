@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import type { Demo, DemoMeta } from '../../../gallery/types';
 import { Calendar } from './Calendar';
+import { nls } from '../../nls';
 
 function StatefulCalendar() {
   const [value, setValue] = useState(() => new Date(2026, 10, 22));
@@ -8,8 +9,8 @@ function StatefulCalendar() {
     <Calendar
       value={value}
       locale="en"
-      previousMonthLabel="Previous month"
-      nextMonthLabel="Next month"
+      previousMonthLabel={nls.t('features.tasks.previousMonth')}
+      nextMonthLabel={nls.t('features.tasks.nextMonth')}
       onSelect={setValue}
     />
   );

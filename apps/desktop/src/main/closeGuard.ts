@@ -22,6 +22,12 @@ function registerInvalidation(): void {
   });
 }
 
+/** Must run before any window can send an edit notification. */
+export function registerCloseGuardIpc(): void {
+  registerIpc();
+  registerInvalidation();
+}
+
 function registerIpc(): void {
   if (registered) {
     return;
@@ -46,7 +52,6 @@ export function hasFlushedBeforeClose(window: BrowserWindow): boolean {
 
 /** Any edit after a flush makes the window require another one. */
 export function invalidateCloseFlush(window: BrowserWindow): void {
-  registerInvalidation();
   flushed.delete(window);
   generations.set(window, (generations.get(window) ?? 0) + 1);
 }

@@ -99,6 +99,14 @@ describe('MediaTab', () => {
     expect(updateMedia).toHaveBeenCalledTimes(1);
     const after = updateMedia.mock.calls[0]?.[1];
     expect(after?.files?.[0]).toMatchObject({ id: 'F1', title: 'New file' });
+
+    fireEvent.change(screen.getByLabelText(nls.t('features.tree.media.fileTitle')), {
+      target: { value: ' New file ' },
+    });
+    await act(async () => {
+      expect(await flushAutoSaves('media:M1')).toBe(true);
+    });
+    expect(updateMedia).toHaveBeenCalledTimes(1);
   });
 
   it('keeps a submitted draft while a pre-save refresh arrives', async () => {
