@@ -61,7 +61,7 @@ describe('TaskTab', () => {
   it('keeps a refreshed status when only the text is edited', async () => {
     const openTask: TaskRecord = { id: 'T1', text: 'Old text', status: 'open' };
     const closedTask: TaskRecord = { ...openTask, status: 'closed' };
-    const updateTask = vi.fn(async () => undefined);
+    const updateTask = vi.fn(async (_before: TaskRecord, _after: TaskRecord) => undefined);
     const api = apiStub({ updateTask });
     const view = renderUi(taskElement(openTask.id, [openTask], api));
 
@@ -72,7 +72,7 @@ describe('TaskTab', () => {
     fireEvent.blur(text, { relatedTarget: document.body });
 
     await waitFor(() => expect(updateTask).toHaveBeenCalledTimes(1));
-    const after = updateTask.mock.calls[0]?.[1] as TaskRecord | undefined;
+    const after = updateTask.mock.calls[0]?.[1];
     expect(after?.text).toBe('New text');
     expect(after?.status).toBe('closed');
   });
