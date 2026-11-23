@@ -23,6 +23,7 @@ import {
   projectWindows,
   recents,
   runtimes,
+  openingDestinations,
   savingDestinations,
   savingProjects,
   untitledProjects,
@@ -118,59 +119,64 @@ export async function openProject(options: OpenProjectOptions, senderId?: number
   if (!filePath.toLowerCase().endsWith(TREE_FILE_EXTENSION)) {
     return null;
   }
-  if (savingDestinations.has(filePath)) {
-    log.warn('destination is reserved by an in-progress save', { path: filePath });
+  if (savingDestinations.has(filePath) || openingDestinations.has(filePath)) {
+    log.warn('destination is reserved by an in-progress operation', { path: filePath });
     return null;
   }
-  const existingWindow = projectWindows.get(filePath);
-  if (existingWindow) {
-    if (existingWindow.isDestroyed()) {
-      projectWindows.delete(filePath);
-    } else {
-      if (existingWindow.isMinimized()) {
-        existingWindow.restore();
-      }
-      existingWindow.focus();
-      return {
-        path: filePath,
-        schemaVersion: runtimes.get(filePath)?.store.userVersion() ?? 0,
-        created: false,
-      };
-    }
-  }
-  let summary: ProjectSummary;
+  openingDestinations.add(filePath);
   try {
-    await grantAccess(filePath);
-    summary = (await ensureRuntime(filePath)).summary;
-  } catch (error) {
-    // The file is not readable: a sandboxed build without a working bookmark,
-    // the file was moved or deleted, or its schema version is not understood
-    // by this build. Log the reason and drop the held access, if any.
-    log.error('failed to open project', filePath, error);
-    releaseAccess(filePath);
-    if (fromPicker) {
-      // The user already chose this file; reopening the picker would just
-      // loop on the same broken file. Report the failure instead.
-      await showOpenProjectError(filePath, error, senderId);
+    const existingWindow = projectWindows.get(filePath);
+    if (existingWindow) {
+      if (existingWindow.isDestroyed()) {
+        projectWindows.delete(filePath);
+      } else {
+        if (existingWindow.isMinimized()) {
+          existingWindow.restore();
+        }
+        existingWindow.focus();
+        return {
+          path: filePath,
+          schemaVersion: runtimes.get(filePath)?.store.userVersion() ?? 0,
+          created: false,
+        };
+      }
+    }
+    let summary: ProjectSummary;
+    try {
+      await grantAccess(filePath);
+      summary = (await ensureRuntime(filePath)).summary;
+    } catch (error) {
+      // The file is not readable: a sandboxed build without a working bookmark,
+      // the file was moved or deleted, or its schema version is not understood
+      // by this build. Log the reason and drop the held access, if any.
+      log.error('failed to open project', filePath, error);
+      releaseAccess(filePath);
+      if (fromPicker) {
+        // The user already chose this file; reopening the picker would just
+        // loop on the same broken file. Report the failure instead.
+        await showOpenProjectError(filePath, error, senderId);
+        return null;
+      }
+      if (senderId !== undefined) {
+        // A user-initiated reopen failed — let them pick the file again.
+        return await openProject({ dialog: true }, senderId);
+      }
       return null;
     }
-    if (senderId !== undefined) {
-      // A user-initiated reopen failed — let them pick the file again.
-      return openProject({ dialog: true }, senderId);
+    openProjectInWindow(filePath, senderId);
+    startTreeWatcher(filePath);
+    if (recents.current) {
+      const bookmark = await createBookmark(summary.path);
+      await recents.current.touch(summary.path, bookmark);
+      updateSession((session) => {
+        const paths = session.paths.filter((entry) => entry !== summary.path);
+        return { paths: [...paths, summary.path], activePath: summary.path };
+      });
     }
-    return null;
+    return summary;
+  } finally {
+    openingDestinations.delete(filePath);
   }
-  openProjectInWindow(filePath, senderId);
-  startTreeWatcher(filePath);
-  if (recents.current) {
-    const bookmark = await createBookmark(summary.path);
-    await recents.current.touch(summary.path, bookmark);
-    updateSession((session) => {
-      const paths = session.paths.filter((entry) => entry !== summary.path);
-      return { paths: [...paths, summary.path], activePath: summary.path };
-    });
-  }
-  return summary;
 }
 
 /** Shows the failure of a user-picked file in the locale of the app. */
@@ -255,28 +261,46 @@ export async function createProject(senderId?: number): Promise<ProjectSummary |
   const filePath = result.filePath.toLowerCase().endsWith(TREE_FILE_EXTENSION)
     ? result.filePath
     : `${result.filePath}${TREE_FILE_EXTENSION}`;
-  if (savingDestinations.has(filePath)) {
-    log.warn('destination is reserved by an in-progress save', { path: filePath });
+  if (savingDestinations.has(filePath) || openingDestinations.has(filePath)) {
+    log.warn('destination is reserved by an in-progress operation', { path: filePath });
     return null;
   }
-  // The system save dialog already asked the user about replacing an
-  // existing file, so honor that confirmation the way a document app would:
-  // the project is replaced by a new, empty one. A window still showing the
-  // old project is closed first so the store and the file watcher release
-  // the path (Windows cannot delete a file that is open).
-  const existingWindow = projectWindows.get(filePath);
-  if (existingWindow && !existingWindow.isDestroyed()) {
-    await new Promise<void>((resolve) => {
-      existingWindow.once('closed', resolve);
-      existingWindow.close();
-    });
-  } else {
-    closeProjectRuntime(filePath);
+  openingDestinations.add(filePath);
+  try {
+    // The system save dialog already asked the user about replacing an
+    // existing file, so honor that confirmation the way a document app would:
+    // the project is replaced by a new, empty one. A window still showing the
+    // old project is closed first so the store and the file watcher release
+    // the path (Windows cannot delete a file that is open).
+    const existingWindow = projectWindows.get(filePath);
+    if (existingWindow && !existingWindow.isDestroyed()) {
+      const closed = await new Promise<boolean>((resolve) => {
+        const timer = setTimeout(() => finish(false), 5000);
+        const finish = (value: boolean) => {
+          clearTimeout(timer);
+          existingWindow.removeListener('closed', onClosed);
+          resolve(value);
+        };
+        const onClosed = () => finish(true);
+        existingWindow.once('closed', onClosed);
+        existingWindow.close();
+      });
+      if (!closed) {
+        return null;
+      }
+    } else {
+      closeProjectRuntime(filePath);
+    }
+    if (await fs.exists(filePath)) {
+      await fs.remove(filePath);
+    }
+    // Hand the reservation to openProject, which checks and re-claims it
+    // synchronously before its first await.
+    openingDestinations.delete(filePath);
+    return await openProject({ path: filePath, fromPicker: true }, senderId);
+  } finally {
+    openingDestinations.delete(filePath);
   }
-  if (await fs.exists(filePath)) {
-    await fs.remove(filePath);
-  }
-  return openProject({ path: filePath, fromPicker: true }, senderId);
 }
 
 /**
@@ -315,7 +339,11 @@ export async function saveProject(projectKey: string): Promise<ProjectBinding | 
       ? result.filePath
       : `${result.filePath}${TREE_FILE_EXTENSION}`;
     const openElsewhere = projectWindows.get(filePath);
-    if ((openElsewhere && !openElsewhere.isDestroyed()) || savingDestinations.has(filePath)) {
+    if (
+      (openElsewhere && !openElsewhere.isDestroyed()) ||
+      savingDestinations.has(filePath) ||
+      openingDestinations.has(filePath)
+    ) {
       const message = nls.t('project.dialog.error.openInAnotherWindow');
       if (parent) {
         await dialog.showMessageBox(parent, { type: 'error', message });

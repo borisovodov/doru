@@ -199,7 +199,12 @@ function PersonTabBody({
         await api.updatePerson(before, next);
         if (submissionTokenRef.current === token) {
           const current = committedRef.current;
-          if (current === committedAtStart || samePersonRecord(current, before) || samePersonRecord(current, next)) {
+          if (
+            current === committedAtStart ||
+            samePersonRecord(current, personAtStart) ||
+            samePersonRecord(current, before) ||
+            samePersonRecord(current, next)
+          ) {
             committedRef.current = next;
           }
           submittedRecordRef.current = next;
@@ -210,7 +215,9 @@ function PersonTabBody({
           // newer; a pre-write snapshot must not stand in for the write.
           const current = personRef.current;
           committedRef.current =
-            current === personAtStart || samePersonRecord(current, before) ? committedAtStart : current;
+            current === personAtStart || samePersonRecord(current, personAtStart) || samePersonRecord(current, before)
+              ? committedAtStart
+              : current;
           if (submittedRef.current === submission) {
             submittedRef.current = undefined;
             submittedBaselineRef.current = undefined;
