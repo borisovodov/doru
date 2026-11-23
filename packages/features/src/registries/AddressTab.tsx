@@ -98,6 +98,9 @@ function AddressTabBody({
   const usageCount = usage.facts + usage.repositories + usage.submitters;
 
   const save = async () => {
+    if (addressDraftEmpty(address)) {
+      throw new Error('An address must have at least one field.');
+    }
     const id = await saveAddress();
     if (id === undefined) {
       return;
@@ -109,8 +112,7 @@ function AddressTabBody({
 
   const autoSave = useAutoSaveOnBlur({
     enabled: !isNew,
-    isDirty: () =>
-      addressLoaded && record !== undefined && !addressDraftEmpty(address) && !addressDraftMatches(address, record),
+    isDirty: () => addressLoaded && record !== undefined && !addressDraftMatches(address, record),
     save,
   });
 

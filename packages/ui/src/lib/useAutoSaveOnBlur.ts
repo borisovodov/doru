@@ -152,7 +152,7 @@ export function useAutoSaveOnBlur({ enabled, isDirty, save }: AutoSaveOnBlurOpti
     }
     return registerAutoSaveFlush(tabId, {
       flush: flushForClose,
-      isDirty: () => dirtyRef.current(),
+      isDirty: () => !cancelledRef.current && dirtyRef.current(),
     });
   }, [enabled, flushForClose, tabId]);
 

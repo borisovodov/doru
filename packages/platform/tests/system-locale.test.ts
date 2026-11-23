@@ -9,6 +9,7 @@ describe('normalizeSystemLocale', () => {
   it('folds the macOS ICU region override into a BCP 47 region', () => {
     expect(normalizeSystemLocale('en-US@rg=ruzzzz')).toBe('en-RU');
     expect(normalizeSystemLocale('en@rg=gbzzzz')).toBe('en-GB');
+    expect(normalizeSystemLocale('en_US@calendar=gregorian;rg=gbzzzz')).toBe('en-GB');
   });
 
   it('returns plain language tags unchanged', () => {

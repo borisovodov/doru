@@ -612,7 +612,14 @@ function MediaTabBody({
                   if (!window.confirm(nls.t('features.tree.media.deleteConfirm'))) {
                     return;
                   }
-                  await api.deleteMedia(record);
+                  autoSave.cancel();
+                  try {
+                    await api.deleteMedia(record);
+                  } catch (error) {
+                    autoSave.resume();
+                    throw error;
+                  }
+                  autoSave.release();
                   onClose();
                 }
               }}

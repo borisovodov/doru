@@ -29,7 +29,7 @@ export function getSystemLocale(): string | undefined {
  * converted to `en-US` the same way.
  */
 export function normalizeSystemLocale(locale: string): string {
-  const override = /@rg=([a-z]{2})/i.exec(locale);
+  const override = /(?:@|;)rg=([a-z]{2})/i.exec(locale);
   const base = (locale.split('@')[0] ?? locale).split('.')[0]?.replace(/_/g, '-') ?? locale;
   const region = override?.[1];
   if (region === undefined) {

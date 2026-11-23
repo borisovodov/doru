@@ -153,6 +153,10 @@ function RepositoryTabBody({
 
   const save = async () => {
     setSaveError(false);
+    if (name.trim() === '') {
+      setSaveError(true);
+      throw new Error('A repository name is required.');
+    }
     try {
       const next: RepositoryRecord = { id: base.id, xref: base.xref, name: name.trim() };
       if (linkedAddressId === undefined) {
@@ -178,7 +182,7 @@ function RepositoryTabBody({
   const autoSave = useAutoSaveOnBlur({
     enabled: !isNew,
     isDirty: () => {
-      if (persisted === undefined || name.trim() === '') {
+      if (persisted === undefined) {
         return false;
       }
       const addressDirty =

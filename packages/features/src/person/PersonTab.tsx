@@ -9,24 +9,39 @@ import { draftToRecord, newPersonDraft, personDraftMatches, personToDraft, type 
 
 const sameDraftValue = (left: unknown, right: unknown): boolean => JSON.stringify(left) === JSON.stringify(right);
 
-function mergePersonDraft(current: PersonDraft, base: PersonDraft, refreshed: PersonDraft): PersonDraft {
-  const names = sameDraftValue(current.names, base.names) ? refreshed.names : current.names;
-  const birth = sameDraftValue(current.birth, base.birth) ? refreshed.birth : current.birth;
-  const death = sameDraftValue(current.death, base.death) ? refreshed.death : current.death;
+function mergePersonDraft(
+  current: PersonDraft,
+  base: PersonDraft,
+  refreshed: PersonDraft,
+  protectedDraft?: PersonDraft,
+): PersonDraft {
+  // Fields touched by an in-flight write keep the current value (including a
+  // post-submission reversal) until the write is acknowledged.
+  const protectedField = (key: keyof PersonDraft): boolean =>
+    protectedDraft !== undefined && !sameDraftValue(protectedDraft[key], base[key]);
+  const names = protectedField('names') || !sameDraftValue(current.names, base.names) ? current.names : refreshed.names;
+  const birth = protectedField('birth') || !sameDraftValue(current.birth, base.birth) ? current.birth : refreshed.birth;
+  const death = protectedField('death') || !sameDraftValue(current.death, base.death) ? current.death : refreshed.death;
   return {
     ...current,
     names,
-    namesTouched: names === refreshed.names ? false : current.namesTouched,
-    sex: current.sex === base.sex ? refreshed.sex : current.sex,
-    sexTouched: current.sex === base.sex ? false : current.sexTouched,
-    deathStatus: current.deathStatus === base.deathStatus ? refreshed.deathStatus : current.deathStatus,
-    deathStatusTouched: current.deathStatus === base.deathStatus ? false : current.deathStatusTouched,
-    addressId: current.addressId === base.addressId ? refreshed.addressId : current.addressId,
-    addressTouched: current.addressId === base.addressId ? false : current.addressTouched,
+    namesTouched: protectedField('names') || names !== refreshed.names ? current.namesTouched : false,
+    sex: protectedField('sex') || current.sex !== base.sex ? current.sex : refreshed.sex,
+    sexTouched: protectedField('sex') || current.sex !== base.sex ? current.sexTouched : false,
+    deathStatus:
+      protectedField('deathStatus') || current.deathStatus !== base.deathStatus
+        ? current.deathStatus
+        : refreshed.deathStatus,
+    deathStatusTouched:
+      protectedField('deathStatus') || current.deathStatus !== base.deathStatus ? current.deathStatusTouched : false,
+    addressId:
+      protectedField('addressId') || current.addressId !== base.addressId ? current.addressId : refreshed.addressId,
+    addressTouched:
+      protectedField('addressId') || current.addressId !== base.addressId ? current.addressTouched : false,
     birth,
-    birthTouched: birth === refreshed.birth ? false : current.birthTouched,
+    birthTouched: protectedField('birth') || birth !== refreshed.birth ? current.birthTouched : false,
     death,
-    deathTouched: death === refreshed.death ? false : current.deathTouched,
+    deathTouched: protectedField('death') || death !== refreshed.death ? current.deathTouched : false,
   };
 }
 
@@ -122,6 +137,7 @@ function PersonTabBody({
       submittedRecord !== undefined &&
       JSON.stringify(personToDraft(person)) === JSON.stringify(personToDraft(submittedRecord));
     const submitted = confirms ? submittedRef.current : undefined;
+    const protectedDraft = submittedRef.current !== undefined && !confirms ? submittedRef.current : undefined;
     if (confirms) {
       submittedRef.current = undefined;
       submittedRecordRef.current = undefined;
@@ -139,7 +155,7 @@ function PersonTabBody({
       if (submitted === undefined && personDraftMatches(current, previous)) {
         return refreshed;
       }
-      return mergePersonDraft(current, submitted ?? personToDraft(previous), refreshed);
+      return mergePersonDraft(current, submitted ?? personToDraft(previous), refreshed, protectedDraft);
     });
   }, [personId, persons, isNew]);
 

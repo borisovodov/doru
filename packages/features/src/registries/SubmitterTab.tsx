@@ -168,6 +168,10 @@ function SubmitterTabBody({
 
   const save = async () => {
     setSaveError(false);
+    if (name.trim() === '') {
+      setSaveError(true);
+      throw new Error('A submitter name is required.');
+    }
     try {
       const next: SubmitterRecord = {
         id: base.id,
@@ -198,7 +202,7 @@ function SubmitterTabBody({
   const autoSave = useAutoSaveOnBlur({
     enabled: !isNew,
     isDirty: () => {
-      if (persisted === undefined || name.trim() === '') {
+      if (persisted === undefined) {
         return false;
       }
       const currentLanguages = languages.map((language) => language.trim()).filter((language) => language !== '');

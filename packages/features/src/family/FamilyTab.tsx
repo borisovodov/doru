@@ -163,15 +163,17 @@ function FamilyTabBody({
     recordRef.current = record;
     savedRef.current = record;
     const submitted = submittedRef.current;
-    const confirmed = submitted !== undefined && familyDraftMatches(submitted, record);
+    const normalizedSubmitted =
+      submitted !== undefined ? familyToDraft(familyDraftToRecord(submitted, previous)) : undefined;
+    const confirmed = normalizedSubmitted !== undefined && familyDraftMatches(normalizedSubmitted, record);
     if (confirmed) {
       submittedRef.current = undefined;
     }
     // Only a record that confirms the pending write may use the submitted
     // draft as its base; an unrelated refresh must compare against the
     // previous stored snapshot.
-    const base = submitted !== undefined && confirmed ? submitted : familyToDraft(previous);
-    const protectedDraft = submitted !== undefined && !confirmed ? submitted : undefined;
+    const base = normalizedSubmitted !== undefined && confirmed ? normalizedSubmitted : familyToDraft(previous);
+    const protectedDraft = normalizedSubmitted !== undefined && !confirmed ? normalizedSubmitted : undefined;
     setDraft((current) => {
       if (submitted === undefined && familyDraftMatches(current, previous)) {
         return familyToDraft(record);
