@@ -62,16 +62,18 @@ export function useAutoSaveOnBlur({ enabled, isDirty, save }: AutoSaveOnBlurOpti
     const run = async (): Promise<boolean> => {
       let success = true;
       let again = true;
+      let forceSave = false;
       while (again) {
         again = false;
         if (cancelledRef.current) {
           break;
         }
-        if (!dirtyRef.current()) {
+        if (!forceSave && !dirtyRef.current()) {
           queuedRef.current = false;
           setFailure(false);
           break;
         }
+        forceSave = false;
         try {
           await saveRef.current();
           success = true;
@@ -86,6 +88,10 @@ export function useAutoSaveOnBlur({ enabled, isDirty, save }: AutoSaveOnBlurOpti
         if (queuedRef.current && !cancelledRef.current) {
           queuedRef.current = false;
           again = true;
+          // A request that arrived during the write may describe a draft
+          // edited after the write captured its values. Save it even when the
+          // stale dirty callback now compares equal to the old baseline.
+          forceSave = true;
           // Let React commit the saved baseline before the next dirty check.
           await new Promise((resolve) => setTimeout(resolve, 0));
         }

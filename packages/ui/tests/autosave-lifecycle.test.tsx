@@ -88,6 +88,35 @@ describe('autosave lifecycle', () => {
     unregisterSlow();
   });
 
+  it('saves a draft reverted while its previous write was pending', async () => {
+    const dirty = { value: true };
+    let releaseFirst!: () => void;
+    const first = new Promise<void>((resolve) => {
+      releaseFirst = resolve;
+    });
+    let saves = 0;
+    const save = vi.fn(async () => {
+      saves += 1;
+      if (saves === 1) {
+        await first;
+      }
+    });
+    const { unmount } = renderHook(() => useAutoSaveOnBlur({ enabled: true, isDirty: () => dirty.value, save }), {
+      wrapper: provider('person:p1'),
+    });
+
+    const firstFlush = flushAutoSaves('person:p1');
+    expect(save).toHaveBeenCalledTimes(1);
+    dirty.value = false;
+    const secondFlush = flushAutoSaves('person:p1');
+    releaseFirst();
+
+    await firstFlush;
+    await secondFlush;
+    expect(save).toHaveBeenCalledTimes(2);
+    unmount();
+  });
+
   it('does not report clean while a registered write is still unsettled', async () => {
     let flushes = 0;
     const unregister = registerAutoSaveFlush('task:t1', {
