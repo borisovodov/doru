@@ -369,15 +369,15 @@ function MediaTabBody({
     } else {
       refreshed.keywords = (next ?? base).keywords;
     }
-    if (!dirty.files) {
-      if (sameTitleMaps(fileTitlesRef.current, submitted.fileTitles)) {
-        const titles = fileTitlesFrom(latest.files);
-        fileTitlesRef.current = titles;
-        setFileTitles(titles);
-      }
-    } else {
-      refreshed.files = (next ?? base).files;
+    if (!dirty.files || next !== undefined) {
+      const titles = mergeFileTitles(fileTitlesRef.current, submitted.fileTitles, fileTitlesFrom(latest.files));
+      fileTitlesRef.current = titles;
+      setFileTitles(titles);
     }
+    refreshed.files =
+      dirty.files && next !== undefined
+        ? applyFileTitles(latest.files, changedFileTitles(fileTitlesFrom(base.files), submitted.fileTitles))
+        : latest.files;
     baselineRef.current = refreshed;
     return refreshed;
   };

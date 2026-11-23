@@ -299,7 +299,13 @@ function SourceTabBody({
         }
         throw error;
       }
-      if (recordRef.current === recordAtStart) {
+      const current = recordRef.current;
+      const currentMatchesStart =
+        current !== undefined &&
+        recordAtStart !== undefined &&
+        sourceDraftMatches(sourceToDraft(current), recordAtStart);
+      const currentMatchesWritten = current !== undefined && sourceDraftMatches(sourceToDraft(current), next);
+      if (current === recordAtStart || currentMatchesStart || currentMatchesWritten) {
         baselineRef.current = next;
         setLastSaved(next);
       }

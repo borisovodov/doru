@@ -154,8 +154,18 @@ function RepositoryTabBody({
   };
 
   const save = async () => {
+    const creating = isNew && lastSaved === undefined;
+    if (creating) {
+      if (creatingRef.current) {
+        return;
+      }
+      creatingRef.current = true;
+    }
     setSaveError(false);
     if (name.trim() === '') {
+      if (creating) {
+        creatingRef.current = false;
+      }
       setSaveError(true);
       throw new Error('A repository name is required.');
     }
@@ -166,17 +176,9 @@ function RepositoryTabBody({
       } else {
         next.addressId = linkedAddressId;
       }
-      if (isNew && lastSaved === undefined) {
-        if (creatingRef.current) {
-          return;
-        }
-        creatingRef.current = true;
-        try {
-          await api.addRepository(next);
-          onCreated(next.id);
-        } finally {
-          creatingRef.current = false;
-        }
+      if (creating) {
+        await api.addRepository(next);
+        onCreated(next.id);
       } else {
         await api.updateRepository(lastSaved ?? base, next);
       }
@@ -185,6 +187,10 @@ function RepositoryTabBody({
     } catch (error) {
       setSaveError(true);
       throw error;
+    } finally {
+      if (creating) {
+        creatingRef.current = false;
+      }
     }
   };
 

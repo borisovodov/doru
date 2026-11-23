@@ -200,9 +200,9 @@ function PersonTabBody({
         }
       } catch (error) {
         if (submissionTokenRef.current === token) {
-          // Retry from the latest published snapshot rather than reusing a
-          // baseline whose facts another writer may have deleted.
-          committedRef.current = undefined;
+          // A newer snapshot is the best retry baseline; otherwise keep the
+          // previously acknowledged one instead of clearing it.
+          committedRef.current = personRef.current !== personAtStart ? personRef.current : committedAtStart;
           if (submittedRef.current === submission) {
             submittedRef.current = undefined;
             submittedBaselineRef.current = undefined;

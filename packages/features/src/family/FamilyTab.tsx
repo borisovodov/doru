@@ -33,6 +33,17 @@ import { nls } from '../nls';
  * previous record, so an unchanged submitted value does not become a change
  * merely because another writer refreshed it.
  */
+function familyScalarEqual(left: unknown, right: unknown): boolean {
+  if (typeof left === 'string' && typeof right === 'string') {
+    return left.trim() === right.trim();
+  }
+  return JSON.stringify(left) === JSON.stringify(right);
+}
+
+function sameFamilyRecord(left: FamilyRecord, right: FamilyRecord): boolean {
+  return JSON.stringify(familyToDraft(left)) === JSON.stringify(familyToDraft(right));
+}
+
 function familyRowTouched<T>(row: T | undefined, base: T | undefined): boolean {
   if (row === undefined || row === null || base === undefined || base === null) {
     return false;
@@ -152,13 +163,10 @@ export function mergeFamilyDraft(
   protectedBase?: FamilyDraft,
 ): FamilyDraft {
   const field = <K extends keyof FamilyDraft>(key: K): FamilyDraft[K] => {
-    if (
-      protectedDraft !== undefined &&
-      JSON.stringify(protectedDraft[key]) !== JSON.stringify((protectedBase ?? base)[key])
-    ) {
+    if (protectedDraft !== undefined && !familyScalarEqual(protectedDraft[key], (protectedBase ?? base)[key])) {
       return current[key];
     }
-    return JSON.stringify(current[key]) === JSON.stringify(base[key]) ? refreshed[key] : current[key];
+    return familyScalarEqual(current[key], base[key]) ? refreshed[key] : current[key];
   };
   const marriageStatuses = mergeFamilyRows(
     current.marriageStatuses,
@@ -335,7 +343,10 @@ function FamilyTabBody({
     submittedBaselineRef.current = familyToDraft(base);
     try {
       await api.updateFamily(base, next);
-      if (savedRef.current === base) {
+      const current = savedRef.current;
+      // A stale refresh can replace the saved record with the pre-write value;
+      // advance to the acknowledged write unless a genuinely newer one arrived.
+      if (current === base || sameFamilyRecord(current, base) || sameFamilyRecord(current, next)) {
         savedRef.current = next;
       }
     } catch (error) {

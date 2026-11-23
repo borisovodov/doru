@@ -17,7 +17,15 @@ import { log } from './log';
 import { nls } from './nls';
 import { closeProjectRuntime, ensureRuntime, openUntitledStore } from './runtime';
 import { updateSession } from './session';
-import { activeBookmarks, isUntitledKey, projectWindows, recents, runtimes, untitledProjects } from './state';
+import {
+  activeBookmarks,
+  isUntitledKey,
+  projectWindows,
+  recents,
+  runtimes,
+  savingProjects,
+  untitledProjects,
+} from './state';
 import { startTreeWatcher } from './tree-watcher';
 import {
   bindingOf,
@@ -32,19 +40,19 @@ const fs = new NodeFileSystem();
 const TRANSFER_ACK_TIMEOUT_MS = 2000;
 
 /** Waits until the renderer has committed the rebound project path. */
-function waitForTransferAck(window: BrowserWindow): Promise<void> {
+function waitForTransferAck(window: BrowserWindow): Promise<boolean> {
   return new Promise((resolve) => {
-    const finish = () => {
+    const finish = (acknowledged: boolean) => {
       clearTimeout(timer);
       ipcMain.removeListener('project:transfer-ack', onAck);
-      resolve();
+      resolve(acknowledged);
     };
     const onAck = (event: IpcMainEvent) => {
       if (event.sender === window.webContents) {
-        finish();
+        finish(true);
       }
     };
-    const timer = setTimeout(finish, TRANSFER_ACK_TIMEOUT_MS);
+    const timer = setTimeout(() => finish(false), TRANSFER_ACK_TIMEOUT_MS);
     ipcMain.on('project:transfer-ack', onAck);
   });
 }
@@ -325,6 +333,7 @@ export async function saveProject(projectKey: string): Promise<ProjectBinding | 
 
   // Flush and detach the temporary store before moving its files. The
   // temporary files are kept: they are moved below.
+  savingProjects.add(projectKey);
   closeProjectRuntime(projectKey, { removeUntitledFiles: false });
   try {
     await fs.mkdir(dirname(filePath));
@@ -340,8 +349,13 @@ export async function saveProject(projectKey: string): Promise<ProjectBinding | 
   } catch (error) {
     // The temporary files stay where they were; reopen the store so the
     // window keeps working and the project can be saved again.
+    savingProjects.delete(projectKey);
     setTransfer(false);
-    openUntitledStore(projectKey, untitled.tempPath);
+    if (sourceWindow && !sourceWindow.isDestroyed()) {
+      openUntitledStore(projectKey, untitled.tempPath);
+    } else {
+      closeProjectRuntime(projectKey);
+    }
     const message = nls.t('project.dialog.error.saveFailed', error instanceof Error ? error.message : String(error));
     if (parent) {
       await dialog.showMessageBox(parent, { type: 'error', message });
@@ -357,8 +371,13 @@ export async function saveProject(projectKey: string): Promise<ProjectBinding | 
   } catch (error) {
     // Keep the temporary store usable: the destination copy can be reopened
     // later, while the window must stay editable after the barrier lifts.
+    savingProjects.delete(projectKey);
     setTransfer(false);
-    openUntitledStore(projectKey, untitled.tempPath);
+    if (sourceWindow && !sourceWindow.isDestroyed()) {
+      openUntitledStore(projectKey, untitled.tempPath);
+    } else {
+      closeProjectRuntime(projectKey);
+    }
     const message = nls.t('project.dialog.error.saveFailed', error instanceof Error ? error.message : String(error));
     if (parent) {
       await dialog.showMessageBox(parent, { type: 'error', message });
@@ -380,13 +399,17 @@ export async function saveProject(projectKey: string): Promise<ProjectBinding | 
   projectWindows.delete(projectKey);
   if (window && !window.isDestroyed()) {
     bindWindowToProject(window, filePath);
-    await waitForTransferAck(window);
-    if (!window.isDestroyed()) {
+    const acknowledged = await waitForTransferAck(window);
+    if (acknowledged && !window.isDestroyed()) {
       window.webContents.send('project:transfer', false);
+    } else if (!acknowledged) {
+      // Keep editing blocked rather than exposing the old, removed store.
+      log.error('renderer did not acknowledge the rebound project', { path: filePath });
     }
   } else {
     createWindow(filePath);
   }
+  savingProjects.delete(projectKey);
   startTreeWatcher(filePath);
   const binding = bindingOf(filePath);
   if (recents.current) {

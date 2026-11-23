@@ -150,6 +150,32 @@ describe('TaskTab', () => {
     expect(after?.status).toBe('closed');
   });
 
+  it('advances the baseline after a fresh pre-write refresh', async () => {
+    const openTask: TaskRecord = { id: 'T1', text: 'Old', status: 'open' };
+    let finishSave!: () => void;
+    const updateTask = vi.fn(
+      (_before: TaskRecord, _after: TaskRecord) =>
+        new Promise<void>((resolve) => {
+          finishSave = resolve;
+        }),
+    );
+    const api = apiStub({ updateTask });
+    const view = renderUi(taskElement(openTask.id, [openTask], api));
+
+    const text = screen.getByPlaceholderText(nls.t('features.tasks.text'));
+    fireEvent.change(text, { target: { value: 'New' } });
+    fireEvent.blur(text, { relatedTarget: document.body });
+    await waitFor(() => expect(updateTask).toHaveBeenCalledTimes(1));
+
+    view.rerender(taskElement(openTask.id, [{ ...openTask }], api));
+    await act(async () => finishSave());
+
+    fireEvent.change(text, { target: { value: 'Old' } });
+    fireEvent.blur(text, { relatedTarget: document.body });
+    await waitFor(() => expect(updateTask).toHaveBeenCalledTimes(2));
+    expect(updateTask.mock.calls[1]?.[1]).toMatchObject({ text: 'Old' });
+  });
+
   it('shows a creation error when adding a task fails', async () => {
     const addTask = vi.fn(async () => {
       throw new Error('disk full');

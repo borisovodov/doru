@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import { fireEvent, screen, waitFor } from '@testing-library/react';
+import type { SourceRecord } from '@doru/core';
 import { SourceTab } from '@doru/features/source';
 import type { MediaTargetApi, SourceEditorApi } from '@doru/features/person';
 import { nls } from '../src/nls';
@@ -189,7 +190,7 @@ describe('SourceTab', () => {
   it('keeps the submitted draft when a stale refresh arrives before the save settles', async () => {
     let resolveSave!: () => void;
     const updateSource = vi.fn(
-      async () =>
+      (_before: SourceRecord, _after: SourceRecord) =>
         new Promise<void>((resolve) => {
           resolveSave = resolve;
         }),
@@ -242,6 +243,69 @@ describe('SourceTab', () => {
     view.rerender(props({ ...source }));
     expect(screen.getByDisplayValue('New')).toBeInTheDocument();
     resolveSave();
+  });
+
+  it('advances the baseline when a fresh pre-write record arrives before completion', async () => {
+    let resolveSave!: () => void;
+    const updateSource = vi.fn(
+      (_before: SourceRecord, _after: SourceRecord) =>
+        new Promise<void>((resolve) => {
+          resolveSave = resolve;
+        }),
+    );
+    const api = stubApi<SourceEditorApi>({
+      updateSource,
+      getRepositories: async () => [],
+      getTitles: async () => [],
+      getNotes: async () => [],
+      getAllNotes: async () => [],
+      getCitations: async () => [],
+      getTags: async () => [],
+      getTagLinks: async () => [],
+      getIdentifiers: async () => [],
+      getContacts: async () => [],
+      getRestrictions: async () => [],
+      getSubmitters: async () => [],
+      getRecordSubmitters: async () => [],
+      getMediaFor: async () => [],
+      getAllMedia: async () => [],
+      getTasksFor: async () => [],
+    });
+    const mediaApi = stubApi<MediaTargetApi>({ getMediaFor: async () => [], getAllMedia: async () => [] });
+    const source = { id: 'S1', title: 'Old', author: 'Alice' };
+    const props = (record: typeof source) => (
+      <SourceTab
+        entityId="S1"
+        sources={[record]}
+        api={api}
+        persons={[]}
+        families={[]}
+        facts={[]}
+        places={[]}
+        citations={[]}
+        notes={[]}
+        media={[]}
+        mediaApi={mediaApi}
+        onOpenPerson={vi.fn()}
+        onOpenMedia={vi.fn()}
+        onOpenSource={vi.fn()}
+        onClose={vi.fn()}
+        onCreated={vi.fn()}
+      />
+    );
+    const view = renderUi(props(source));
+    fireEvent.change(screen.getByDisplayValue('Old'), { target: { value: 'New' } });
+    fireEvent.blur(screen.getByDisplayValue('New'), { relatedTarget: document.body });
+    await waitFor(() => expect(updateSource).toHaveBeenCalledTimes(1));
+
+    view.rerender(props({ ...source }));
+    resolveSave();
+    await waitFor(() => expect(updateSource.mock.calls[0]?.[1]).toMatchObject({ title: 'New' }));
+
+    fireEvent.change(screen.getByDisplayValue('New'), { target: { value: 'Old' } });
+    fireEvent.blur(screen.getByDisplayValue('Old'), { relatedTarget: document.body });
+    await waitFor(() => expect(updateSource).toHaveBeenCalledTimes(2));
+    expect(updateSource.mock.calls[1]?.[1]).toMatchObject({ title: 'Old' });
   });
 
   it('lets successive refreshes advance untouched fields while a save is pending', async () => {

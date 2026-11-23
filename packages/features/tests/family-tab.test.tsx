@@ -138,6 +138,17 @@ describe('FamilyTab reconciliation', () => {
     expect(merged.childLinks[0]).toMatchObject({ id: 'C1', childId: 'P1', status: 'adopted' });
   });
 
+  it('adopts refreshed scalar values after a whitespace-only edit', () => {
+    const baseDraft = emptyFamilyDraft();
+    baseDraft.unionKind = 'A';
+    const current = { ...baseDraft, unionKind: ' A ' };
+    const refreshed = { ...baseDraft, unionKind: 'B' };
+
+    const merged = mergeFamilyDraft(current, baseDraft, refreshed);
+
+    expect(merged.unionKind).toBe('B');
+  });
+
   it('saves a child removal without waiting for a blur', async () => {
     const updateFamily = vi.fn(async (_before: FamilyRecord, _after: FamilyRecord) => undefined);
     const api = apiStub({ updateFamily });

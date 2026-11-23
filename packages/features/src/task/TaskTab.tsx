@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { Button, DangerZone, EntityViewCard, InlineError, SectionCard, useAutoSaveOnBlur } from '@doru/ui';
 import { MEDIA_VISIBLE } from '@doru/platform';
 import { AutoSaveError } from '../autoSaveFeedback';
+import { useEntityDelete } from '../entityDelete';
 import { ListTodo } from 'lucide-react';
 import type {
   AddressRecord,
@@ -279,9 +280,11 @@ function TaskTabBody({
           if (submissionTokenRef.current === token) {
             submittedRecordRef.current = after;
             const currentBaseline = savedRef.current;
+            const baselineDraft = taskToDraft(currentBaseline);
             if (
               currentBaseline === before ||
-              JSON.stringify(taskToDraft(currentBaseline)) === JSON.stringify(taskToDraft(after))
+              JSON.stringify(baselineDraft) === JSON.stringify(taskToDraft(before)) ||
+              JSON.stringify(baselineDraft) === JSON.stringify(taskToDraft(after))
             ) {
               savedRef.current = after;
               setLastSaved(after);
@@ -316,9 +319,9 @@ function TaskTabBody({
   const remove = async () => {
     const target = lastSaved ?? base;
     await api.deleteTask(target);
-    autoSave.release();
-    onClose();
   };
+
+  const deletion = useEntityDelete(autoSave, remove, onClose);
 
   return (
     <EntityTab onBlur={autoSave.onBlur}>
@@ -342,6 +345,7 @@ function TaskTabBody({
       />
       <AutoSaveError failed={autoSave.failed} retryDisabled={autoSave.pendingDelete} onRetry={autoSave.retry} />
       {isNew && saveError ? <InlineError>{nls.t('features.tree.autosaveFailed')}</InlineError> : null}
+      {deletion.failed ? <InlineError>{nls.t('features.tree.deleteFailed')}</InlineError> : null}
 
       <SectionCard title={nls.t('features.tree.details')}>
         <TaskEditorFields
@@ -368,10 +372,8 @@ function TaskTabBody({
             variant="danger"
             size="sm"
             data-autosave-skip="true"
-            onClick={() => {
-              autoSave.cancel();
-              void remove().catch(() => autoSave.resume());
-            }}
+            disabled={deletion.deleting}
+            onClick={deletion.deleteEntity}
           >
             {nls.t('features.tree.fact.delete')}
           </Button>

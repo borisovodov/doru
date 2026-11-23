@@ -266,6 +266,10 @@ function mergePendingPlaceRows<T extends { id: string }>(
     const refreshed = refreshedById.get(row.id);
     const previous = previousById.get(row.id);
     if (pending === undefined || baseline === undefined) {
+      if (previous !== undefined && refreshed !== undefined) {
+        merged.push(mergePlaceRow(row, previous, refreshed));
+        continue;
+      }
       const pendingLocal =
         pending !== undefined && (baseline === undefined || JSON.stringify(pending) !== JSON.stringify(baseline));
       if (

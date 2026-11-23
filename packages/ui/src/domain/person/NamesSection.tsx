@@ -68,7 +68,7 @@ export function NamesSection({
   renderPartAttachments?: ((partId: string) => ReactNode) | undefined;
   /** Focuses the first name's display form when a new person tab opens. */
   autoFocusName?: boolean;
-  /** Requests a save after a focused name-remove button disappears. */
+  /** Requests a save after a focused row-remove button disappears. */
   onNameRemoved?: (() => void) | undefined;
 }) {
   const displayFormRef = useAutoFocusSelect<HTMLInputElement>(autoFocusName);
@@ -127,6 +127,7 @@ export function NamesSection({
       return;
     }
     patch(nameIndex, { variants: name.variants.filter((_, i) => i !== variantIndex) });
+    onNameRemoved?.();
   };
 
   return (
@@ -225,6 +226,7 @@ export function NamesSection({
                 variant={variant}
                 onChange={(next) => patchVariant(index, variantIndex, next)}
                 onRemove={() => removeVariant(index, variantIndex)}
+                onNameRemoved={onNameRemoved}
                 expandedPartId={expandedPartId}
                 onTogglePart={(partId) => setExpandedPartId(expandedPartId === partId ? null : partId)}
                 renderPartAttachments={renderPartAttachments}
@@ -254,6 +256,7 @@ function VariantEditor({
   variant,
   onChange,
   onRemove,
+  onNameRemoved,
   expandedPartId,
   onTogglePart,
   renderPartAttachments,
@@ -262,6 +265,7 @@ function VariantEditor({
   variant: NameVariantDraft;
   onChange: (next: NameVariantDraft) => void;
   onRemove: () => void;
+  onNameRemoved?: (() => void) | undefined;
   expandedPartId: string | null;
   onTogglePart: (partId: string) => void;
   renderPartAttachments: ((partId: string) => ReactNode) | undefined;
@@ -330,6 +334,7 @@ function VariantEditor({
         expandedPartId={expandedPartId}
         onTogglePart={onTogglePart}
         renderPartAttachments={renderPartAttachments}
+        onNameRemoved={onNameRemoved}
       />
       <DateEditor
         label={nls.t('features.tree.names.date')}
@@ -346,7 +351,11 @@ function VariantEditor({
               variants: variant.variants.map((entry, entryIndex) => (entryIndex === index ? next : entry)),
             })
           }
-          onRemove={() => patch({ variants: variant.variants.filter((_, entryIndex) => entryIndex !== index) })}
+          onRemove={() => {
+            patch({ variants: variant.variants.filter((_, entryIndex) => entryIndex !== index) });
+            onNameRemoved?.();
+          }}
+          onNameRemoved={onNameRemoved}
           expandedPartId={expandedPartId}
           onTogglePart={onTogglePart}
           renderPartAttachments={renderPartAttachments}
@@ -428,12 +437,14 @@ function ExtraParts<T extends { parts: NamePart[] }>({
   expandedPartId,
   onTogglePart,
   renderPartAttachments,
+  onNameRemoved,
 }: {
   name: T;
   onChange: (next: T) => void;
   expandedPartId: string | null;
   onTogglePart: (partId: string) => void;
   renderPartAttachments: ((partId: string) => ReactNode) | undefined;
+  onNameRemoved?: (() => void) | undefined;
 }) {
   const [newKind, setNewKind] = useState<NamePartKind>('given');
   const extras = extraPartsOf(name);
@@ -478,7 +489,10 @@ function ExtraParts<T extends { parts: NamePart[] }>({
                 size="sm"
                 label={nls.t('features.tree.names.part.remove')}
                 icon={<X size={14} aria-hidden="true" />}
-                onClick={() => onChange(removeNamePart(name, part.id))}
+                onClick={() => {
+                  onChange(removeNamePart(name, part.id));
+                  onNameRemoved?.();
+                }}
               />
             </div>
             {expandedPartId === part.id && renderPartAttachments?.(part.id)}

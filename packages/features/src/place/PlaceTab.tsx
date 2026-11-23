@@ -142,6 +142,8 @@ function PlaceTabBody({
   const submittedBaselineRef = useRef<PlaceDraft | undefined>(undefined);
   const submittedRecordRef = useRef<PlaceRecord | undefined>(undefined);
   const submissionTokenRef = useRef<object | undefined>(undefined);
+  const writePendingRef = useRef(false);
+  const saveStartRef = useRef<PlaceRecord | undefined>(undefined);
   const setDraft = (next: PlaceDraft) => {
     draftRef.current = next;
     setDraftState(next);
@@ -177,13 +179,20 @@ function PlaceTabBody({
         submittedRecord !== undefined &&
         JSON.stringify(placeToDraft(record)) === JSON.stringify(placeToDraft(submittedRecord));
       const pending = submittedRef.current;
+      const inFlight = writePendingRef.current;
       const submitted = confirms ? pending : undefined;
-      const protectedDraft = pending !== undefined && !confirms ? pending : undefined;
+      const protectedDraft = pending !== undefined && inFlight && !confirms ? pending : undefined;
+      const stalePreWrite =
+        !inFlight &&
+        !confirms &&
+        submittedRecordRef.current !== undefined &&
+        saveStartRef.current !== undefined &&
+        JSON.stringify(placeToDraft(record)) === JSON.stringify(placeToDraft(saveStartRef.current));
       if (confirms) {
         submittedRef.current = undefined;
         submittedRecordRef.current = undefined;
       }
-      if (pending === undefined || confirms) {
+      if ((!inFlight || confirms) && !stalePreWrite) {
         baselineRef.current = record;
         setLastSaved(record);
       }
@@ -191,7 +200,14 @@ function PlaceTabBody({
         submittedBaselineRef.current = undefined;
       }
       setDraft(
-        mergePlaceDraft(draftRef.current, previous, record, submitted, protectedDraft, submittedBaselineRef.current),
+        mergePlaceDraft(
+          draftRef.current,
+          previous,
+          record,
+          submitted,
+          protectedDraft,
+          inFlight ? submittedBaselineRef.current : undefined,
+        ),
       );
     }
   }, [record, isNew]);
@@ -215,14 +231,18 @@ function PlaceTabBody({
         submissionTokenRef.current = token;
         submittedRef.current = submission;
         submittedBaselineRef.current = base !== undefined ? placeToDraft(base) : undefined;
+        saveStartRef.current = base;
+        writePendingRef.current = true;
         // A new write invalidates the previous write's acknowledgement.
         submittedRecordRef.current = undefined;
         try {
           await api.updatePlace(target, next);
+          writePendingRef.current = false;
           if (submissionTokenRef.current === token) {
             submittedRecordRef.current = next;
           }
         } catch (error) {
+          writePendingRef.current = false;
           if (submissionTokenRef.current === token && submittedRef.current === submission) {
             submittedRef.current = undefined;
             submittedBaselineRef.current = undefined;
