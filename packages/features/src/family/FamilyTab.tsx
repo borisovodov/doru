@@ -60,27 +60,44 @@ function mergeFamilyRow<T extends { id: string }>(
   return merged;
 }
 
+function familyOrderWithAdditions<T extends { id: string }>(
+  rows: T[],
+  baseRows: T[],
+  keyOf: (row: T) => string,
+): string[] {
+  const rowKeys = rows.map(keyOf);
+  const baseKeys = new Set(baseRows.map(keyOf));
+  const expected = baseRows.map(keyOf).filter((key) => rowKeys.includes(key));
+  expected.push(...rowKeys.filter((key) => !baseKeys.has(key)));
+  return rowKeys.join('\u0000') === expected.join('\u0000') ? [] : rowKeys;
+}
+
 function mergeFamilyRows<T extends { id: string }>(
   draftRows: T[],
   baseRows: T[],
   refreshedRows: T[],
   protectedRows?: T[],
   protectedBaseRows?: T[],
+  matchKey?: (row: T) => string,
 ): T[] {
-  const baseById = new Map(baseRows.map((row) => [row.id, row]));
-  const refreshedById = new Map(refreshedRows.map((row) => [row.id, row]));
-  const protectedById = new Map((protectedRows ?? []).map((row) => [row.id, row]));
-  const protectedBaseById = new Map((protectedBaseRows ?? []).map((row) => [row.id, row]));
-  const draftIds = new Set(draftRows.map((row) => row.id));
-  const draftOrder = draftRows.map((row) => row.id).filter((id) => baseById.has(id));
-  const baseOrder = baseRows.map((row) => row.id).filter((id) => draftIds.has(id));
-  const orderChanged = draftOrder.join('\u0000') !== baseOrder.join('\u0000');
+  const keyOf = matchKey ?? ((row: T) => row.id);
+  const baseById = new Map(baseRows.map((row) => [keyOf(row), row]));
+  const refreshedById = new Map(refreshedRows.map((row) => [keyOf(row), row]));
+  const protectedById = new Map((protectedRows ?? []).map((row) => [keyOf(row), row]));
+  const protectedBaseById = new Map((protectedBaseRows ?? []).map((row) => [keyOf(row), row]));
+  const draftKeys = new Set(draftRows.map(keyOf));
+  const draftReordered = familyOrderWithAdditions(draftRows, baseRows, keyOf).length > 0;
+  const submissionReordered =
+    protectedRows !== undefined &&
+    protectedBaseRows !== undefined &&
+    familyOrderWithAdditions(protectedRows, protectedBaseRows, keyOf).length > 0;
+  const orderChanged = draftReordered || submissionReordered;
   const merged: T[] = [];
   for (const row of draftRows) {
-    const base = baseById.get(row.id);
-    const refreshed = refreshedById.get(row.id);
-    const protectedRow = protectedById.get(row.id);
-    const protectedBaseRow = protectedBaseById.get(row.id);
+    const base = baseById.get(keyOf(row));
+    const refreshed = refreshedById.get(keyOf(row));
+    const protectedRow = protectedById.get(keyOf(row));
+    const protectedBaseRow = protectedBaseById.get(keyOf(row));
     if (base === undefined) {
       merged.push(row);
       continue;
@@ -98,27 +115,30 @@ function mergeFamilyRows<T extends { id: string }>(
     merged.push(mergeFamilyRow(row, base, refreshed, protectedRow, protectedBaseRow));
   }
   for (const row of refreshedRows) {
-    if (!draftIds.has(row.id) && !baseById.has(row.id) && !protectedById.has(row.id)) {
+    const key = keyOf(row);
+    if (!draftKeys.has(key) && !baseById.has(key) && !protectedById.has(key)) {
       merged.push(row);
     }
   }
   if (orderChanged) {
     return merged;
   }
-  const mergedById = new Map(merged.map((row) => [row.id, row]));
+  const mergedById = new Map(merged.map((row) => [keyOf(row), row]));
   const ordered: T[] = [];
   for (const row of refreshedRows) {
-    const mergedRow = mergedById.get(row.id);
+    const key = keyOf(row);
+    const mergedRow = mergedById.get(key);
     if (mergedRow !== undefined) {
       ordered.push(mergedRow);
-      mergedById.delete(row.id);
+      mergedById.delete(key);
     }
   }
   for (const row of merged) {
-    const remaining = mergedById.get(row.id);
+    const key = keyOf(row);
+    const remaining = mergedById.get(key);
     if (remaining !== undefined) {
       ordered.push(remaining);
-      mergedById.delete(row.id);
+      mergedById.delete(key);
     }
   }
   return ordered;
@@ -153,6 +173,7 @@ export function mergeFamilyDraft(
     refreshed.partnerLinks,
     protectedDraft?.partnerLinks,
     protectedBase?.partnerLinks,
+    (row) => row.personId,
   );
   const childLinks = mergeFamilyRows(
     current.childLinks,
@@ -160,6 +181,7 @@ export function mergeFamilyDraft(
     refreshed.childLinks,
     protectedDraft?.childLinks,
     protectedBase?.childLinks,
+    (row) => row.childId,
   );
   return {
     id: current.id,

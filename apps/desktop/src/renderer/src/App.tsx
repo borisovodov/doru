@@ -24,6 +24,7 @@ export function App() {
   const [searchFocusNonce, setSearchFocusNonce] = useState(0);
   const [canvasFocus, setCanvasFocus] = useState<{ personId: string; nonce: number } | null>(null);
   const [projectTransfer, setProjectTransfer] = useState(false);
+  const [bindVersion, setBindVersion] = useState(0);
 
   const tree = useTreeData(projectPath);
 
@@ -86,6 +87,15 @@ export function App() {
     return () => document.body.removeAttribute('inert');
   }, [projectTransfer]);
 
+  // The main process keeps the transfer barrier until this acknowledgement;
+  // the effect runs after the new project binding has been committed.
+  useEffect(() => {
+    if (bindVersion === 0) {
+      return;
+    }
+    window.doru.acknowledgeProjectTransfer();
+  }, [bindVersion]);
+
   useEffect(() => {
     void window.doru.getAbout().then((info) => {
       setVersion(info.version);
@@ -119,6 +129,7 @@ export function App() {
       setProjectPath(info.path);
       setProjectUntitled(info.untitled);
       setUntitledName(info.untitled ? info.name : null);
+      setBindVersion((current) => current + 1);
     },
     // oxlint-disable-next-line react/exhaustive-deps -- the tabs hook object changes every render
     [tabs.resetToTree],

@@ -219,21 +219,28 @@ function mergePlaceRow<T extends { id: string }>(draft: T, previous: T, refreshe
   return merged;
 }
 
-function mergeProtectedPlaceRow<T extends { id: string }>(draft: T, pending: T, baseline: T, refreshed: T): T {
+function mergeProtectedPlaceRow<T extends { id: string }>(
+  draft: T,
+  pending: T,
+  baseline: T,
+  previous: T,
+  refreshed: T,
+): T {
   const merged: T = { ...draft };
   for (const key of Object.keys(draft) as Array<keyof T>) {
     if (key === 'date') {
       const draftDate = (draft as unknown as { date: DateDraft }).date;
       const pendingDate = (pending as unknown as { date: DateDraft }).date;
       const baselineDate = (baseline as unknown as { date: DateDraft }).date;
-      if (dateDraftsEqual(pendingDate, baselineDate) && dateDraftsEqual(draftDate, baselineDate)) {
+      const previousDate = (previous as unknown as { date: DateDraft }).date;
+      if (dateDraftsEqual(pendingDate, baselineDate) && dateDraftsEqual(draftDate, previousDate)) {
         (merged as unknown as { date: DateDraft }).date = (refreshed as unknown as { date: DateDraft }).date;
       }
     } else if (JSON.stringify(pending[key]) !== JSON.stringify(baseline[key])) {
       // The submission changed this field; keep the draft even if the user
       // has already reverted it to the stored value.
       merged[key] = draft[key];
-    } else if (JSON.stringify(draft[key]) === JSON.stringify(baseline[key])) {
+    } else if (JSON.stringify(draft[key]) === JSON.stringify(previous[key])) {
       merged[key] = refreshed[key];
     }
   }
@@ -257,22 +264,31 @@ function mergePendingPlaceRows<T extends { id: string }>(
     const pending = pendingById.get(row.id);
     const baseline = baselineById.get(row.id);
     const refreshed = refreshedById.get(row.id);
+    const previous = previousById.get(row.id);
     if (pending === undefined || baseline === undefined) {
-      const previous = previousById.get(row.id);
-      if (previous !== undefined && JSON.stringify(row) === JSON.stringify(previous) && refreshed === undefined) {
+      const pendingLocal =
+        pending !== undefined && (baseline === undefined || JSON.stringify(pending) !== JSON.stringify(baseline));
+      if (
+        !pendingLocal &&
+        previous !== undefined &&
+        JSON.stringify(row) === JSON.stringify(previous) &&
+        refreshed === undefined
+      ) {
         continue;
       }
       merged.push(row);
       continue;
     }
     if (refreshed === undefined) {
-      if (JSON.stringify(pending) === JSON.stringify(baseline) && JSON.stringify(row) === JSON.stringify(baseline)) {
+      const pendingLocal = JSON.stringify(pending) !== JSON.stringify(baseline);
+      const currentLocal = JSON.stringify(row) !== JSON.stringify(previous ?? baseline);
+      if (!pendingLocal && !currentLocal) {
         continue;
       }
       merged.push(row);
       continue;
     }
-    merged.push(mergeProtectedPlaceRow(row, pending, baseline, refreshed));
+    merged.push(mergeProtectedPlaceRow(row, pending, baseline, previous ?? baseline, refreshed));
   }
   for (const row of refreshedRows) {
     if (!draftIds.has(row.id) && !previousById.has(row.id) && !pendingById.has(row.id)) {

@@ -72,14 +72,29 @@ function fileTitlesFrom(files: MediaFile[] | undefined): Record<string, string> 
   return titles;
 }
 
+function normalizeTitle(value: string | undefined): string {
+  return (value ?? '').trim();
+}
+
 function sameTitleMaps(left: Record<string, string>, right: Record<string, string>): boolean {
   const ids = new Set([...Object.keys(left), ...Object.keys(right)]);
   for (const id of ids) {
-    if ((left[id] ?? '').trim() !== (right[id] ?? '').trim()) {
+    if (normalizeTitle(left[id]) !== normalizeTitle(right[id])) {
       return false;
     }
   }
   return true;
+}
+
+function changedFileTitles(base: Record<string, string>, submitted: Record<string, string>): Record<string, string> {
+  const changes: Record<string, string> = {};
+  const ids = new Set([...Object.keys(base), ...Object.keys(submitted)]);
+  for (const id of ids) {
+    if (normalizeTitle(base[id]) !== normalizeTitle(submitted[id])) {
+      changes[id] = submitted[id] ?? '';
+    }
+  }
+  return changes;
 }
 
 function sameFileTitles(files: MediaFile[] | undefined, titles: Record<string, string>): boolean {
@@ -88,6 +103,9 @@ function sameFileTitles(files: MediaFile[] | undefined, titles: Record<string, s
 
 function applyFileTitles(files: MediaFile[] | undefined, titles: Record<string, string>): MediaFile[] {
   return (files ?? []).map((file) => {
+    if (!Object.hasOwn(titles, file.id)) {
+      return file;
+    }
     const next: MediaFile = { ...file };
     const title = titles[file.id]?.trim();
     if (title !== undefined && title !== '') {
@@ -113,7 +131,7 @@ function mergeFileTitles(
       // The file no longer exists; a stale title must not keep the tab dirty.
       continue;
     }
-    if (currentTitle === previous[id]) {
+    if (normalizeTitle(currentTitle) === normalizeTitle(previous[id])) {
       merged[id] = refreshed[id];
     } else if (currentTitle !== undefined) {
       merged[id] = currentTitle;
@@ -216,7 +234,7 @@ function MediaTabBody({
     recordRef.current = record;
     const submitted = submittedRef.current;
     const dirty = submittedDirtyRef.current;
-    const previousTitles = fileTitlesFrom(previous.files);
+    const savedTitles = fileTitlesFrom(savedMetadataRef.current.files);
     const refreshedTitles = fileTitlesFrom(record.files);
     // A refresh that still carries pre-write values (or any unrelated
     // snapshot) must not replace a draft whose write is still pending; wait
@@ -231,7 +249,7 @@ function MediaTabBody({
     if (
       submitted === undefined &&
       mediaMetadataMatches(metadataRef.current, previous) &&
-      sameTitleMaps(fileTitlesRef.current, previousTitles)
+      sameTitleMaps(fileTitlesRef.current, savedTitles)
     ) {
       baselineRef.current = record;
       fileTitlesRef.current = refreshedTitles;
@@ -286,7 +304,7 @@ function MediaTabBody({
       refreshed.keywords = record.keywords;
       setKeywords(record.keywords ?? '');
     }
-    const mergedTitles = mergeFileTitles(fileTitlesRef.current, previousTitles, refreshedTitles);
+    const mergedTitles = mergeFileTitles(fileTitlesRef.current, savedTitles, refreshedTitles);
     fileTitlesRef.current = mergedTitles;
     setFileTitles(mergedTitles);
     baselineRef.current = refreshed;
@@ -405,7 +423,7 @@ function MediaTabBody({
       next.keywords = submission.keywords.trim() || undefined;
     }
     if (dirty.files) {
-      next.files = applyFileTitles(current.files, submission.fileTitles);
+      next.files = applyFileTitles(current.files, changedFileTitles(baseDraft.fileTitles, submission.fileTitles));
     }
     const recordBeforeSave = recordRef.current;
     try {
@@ -471,7 +489,8 @@ function MediaTabBody({
       keywords: base.keywords ?? '',
       fileTitles: fileTitlesFrom(base.files),
     };
-    const filesDirty = !sameTitleMaps(submission.fileTitles, baseDraft.fileTitles);
+    const titleChanges = changedFileTitles(baseDraft.fileTitles, submission.fileTitles);
+    const filesDirty = Object.keys(titleChanges).length > 0;
     const desired: MediaRecord = { ...base };
     if (submission.title.trim() !== baseDraft.title) {
       desired.title = submission.title.trim() || undefined;
@@ -493,7 +512,7 @@ function MediaTabBody({
       desired.keywords = submission.keywords.trim() || undefined;
     }
     if (filesDirty) {
-      desired.files = applyFileTitles(base.files, submission.fileTitles);
+      desired.files = applyFileTitles(base.files, titleChanges);
     }
     queuedRecordRef.current = desired;
     pendingSavesRef.current += 1;

@@ -60,6 +60,7 @@ export function NamesSection({
   renderAttachments,
   renderPartAttachments,
   autoFocusName = false,
+  onNameRemoved,
 }: {
   names: NameDraft[];
   onChange: (names: NameDraft[]) => void;
@@ -67,6 +68,8 @@ export function NamesSection({
   renderPartAttachments?: ((partId: string) => ReactNode) | undefined;
   /** Focuses the first name's display form when a new person tab opens. */
   autoFocusName?: boolean;
+  /** Requests a save after a focused name-remove button disappears. */
+  onNameRemoved?: (() => void) | undefined;
 }) {
   const displayFormRef = useAutoFocusSelect<HTMLInputElement>(autoFocusName);
   const [expandedPartId, setExpandedPartId] = useState<string | null>(null);
@@ -75,7 +78,10 @@ export function NamesSection({
 
   const addName = () => onChange([...names, emptyNameDraft()]);
 
-  const removeName = (index: number) => onChange(names.filter((_, i) => i !== index));
+  const removeName = (index: number) => {
+    onChange(names.filter((_, i) => i !== index));
+    onNameRemoved?.();
+  };
 
   /**
    * Marks the name as the primary one: the flag moves with it to the front

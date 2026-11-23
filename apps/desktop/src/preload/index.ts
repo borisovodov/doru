@@ -59,6 +59,9 @@ const api = {
   invalidateCloseFlush: (): void => {
     ipcRenderer.send('app:close-flush:invalidate');
   },
+  acknowledgeProjectTransfer: (): void => {
+    ipcRenderer.send('project:transfer-ack');
+  },
   onProjectTransfer: (callback: (active: boolean) => void): (() => void) => {
     const listener = (_event: unknown, active: unknown) => callback(active === true);
     ipcRenderer.on('project:transfer', listener);

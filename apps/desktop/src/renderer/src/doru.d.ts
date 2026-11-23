@@ -81,6 +81,8 @@ declare global {
       invalidateCloseFlush(): void;
       /** Blocks editing while a Save As transfer moves the project store. */
       onProjectTransfer(callback: (active: boolean) => void): () => void;
+      /** Reports that the destination project binding has been installed. */
+      acknowledgeProjectTransfer(): void;
       /** Fires when the project file changed on disk outside the app (agents, MCP clients). */
       onTreeExternalChange(callback: () => void): () => void;
       getThemeState(): Promise<{

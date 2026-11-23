@@ -1,13 +1,14 @@
 import { useState } from 'react';
 import type { Demo, DemoMeta } from '../../../gallery/types';
 import { DateTimePicker } from './DateTimePicker';
+import { nls } from '../../nls';
 
 const labels = {
-  chooseDate: 'Choose date',
-  previousMonth: 'Previous month',
-  nextMonth: 'Next month',
-  today: 'Today',
-  clear: 'Clear',
+  chooseDate: nls.t('features.tasks.chooseDate'),
+  previousMonth: nls.t('features.tasks.previousMonth'),
+  nextMonth: nls.t('features.tasks.nextMonth'),
+  today: nls.t('features.tasks.today'),
+  clear: nls.t('features.tasks.clear'),
 };
 
 function StatefulDateTimePicker({ initial, nullable = true }: { initial: string; nullable?: boolean }) {

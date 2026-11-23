@@ -155,6 +155,24 @@ describe('placeToDraft / placeDraftToRecord', () => {
     expect(saved.postalCodes?.[0]?.date?.id).toBe('D4');
   });
 
+  it('keeps a name added after the submission started', () => {
+    const previous = place();
+    const refreshed = place({
+      names: [
+        { id: 'N1', position: 0, value: 'Tula' },
+        { id: 'N2', position: 1, value: 'Tula Oblast' },
+      ],
+    });
+    const baseline = placeToDraft(previous);
+    const pending = placeToDraft(previous);
+    const current = placeToDraft(previous);
+    current.names.push({ ...emptyPlaceNameDraft(2), id: 'N3', value: 'Tula city' });
+
+    const merged = mergePlaceDraft(current, previous, refreshed, undefined, pending, baseline);
+
+    expect(merged.names.map((name) => name.id)).toEqual(['N1', 'N2', 'N3']);
+  });
+
   it('keeps a submission-time row edit even after the user restores the old value', () => {
     const previous = place();
     const refreshed = place({ names: [{ id: 'N1', position: 0, value: 'Tula Oblast' }] });

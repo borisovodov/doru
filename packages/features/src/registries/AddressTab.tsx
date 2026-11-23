@@ -1,3 +1,4 @@
+import { useRef } from 'react';
 import { MapPin } from 'lucide-react';
 import type { AddressRecord, FactRecord, RepositoryRecord, SourceRecord, SubmitterRecord } from '@doru/core';
 import { AttachmentsPanel } from '../attachments';
@@ -102,13 +103,22 @@ function AddressTabBody({
     if (addressDraftEmpty(address)) {
       throw new Error('An address must have at least one field.');
     }
-    const id = await saveAddress();
-    if (id === undefined) {
+    if (isNew && record === undefined) {
+      if (creatingRef.current) {
+        return;
+      }
+      creatingRef.current = true;
+      try {
+        const id = await saveAddress();
+        if (id !== undefined) {
+          onCreated(id);
+        }
+      } finally {
+        creatingRef.current = false;
+      }
       return;
     }
-    if (isNew && record === undefined) {
-      onCreated(id);
-    }
+    await saveAddress();
   };
 
   const autoSave = useAutoSaveOnBlur({
@@ -124,6 +134,7 @@ function AddressTabBody({
   };
 
   const deletion = useEntityDelete(autoSave, remove, onClose);
+  const creatingRef = useRef(false);
 
   return (
     <EntityTab onBlur={autoSave.onBlur}>

@@ -109,6 +109,20 @@ describe('DateTimePicker', () => {
     expect(onChange).toHaveBeenLastCalledWith('2026-11-10T09:00');
   });
 
+  it('invalidates the close permission when the calendar changes a value', () => {
+    const invalidateCloseFlush = vi.fn();
+    (window as unknown as { doru: { invalidateCloseFlush: () => void } }).doru = { invalidateCloseFlush };
+    renderUi(<DateTimePicker value="2026-11-22T18:30" onChange={() => undefined} locale="en" labels={labels} />);
+
+    fireEvent.click(screen.getByRole('button', { name: labels.chooseDate }));
+    fireEvent.click(screen.getByRole('button', { name: /November 10, 2026/ }));
+    expect(invalidateCloseFlush).toHaveBeenCalledTimes(1);
+
+    fireEvent.click(screen.getByRole('button', { name: labels.clear }));
+    expect(invalidateCloseFlush).toHaveBeenCalledTimes(2);
+    delete (window as unknown as { doru?: unknown }).doru;
+  });
+
   it('closes the calendar when manual entry changes the date', () => {
     const { container } = renderUi(
       <DateTimePicker value="2026-11-22T18:30" onChange={() => undefined} locale="en" labels={labels} />,

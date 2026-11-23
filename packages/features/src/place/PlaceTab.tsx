@@ -237,11 +237,6 @@ function PlaceTabBody({
         if (submissionTokenRef.current !== token) {
           return;
         }
-        if (recordRef.current !== recordAtStart) {
-          baselineRef.current = recordRef.current;
-          setLastSaved(recordRef.current);
-          return;
-        }
       }
       baselineRef.current = next;
       setLastSaved(next);

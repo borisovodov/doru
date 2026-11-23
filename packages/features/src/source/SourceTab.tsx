@@ -12,6 +12,7 @@ import type {
 } from '@doru/core';
 import { CitationAttachments, NoteAttachments, useAttachments } from '../attachments';
 import { AutoSaveError } from '../autoSaveFeedback';
+import { useEntityDelete } from '../entityDelete';
 import { Button, DangerZone, InlineError, useAutoSaveOnBlur } from '@doru/ui';
 import { MediaSection } from '../media/MediaSection';
 import { EntityTab, SourceCitationsList } from '../sidebar';
@@ -327,9 +328,9 @@ function SourceTabBody({
     if (target) {
       await api.deleteSource(target);
     }
-    autoSave.release();
-    onClose();
   };
+
+  const deletion = useEntityDelete(autoSave, remove, onClose);
 
   return (
     <EntityTab>
@@ -341,6 +342,7 @@ function SourceTabBody({
           <>
             <AutoSaveError failed={autoSave.failed} retryDisabled={autoSave.pendingDelete} onRetry={autoSave.retry} />
             {isNew && saveError ? <InlineError>{nls.t('features.tree.autosaveFailed')}</InlineError> : null}
+            {deletion.failed ? <InlineError>{nls.t('features.tree.deleteFailed')}</InlineError> : null}
           </>
         }
         onChange={(next) => {
@@ -510,10 +512,8 @@ function SourceTabBody({
             variant="danger"
             size="sm"
             data-autosave-skip="true"
-            onClick={() => {
-              autoSave.cancel();
-              void remove().catch(() => autoSave.resume());
-            }}
+            disabled={deletion.deleting}
+            onClick={deletion.deleteEntity}
           >
             {nls.t('features.tree.fact.delete')}
           </Button>

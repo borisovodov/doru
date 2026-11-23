@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { Input, useAutoFocusSelect } from '@doru/ui';
 import { SectionCard } from '@doru/ui';
 import { Field } from '@doru/ui';
@@ -143,6 +143,7 @@ function RepositoryTabBody({
   } = useAttachments('repository', targetId, api, true);
 
   const [saveError, setSaveError] = useState(false);
+  const creatingRef = useRef(false);
 
   const selectAddress = (addressId: string | undefined) => {
     setSaveError(false);
@@ -166,8 +167,16 @@ function RepositoryTabBody({
         next.addressId = linkedAddressId;
       }
       if (isNew && lastSaved === undefined) {
-        await api.addRepository(next);
-        onCreated(next.id);
+        if (creatingRef.current) {
+          return;
+        }
+        creatingRef.current = true;
+        try {
+          await api.addRepository(next);
+          onCreated(next.id);
+        } finally {
+          creatingRef.current = false;
+        }
       } else {
         await api.updateRepository(lastSaved ?? base, next);
       }

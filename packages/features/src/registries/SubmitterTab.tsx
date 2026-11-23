@@ -1,5 +1,5 @@
 import { IconButton, useAutoFocusSelect } from '@doru/ui';
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { Input } from '@doru/ui';
 import { SectionCard } from '@doru/ui';
 import { Field, FieldGrid, InlineForm } from '@doru/ui';
@@ -153,6 +153,7 @@ function SubmitterTabBody({
   } = useAttachments('submitter', targetId, api, true);
 
   const [saveError, setSaveError] = useState(false);
+  const creatingRef = useRef(false);
 
   const selectAddress = (addressId: string | undefined) => {
     setSaveError(false);
@@ -186,8 +187,16 @@ function SubmitterTabBody({
         next.addressId = linkedAddressId;
       }
       if (isNew && lastSaved === undefined) {
-        await api.addSubmitter(next);
-        onCreated(next.id);
+        if (creatingRef.current) {
+          return;
+        }
+        creatingRef.current = true;
+        try {
+          await api.addSubmitter(next);
+          onCreated(next.id);
+        } finally {
+          creatingRef.current = false;
+        }
       } else {
         await api.updateSubmitter(lastSaved ?? base, next);
       }

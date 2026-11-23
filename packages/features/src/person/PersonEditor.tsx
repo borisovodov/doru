@@ -55,6 +55,8 @@ export interface PersonEditorProps {
   onOpenMedia?: ((mediaId: string) => void) | undefined;
   /** Inline notice rendered under the header (autosave failure). */
   notice?: ReactNode;
+  /** Requests a save after a focused name-remove button disappears. */
+  onNameRemoved?: (() => void) | undefined;
   /** Rendered after every section, for page-level actions such as Delete. */
   footer?: ReactNode;
   /** Autosave trigger from the tab; fires when a field loses focus. */
@@ -75,6 +77,7 @@ export function PersonEditor({
   mediaApi,
   onOpenMedia,
   notice,
+  onNameRemoved,
   footer,
   onBlur,
 }: PersonEditorProps) {
@@ -293,6 +296,7 @@ export function PersonEditor({
         <NamesSection
           names={draft.names}
           autoFocusName={draft.isNew}
+          onNameRemoved={onNameRemoved}
           onChange={(names) => set({ names, namesTouched: true })}
           renderAttachments={(name) =>
             savedNameIds.has(name.id) ? (

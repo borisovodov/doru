@@ -88,6 +88,56 @@ describe('FamilyTab reconciliation', () => {
     expect(merged.childLinks.map((row) => row.id)).toEqual(['C1']);
   });
 
+  it('keeps a reverted reorder after the submission changed the order', () => {
+    const baseDraft = emptyFamilyDraft();
+    baseDraft.childLinks = [
+      { ...emptyChildLinkDraft('P1'), id: 'C1' },
+      { ...emptyChildLinkDraft('P2'), id: 'C2' },
+    ];
+    const pending = {
+      ...baseDraft,
+      childLinks: [baseDraft.childLinks[1]!, baseDraft.childLinks[0]!],
+    };
+    const current = { ...baseDraft };
+    const refreshed = { ...baseDraft, unionStatus: 'S1', childLinks: pending.childLinks };
+
+    const merged = mergeFamilyDraft(current, baseDraft, refreshed, pending, baseDraft);
+
+    expect(merged.childLinks.map((row) => row.id)).toEqual(['C1', 'C2']);
+  });
+
+  it('keeps a locally added row in its chosen position', () => {
+    const baseDraft = emptyFamilyDraft();
+    baseDraft.childLinks = [
+      { ...emptyChildLinkDraft('P1'), id: 'C1' },
+      { ...emptyChildLinkDraft('P2'), id: 'C2' },
+    ];
+    const added = { ...emptyChildLinkDraft('P3'), id: 'C3' };
+    const current = { ...baseDraft, childLinks: [added, ...baseDraft.childLinks] };
+
+    const merged = mergeFamilyDraft(current, baseDraft, baseDraft);
+
+    expect(merged.childLinks.map((row) => row.id)).toEqual(['C3', 'C1', 'C2']);
+  });
+
+  it('merges a synthesized child link with its explicit refreshed row', () => {
+    const baseDraft = emptyFamilyDraft();
+    baseDraft.childLinks = [{ ...emptyChildLinkDraft('P1'), id: 'F1#child#P1' }];
+    const current = {
+      ...baseDraft,
+      childLinks: [{ ...baseDraft.childLinks[0]!, status: 'adopted' }],
+    };
+    const refreshed = {
+      ...baseDraft,
+      childLinks: [{ ...baseDraft.childLinks[0]!, id: 'C1', status: 'birth' }],
+    };
+
+    const merged = mergeFamilyDraft(current, baseDraft, refreshed);
+
+    expect(merged.childLinks).toHaveLength(1);
+    expect(merged.childLinks[0]).toMatchObject({ id: 'C1', childId: 'P1', status: 'adopted' });
+  });
+
   it('saves a child removal without waiting for a blur', async () => {
     const updateFamily = vi.fn(async (_before: FamilyRecord, _after: FamilyRecord) => undefined);
     const api = apiStub({ updateFamily });

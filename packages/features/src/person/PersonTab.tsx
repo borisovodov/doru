@@ -277,6 +277,7 @@ function PersonTabBody({
         setDraft(next);
       }}
       onSave={() => void save().catch(() => undefined)}
+      onNameRemoved={autoSave.saveSoon}
       onCancel={draft.isNew && !created ? () => onClose() : undefined}
       api={api}
       mediaApi={mediaApi}

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { EmptyText, useAutoFocusSelect } from '@doru/ui';
 import { Input } from '@doru/ui';
 import { Select } from '@doru/ui';
@@ -110,6 +110,7 @@ function TitleTabBody({
   });
 
   const [saveError, setSaveError] = useState(false);
+  const creatingRef = useRef(false);
   const clearSaveError = () => setSaveError(false);
 
   const save = async () => {
@@ -117,8 +118,16 @@ function TitleTabBody({
     try {
       const after = build();
       if (isNew && lastSaved === undefined) {
-        await api.addTitle(after);
-        onCreated(after.id);
+        if (creatingRef.current) {
+          return;
+        }
+        creatingRef.current = true;
+        try {
+          await api.addTitle(after);
+          onCreated(after.id);
+        } finally {
+          creatingRef.current = false;
+        }
       } else {
         await api.updateTitle(lastSaved ?? base, after);
       }

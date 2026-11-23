@@ -8,6 +8,11 @@ import { Input } from '../form/Input';
 import { IconButton } from '../icon-button/IconButton';
 import styles from './DateTimePicker.module.css';
 
+function invalidateCloseFlush(): void {
+  const window = globalThis.window as { doru?: { invalidateCloseFlush?: () => void } | undefined } | undefined;
+  window?.doru?.invalidateCloseFlush?.();
+}
+
 export interface DateTimePickerLabels {
   /** Accessible name of the calendar trigger. */
   chooseDate: string;
@@ -90,16 +95,19 @@ export function DateTimePicker({
   const selectedDay = instant !== undefined ? new Date(instant) : undefined;
 
   const select = (day: Date) => {
+    invalidateCloseFlush();
     onChange(replaceInputDay(value, day));
     close();
   };
 
   const selectToday = () => {
+    invalidateCloseFlush();
     onChange(replaceInputDay(value, new Date()));
     close();
   };
 
   const clear = () => {
+    invalidateCloseFlush();
     onChange('');
     close();
   };

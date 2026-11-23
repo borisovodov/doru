@@ -1,4 +1,11 @@
-import { BrowserWindow, dialog, type OpenDialogOptions, type SaveDialogOptions } from 'electron';
+import {
+  BrowserWindow,
+  dialog,
+  ipcMain,
+  type IpcMainEvent,
+  type OpenDialogOptions,
+  type SaveDialogOptions,
+} from 'electron';
 import { basename, dirname, join } from 'node:path';
 import { MEDIA_DIR_NAME, TREE_FILE_EXTENSION, type ProjectBinding, type ProjectSummary } from '@doru/core';
 import { GEDCOM_INTEROP_VISIBLE } from '@doru/platform';
@@ -22,6 +29,25 @@ import {
 } from './windows';
 
 const fs = new NodeFileSystem();
+const TRANSFER_ACK_TIMEOUT_MS = 2000;
+
+/** Waits until the renderer has committed the rebound project path. */
+function waitForTransferAck(window: BrowserWindow): Promise<void> {
+  return new Promise((resolve) => {
+    const finish = () => {
+      clearTimeout(timer);
+      ipcMain.removeListener('project:transfer-ack', onAck);
+      resolve();
+    };
+    const onAck = (event: IpcMainEvent) => {
+      if (event.sender === window.webContents) {
+        finish();
+      }
+    };
+    const timer = setTimeout(finish, TRANSFER_ACK_TIMEOUT_MS);
+    ipcMain.on('project:transfer-ack', onAck);
+  });
+}
 
 /** File extensions the app opens directly (imports or opens a project). */
 export const GEDCOM_EXTENSIONS = ['.ged', '.gdz'];
@@ -354,7 +380,10 @@ export async function saveProject(projectKey: string): Promise<ProjectBinding | 
   projectWindows.delete(projectKey);
   if (window && !window.isDestroyed()) {
     bindWindowToProject(window, filePath);
-    window.webContents.send('project:transfer', false);
+    await waitForTransferAck(window);
+    if (!window.isDestroyed()) {
+      window.webContents.send('project:transfer', false);
+    }
   } else {
     createWindow(filePath);
   }

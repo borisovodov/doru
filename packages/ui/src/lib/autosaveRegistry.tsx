@@ -48,12 +48,11 @@ export function hasAutoSaves(tabId: string): boolean {
  * the caller can keep the tab open.
  */
 export async function flushAutoSaves(tabId: string): Promise<boolean> {
-  const set = flushes.get(tabId);
-  if (set === undefined) {
-    return true;
-  }
-  const entries = [...set];
   for (let round = 0; round < 2; round += 1) {
+    const entries = [...(flushes.get(tabId) ?? [])];
+    if (entries.length === 0) {
+      return true;
+    }
     const results = await Promise.all(entries.map((entry) => entry.flush().catch(() => false)));
     if (!results.every(Boolean)) {
       return false;
@@ -61,7 +60,11 @@ export async function flushAutoSaves(tabId: string): Promise<boolean> {
     // Let React commit the save's state updates before asking the editors
     // whether the latest draft is now clean.
     await new Promise((resolve) => setTimeout(resolve, 0));
-    if (!entries.some((entry) => entry.isDirty() || entry.isSaving?.() === true)) {
+    const current = [...(flushes.get(tabId) ?? [])];
+    if (current.length === 0) {
+      return true;
+    }
+    if (!current.some((entry) => entry.isDirty() || entry.isSaving?.() === true)) {
       return true;
     }
   }
