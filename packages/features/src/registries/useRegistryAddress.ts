@@ -30,6 +30,8 @@ export function useRegistryAddress(api: RegistriesEditorApi, addressId: string |
   const defaultLineRef = useRef(defaultLine);
   const [address, setAddress] = useState<AddressDraft>(() => emptyAddressDraftWithLine(defaultLineRef.current));
   const [addressLoaded, setAddressLoaded] = useState(false);
+  const [addressLoadFailed, setAddressLoadFailed] = useState(false);
+  const [loadAttempt, setLoadAttempt] = useState(0);
   const [addressBefore, setAddressBefore] = useState<AddressRecord | undefined>(undefined);
   const [addressSaveFailed, setAddressSaveFailed] = useState(false);
   const apiRef = useRef(api);
@@ -37,9 +39,15 @@ export function useRegistryAddress(api: RegistriesEditorApi, addressId: string |
 
   useEffect(() => {
     let cancelled = false;
+    setAddressLoadFailed(false);
     if (addressId !== undefined) {
-      void apiRef.current.getAddress(addressId).then((loaded) => {
-        if (!cancelled) {
+      setAddressLoaded(false);
+      void apiRef.current
+        .getAddress(addressId)
+        .then((loaded) => {
+          if (cancelled) {
+            return;
+          }
           if (loaded) {
             setAddress(addressToDraft(loaded));
             setAddressBefore(loaded);
@@ -48,8 +56,13 @@ export function useRegistryAddress(api: RegistriesEditorApi, addressId: string |
             setAddressBefore(undefined);
           }
           setAddressLoaded(true);
-        }
-      });
+        })
+        .catch(() => {
+          if (!cancelled) {
+            setAddressLoaded(false);
+            setAddressLoadFailed(true);
+          }
+        });
     } else {
       setAddress(emptyAddressDraftWithLine(defaultLineRef.current));
       setAddressBefore(undefined);
@@ -59,7 +72,13 @@ export function useRegistryAddress(api: RegistriesEditorApi, addressId: string |
     return () => {
       cancelled = true;
     };
-  }, [addressId]);
+  }, [addressId, loadAttempt]);
+
+  const retryLoad = () => {
+    setAddressLoadFailed(false);
+    setAddressLoaded(false);
+    setLoadAttempt((current) => current + 1);
+  };
 
   /** Persists a new/edited private address and returns the id to store. */
   const saveAddress = async (): Promise<string | undefined> => {
@@ -154,8 +173,10 @@ export function useRegistryAddress(api: RegistriesEditorApi, addressId: string |
     address,
     setAddress,
     addressLoaded,
+    addressLoadFailed,
     addressBefore,
     addressSaveFailed,
+    retryLoad,
     saveAddress,
     unlinkAddress,
     clearAddressSaveFailure,

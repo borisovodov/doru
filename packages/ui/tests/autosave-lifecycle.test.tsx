@@ -88,6 +88,22 @@ describe('autosave lifecycle', () => {
     unregisterSlow();
   });
 
+  it('does not report clean while a registered write is still unsettled', async () => {
+    let flushes = 0;
+    const unregister = registerAutoSaveFlush('task:t1', {
+      flush: async () => {
+        flushes += 1;
+        return true;
+      },
+      isDirty: () => false,
+      isSaving: () => flushes < 2,
+    });
+
+    expect(await flushAllAutoSaves()).toBe(true);
+    expect(flushes).toBe(2);
+    unregister();
+  });
+
   it('flushes every registered tab before a window closes', async () => {
     const firstDirty = { value: true };
     const secondDirty = { value: true };

@@ -6,6 +6,7 @@ import { Archive } from 'lucide-react';
 import type { AddressRecord, RepositoryRecord, SourceRecord, TitleRecord } from '@doru/core';
 import { AttachmentsPanel, CitationAttachments, NoteAttachments, useAttachments } from '../attachments';
 import { AutoSaveError } from '../autoSaveFeedback';
+import { useEntityDelete } from '../entityDelete';
 import { MediaSection } from '../media/MediaSection';
 import { EntityTab } from '../sidebar';
 import type { MediaTargetApi, RegistriesEditorApi } from '../person/types';
@@ -197,9 +198,9 @@ function RepositoryTabBody({
   const remove = async () => {
     const target = lastSaved ?? base;
     await api.deleteRepository(target);
-    autoSave.release();
-    onClose();
   };
+
+  const deletion = useEntityDelete(autoSave, remove, onClose);
 
   const usedBySources =
     targetId !== undefined
@@ -229,6 +230,7 @@ function RepositoryTabBody({
       />
       <AutoSaveError failed={autoSave.failed} retryDisabled={autoSave.pendingDelete} onRetry={autoSave.retry} />
       {isNew && saveError ? <InlineError>{nls.t('features.tree.autosaveFailed')}</InlineError> : null}
+      {deletion.failed ? <InlineError>{nls.t('features.tree.deleteFailed')}</InlineError> : null}
 
       <SectionCard title={nls.t('features.tree.details')}>
         <Field label={nls.t('features.tree.repository.name')}>
@@ -440,10 +442,8 @@ function RepositoryTabBody({
             variant="danger"
             size="sm"
             data-autosave-skip="true"
-            onClick={() => {
-              autoSave.cancel();
-              void remove().catch(() => autoSave.resume());
-            }}
+            disabled={deletion.deleting}
+            onClick={deletion.deleteEntity}
           >
             {nls.t('features.tree.fact.delete')}
           </Button>

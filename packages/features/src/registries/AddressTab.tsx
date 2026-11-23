@@ -2,6 +2,7 @@ import { MapPin } from 'lucide-react';
 import type { AddressRecord, FactRecord, RepositoryRecord, SourceRecord, SubmitterRecord } from '@doru/core';
 import { AttachmentsPanel } from '../attachments';
 import { AutoSaveError } from '../autoSaveFeedback';
+import { useEntityDelete } from '../entityDelete';
 import { EntityTab } from '../sidebar';
 import type { RegistriesEditorApi } from '../person/types';
 import {
@@ -11,7 +12,7 @@ import {
   addressDraftToRecord,
   addressLabel,
 } from '@doru/ui/domain';
-import { Button, DangerZone, EntityViewCard, SectionCard, useAutoSaveOnBlur } from '@doru/ui';
+import { Button, DangerZone, EntityViewCard, InlineError, SectionCard, useAutoSaveOnBlur } from '@doru/ui';
 import { nls } from '../nls';
 import { useRegistryAddress } from './useRegistryAddress';
 
@@ -84,11 +85,8 @@ function AddressTabBody({
   onCreated: (realId: string) => void;
 }) {
   const base: AddressRecord = record ?? { id: crypto.randomUUID(), lines: [] };
-  const { address, setAddress, addressLoaded, addressSaveFailed, saveAddress } = useRegistryAddress(
-    api,
-    record?.id,
-    isNew ? nls.t('features.tree.address.newAddress') : '',
-  );
+  const { address, setAddress, addressLoaded, addressLoadFailed, addressSaveFailed, retryLoad, saveAddress } =
+    useRegistryAddress(api, record?.id, isNew ? nls.t('features.tree.address.newAddress') : '');
   const preview = addressLabel(addressDraftToRecord(address));
   const usage = {
     facts: facts.filter((fact) => fact.addressId === base.id).length,
@@ -123,9 +121,9 @@ function AddressTabBody({
     if (record !== undefined) {
       await api.deleteAddress(record);
     }
-    autoSave.release();
-    onClose();
   };
+
+  const deletion = useEntityDelete(autoSave, remove, onClose);
 
   return (
     <EntityTab onBlur={autoSave.onBlur}>
@@ -148,7 +146,16 @@ function AddressTabBody({
         }
       />
       <AutoSaveError failed={autoSave.failed} retryDisabled={autoSave.pendingDelete} onRetry={autoSave.retry} />
+      {deletion.failed ? <InlineError>{nls.t('features.tree.deleteFailed')}</InlineError> : null}
       <SectionCard title={nls.t('features.tree.address.title')}>
+        {addressLoadFailed ? (
+          <InlineError>
+            {nls.t('features.tree.address.loadFailed')}{' '}
+            <Button variant="link" size="sm" onClick={retryLoad}>
+              {nls.t('features.tree.retry')}
+            </Button>
+          </InlineError>
+        ) : null}
         {addressLoaded ? (
           <AddressFields
             address={address}
@@ -189,10 +196,8 @@ function AddressTabBody({
             variant="danger"
             size="sm"
             data-autosave-skip="true"
-            onClick={() => {
-              autoSave.cancel();
-              void remove().catch(() => autoSave.resume());
-            }}
+            disabled={deletion.deleting}
+            onClick={deletion.deleteEntity}
           >
             {nls.t('features.tree.fact.delete')}
           </Button>

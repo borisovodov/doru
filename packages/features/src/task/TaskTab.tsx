@@ -269,8 +269,14 @@ function TaskTabBody({
           await api.updateTask(before, after);
           if (submissionTokenRef.current === token) {
             submittedRecordRef.current = after;
-            savedRef.current = after;
-            setLastSaved(after);
+            const currentBaseline = savedRef.current;
+            if (
+              currentBaseline === before ||
+              JSON.stringify(taskToDraft(currentBaseline)) === JSON.stringify(taskToDraft(after))
+            ) {
+              savedRef.current = after;
+              setLastSaved(after);
+            }
           }
         } catch (error) {
           if (submissionTokenRef.current === token && submittedRef.current === submission) {

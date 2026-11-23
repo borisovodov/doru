@@ -8,6 +8,7 @@ import type { AddressRecord, RecordSubmitterLink, SourceRecord, SubmitterRecord 
 import { MEDIA_VISIBLE } from '@doru/platform';
 import { AttachmentsPanel, CitationAttachments, NoteAttachments, useAttachments } from '../attachments';
 import { AutoSaveError } from '../autoSaveFeedback';
+import { useEntityDelete } from '../entityDelete';
 import { MediaSection } from '../media/MediaSection';
 import { EntityTab } from '../sidebar';
 import type { MediaTargetApi, RegistriesEditorApi } from '../person/types';
@@ -225,9 +226,9 @@ function SubmitterTabBody({
   const remove = async () => {
     const target = lastSaved ?? base;
     await api.deleteSubmitter(target);
-    autoSave.release();
-    onClose();
   };
+
+  const deletion = useEntityDelete(autoSave, remove, onClose);
 
   const referencedBy = useMemo(
     () => (targetId !== undefined ? recordSubmitters.filter((link) => link.submitterId === targetId) : []),
@@ -271,6 +272,7 @@ function SubmitterTabBody({
       />
       <AutoSaveError failed={autoSave.failed} retryDisabled={autoSave.pendingDelete} onRetry={autoSave.retry} />
       {isNew && saveError ? <InlineError>{nls.t('features.tree.autosaveFailed')}</InlineError> : null}
+      {deletion.failed ? <InlineError>{nls.t('features.tree.deleteFailed')}</InlineError> : null}
 
       <SectionCard title={nls.t('features.tree.details')}>
         <Field label={nls.t('features.tree.submitter.name')}>
@@ -496,10 +498,8 @@ function SubmitterTabBody({
             variant="danger"
             size="sm"
             data-autosave-skip="true"
-            onClick={() => {
-              autoSave.cancel();
-              void remove().catch(() => autoSave.resume());
-            }}
+            disabled={deletion.deleting}
+            onClick={deletion.deleteEntity}
           >
             {nls.t('features.tree.fact.delete')}
           </Button>

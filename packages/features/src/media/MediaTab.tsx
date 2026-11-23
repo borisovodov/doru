@@ -16,6 +16,7 @@ import {
   Field,
   FieldGrid,
   IconButton,
+  InlineError,
   Input,
   MetadataText,
   ReorderButtons,
@@ -27,6 +28,7 @@ import {
 import { DateEditor, dateDraftsEqual, fromDateDraft, toDateDraft } from '@doru/ui/domain';
 import { AttachmentsPanel } from '../attachments';
 import { AutoSaveError } from '../autoSaveFeedback';
+import { useEntityDelete } from '../entityDelete';
 import { EntityTab } from '../sidebar';
 import type { AttachmentsPanelApi } from '../attachments';
 import type { MediaAdminApi } from '../person/types';
@@ -49,6 +51,7 @@ type MediaDraftSnapshot = {
   objectType: string;
   description: string;
   keywords: string;
+  fileTitles: Record<string, string>;
 };
 
 type MediaDirtyFields = {
@@ -58,7 +61,64 @@ type MediaDirtyFields = {
   objectType: boolean;
   description: boolean;
   keywords: boolean;
+  files: boolean;
 };
+
+function fileTitlesFrom(files: MediaFile[] | undefined): Record<string, string> {
+  const titles: Record<string, string> = {};
+  for (const file of files ?? []) {
+    titles[file.id] = file.title ?? '';
+  }
+  return titles;
+}
+
+function sameTitleMaps(left: Record<string, string>, right: Record<string, string>): boolean {
+  const ids = new Set([...Object.keys(left), ...Object.keys(right)]);
+  for (const id of ids) {
+    if ((left[id] ?? '') !== (right[id] ?? '')) {
+      return false;
+    }
+  }
+  return true;
+}
+
+function sameFileTitles(files: MediaFile[] | undefined, titles: Record<string, string>): boolean {
+  return sameTitleMaps(fileTitlesFrom(files), titles);
+}
+
+function applyFileTitles(files: MediaFile[] | undefined, titles: Record<string, string>): MediaFile[] {
+  return (files ?? []).map((file) => {
+    const next: MediaFile = { ...file };
+    const title = titles[file.id]?.trim();
+    if (title !== undefined && title !== '') {
+      next.title = title;
+    } else {
+      delete next.title;
+    }
+    return next;
+  });
+}
+
+/** Keeps local title edits and adopts refreshed titles for untouched files. */
+function mergeFileTitles(
+  current: Record<string, string>,
+  previous: Record<string, string>,
+  refreshed: Record<string, string>,
+): Record<string, string> {
+  const merged: Record<string, string> = {};
+  const ids = new Set([...Object.keys(current), ...Object.keys(previous), ...Object.keys(refreshed)]);
+  for (const id of ids) {
+    const currentTitle = current[id];
+    if (currentTitle === previous[id]) {
+      if (refreshed[id] !== undefined) {
+        merged[id] = refreshed[id];
+      }
+    } else if (currentTitle !== undefined) {
+      merged[id] = currentTitle;
+    }
+  }
+  return merged;
+}
 
 export function MediaTab({
   entityId,
@@ -118,6 +178,8 @@ function MediaTabBody({
   const [description, setDescription] = useState(record.description ?? '');
   const [keywords, setKeywords] = useState(record.keywords ?? '');
   const [expandedFileId, setExpandedFileId] = useState<string | null>(null);
+  const [fileTitles, setFileTitles] = useState<Record<string, string>>(() => fileTitlesFrom(record.files));
+  const fileTitlesRef = useRef(fileTitles);
   const targetLabel = createTaskTargetLabeler(targetData);
   const recordRef = useRef(record);
   const baselineRef = useRef<MediaRecord>(record);
@@ -141,7 +203,8 @@ function MediaTabBody({
 
   useEffect(() => {
     metadataRef.current = { title, date, place, placeId, objectType, description, keywords };
-  }, [title, date, place, placeId, objectType, description, keywords]);
+    fileTitlesRef.current = fileTitles;
+  }, [title, date, place, placeId, objectType, description, keywords, fileTitles]);
 
   useEffect(() => {
     if (record === recordRef.current) {
@@ -151,6 +214,8 @@ function MediaTabBody({
     recordRef.current = record;
     const submitted = submittedRef.current;
     const dirty = submittedDirtyRef.current;
+    const previousTitles = fileTitlesFrom(previous.files);
+    const refreshedTitles = fileTitlesFrom(record.files);
     // A refresh that still carries pre-write values (or any unrelated
     // snapshot) must not replace a draft whose write is still pending; wait
     // until the incoming record reflects the submitted fields.
@@ -161,8 +226,14 @@ function MediaTabBody({
     submittedDirtyRef.current = undefined;
     savedRef.current = record;
     savedMetadataRef.current = record;
-    if (submitted === undefined && mediaMetadataMatches(metadataRef.current, previous)) {
+    if (
+      submitted === undefined &&
+      mediaMetadataMatches(metadataRef.current, previous) &&
+      sameTitleMaps(fileTitlesRef.current, previousTitles)
+    ) {
       baselineRef.current = record;
+      fileTitlesRef.current = refreshedTitles;
+      setFileTitles(refreshedTitles);
       setTitle(record.title ?? '');
       setDate(toDateDraft(record.date));
       setPlace(record.place ?? '');
@@ -213,6 +284,9 @@ function MediaTabBody({
       refreshed.keywords = record.keywords;
       setKeywords(record.keywords ?? '');
     }
+    const mergedTitles = mergeFileTitles(fileTitlesRef.current, previousTitles, refreshedTitles);
+    fileTitlesRef.current = mergedTitles;
+    setFileTitles(mergedTitles);
     baselineRef.current = refreshed;
   }, [record]);
 
@@ -275,6 +349,15 @@ function MediaTabBody({
     } else {
       refreshed.keywords = (next ?? base).keywords;
     }
+    if (!dirty.files) {
+      if (sameTitleMaps(fileTitlesRef.current, submitted.fileTitles)) {
+        const titles = fileTitlesFrom(latest.files);
+        fileTitlesRef.current = titles;
+        setFileTitles(titles);
+      }
+    } else {
+      refreshed.files = (next ?? base).files;
+    }
     baselineRef.current = refreshed;
     return refreshed;
   };
@@ -294,6 +377,7 @@ function MediaTabBody({
       objectType: submission.objectType.trim() !== baseDraft.objectType,
       description: submission.description.trim() !== baseDraft.description,
       keywords: submission.keywords.trim() !== baseDraft.keywords,
+      files: !sameTitleMaps(submission.fileTitles, baseDraft.fileTitles),
     };
     submittedDirtyRef.current = dirty;
     // Use the latest saved state even while the refreshed prop is pending.
@@ -318,6 +402,9 @@ function MediaTabBody({
     if (submission.keywords.trim() !== baseDraft.keywords) {
       next.keywords = submission.keywords.trim() || undefined;
     }
+    if (dirty.files) {
+      next.files = applyFileTitles(current.files, submission.fileTitles);
+    }
     const recordBeforeSave = recordRef.current;
     try {
       await api.updateMedia(current, next);
@@ -327,6 +414,7 @@ function MediaTabBody({
           // A refresh arrived while the write was pending; retry from the
           // latest stored record so files added meanwhile are not dropped.
           savedRef.current = recordRef.current;
+          savedMetadataRef.current = recordRef.current;
           reconcileAfterRefresh(recordRef.current, base, dirty, submission);
         }
         if (submittedRef.current === submission) {
@@ -365,6 +453,7 @@ function MediaTabBody({
       objectType,
       description,
       keywords,
+      fileTitles: { ...fileTitlesRef.current },
     };
     if (pendingSavesRef.current === 0) {
       queuedRecordRef.current = savedRef.current;
@@ -378,7 +467,9 @@ function MediaTabBody({
       objectType: base.objectType ?? '',
       description: base.description ?? '',
       keywords: base.keywords ?? '',
+      fileTitles: fileTitlesFrom(base.files),
     };
+    const filesDirty = !sameTitleMaps(submission.fileTitles, baseDraft.fileTitles);
     const desired: MediaRecord = { ...base };
     if (submission.title.trim() !== baseDraft.title) {
       desired.title = submission.title.trim() || undefined;
@@ -399,6 +490,9 @@ function MediaTabBody({
     if (submission.keywords.trim() !== baseDraft.keywords) {
       desired.keywords = submission.keywords.trim() || undefined;
     }
+    if (filesDirty) {
+      desired.files = applyFileTitles(base.files, submission.fileTitles);
+    }
     queuedRecordRef.current = desired;
     pendingSavesRef.current += 1;
     const task: Promise<void> = saveChainRef.current
@@ -412,23 +506,23 @@ function MediaTabBody({
 
   const autoSave = useAutoSaveOnBlur({
     enabled: true,
-    isDirty: () => !mediaMetadataMatches(metadataRef.current, savedMetadataRef.current),
+    isDirty: () =>
+      !mediaMetadataMatches(metadataRef.current, savedMetadataRef.current) ||
+      !sameFileTitles(savedMetadataRef.current.files, fileTitlesRef.current),
     save,
   });
 
-  const remove = async () => {
-    if (!window.confirm(nls.t('features.tree.media.deleteConfirm'))) {
+  const deleteMedia = async () => {
+    await api.deleteMedia(record);
+  };
+
+  const deletion = useEntityDelete(autoSave, deleteMedia, onClose);
+
+  const remove = () => {
+    if (deletion.deleting || !window.confirm(nls.t('features.tree.media.deleteConfirm'))) {
       return;
     }
-    autoSave.cancel();
-    try {
-      await api.deleteMedia(record);
-      autoSave.release();
-      onClose();
-    } catch (error) {
-      autoSave.resume();
-      throw error;
-    }
+    deletion.deleteEntity();
   };
 
   const addFiles = async () => {
@@ -445,19 +539,6 @@ function MediaTabBody({
   const moveFile = async (index: number, to: number) => {
     const files = moveItem(record.files ?? [], index, to);
     await api.updateMedia(record, { ...record, files });
-  };
-
-  const saveFileTitle = async (file: MediaFile, value: string) => {
-    if ((file.title ?? '') === value.trim()) {
-      return;
-    }
-    const after: MediaRecord = {
-      ...record,
-      files: (record.files ?? []).map((entry) =>
-        entry.id === file.id ? { ...entry, title: value.trim() || undefined } : entry,
-      ),
-    };
-    await api.updateMedia(record, after);
   };
 
   const first = record.files?.find((file) => file.absolutePath !== '');
@@ -479,6 +560,7 @@ function MediaTabBody({
         subtitle={nls.t('features.tree.media.fileCount', record.files?.length ?? 0)}
       />
       <AutoSaveError failed={autoSave.failed} retryDisabled={autoSave.pendingDelete} onRetry={autoSave.retry} />
+      {deletion.failed ? <InlineError>{nls.t('features.tree.deleteFailed')}</InlineError> : null}
 
       <SectionCard title={nls.t('features.tree.media.details')}>
         <Field label={nls.t('features.tree.media.titleField')}>
@@ -552,8 +634,8 @@ function MediaTabBody({
                 <Input
                   aria-label={nls.t('features.tree.media.fileTitle')}
                   placeholder={nls.t('features.tree.media.fileTitle')}
-                  defaultValue={file.title ?? ''}
-                  onBlur={(event) => void saveFileTitle(file, event.target.value)}
+                  value={fileTitles[file.id] ?? file.title ?? ''}
+                  onChange={(event) => setFileTitles((current) => ({ ...current, [file.id]: event.target.value }))}
                 />
                 <span className="media-file-reorder">
                   <ReorderButtons
@@ -605,22 +687,12 @@ function MediaTabBody({
               sources={sources}
               onOpenSource={(sourceId) => api.openSource?.(sourceId)}
               onSave={(after) => api.updateMediaLink(link, after)}
-              onDetach={async () => {
+              deletingMedia={deletion.deleting}
+              onDetach={() => {
                 if ((record.links?.length ?? 0) > 1) {
-                  await api.detachMedia(link);
+                  void api.detachMedia(link);
                 } else {
-                  if (!window.confirm(nls.t('features.tree.media.deleteConfirm'))) {
-                    return;
-                  }
-                  autoSave.cancel();
-                  try {
-                    await api.deleteMedia(record);
-                  } catch (error) {
-                    autoSave.resume();
-                    throw error;
-                  }
-                  autoSave.release();
-                  onClose();
+                  remove();
                 }
               }}
             />
@@ -636,7 +708,7 @@ function MediaTabBody({
         onOpenSource={(sourceId) => api.openSource?.(sourceId)}
       />
       <DangerZone>
-        <Button variant="danger" size="sm" data-autosave-skip="true" onClick={() => void remove()}>
+        <Button variant="danger" size="sm" data-autosave-skip="true" disabled={deletion.deleting} onClick={remove}>
           {nls.t('features.tree.fact.delete')}
         </Button>
       </DangerZone>
@@ -653,6 +725,7 @@ function MediaLinkRow({
   onOpenSource,
   onSave,
   onDetach,
+  deletingMedia,
 }: {
   link: MediaLinkRecord;
   targetLabel: string;
@@ -661,7 +734,8 @@ function MediaLinkRow({
   sources: SourceRecord[];
   onOpenSource: (sourceId: string) => void;
   onSave: (link: MediaLinkRecord) => Promise<void>;
-  onDetach: () => Promise<void>;
+  onDetach: () => void;
+  deletingMedia: boolean;
 }) {
   const [draft, setDraft] = useState<MediaLinkRecord>(link);
   const [showSources, setShowSources] = useState(false);
@@ -735,7 +809,7 @@ function MediaLinkRow({
         <Button variant="primary" size="sm" onClick={() => void onSave(draft)}>
           {nls.t('features.tree.save')}
         </Button>
-        <Button variant="secondary" size="sm" onClick={() => void onDetach()}>
+        <Button variant="secondary" size="sm" disabled={deletingMedia} onClick={onDetach}>
           {canDetach ? nls.t('features.tree.media.detach') : nls.t('features.tree.fact.delete')}
         </Button>
         <IconButton

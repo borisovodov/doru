@@ -3,6 +3,7 @@ import type { FactRecord, FamilyRecord, PersonRecord, PlaceRecord, SourceRecord 
 import { AttachmentsPanel, CitationAttachments, NoteAttachments, useAttachments } from '../attachments';
 import { MediaSection } from '../media/MediaSection';
 import { AutoSaveError } from '../autoSaveFeedback';
+import { useEntityDelete } from '../entityDelete';
 import { EntityTab } from '../sidebar';
 import { Button, DangerZone, InlineError, useAutoSaveOnBlur } from '@doru/ui';
 import type { MediaTargetApi, PlaceEditorApi } from '../person/types';
@@ -208,11 +209,14 @@ function PlaceTabBody({
         if (target === undefined) {
           return;
         }
+        const recordAtStart = recordRef.current;
         const submission = draftRef.current;
         const token = {};
         submissionTokenRef.current = token;
         submittedRef.current = submission;
         submittedBaselineRef.current = base !== undefined ? placeToDraft(base) : undefined;
+        // A new write invalidates the previous write's acknowledgement.
+        submittedRecordRef.current = undefined;
         try {
           await api.updatePlace(target, next);
           if (submissionTokenRef.current === token) {
@@ -227,6 +231,11 @@ function PlaceTabBody({
           throw error;
         }
         if (submissionTokenRef.current !== token) {
+          return;
+        }
+        if (recordRef.current !== recordAtStart) {
+          baselineRef.current = recordRef.current;
+          setLastSaved(recordRef.current);
           return;
         }
       }
@@ -256,9 +265,9 @@ function PlaceTabBody({
     if (target) {
       await api.deletePlace(target);
     }
-    autoSave.release();
-    onClose();
   };
+
+  const deletion = useEntityDelete(autoSave, remove, onClose);
 
   const currentPlace = lastSaved ?? record;
   const factsAtPlace =
@@ -277,6 +286,7 @@ function PlaceTabBody({
           <>
             <AutoSaveError failed={autoSave.failed} retryDisabled={autoSave.pendingDelete} onRetry={autoSave.retry} />
             {isNew && saveError ? <InlineError>{nls.t('features.tree.autosaveFailed')}</InlineError> : null}
+            {deletion.failed ? <InlineError>{nls.t('features.tree.deleteFailed')}</InlineError> : null}
           </>
         }
         onChange={(next) => {
@@ -450,10 +460,8 @@ function PlaceTabBody({
             variant="danger"
             size="sm"
             data-autosave-skip="true"
-            onClick={() => {
-              autoSave.cancel();
-              void remove().catch(() => autoSave.resume());
-            }}
+            disabled={deletion.deleting}
+            onClick={deletion.deleteEntity}
           >
             {nls.t('features.tree.fact.delete')}
           </Button>

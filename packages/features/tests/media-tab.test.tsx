@@ -1,8 +1,10 @@
 import { describe, expect, it, vi } from 'vitest';
 import { act, fireEvent, screen, waitFor } from '@testing-library/react';
+import { AutoSaveTabProvider, flushAutoSaves } from '@doru/ui';
 import { MediaTab } from '@doru/features/media';
 import type { MediaAdminApi } from '@doru/features/person';
 import type { AttachmentsPanelApi } from '../src/attachments';
+import type { MediaRecord } from '@doru/core';
 import type { MediaWithPath } from '@doru/ui/domain';
 import { nls } from '../src/nls';
 import { renderUi, stubApi } from '../../../test/ui/harness';
@@ -60,6 +62,45 @@ const record: MediaWithPath = {
 };
 
 describe('MediaTab', () => {
+  it('saves a file title on the registered close flush', async () => {
+    const updateMedia = vi.fn(async (_before: MediaRecord, _after: MediaRecord) => undefined);
+    const api = stubApi<MediaAdminApi>({
+      updateMedia,
+      getMediaFor: async () => [],
+      getAllMedia: async () => [],
+    });
+    renderUi(
+      <AutoSaveTabProvider tabId="media:M1">
+        <MediaTab
+          entityId="M1"
+          media={[
+            {
+              id: 'M1',
+              title: 'Media',
+              absolutePath: '',
+              files: [{ id: 'F1', path: 'a.jpg', absolutePath: '/tmp/a.jpg', title: 'Old file' }],
+            },
+          ]}
+          api={api}
+          attachmentsApi={attachmentsStub()}
+          sources={[]}
+          targetData={targetData}
+          onClose={vi.fn()}
+        />
+      </AutoSaveTabProvider>,
+    );
+
+    fireEvent.change(screen.getByLabelText(nls.t('features.tree.media.fileTitle')), {
+      target: { value: 'New file' },
+    });
+    await act(async () => {
+      expect(await flushAutoSaves('media:M1')).toBe(true);
+    });
+    expect(updateMedia).toHaveBeenCalledTimes(1);
+    const after = updateMedia.mock.calls[0]?.[1];
+    expect(after?.files?.[0]).toMatchObject({ id: 'F1', title: 'New file' });
+  });
+
   it('keeps a submitted draft while a pre-save refresh arrives', async () => {
     const pending = deferred();
     const updateMedia = vi.fn(async () => pending.promise);

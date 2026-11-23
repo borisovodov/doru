@@ -102,6 +102,33 @@ describe('TaskTab', () => {
     await waitFor(() => expect(status).toHaveValue('open'));
   });
 
+  it('keeps a newer persisted baseline when an older save completes', async () => {
+    const openTask: TaskRecord = { id: 'T1', text: 'Old text', status: 'open' };
+    const waitingTask: TaskRecord = { ...openTask, status: 'waiting' };
+    let finishSave!: () => void;
+    const updateTask = vi.fn(
+      (_before: TaskRecord, _after: TaskRecord) =>
+        new Promise<void>((resolve) => {
+          finishSave = resolve;
+        }),
+    );
+    const api = apiStub({ updateTask });
+    const view = renderUi(taskElement(openTask.id, [openTask], api));
+
+    const status = screen.getByLabelText(nls.t('features.tasks.status'));
+    fireEvent.change(status, { target: { value: 'closed' } });
+    fireEvent.blur(status, { relatedTarget: document.body });
+    await waitFor(() => expect(updateTask).toHaveBeenCalledTimes(1));
+
+    view.rerender(taskElement(waitingTask.id, [waitingTask], api));
+    await act(async () => finishSave());
+
+    fireEvent.blur(status, { relatedTarget: document.body });
+    await waitFor(() => expect(updateTask).toHaveBeenCalledTimes(2));
+    const after = updateTask.mock.calls[1]?.[1];
+    expect(after?.status).toBe('closed');
+  });
+
   it('shows a creation error when adding a task fails', async () => {
     const addTask = vi.fn(async () => {
       throw new Error('disk full');

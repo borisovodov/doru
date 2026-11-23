@@ -3,6 +3,8 @@ import { createContext, useContext, type ReactNode } from 'react';
 type AutoSaveEntry = {
   flush: () => Promise<boolean>;
   isDirty: () => boolean;
+  /** True while a write started by this editor is still unsettled. */
+  isSaving?: () => boolean;
 };
 
 const AutoSaveTabContext = createContext<string | null>(null);
@@ -59,7 +61,7 @@ export async function flushAutoSaves(tabId: string): Promise<boolean> {
     // Let React commit the save's state updates before asking the editors
     // whether the latest draft is now clean.
     await new Promise((resolve) => setTimeout(resolve, 0));
-    if (!entries.some((entry) => entry.isDirty())) {
+    if (!entries.some((entry) => entry.isDirty() || entry.isSaving?.() === true)) {
       return true;
     }
   }
@@ -68,16 +70,19 @@ export async function flushAutoSaves(tabId: string): Promise<boolean> {
 
 /** Flushes every open editor; used before the whole window closes. */
 export async function flushAllAutoSaves(): Promise<boolean> {
-  for (let round = 0; round < 2; round += 1) {
+  for (let round = 0; round < 4; round += 1) {
     const results = await Promise.all([...flushes.keys()].map((tabId) => flushAutoSaves(tabId)));
     if (!results.every(Boolean)) {
       return false;
     }
-    // A fast tab may become dirty again while a slower one is still saving;
-    // recheck every registered entry before claiming the window is safe.
+    // A fast tab may become dirty or start another write while a slower one
+    // is still saving; recheck dirty state and in-flight writes before
+    // claiming the window is safe.
     await new Promise((resolve) => setTimeout(resolve, 0));
-    const dirty = [...flushes.values()].some((set) => [...set].some((entry) => entry.isDirty()));
-    if (!dirty) {
+    const busy = [...flushes.values()].some((set) =>
+      [...set].some((entry) => entry.isDirty() || entry.isSaving?.() === true),
+    );
+    if (!busy) {
       return true;
     }
   }

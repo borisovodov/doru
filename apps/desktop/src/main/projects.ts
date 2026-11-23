@@ -276,10 +276,18 @@ export async function saveProject(projectKey: string): Promise<ProjectBinding | 
     return null;
   }
 
-  // Pending drafts belong to the temporary store; persist them before the
-  // store closes so a failed write cannot discard the editor's work.
+  // Pending drafts belong to the temporary store; block editing, then
+  // persist them before the store closes so a failed write cannot discard
+  // the editor's work. The barrier stays until the window is rebound.
   const sourceWindow = projectWindows.get(projectKey);
+  const setTransfer = (active: boolean): void => {
+    if (sourceWindow && !sourceWindow.isDestroyed()) {
+      sourceWindow.webContents.send('project:transfer', active);
+    }
+  };
+  setTransfer(true);
   if (sourceWindow && !sourceWindow.isDestroyed() && !(await requestRendererAutosaves(sourceWindow))) {
+    setTransfer(false);
     const message = nls.t('project.dialog.error.saveFailed', nls.t('features.tree.autosaveFailed'));
     if (parent) {
       await dialog.showMessageBox(parent, { type: 'error', message });
@@ -306,6 +314,7 @@ export async function saveProject(projectKey: string): Promise<ProjectBinding | 
   } catch (error) {
     // The temporary files stay where they were; reopen the store so the
     // window keeps working and the project can be saved again.
+    setTransfer(false);
     openUntitledStore(projectKey, untitled.tempPath);
     const message = nls.t('project.dialog.error.saveFailed', error instanceof Error ? error.message : String(error));
     if (parent) {
@@ -325,6 +334,7 @@ export async function saveProject(projectKey: string): Promise<ProjectBinding | 
   projectWindows.delete(projectKey);
   if (window && !window.isDestroyed()) {
     bindWindowToProject(window, filePath);
+    window.webContents.send('project:transfer', false);
   } else {
     createWindow(filePath);
   }

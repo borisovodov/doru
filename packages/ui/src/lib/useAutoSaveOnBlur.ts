@@ -146,6 +146,18 @@ export function useAutoSaveOnBlur({ enabled, isDirty, save }: AutoSaveOnBlurOpti
     }
   }, []);
 
+  /** Saves after the current render, for edits whose trigger disappears. */
+  const saveSoon = useCallback(() => {
+    if (!enabled || cancelledRef.current) {
+      return;
+    }
+    clearTimer();
+    timerRef.current = setTimeout(() => {
+      timerRef.current = undefined;
+      void flush();
+    }, 0);
+  }, [clearTimer, enabled, flush]);
+
   const retry = useCallback(() => {
     if (deletePendingRef.current) {
       return;
@@ -177,6 +189,7 @@ export function useAutoSaveOnBlur({ enabled, isDirty, save }: AutoSaveOnBlurOpti
       // A pending delete keeps the editor registered and dirty; only a
       // successful release (the entity is gone) makes the draft clean.
       isDirty: () => !deletedRef.current && dirtyRef.current(),
+      isSaving: () => flushPromiseRef.current !== null || queuedRef.current,
     });
   }, [enabled, flushForClose, tabId]);
 
@@ -212,5 +225,5 @@ export function useAutoSaveOnBlur({ enabled, isDirty, save }: AutoSaveOnBlurOpti
     [clearTimer, enabled, flush],
   );
 
-  return { onBlur, failed, pendingDelete, retry, cancel, resume, release };
+  return { onBlur, failed, pendingDelete, retry, cancel, resume, release, saveSoon };
 }

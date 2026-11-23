@@ -56,6 +56,14 @@ const api = {
     ipcRenderer.invoke('chat:sessions:delete', { projectKey, id }),
   getChatTranscript: (projectKey: string, id: string): Promise<unknown> =>
     ipcRenderer.invoke('chat:sessions:transcript', { projectKey, id }),
+  invalidateCloseFlush: (): void => {
+    ipcRenderer.send('app:close-flush:invalidate');
+  },
+  onProjectTransfer: (callback: (active: boolean) => void): (() => void) => {
+    const listener = (_event: unknown, active: unknown) => callback(active === true);
+    ipcRenderer.on('project:transfer', listener);
+    return () => ipcRenderer.removeListener('project:transfer', listener);
+  },
   onFlushAutosaves: (callback: () => Promise<boolean>): (() => void) => {
     const listener = (_event: unknown, id: string) => {
       void callback()

@@ -56,6 +56,7 @@ export function FamilyEditor({
   notice,
   onOpenSource,
   onBlur,
+  onRowRemoved,
 }: {
   draft: FamilyDraft;
   savedLinkIds?: ReadonlySet<string> | undefined;
@@ -72,6 +73,8 @@ export function FamilyEditor({
   onOpenSource: (sourceId: string) => void;
   /** Autosave trigger from the tab; fires when a field loses focus. */
   onBlur?: FocusEventHandler<HTMLElement> | undefined;
+  /** Requests a save after a focused row-remove button disappears. */
+  onRowRemoved?: (() => void) | undefined;
 }) {
   const [facts, setFacts] = useState<FactRecord[]>([]);
   const [places, setPlaces] = useState<PlaceRecord[]>([]);
@@ -127,7 +130,10 @@ export function FamilyEditor({
 
   const patchPartner = (index: number, values: Partial<PartnerLinkDraft>) =>
     set({ partnerLinks: draft.partnerLinks.map((link, i) => (i === index ? { ...link, ...values } : link)) });
-  const removePartner = (index: number) => set({ partnerLinks: draft.partnerLinks.filter((_, i) => i !== index) });
+  const removePartner = (index: number) => {
+    set({ partnerLinks: draft.partnerLinks.filter((_, i) => i !== index) });
+    onRowRemoved?.();
+  };
   const addPartner = () => {
     if (newPartnerId === '') {
       return;
@@ -138,7 +144,10 @@ export function FamilyEditor({
 
   const patchChild = (index: number, values: Partial<ChildLinkDraft>) =>
     set({ childLinks: draft.childLinks.map((link, i) => (i === index ? { ...link, ...values } : link)) });
-  const removeChild = (index: number) => set({ childLinks: draft.childLinks.filter((_, i) => i !== index) });
+  const removeChild = (index: number) => {
+    set({ childLinks: draft.childLinks.filter((_, i) => i !== index) });
+    onRowRemoved?.();
+  };
   const addChild = () => {
     if (newChildId === '') {
       return;
@@ -207,7 +216,10 @@ export function FamilyEditor({
               size="sm"
               label={nls.t('features.tree.family.removeWitness')}
               icon={<X size={13} aria-hidden="true" />}
-              onClick={() => set({ witnesses: draft.witnesses.filter((_, i) => i !== index) })}
+              onClick={() => {
+                set({ witnesses: draft.witnesses.filter((_, i) => i !== index) });
+                onRowRemoved?.();
+              }}
             />
           </div>
         ))}
@@ -245,7 +257,10 @@ export function FamilyEditor({
                 size="sm"
                 label={nls.t('features.tree.family.removeWitness')}
                 icon={<X size={13} aria-hidden="true" />}
-                onClick={() => set({ marriageStatuses: draft.marriageStatuses.filter((_, i) => i !== index) })}
+                onClick={() => {
+                  set({ marriageStatuses: draft.marriageStatuses.filter((_, i) => i !== index) });
+                  onRowRemoved?.();
+                }}
               />
             </div>
             {expandedStatusId === status.id && renderStatusAttachments?.(status.id)}

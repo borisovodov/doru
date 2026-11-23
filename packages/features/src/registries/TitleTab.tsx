@@ -9,6 +9,7 @@ import { BookMarked } from 'lucide-react';
 import type { RepositoryRecord, SourceRecord, TitleRecord } from '@doru/core';
 import { AttachmentsPanel } from '../attachments';
 import { AutoSaveError } from '../autoSaveFeedback';
+import { useEntityDelete } from '../entityDelete';
 import { EntityTab } from '../sidebar';
 import type { TitleEditorApi } from '../person/types';
 import { nls } from '../nls';
@@ -153,9 +154,9 @@ function TitleTabBody({
   const remove = async () => {
     const target = lastSaved ?? base;
     await api.deleteTitle(target);
-    autoSave.release();
-    onClose();
   };
+
+  const deletion = useEntityDelete(autoSave, remove, onClose);
 
   return (
     <EntityTab onBlur={autoSave.onBlur}>
@@ -178,6 +179,7 @@ function TitleTabBody({
       />
       <AutoSaveError failed={autoSave.failed} retryDisabled={autoSave.pendingDelete} onRetry={autoSave.retry} />
       {isNew && saveError ? <InlineError>{nls.t('features.tree.autosaveFailed')}</InlineError> : null}
+      {deletion.failed ? <InlineError>{nls.t('features.tree.deleteFailed')}</InlineError> : null}
 
       <SectionCard title={nls.t('features.tree.details')}>
         <Field label={nls.t('features.tree.title.name')}>
@@ -301,10 +303,8 @@ function TitleTabBody({
             variant="danger"
             size="sm"
             data-autosave-skip="true"
-            onClick={() => {
-              autoSave.cancel();
-              void remove().catch(() => autoSave.resume());
-            }}
+            disabled={deletion.deleting}
+            onClick={deletion.deleteEntity}
           >
             {nls.t('features.tree.fact.delete')}
           </Button>

@@ -4,6 +4,7 @@ import { PersonEditor } from './PersonEditor';
 import type { MediaTargetApi, PersonEditorApi } from './types';
 import { nls } from '../nls';
 import { AutoSaveError } from '../autoSaveFeedback';
+import { useEntityDelete } from '../entityDelete';
 import { Button, DangerZone, InlineError, useAutoSaveOnBlur } from '@doru/ui';
 import { draftToRecord, newPersonDraft, personDraftMatches, personToDraft, type PersonDraft } from '@doru/ui/domain';
 
@@ -172,7 +173,8 @@ function PersonTabBody({
   const save = async () => {
     setSaveError(false);
     try {
-      const before = committedRef.current ?? persons.find((entry) => entry.id === draft.id);
+      const committedAtStart = committedRef.current;
+      const before = committedAtStart ?? persons.find((entry) => entry.id === draft.id);
       const next = draftToRecord(draft, before);
       if (before === undefined) {
         await api.addPerson(next);
@@ -190,7 +192,9 @@ function PersonTabBody({
       try {
         await api.updatePerson(before, next);
         if (submissionTokenRef.current === token) {
-          committedRef.current = next;
+          if (committedRef.current === committedAtStart) {
+            committedRef.current = next;
+          }
           submittedRecordRef.current = next;
         }
       } catch (error) {
@@ -250,6 +254,16 @@ function PersonTabBody({
     save,
   });
 
+  const deletion = useEntityDelete(
+    autoSave,
+    async () => {
+      if (record !== undefined) {
+        await onDeletePerson(record);
+      }
+    },
+    onClose,
+  );
+
   return (
     <PersonEditor
       key={draft.isNew ? `new:${draft.id}` : draft.id}
@@ -269,6 +283,7 @@ function PersonTabBody({
         <>
           <AutoSaveError failed={autoSave.failed} retryDisabled={autoSave.pendingDelete} onRetry={autoSave.retry} />
           {isNew && saveError ? <InlineError>{nls.t('features.tree.autosaveFailed')}</InlineError> : null}
+          {deletion.failed ? <InlineError>{nls.t('features.tree.deleteFailed')}</InlineError> : null}
         </>
       }
       footer={
@@ -278,15 +293,8 @@ function PersonTabBody({
               variant="danger"
               size="sm"
               data-autosave-skip="true"
-              onClick={() => {
-                autoSave.cancel();
-                void onDeletePerson(record)
-                  .then(() => {
-                    autoSave.release();
-                    onClose();
-                  })
-                  .catch(() => autoSave.resume());
-              }}
+              disabled={deletion.deleting}
+              onClick={deletion.deleteEntity}
             >
               {nls.t('features.tree.fact.delete')}
             </Button>

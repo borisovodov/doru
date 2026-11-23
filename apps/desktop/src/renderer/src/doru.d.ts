@@ -77,6 +77,10 @@ declare global {
       getChatTranscript(projectKey: string, id: string): Promise<ChatTranscriptMessage[]>;
       /** Persists every open editor before the window is allowed to close. */
       onFlushAutosaves(callback: () => Promise<boolean>): () => void;
+      /** Marks this window as edited after its last successful close flush. */
+      invalidateCloseFlush(): void;
+      /** Blocks editing while a Save As transfer moves the project store. */
+      onProjectTransfer(callback: (active: boolean) => void): () => void;
       /** Fires when the project file changed on disk outside the app (agents, MCP clients). */
       onTreeExternalChange(callback: () => void): () => void;
       getThemeState(): Promise<{

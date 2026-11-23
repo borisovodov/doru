@@ -6,7 +6,8 @@ import { EntityTab } from '../sidebar';
 import type { FamilyEditorApi, MediaTargetApi } from '../person/types';
 import { FamilyEditor } from './FamilyEditor';
 import { AutoSaveError } from '../autoSaveFeedback';
-import { Button, DangerZone, useAutoSaveOnBlur } from '@doru/ui';
+import { useEntityDelete } from '../entityDelete';
+import { Button, DangerZone, InlineError, useAutoSaveOnBlur } from '@doru/ui';
 import type { MediaWithPath } from '@doru/ui/domain';
 import {
   ContactsSection,
@@ -32,7 +33,76 @@ import { nls } from '../nls';
  * previous record, so an unchanged submitted value does not become a change
  * merely because another writer refreshed it.
  */
-function mergeFamilyDraft(
+function familyRowTouched<T>(row: T | undefined, base: T | undefined): boolean {
+  if (row === undefined || row === null || base === undefined || base === null) {
+    return false;
+  }
+  return (Object.keys(row) as Array<keyof T>).some((key) => JSON.stringify(row[key]) !== JSON.stringify(base[key]));
+}
+
+function mergeFamilyRow<T extends { id: string }>(
+  draft: T,
+  base: T,
+  refreshed: T,
+  protectedRow?: T,
+  protectedBaseRow?: T,
+): T {
+  const merged: T = { ...refreshed };
+  for (const key of Object.keys(draft) as Array<keyof T>) {
+    const touchedBySubmission =
+      protectedRow !== undefined &&
+      protectedBaseRow !== undefined &&
+      JSON.stringify(protectedRow[key]) !== JSON.stringify(protectedBaseRow[key]);
+    if (touchedBySubmission || JSON.stringify(draft[key]) !== JSON.stringify(base[key])) {
+      merged[key] = draft[key];
+    }
+  }
+  return merged;
+}
+
+function mergeFamilyRows<T extends { id: string }>(
+  draftRows: T[],
+  baseRows: T[],
+  refreshedRows: T[],
+  protectedRows?: T[],
+  protectedBaseRows?: T[],
+): T[] {
+  const baseById = new Map(baseRows.map((row) => [row.id, row]));
+  const refreshedById = new Map(refreshedRows.map((row) => [row.id, row]));
+  const protectedById = new Map((protectedRows ?? []).map((row) => [row.id, row]));
+  const protectedBaseById = new Map((protectedBaseRows ?? []).map((row) => [row.id, row]));
+  const draftIds = new Set(draftRows.map((row) => row.id));
+  const merged: T[] = [];
+  for (const row of draftRows) {
+    const base = baseById.get(row.id);
+    const refreshed = refreshedById.get(row.id);
+    const protectedRow = protectedById.get(row.id);
+    const protectedBaseRow = protectedBaseById.get(row.id);
+    if (base === undefined) {
+      merged.push(row);
+      continue;
+    }
+    if (!familyRowTouched(protectedRow, protectedBaseRow) && JSON.stringify(row) === JSON.stringify(base)) {
+      if (refreshed !== undefined) {
+        merged.push(refreshed);
+      }
+      continue;
+    }
+    if (refreshed === undefined) {
+      merged.push(row);
+      continue;
+    }
+    merged.push(mergeFamilyRow(row, base, refreshed, protectedRow, protectedBaseRow));
+  }
+  for (const row of refreshedRows) {
+    if (!draftIds.has(row.id) && !baseById.has(row.id)) {
+      merged.push(row);
+    }
+  }
+  return merged;
+}
+
+export function mergeFamilyDraft(
   current: FamilyDraft,
   base: FamilyDraft,
   refreshed: FamilyDraft,
@@ -48,6 +118,27 @@ function mergeFamilyDraft(
     }
     return JSON.stringify(current[key]) === JSON.stringify(base[key]) ? refreshed[key] : current[key];
   };
+  const marriageStatuses = mergeFamilyRows(
+    current.marriageStatuses,
+    base.marriageStatuses,
+    refreshed.marriageStatuses,
+    protectedDraft?.marriageStatuses,
+    protectedBase?.marriageStatuses,
+  );
+  const partnerLinks = mergeFamilyRows(
+    current.partnerLinks,
+    base.partnerLinks,
+    refreshed.partnerLinks,
+    protectedDraft?.partnerLinks,
+    protectedBase?.partnerLinks,
+  );
+  const childLinks = mergeFamilyRows(
+    current.childLinks,
+    base.childLinks,
+    refreshed.childLinks,
+    protectedDraft?.childLinks,
+    protectedBase?.childLinks,
+  );
   return {
     id: current.id,
     xref: field('xref'),
@@ -58,9 +149,9 @@ function mergeFamilyDraft(
     marriageBeginStatus: field('marriageBeginStatus'),
     marriageEndStatus: field('marriageEndStatus'),
     witnesses: field('witnesses'),
-    marriageStatuses: field('marriageStatuses'),
-    partnerLinks: field('partnerLinks'),
-    childLinks: field('childLinks'),
+    marriageStatuses,
+    partnerLinks,
+    childLinks,
   };
 }
 
@@ -200,7 +291,9 @@ function FamilyTabBody({
     submittedBaselineRef.current = familyToDraft(base);
     try {
       await api.updateFamily(base, next);
-      savedRef.current = next;
+      if (savedRef.current === base) {
+        savedRef.current = next;
+      }
     } catch (error) {
       if (submittedRef.current === submission) {
         submittedRef.current = undefined;
@@ -218,9 +311,9 @@ function FamilyTabBody({
 
   const remove = async () => {
     await api.deleteFamily(savedRef.current);
-    autoSave.release();
-    onClose();
   };
+
+  const deletion = useEntityDelete(autoSave, remove, onClose);
 
   return (
     <EntityTab>
@@ -228,9 +321,13 @@ function FamilyTabBody({
         draft={draft}
         onBlur={autoSave.onBlur}
         notice={
-          <AutoSaveError failed={autoSave.failed} retryDisabled={autoSave.pendingDelete} onRetry={autoSave.retry} />
+          <>
+            <AutoSaveError failed={autoSave.failed} retryDisabled={autoSave.pendingDelete} onRetry={autoSave.retry} />
+            {deletion.failed ? <InlineError>{nls.t('features.tree.deleteFailed')}</InlineError> : null}
+          </>
         }
         onChange={setDraft}
+        onRowRemoved={autoSave.saveSoon}
         persons={persons}
         families={families}
         associations={familyAssociations}
@@ -398,10 +495,8 @@ function FamilyTabBody({
           variant="danger"
           size="sm"
           data-autosave-skip="true"
-          onClick={() => {
-            autoSave.cancel();
-            void remove().catch(() => autoSave.resume());
-          }}
+          disabled={deletion.deleting}
+          onClick={deletion.deleteEntity}
         >
           {nls.t('features.tree.fact.delete')}
         </Button>

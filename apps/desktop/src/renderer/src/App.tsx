@@ -23,6 +23,7 @@ export function App() {
   const [activeView, setActiveView] = useState<ActivityViewId>('tree');
   const [searchFocusNonce, setSearchFocusNonce] = useState(0);
   const [canvasFocus, setCanvasFocus] = useState<{ personId: string; nonce: number } | null>(null);
+  const [projectTransfer, setProjectTransfer] = useState(false);
 
   const tree = useTreeData(projectPath);
 
@@ -61,6 +62,31 @@ export function App() {
   useEffect(() => window.doru.onFlushAutosaves(() => flushAllAutoSaves()), []);
 
   useEffect(() => {
+    const offTransfer = window.doru.onProjectTransfer(setProjectTransfer);
+    const invalidate = () => window.doru.invalidateCloseFlush();
+    document.addEventListener('input', invalidate, true);
+    document.addEventListener('change', invalidate, true);
+    return () => {
+      offTransfer();
+      document.removeEventListener('input', invalidate, true);
+      document.removeEventListener('change', invalidate, true);
+    };
+  }, []);
+
+  // A project transfer moves the store: block editing and blur the focused
+  // field so its pending draft reaches the pre-transfer flush.
+  useEffect(() => {
+    document.body.toggleAttribute('inert', projectTransfer);
+    if (projectTransfer) {
+      const active = document.activeElement;
+      if (active instanceof HTMLElement) {
+        active.blur();
+      }
+    }
+    return () => document.body.removeAttribute('inert');
+  }, [projectTransfer]);
+
+  useEffect(() => {
     void window.doru.getAbout().then((info) => {
       setVersion(info.version);
       // Regional settings (the first day of the week) follow the OS, not the
@@ -85,10 +111,14 @@ export function App() {
 
   const startProject = useCallback(
     async (info: ProjectBinding) => {
+      // The autosave flush runs against the current render's project path;
+      // a transfer barrier guarantees it is clean before this reset.
+      if (!(await tabs.resetToTree())) {
+        return;
+      }
       setProjectPath(info.path);
       setProjectUntitled(info.untitled);
       setUntitledName(info.untitled ? info.name : null);
-      await tabs.resetToTree();
     },
     // oxlint-disable-next-line react/exhaustive-deps -- the tabs hook object changes every render
     [tabs.resetToTree],

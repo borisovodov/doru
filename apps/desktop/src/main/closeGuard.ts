@@ -5,7 +5,22 @@ const FLUSH_TIMEOUT_MS = 2000;
 const pending = new Map<string, (ok: boolean) => void>();
 const flushed = new WeakSet<BrowserWindow>();
 const inFlight = new WeakMap<BrowserWindow, Promise<boolean>>();
+const generations = new WeakMap<BrowserWindow, number>();
 let registered = false;
+let invalidationRegistered = false;
+
+function registerInvalidation(): void {
+  if (invalidationRegistered) {
+    return;
+  }
+  invalidationRegistered = true;
+  ipcMain.on('app:close-flush:invalidate', (event) => {
+    const window = BrowserWindow.fromWebContents(event.sender);
+    if (window !== null) {
+      invalidateCloseFlush(window);
+    }
+  });
+}
 
 function registerIpc(): void {
   if (registered) {
@@ -27,6 +42,13 @@ function registerIpc(): void {
 /** True once this window answered a successful flush and may close. */
 export function hasFlushedBeforeClose(window: BrowserWindow): boolean {
   return flushed.has(window);
+}
+
+/** Any edit after a flush makes the window require another one. */
+export function invalidateCloseFlush(window: BrowserWindow): void {
+  registerInvalidation();
+  flushed.delete(window);
+  generations.set(window, (generations.get(window) ?? 0) + 1);
 }
 
 /** Drops close permissions from a quit attempt that did not complete. */
@@ -80,11 +102,13 @@ export function flushWindowBeforeClose(window: BrowserWindow): Promise<boolean> 
   if (existing !== undefined) {
     return existing;
   }
+  const generation = generations.get(window) ?? 0;
   const promise = requestRendererFlush(window).then((ok) => {
-    if (ok) {
-      flushed.add(window);
+    if (!ok || (generations.get(window) ?? 0) !== generation) {
+      return false;
     }
-    return ok;
+    flushed.add(window);
+    return true;
   });
   inFlight.set(window, promise);
   void promise.finally(() => {
