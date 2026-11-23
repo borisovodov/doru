@@ -160,7 +160,7 @@ function PersonTabBody({
         return personToDraft(person);
       }
       const refreshed = personToDraft(person);
-      if (submitted === undefined && personDraftMatches(current, previous)) {
+      if (submitted === undefined && submittedRef.current === undefined && personDraftMatches(current, previous)) {
         return refreshed;
       }
       return mergePersonDraft(current, submitted ?? personToDraft(previous), refreshed, protectedDraft, protectedBase);
