@@ -151,7 +151,7 @@ export function MediaSection({
         </div>
       )}
       <div className={styles['actions']}>
-        <Button variant="primary" onClick={() => void add()}>
+        <Button variant="secondary" onClick={() => void add()}>
           {nls.t('features.tree.media.add')}
         </Button>
         {attachable.length > 0 && (

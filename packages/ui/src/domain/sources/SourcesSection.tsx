@@ -147,7 +147,7 @@ export function SourcesSection({
             setAuthor(event.target.value);
           }}
         />
-        <Button variant="primary" onClick={() => void addNew()}>
+        <Button variant="secondary" onClick={() => void addNew()}>
           {nls.t('features.tree.sources.add')}
         </Button>
       </div>

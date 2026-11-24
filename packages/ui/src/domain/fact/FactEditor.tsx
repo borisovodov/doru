@@ -526,7 +526,7 @@ export function FactEditor({
             />
           </div>
         ))}
-        <Button variant="primary" size="sm" onClick={addAge}>
+        <Button variant="secondary" size="sm" onClick={addAge}>
           <Plus size={13} aria-hidden="true" />
           {nls.t('features.tree.fact.ages.add')}
         </Button>
@@ -589,7 +589,7 @@ export function FactEditor({
             />
           </div>
         ))}
-        <Button variant="primary" size="sm" onClick={addParticipant}>
+        <Button variant="secondary" size="sm" onClick={addParticipant}>
           <Plus size={13} aria-hidden="true" />
           {nls.t('features.tree.fact.participants.add')}
         </Button>

@@ -142,7 +142,7 @@ export function TasksSection({
               }
             }}
           />
-          <Button variant="primary" onClick={() => void add()}>
+          <Button variant="secondary" onClick={() => void add()}>
             {nls.t('features.tasks.add')}
           </Button>
         </div>

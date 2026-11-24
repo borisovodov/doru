@@ -700,7 +700,7 @@ function MediaTabBody({
             </li>
           ))}
         </ul>
-        <Button variant="primary" onClick={() => void addFiles()}>
+        <Button variant="secondary" onClick={() => void addFiles()}>
           {nls.t('features.tree.media.addFiles')}
         </Button>
       </SectionCard>
@@ -747,7 +747,7 @@ function MediaTabBody({
               ariaLabel={nls.t('features.tasks.target')}
             />
             <Button
-              variant="primary"
+              variant="secondary"
               size="sm"
               disabled={linkTargets.length === 0}
               onClick={() => {

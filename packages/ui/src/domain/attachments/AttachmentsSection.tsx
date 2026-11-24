@@ -186,7 +186,7 @@ export function IdentifiersSection({
             value={value}
             onChange={(event) => setValue(event.target.value)}
           />
-          <Button variant="primary" onClick={() => void add()}>
+          <Button variant="secondary" onClick={() => void add()}>
             {nls.t('features.tree.identifiers.add')}
           </Button>
         </div>
@@ -305,7 +305,7 @@ export function ContactsSection({
           value={value}
           onChange={(event) => setValue(event.target.value)}
         />
-        <Button variant="primary" onClick={() => void add()}>
+        <Button variant="secondary" onClick={() => void add()}>
           {nls.t('features.tree.contacts.add')}
         </Button>
       </div>

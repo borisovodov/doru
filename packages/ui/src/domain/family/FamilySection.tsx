@@ -211,7 +211,7 @@ function FamilyCard({
           </span>
         ))}
         <DateEditor label="" value={marriageDate} onChange={setMarriageDate} />
-        <Button variant="primary" onClick={() => void addMarriage()}>
+        <Button variant="secondary" onClick={() => void addMarriage()}>
           {nls.t('features.tree.events.add')}
         </Button>
       </div>

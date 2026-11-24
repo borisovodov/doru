@@ -312,7 +312,7 @@ function SubmitterTabBody({
             </InlineForm>
           ))}
         </FieldGrid>
-        <Button variant="primary" size="sm" onClick={() => setLanguages([...languages, ''])}>
+        <Button variant="secondary" size="sm" onClick={() => setLanguages([...languages, ''])}>
           <Plus size={13} aria-hidden="true" />
           {nls.t('features.tree.submitter.languages.add')}
         </Button>
