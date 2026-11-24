@@ -156,6 +156,26 @@ describe('TreeService attachments', () => {
     }
   });
 
+  it('keeps one note link when the same target is attached twice', () => {
+    const { fixture, service } = makeService();
+    try {
+      service.addNote(note());
+      service.attachNote('N1', { id: 'L2', targetType: 'family', targetId: 'F1' });
+      service.attachNote('N1', { id: 'L3', targetType: 'person', targetId: 'P1' });
+      service.attachNote('N1', { id: 'L4', targetType: 'person', targetId: 'P1' });
+
+      expect(fixture.repo.getNote('N1')?.links).toHaveLength(2);
+      expect(fixture.repo.listNotesFor('person', 'P1')).toHaveLength(1);
+
+      // The duplicate attaches are not undo entries: one undo removes the family link.
+      service.undo();
+      expect(fixture.repo.listNotesFor('family', 'F1')).toEqual([]);
+      expect(fixture.repo.listNotesFor('person', 'P1')).toHaveLength(1);
+    } finally {
+      cleanupRepo(fixture);
+    }
+  });
+
   it('restores attachments on facts and names when a person is deleted', () => {
     const { fixture, service } = makeService();
     try {

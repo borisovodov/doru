@@ -2,7 +2,7 @@
 
 A Dóru project is a single `.doru` file: a SQLite database branded with
 `application_id = 0x444F5255` ("DORU") and versioned with `user_version`.
-This document is the field-level reference for **schema version 19**. The
+This document is the field-level reference for **schema version 20**. The
 source of truth is [`packages/core/src/db/schema.ts`](../packages/core/src/db/schema.ts);
 the domain shapes that the repositories map onto the rows live in
 [`packages/core/src/model/types.ts`](../packages/core/src/model/types.ts).
@@ -756,7 +756,10 @@ citation in addition to its crop and sequence metadata.
 
 A note is one text row. An inline note has one link; a shared note has
 several. `xref` is `NULL` for an inline note and non-`NULL` for a shared
-`NOTE`/`SNOTE` record.
+`NOTE`/`SNOTE` record. A note is linked to a given target at most once:
+`(note_id, target_type, target_id)` is unique, and re-attaching a note that
+is already linked is a no-op, so repeated `NOTE`/`SNOTE` references in a
+GEDCOM file cannot produce duplicate links.
 
 ```mermaid
 erDiagram
@@ -773,7 +776,7 @@ erDiagram
 
     note_link {
         TEXT id PK
-        TEXT note_id FK
+        TEXT note_id FK "UNIQUE with target_type and target_id"
         TEXT target_type "NOT NULL, polymorphic target"
         TEXT target_id "NOT NULL, UUID"
     }
