@@ -52,9 +52,9 @@ in its README; that guarantee does not extend to the tree database.
 - `xref` stores the identifier assigned by a GEDCOM import. It is provenance
   only and has no meaning inside Dóru.
 - `position` preserves user-visible order in names, name parts, family
-  partners/children and marriage statuses, place names, template fields,
-  files and their translations, event families and additional places, and
-  participants.
+  partners/children, marriage statuses, family witnesses, place names,
+  source and citation template fields, media files and their translations,
+  event-family links, additional places, participants, and address lines.
 - Boolean-like columns are `INTEGER` with `0`/`1`; flags are stored in
   lowercase where they have a textual form.
 - Enum-like columns have no `CHECK` constraint. The only structural checks are
