@@ -1,7 +1,7 @@
 import type { NoteRecord, SourceRecord } from '@doru/core';
 import { SourcesSection } from '@doru/ui/domain';
 import type { AttachmentsApi } from '../person/types';
-import { useAttachments } from './useAttachments';
+import { useCitations } from './useAttachments';
 
 /**
  * The sources cited by one note. A note is a citation target only: sources
@@ -18,7 +18,7 @@ export function NoteSources({
   sources: SourceRecord[];
   onOpenSource?: ((sourceId: string) => void) | undefined;
 }) {
-  const { citations, refresh } = useAttachments('note', note.id, api, false);
+  const { citations, refresh } = useCitations('note', note.id, api);
   return (
     <SourcesSection
       targetType="note"

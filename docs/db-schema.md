@@ -17,7 +17,7 @@ in its README; that guarantee does not extend to the tree database.
 
 ## At a glance
 
-- **48 tables**, **75 indexes**, and no date-delete triggers.
+- **47 tables**, **74 indexes**, and no date-delete triggers.
 - The core genealogy model is `person` → `person_name` / `fact`, with
   `family` joining people through `family_partner` and `family_child`.
 - Dates are normalized into one `date` value table; owner rows reference

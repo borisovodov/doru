@@ -140,3 +140,41 @@ export function useAttachments(
 
   return { ...data, refresh };
 }
+
+/**
+ * Loads only the citations of one target. Use it for panels that manage a
+ * single citation list (for example a note's sources) instead of paying for
+ * every attachment list.
+ */
+export function useCitations(
+  targetType: string,
+  targetId: string | undefined,
+  api: Pick<AttachmentApi, 'getCitations'>,
+): { citations: CitationRecord[]; refresh: () => Promise<void> } {
+  const [citations, setCitations] = useState<CitationRecord[]>([]);
+
+  const load = useCallback(async (): Promise<CitationRecord[]> => {
+    if (targetId === undefined) {
+      return [];
+    }
+    return api.getCitations(targetType, targetId);
+  }, [targetType, targetId, api]);
+
+  useEffect(() => {
+    let cancelled = false;
+    void load().then((loaded) => {
+      if (!cancelled) {
+        setCitations(loaded);
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [load]);
+
+  const refresh = useCallback(async () => {
+    setCitations(await load());
+  }, [load]);
+
+  return { citations, refresh };
+}
