@@ -197,7 +197,7 @@ export function NotesSection({
                         />
                       </div>
                     ))}
-                    <Button variant="primary" size="sm" onClick={addTranslation}>
+                    <Button variant="secondary" size="sm" onClick={addTranslation}>
                       <Plus size={13} aria-hidden="true" />
                       {nls.t('features.tree.notes.translations.add')}
                     </Button>
@@ -298,7 +298,7 @@ export function NotesSection({
             }
           }}
         />
-        <Button variant="primary" onClick={() => void add()}>
+        <Button variant="secondary" onClick={() => void add()}>
           {nls.t('features.tree.notes.add')}
         </Button>
       </div>

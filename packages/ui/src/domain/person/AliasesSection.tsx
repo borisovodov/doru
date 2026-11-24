@@ -52,7 +52,7 @@ export function AliasesSection({
         !adding ? (
           <Button
             size="sm"
-            variant="primary"
+            variant="secondary"
             icon={<Plus size={13} aria-hidden="true" />}
             onClick={() => setAdding(true)}
           >

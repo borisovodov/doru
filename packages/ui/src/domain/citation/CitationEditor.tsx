@@ -147,7 +147,7 @@ export function CitationEditor({
             </div>
           </div>
         ))}
-        <Button variant="primary" size="sm" onClick={addText}>
+        <Button variant="secondary" size="sm" onClick={addText}>
           <Plus size={13} aria-hidden="true" />
           {nls.t('features.tree.source.texts.add')}
         </Button>
@@ -183,7 +183,7 @@ export function CitationEditor({
             />
           </div>
         ))}
-        <Button variant="primary" size="sm" onClick={addField}>
+        <Button variant="secondary" size="sm" onClick={addField}>
           <Plus size={13} aria-hidden="true" />
           {nls.t('features.tree.source.templateFields.add')}
         </Button>

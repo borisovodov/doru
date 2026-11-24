@@ -71,7 +71,7 @@ export function AssociationsSection({
         <AddAssociationForm owner={owner} others={others} onAdd={onAdd} onDone={() => setAdding(false)} />
       ) : (
         <Button
-          variant="primary"
+          variant="secondary"
           size="sm"
           icon={<Plus size={13} aria-hidden="true" />}
           onClick={() => setAdding(true)}

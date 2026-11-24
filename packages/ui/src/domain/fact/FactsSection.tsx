@@ -158,7 +158,7 @@ export function FactsSection({
           value={description}
           onChange={(event) => setDescription(event.target.value)}
         />
-        <Button variant="primary" onClick={() => void add()}>
+        <Button variant="secondary" onClick={() => void add()}>
           {nls.t('features.tree.events.add')}
         </Button>
       </div>

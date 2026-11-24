@@ -257,7 +257,7 @@ export function SourceEditor({
             </div>
           </Subcard>
         ))}
-        <Button variant="primary" onClick={addText}>
+        <Button variant="secondary" onClick={addText}>
           <Plus size={13} aria-hidden="true" />
           {nls.t('features.tree.source.texts.add')}
         </Button>
@@ -308,7 +308,7 @@ export function SourceEditor({
             </Field>
           </Subcard>
         ))}
-        <Button variant="primary" onClick={addEvent}>
+        <Button variant="secondary" onClick={addEvent}>
           <Plus size={13} aria-hidden="true" />
           {nls.t('features.tree.source.dataEvents.add')}
         </Button>
@@ -356,14 +356,14 @@ export function SourceEditor({
                 />
               </div>
             ))}
-            <Button variant="primary" size="sm" onClick={() => addCallNumber(index)}>
+            <Button variant="secondary" size="sm" onClick={() => addCallNumber(index)}>
               <Plus size={13} aria-hidden="true" />
               {nls.t('features.tree.source.repositories.callNumbers.add')}
             </Button>
           </Subcard>
         ))}
         <div className="source-actions">
-          <Button variant="primary" onClick={addRepository}>
+          <Button variant="secondary" onClick={addRepository}>
             <Plus size={13} aria-hidden="true" />
             {nls.t('features.tree.source.repositories.add')}
           </Button>
@@ -400,7 +400,7 @@ export function SourceEditor({
             />
           </div>
         ))}
-        <Button variant="primary" onClick={addField}>
+        <Button variant="secondary" onClick={addField}>
           <Plus size={13} aria-hidden="true" />
           {nls.t('features.tree.source.templateFields.add')}
         </Button>

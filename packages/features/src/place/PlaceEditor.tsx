@@ -220,7 +220,7 @@ export function PlaceEditor({
             {expandedNameId === name.id && renderNameAttachments?.(name.id)}
           </div>
         ))}
-        <Button variant="primary" onClick={addName}>
+        <Button variant="secondary" onClick={addName}>
           <Plus size={13} aria-hidden="true" />
           {nls.t('features.tree.place.names.add')}
         </Button>
@@ -289,7 +289,7 @@ export function PlaceEditor({
             />
           </Subcard>
         ))}
-        <Button variant="primary" onClick={addPostal}>
+        <Button variant="secondary" onClick={addPostal}>
           <Plus size={13} aria-hidden="true" />
           {nls.t('features.tree.place.postalCodes.add')}
         </Button>
@@ -349,7 +349,7 @@ export function PlaceEditor({
             {expandedLinkId === link.id && renderAttachments?.(link.id)}
           </Fragment>
         ))}
-        <Button variant="primary" onClick={addHierarchy}>
+        <Button variant="secondary" onClick={addHierarchy}>
           <Plus size={13} aria-hidden="true" />
           {nls.t('features.tree.place.hierarchy.add')}
         </Button>

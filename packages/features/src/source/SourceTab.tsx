@@ -476,7 +476,7 @@ function SourceTabBody({
                 ariaLabel={nls.t('features.tasks.target')}
               />
               <Button
-                variant="primary"
+                variant="secondary"
                 size="sm"
                 disabled={linkTargets.length === 0}
                 onClick={() => {

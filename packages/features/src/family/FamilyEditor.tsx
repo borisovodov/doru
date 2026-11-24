@@ -389,7 +389,7 @@ export function FamilyEditor({
               </option>
             ))}
           </Select>
-          <Button variant="primary" onClick={addPartner}>
+          <Button variant="secondary" onClick={addPartner}>
             <Plus size={13} aria-hidden="true" />
             {nls.t('features.tree.families.addPartner')}
           </Button>
@@ -500,7 +500,7 @@ export function FamilyEditor({
               </option>
             ))}
           </Select>
-          <Button variant="primary" onClick={addChild}>
+          <Button variant="secondary" onClick={addChild}>
             <Plus size={13} aria-hidden="true" />
             {nls.t('features.tree.families.addChild')}
           </Button>
