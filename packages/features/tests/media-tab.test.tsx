@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { act, fireEvent, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, screen, waitFor, within } from '@testing-library/react';
 import { AutoSaveTabProvider, flushAutoSaves } from '@doru/ui';
 import { MediaTab } from '@doru/features/media';
 import type { MediaAdminApi } from '@doru/features/person';
@@ -343,9 +343,10 @@ describe('MediaTab', () => {
       </TargetDirectoryProvider>,
     );
 
-    fireEvent.focus(screen.getAllByRole('combobox', { name: nls.t('features.tasks.target') })[0]!);
+    const related = screen.getByRole('region', { name: nls.t('features.tasks.target') });
+    fireEvent.focus(within(related).getByRole('combobox', { name: nls.t('features.tasks.target') }));
     fireEvent.click(screen.getByRole('option', { name: 'MoscowPlace' }));
-    fireEvent.click(screen.getAllByRole('button', { name: nls.t('features.tree.media.attach') })[0]!);
+    fireEvent.click(within(related).getByRole('button', { name: nls.t('features.tree.media.attach') }));
     await waitFor(() => expect(attachMediaToTargets).toHaveBeenCalledTimes(1));
 
     fireEvent.click(screen.getByRole('option', { name: 'KazanPlace' }));
@@ -415,13 +416,14 @@ describe('MediaTab', () => {
       </TargetDirectoryProvider>,
     );
 
-    fireEvent.focus(screen.getAllByRole('combobox', { name: nls.t('features.tasks.target') })[0]!);
+    const related = screen.getByRole('region', { name: nls.t('features.tasks.target') });
+    fireEvent.focus(within(related).getByRole('combobox', { name: nls.t('features.tasks.target') }));
     fireEvent.click(screen.getByRole('option', { name: 'MoscowPlace' }));
-    fireEvent.click(screen.getAllByRole('button', { name: nls.t('features.tree.media.attach') })[0]!);
+    fireEvent.click(within(related).getByRole('button', { name: nls.t('features.tree.media.attach') }));
 
     await waitFor(() => expect(attachMediaToTargets).toHaveBeenCalledTimes(1));
     expect(attachMediaToTargets).toHaveBeenCalledWith('M1', [{ targetType: 'place', targetId: 'PL1' }]);
     expect(await screen.findByText(nls.t('features.tree.autosaveFailed'))).toBeInTheDocument();
-    expect(screen.getAllByRole('button', { name: nls.t('features.tree.media.attach') })[0]).toBeEnabled();
+    expect(within(related).getByRole('button', { name: nls.t('features.tree.media.attach') })).toBeEnabled();
   });
 });

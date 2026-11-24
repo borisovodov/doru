@@ -386,40 +386,6 @@ function SourceTabBody({
               void api.detachCitation(citationId).catch(() => setCitationError(true));
             }}
           />
-          {attachSourceToTargets !== undefined && (
-            <SectionCard title={nls.t('features.tasks.target')}>
-              <TargetPicker
-                allowedTypes={SOURCE_TARGET_TYPES}
-                value={linkTargets}
-                onChange={setLinkTargets}
-                ariaLabel={nls.t('features.tasks.target')}
-              />
-              <Button
-                variant="primary"
-                size="sm"
-                disabled={linkTargets.length === 0}
-                onClick={() => {
-                  setLinkError(false);
-                  const submitted = linkTargets;
-                  void attachSourceToTargets(currentSource.id, submitted)
-                    .then(() =>
-                      setLinkTargets((current) =>
-                        current.filter(
-                          (target) =>
-                            !submitted.some(
-                              (entry) => entry.targetType === target.targetType && entry.targetId === target.targetId,
-                            ),
-                        ),
-                      ),
-                    )
-                    .catch(() => setLinkError(true));
-                }}
-              >
-                {nls.t('features.tree.sources.attach')}
-              </Button>
-              {linkError ? <InlineError>{nls.t('features.tree.autosaveFailed')}</InlineError> : null}
-            </SectionCard>
-          )}
           {targetId !== undefined && (
             <>
               <SourcesSection
@@ -523,6 +489,40 @@ function SourceTabBody({
               />
               <TasksSection targetType="source" targetId={targetId} api={api} />
             </>
+          )}
+          {attachSourceToTargets !== undefined && (
+            <SectionCard title={nls.t('features.tasks.target')}>
+              <TargetPicker
+                allowedTypes={SOURCE_TARGET_TYPES}
+                value={linkTargets}
+                onChange={setLinkTargets}
+                ariaLabel={nls.t('features.tasks.target')}
+              />
+              <Button
+                variant="primary"
+                size="sm"
+                disabled={linkTargets.length === 0}
+                onClick={() => {
+                  setLinkError(false);
+                  const submitted = linkTargets;
+                  void attachSourceToTargets(currentSource.id, submitted)
+                    .then(() =>
+                      setLinkTargets((current) =>
+                        current.filter(
+                          (target) =>
+                            !submitted.some(
+                              (entry) => entry.targetType === target.targetType && entry.targetId === target.targetId,
+                            ),
+                        ),
+                      ),
+                    )
+                    .catch(() => setLinkError(true));
+                }}
+              >
+                {nls.t('features.tree.sources.attach')}
+              </Button>
+              {linkError ? <InlineError>{nls.t('features.tree.autosaveFailed')}</InlineError> : null}
+            </SectionCard>
           )}
         </>
       )}

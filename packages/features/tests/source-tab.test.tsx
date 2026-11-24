@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { fireEvent, screen, waitFor } from '@testing-library/react';
+import { fireEvent, screen, waitFor, within } from '@testing-library/react';
 import type { SourceRecord } from '@doru/core';
 import { SourceTab } from '@doru/features/source';
 import type { MediaTargetApi, SourceEditorApi } from '@doru/features/person';
@@ -426,14 +426,15 @@ describe('SourceTab', () => {
       </TargetDirectoryProvider>,
     );
 
-    fireEvent.focus(screen.getAllByRole('combobox', { name: nls.t('features.tasks.target') })[0]!);
+    const related = screen.getByRole('region', { name: nls.t('features.tasks.target') });
+    fireEvent.focus(within(related).getByRole('combobox', { name: nls.t('features.tasks.target') }));
     fireEvent.click(screen.getByRole('option', { name: 'MoscowPlace' }));
-    fireEvent.click(screen.getAllByRole('button', { name: nls.t('features.tree.sources.attach') })[0]!);
+    fireEvent.click(within(related).getByRole('button', { name: nls.t('features.tree.sources.attach') }));
 
     await waitFor(() => expect(attachSourceToTargets).toHaveBeenCalledTimes(1));
     expect(attachSourceToTargets).toHaveBeenCalledWith('S1', [{ targetType: 'place', targetId: 'PL1' }]);
     expect(await screen.findByText(nls.t('features.tree.autosaveFailed'))).toBeInTheDocument();
-    expect(screen.getAllByRole('button', { name: nls.t('features.tree.sources.attach') })[0]).toBeEnabled();
+    expect(within(related).getByRole('button', { name: nls.t('features.tree.sources.attach') })).toBeEnabled();
   });
 
   it('keeps a citation and reports a failed detach', async () => {

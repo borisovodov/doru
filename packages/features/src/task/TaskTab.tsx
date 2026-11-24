@@ -27,6 +27,7 @@ import { EntityTab } from '../sidebar';
 import type { TaskEditorApi } from '../person/types';
 import {
   TASK_TARGET_TYPES,
+  TargetPicker,
   TaskEditorFields,
   emptyTaskDraft,
   taskTargetLabel,
@@ -244,6 +245,24 @@ function TaskTabBody({
     }
   };
 
+  const updateTargets = (next: TargetRef[]) => {
+    const removed = targets.filter(
+      (target) => !next.some((entry) => entry.targetType === target.targetType && entry.targetId === target.targetId),
+    );
+    const added = next.filter(
+      (target) =>
+        !targets.some((entry) => entry.targetType === target.targetType && entry.targetId === target.targetId),
+    );
+    if (removed.length === 0 && added.length === 0) {
+      return;
+    }
+    setTargetError(false);
+    void Promise.all([
+      ...removed.map((target) => removeTarget(target)),
+      ...added.map((target) => addTarget(target)),
+    ]).catch(() => setTargetError(true));
+  };
+
   const targetData = useMemo(
     () => ({
       persons,
@@ -386,36 +405,20 @@ function TaskTabBody({
       {deletion.failed ? <InlineError>{nls.t('features.tree.deleteFailed')}</InlineError> : null}
 
       <SectionCard title={nls.t('features.tree.details')}>
-        <TaskEditorFields
-          edit={draft}
-          data={targetData}
-          targets={targets}
-          onChange={patch}
-          onChangeTargets={(next) => {
-            const removed = targets.filter(
-              (target) =>
-                !next.some((entry) => entry.targetType === target.targetType && entry.targetId === target.targetId),
-            );
-            const added = next.filter(
-              (target) =>
-                !targets.some((entry) => entry.targetType === target.targetType && entry.targetId === target.targetId),
-            );
-            if (removed.length === 0 && added.length === 0) {
-              return;
-            }
-            setTargetError(false);
-            void Promise.all([
-              ...removed.map((target) => removeTarget(target)),
-              ...added.map((target) => addTarget(target)),
-            ]).catch(() => setTargetError(true));
-          }}
-          targetTypes={VISIBLE_TARGET_TYPES}
-          autoFocusText={isNew}
-        />
+        <TaskEditorFields edit={draft} onChange={patch} autoFocusText={isNew} />
       </SectionCard>
       {taskId !== undefined && (
         <AttachmentsPanel targetType="task" targetId={taskId} api={api} sources={sources} onOpenMedia={onOpenMedia} />
       )}
+      <SectionCard title={nls.t('features.tasks.target')}>
+        <TargetPicker
+          allowedTypes={VISIBLE_TARGET_TYPES}
+          value={targets}
+          onChange={updateTargets}
+          data={targetData}
+          ariaLabel={nls.t('features.tasks.target')}
+        />
+      </SectionCard>
       {(!isNew || lastSaved !== undefined) && (
         <DangerZone>
           <Button
