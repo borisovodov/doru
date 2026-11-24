@@ -1,5 +1,6 @@
 import {
   cloneElement,
+  useCallback,
   useEffect,
   useId,
   useLayoutEffect,
@@ -11,6 +12,7 @@ import {
   type MouseEvent,
   type PointerEvent,
   type ReactElement,
+  type Ref,
 } from 'react';
 import { createPortal } from 'react-dom';
 import { cx } from '../../lib/cx';
@@ -21,6 +23,7 @@ export type TooltipPlacement = 'top' | 'right';
 
 interface TriggerProps {
   'aria-describedby'?: string | undefined;
+  ref?: Ref<HTMLElement> | undefined;
   onMouseEnter?: ((event: MouseEvent<HTMLElement>) => void) | undefined;
   onMouseLeave?: ((event: MouseEvent<HTMLElement>) => void) | undefined;
   onFocus?: ((event: FocusEvent<HTMLElement>) => void) | undefined;
@@ -43,6 +46,17 @@ export interface TooltipProps {
 const DEFAULT_DELAY_MS = 600;
 const VIEWPORT_PADDING = 8;
 const GAP = 8;
+
+/** Only one tooltip may be scheduled or visible at a time across the window. */
+let activeTooltip: (() => void) | null = null;
+
+function assignRef<T>(ref: Ref<T> | undefined, value: T | null): void {
+  if (typeof ref === 'function') {
+    ref(value);
+  } else if (ref !== null && ref !== undefined) {
+    ref.current = value;
+  }
+}
 
 interface AnchorRect {
   top: number;
@@ -112,33 +126,104 @@ export function Tooltip({
   const [position, setPosition] = useState<Position | null>(null);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const tooltipRef = useRef<HTMLSpanElement | null>(null);
+  const triggerElementRef = useRef<HTMLElement | null>(null);
   const id = useId();
+
+  const trigger = children as ReactElement<TriggerProps>;
+  const triggerProps = trigger.props;
+
+  const setTriggerRef = useCallback(
+    (node: HTMLElement | null) => {
+      triggerElementRef.current = node;
+      assignRef(triggerProps.ref, node);
+    },
+    [triggerProps.ref],
+  );
+
+  const clearTimer = useCallback(() => {
+    if (timerRef.current !== null) {
+      clearTimeout(timerRef.current);
+      timerRef.current = null;
+    }
+  }, []);
+
+  const hide = useCallback(
+    function hideTooltip() {
+      clearTimer();
+      if (activeTooltip === hideTooltip) {
+        activeTooltip = null;
+      }
+      setOpen(false);
+      setAnchor(null);
+      setPosition(null);
+    },
+    [clearTimer],
+  );
+
+  const show = useCallback(
+    (element: HTMLElement) => {
+      if (activeTooltip !== null && activeTooltip !== hide) {
+        activeTooltip();
+      }
+      activeTooltip = hide;
+      clearTimer();
+      timerRef.current = setTimeout(() => {
+        const rect = element.getBoundingClientRect();
+        setAnchor({
+          top: rect.top,
+          left: rect.left,
+          right: rect.right,
+          bottom: rect.bottom,
+          width: rect.width,
+          height: rect.height,
+        });
+        setPosition(null);
+        setOpen(true);
+      }, delay);
+    },
+    [clearTimer, delay, hide],
+  );
 
   useEffect(
     () => () => {
-      if (timerRef.current !== null) {
-        clearTimeout(timerRef.current);
+      clearTimer();
+      if (activeTooltip === hide) {
+        activeTooltip = null;
       }
     },
-    [],
+    [clearTimer, hide],
   );
 
   useEffect(() => {
     if (!open) {
       return;
     }
-    const hide = () => {
-      setOpen(false);
-      setAnchor(null);
-      setPosition(null);
-    };
-    window.addEventListener('scroll', hide, true);
-    window.addEventListener('resize', hide);
+    const onScrollOrResize = () => hide();
+    window.addEventListener('scroll', onScrollOrResize, true);
+    window.addEventListener('resize', onScrollOrResize);
     return () => {
-      window.removeEventListener('scroll', hide, true);
-      window.removeEventListener('resize', hide);
+      window.removeEventListener('scroll', onScrollOrResize, true);
+      window.removeEventListener('resize', onScrollOrResize);
     };
-  }, [open]);
+  }, [open, hide]);
+
+  useEffect(() => {
+    if (!disabled) {
+      return;
+    }
+    const element = triggerElementRef.current;
+    if (element === null) {
+      return;
+    }
+    const enter = () => show(element);
+    const leave = () => hide();
+    element.addEventListener('pointerenter', enter);
+    element.addEventListener('pointerleave', leave);
+    return () => {
+      element.removeEventListener('pointerenter', enter);
+      element.removeEventListener('pointerleave', leave);
+    };
+  }, [disabled, hide, show]);
 
   useLayoutEffect(() => {
     if (!open || anchor === null) {
@@ -155,42 +240,6 @@ export function Tooltip({
     );
   }, [open, anchor, placement, label, shortcut]);
 
-  const clearTimer = () => {
-    if (timerRef.current !== null) {
-      clearTimeout(timerRef.current);
-      timerRef.current = null;
-    }
-  };
-
-  const hide = () => {
-    clearTimer();
-    setOpen(false);
-    setAnchor(null);
-    setPosition(null);
-  };
-
-  const show = (element: HTMLElement) => {
-    if (disabled) {
-      return;
-    }
-    clearTimer();
-    timerRef.current = setTimeout(() => {
-      const rect = element.getBoundingClientRect();
-      setAnchor({
-        top: rect.top,
-        left: rect.left,
-        right: rect.right,
-        bottom: rect.bottom,
-        width: rect.width,
-        height: rect.height,
-      });
-      setPosition(null);
-      setOpen(true);
-    }, delay);
-  };
-
-  const trigger = children as ReactElement<TriggerProps>;
-  const triggerProps = trigger.props;
   const describedBy = [triggerProps['aria-describedby'], open ? id : undefined].filter(Boolean).join(' ');
 
   const style: CSSProperties =
@@ -200,6 +249,7 @@ export function Tooltip({
     <>
       {/* oxlint-disable-next-line react/no-clone-element, react/refs -- the tooltip must not add a layout wrapper */}
       {cloneElement(trigger, {
+        ref: setTriggerRef,
         'aria-describedby': describedBy === '' ? undefined : describedBy,
         onMouseEnter: (event: MouseEvent<HTMLElement>) => {
           triggerProps.onMouseEnter?.(event);

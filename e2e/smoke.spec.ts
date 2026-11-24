@@ -13,10 +13,10 @@ test('icon buttons show a custom tooltip', async () => {
   const { app, page } = await launchApp();
   const settings = page.getByRole('button', { name: 'Settings', exact: true });
 
-  await settings.hover();
+  await settings.focus();
   await expect(page.getByRole('tooltip')).toHaveText('Settings');
 
-  await page.mouse.move(0, 0);
+  await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
   await expect(page.getByRole('tooltip')).toHaveCount(0);
   await app.close();
 });

@@ -1,3 +1,4 @@
+import { createRef } from 'react';
 import { Pencil } from 'lucide-react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { act, fireEvent, screen } from '@testing-library/react';
@@ -73,11 +74,50 @@ describe('IconButton tooltip', () => {
     expect(tooltip.querySelector('kbd')).not.toBeNull();
   });
 
-  it('does not open for a disabled button', () => {
+  it('opens for a disabled button on pointer hover', () => {
     vi.useFakeTimers();
     renderUi(<IconButton label="Edit person" icon={<Pencil aria-hidden="true" />} disabled />);
 
-    showTooltip(screen.getByRole('button', { name: 'Edit person' }));
+    const button = screen.getByRole('button', { name: 'Edit person' });
+    fireEvent.pointerEnter(button);
+    act(() => {
+      vi.advanceTimersByTime(600);
+    });
+    expect(screen.getByRole('tooltip')).toHaveTextContent('Edit person');
+
+    fireEvent.pointerLeave(button);
     expect(screen.queryByRole('tooltip')).not.toBeInTheDocument();
+  });
+
+  it('keeps only one tooltip open at a time', () => {
+    vi.useFakeTimers();
+    renderUi(
+      <>
+        <IconButton label="First" icon={<Pencil aria-hidden="true" />} />
+        <IconButton label="Second" icon={<Pencil aria-hidden="true" />} />
+      </>,
+    );
+
+    fireEvent.focus(screen.getByRole('button', { name: 'First' }));
+    act(() => {
+      vi.advanceTimersByTime(600);
+    });
+    expect(screen.getByRole('tooltip')).toHaveTextContent('First');
+
+    fireEvent.mouseEnter(screen.getByRole('button', { name: 'Second' }));
+    act(() => {
+      vi.advanceTimersByTime(600);
+    });
+
+    const tooltips = screen.getAllByRole('tooltip');
+    expect(tooltips).toHaveLength(1);
+    expect(tooltips[0]).toHaveTextContent('Second');
+  });
+
+  it('forwards the ref to the underlying button', () => {
+    const ref = createRef<HTMLButtonElement>();
+    renderUi(<IconButton ref={ref} label="Edit person" icon={<Pencil aria-hidden="true" />} />);
+
+    expect(ref.current).toBe(screen.getByRole('button', { name: 'Edit person' }));
   });
 });
