@@ -63,6 +63,14 @@ describe('TaskTab', () => {
     expect(screen.getByText(nls.t('features.tree.notes.title'))).toBeInTheDocument();
   });
 
+  it('renders Related to after every attachment section', () => {
+    const task: TaskRecord = { id: 'T1', text: 'Find the record', targets: [] };
+    renderUi(taskElement(task.id, [task], apiStub()));
+
+    const regions = screen.getAllByRole('region');
+    expect(regions[regions.length - 1]).toHaveAccessibleName(nls.t('features.tasks.target'));
+  });
+
   it('runs one create request for repeated clicks', async () => {
     let finishCreate!: () => void;
     const addTask = vi.fn(

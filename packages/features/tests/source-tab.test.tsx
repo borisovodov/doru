@@ -61,6 +61,38 @@ function renderTab(overrides: { entityId?: string; onCreated?: (realId: string) 
 }
 
 describe('SourceTab', () => {
+  it('renders Related to after every attachment section', () => {
+    const api = stubApi<SourceEditorApi>({
+      getRepositories: async () => [],
+      getTitles: async () => [],
+      attachSourceToTargets: async () => undefined,
+    });
+    const mediaApi = stubApi<MediaTargetApi>({ getMediaFor: async () => [], getAllMedia: async () => [] });
+    renderUi(
+      <SourceTab
+        entityId="S1"
+        sources={[{ id: 'S1', title: 'Book' }]}
+        api={api}
+        persons={[]}
+        families={[]}
+        facts={[]}
+        places={[]}
+        citations={[]}
+        notes={[]}
+        media={[]}
+        mediaApi={mediaApi}
+        onOpenPerson={vi.fn()}
+        onOpenMedia={vi.fn()}
+        onOpenSource={vi.fn()}
+        onClose={vi.fn()}
+        onCreated={vi.fn()}
+      />,
+    );
+
+    const regions = screen.getAllByRole('region');
+    expect(regions[regions.length - 1]).toHaveAccessibleName(nls.t('features.tasks.target'));
+  });
+
   it('prefills the new-source title, focuses it and selects the text', () => {
     renderTab();
     const title = nls.t('features.tree.source.newSource');

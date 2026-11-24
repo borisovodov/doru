@@ -59,6 +59,28 @@ const record: MediaWithPath = {
 };
 
 describe('MediaTab', () => {
+  it('renders Related to after every attachment section', () => {
+    const api = stubApi<MediaAdminApi>({
+      getMediaFor: async () => [],
+      getAllMedia: async () => [],
+      attachMediaToTargets: async () => undefined,
+    });
+    renderUi(
+      <MediaTab
+        entityId="M1"
+        media={[record]}
+        api={api}
+        attachmentsApi={attachmentsStub()}
+        sources={[]}
+        targetData={targetData}
+        onClose={vi.fn()}
+      />,
+    );
+
+    const regions = screen.getAllByRole('region');
+    expect(regions[regions.length - 1]).toHaveAccessibleName(nls.t('features.tasks.target'));
+  });
+
   it('saves a file title on the registered close flush', async () => {
     const updateMedia = vi.fn(async (_before: MediaRecord, _after: MediaRecord) => undefined);
     const api = stubApi<MediaAdminApi>({
