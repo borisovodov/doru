@@ -183,6 +183,40 @@ describe('TaskTab', () => {
     expect(updateTask.mock.calls[1]?.[1]).toMatchObject({ text: 'Old' });
   });
 
+  it('keeps a target added while a field save is pending', async () => {
+    const task: TaskRecord = {
+      id: 'T1',
+      text: 'Old text',
+      status: 'open',
+      targets: [{ id: 'TL1', taskId: 'T1', targetType: 'person', targetId: 'P1' }],
+    };
+    const refreshed: TaskRecord = {
+      ...task,
+      targets: [...task.targets, { id: 'TL2', taskId: 'T1', targetType: 'person', targetId: 'P2' }],
+    };
+    let finishSave!: () => void;
+    const updateTask = vi.fn(
+      (_before: TaskRecord, _after: TaskRecord) =>
+        new Promise<void>((resolve) => {
+          finishSave = resolve;
+        }),
+    );
+    const api = apiStub({ updateTask });
+    const view = renderUi(taskElement(task.id, [task], api));
+
+    const text = screen.getByPlaceholderText(nls.t('features.tasks.text'));
+    fireEvent.change(text, { target: { value: 'New text' } });
+    fireEvent.blur(text, { relatedTarget: document.body });
+    await waitFor(() => expect(updateTask).toHaveBeenCalledTimes(1));
+
+    view.rerender(taskElement(task.id, [refreshed], api));
+    await act(async () => finishSave());
+
+    await waitFor(() =>
+      expect(screen.getAllByRole('button', { name: nls.t('features.targets.remove') })).toHaveLength(2),
+    );
+  });
+
   it('shows a creation error when adding a task fails', async () => {
     const addTask = vi.fn(async () => {
       throw new Error('disk full');

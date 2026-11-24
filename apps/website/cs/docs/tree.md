@@ -1,5 +1,5 @@
 ---
-source-hash: f6a2e6136547
+source-hash: 3cd0833d604b
 ---
 
 # Práce se stromem
@@ -63,8 +63,7 @@ rodiny nebo smazání rodiny je jeden klik.
   sekci Poznámky jiného záznamu a poté zvolte, zda má úprava aktualizovat
   sdílený text všude, nebo jen aktuální záznam. **Odpojit od tohoto záznamu**
   odebere jedno propojení; **Smazat všude** poznámku odstraní.
-- Události a jména mají v editoru osoby vlastní sekce Prameny, Poznámky,
-  Štítky, Identifikátory, Kontakty a Omezení.
+- Události a jména mají v editoru osoby vlastní sekce Prameny, Poznámky, Štítky a Identifikátory; události mají také Kontakty.
 
 ## Adresy
 
@@ -79,14 +78,9 @@ adresy přímo na místě.
 Úkoly mají kromě naplánovaných dat a dat připomenutí také data vytvoření a
 uzavření. Každý editor má sekci **Úkoly**: přidejte tam úkol a automaticky se
 propojí s daným záznamem. Události, jména, citace a poznámky mají vlastní sekci
-Úkoly ve svém panelu příloh. **Související s** propojí úkol s libovolným
-záznamem ve stromu — osobou, rodinou, událostí, jménem, pramenem, citací,
-poznámkou, mediálním souborem, místem, archivem, odesílatelem, adresou, dílem
-nebo dokonce dalším úkolem; ponechte prázdné pro samostatný úkol.
+Úkoly ve svém panelu příloh. **Související s** propojí úkol s jedním nebo několika záznamy ve stromu — osobou, rodinou, událostí, jménem, citací, poznámkou, médiem, místem, archivem, adresou nebo dílem; ponechte prázdné pro samostatný úkol. Úkol je sdílený: úprava kdekoli aktualizuje stejný záznam a smazání souvisejícího záznamu úkol ponechá na místě.
 
-Díla, úkoly, adresy, spojení a vazby partnera/dítěte v rodinách mají stejné
-sekce Poznámky, Prameny, Štítky, Identifikátory, Kontakty, Omezení,
-Přispěvatelé a Úkoly jako karty hlavních entit.
+Díla, adresy, spojení a vazby partnera/dítěte v rodinách mají stejné sekce Poznámky, Prameny, Štítky, Identifikátory, Přispěvatelé a Úkoly jako karty hlavních entit. Adresy mají také Kontakty. Úkoly si zachovávají sekce Poznámky, Štítky, Identifikátory, Přispěvatelé a starší sekci Úkoly, ale nemají Prameny ani Kontakty.
 
 ## Média
 
@@ -97,9 +91,7 @@ na náhled otevřete kartu médií, kde můžete upravit název, spravovat soubo
 upravit metadata propojení, jako je popisek, pořadí, označení hlavní a
 označení vyloučení.
 
-Mediální záznam lze propojit s několika cíli. **Odpojit od tohoto záznamu**
-odebere jedno propojení; **Smazat médium** odstraní záznam a kopie jeho
-souborů. Záznam bez zbývajících propojení se odstraní automaticky.
+Mediální záznam lze propojit s několika cíli. **Odpojit od tohoto záznamu** odebere jedno propojení a smaže záznam, pokud bylo poslední; **Smazat médium** odstraní záznam a kopie jeho souborů. Smazání cílového záznamu odstraní pouze jeho propojení, takže sdílený mediální záznam může zůstat bez propojení.
 
 ## Řazení
 

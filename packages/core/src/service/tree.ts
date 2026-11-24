@@ -938,6 +938,7 @@ export class TreeService {
   }
 
   updateCitation(before: CitationRecord, after: CitationRecord): UndoRedoState {
+    assertCitationTarget(after.targetType);
     return this.apply(updateCitationOp(before, after));
   }
 

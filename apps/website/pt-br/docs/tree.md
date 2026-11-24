@@ -1,5 +1,5 @@
 ---
-source-hash: f6a2e6136547
+source-hash: 3cd0833d604b
 ---
 
 # Trabalhando com a árvore
@@ -67,8 +67,7 @@ clique.
   compartilhado em todos os lugares ou apenas o registro atual. **Desvincular
   deste registro** remove um vínculo; **Excluir em todos os lugares** remove a
   nota.
-- Eventos e nomes têm suas próprias seções Fontes, Notas, Etiquetas,
-  Identificadores, Contatos e Restrições dentro do editor da pessoa.
+- Eventos e nomes têm suas próprias seções Fontes, Notas, Etiquetas e Identificadores dentro do editor da pessoa; eventos também têm Contatos.
 
 ## Endereços
 
@@ -83,15 +82,9 @@ endereço** e **Editar endereço** para editar um endereço no próprio local.
 As tarefas têm datas de criação e encerramento além das datas agendadas e de
 lembrete. Todo editor tem uma seção **Tarefas**: adicione uma tarefa ali e ela
 é vinculada automaticamente àquele registro. Eventos, nomes, citações e notas
-têm sua própria seção Tarefas no painel de anexos. **Relacionado a** vincula
-uma tarefa a qualquer registro da árvore — uma pessoa, família, evento, nome,
-fonte, citação, nota, arquivo de mídia, lugar, repositório, submetedor,
-endereço, obra ou até outra tarefa; deixe vazio para uma tarefa independente.
+têm sua própria seção Tarefas no painel de anexos. **Relacionado a** vincula uma tarefa a um ou mais registros da árvore — uma pessoa, família, evento, nome, fonte, citação, nota, mídia, lugar, repositório, endereço ou obra; deixe vazio para uma tarefa independente. Uma tarefa é compartilhada: editá-la em qualquer lugar atualiza o mesmo registro, e excluir um registro relacionado mantém a tarefa.
 
-Obras, tarefas, endereços, associações e vínculos de parceiro/filho das
-famílias têm as mesmas seções Notas, Fontes, Etiquetas, Identificadores,
-Contatos, Restrições, Colaboradores e Tarefas das abas das entidades
-principais.
+Obras, endereços, associações e vínculos de parceiro/filho das famílias têm as mesmas seções Notas, Fontes, Etiquetas, Identificadores, Colaboradores e Tarefas das abas das entidades principais. Endereços também têm Contatos. As tarefas mantêm Notas, Etiquetas, Identificadores, Colaboradores e a seção Tarefas existente, mas não têm Fontes nem Contatos.
 
 ## Mídia
 
@@ -102,10 +95,7 @@ existente a outro destino. Clique em uma prévia para abrir a aba de mídia, ond
 você pode editar o título, gerenciar os arquivos e editar metadados do vínculo,
 como a legenda, a sequência, o sinalizador principal e o de exclusão.
 
-Um registro de mídia pode ser vinculado a vários destinos. **Desvincular deste
-registro** remove um vínculo; **Excluir mídia** remove o registro e as cópias
-dos seus arquivos. Um registro sem vínculos restantes é removido
-automaticamente.
+Um registro de mídia pode ser vinculado a vários destinos. **Desvincular deste registro** remove um vínculo e exclui o registro quando era o último; **Excluir mídia** remove o registro e as cópias dos seus arquivos. Excluir um registro de destino remove apenas seus vínculos, então um registro de mídia compartilhado pode permanecer sem vínculos.
 
 ## Ordenação
 

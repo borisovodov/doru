@@ -25,6 +25,9 @@ export function TargetPicker({
   placeholder,
   ariaLabel,
   disabled = false,
+  id,
+  'aria-describedby': ariaDescribedBy,
+  'aria-invalid': ariaInvalid,
 }: {
   allowedTypes: readonly string[];
   value: readonly TargetRef[];
@@ -33,6 +36,9 @@ export function TargetPicker({
   placeholder?: string | undefined;
   ariaLabel?: string | undefined;
   disabled?: boolean | undefined;
+  id?: string | undefined;
+  'aria-describedby'?: string | undefined;
+  'aria-invalid'?: boolean | undefined;
 }) {
   const directory = useTargetDirectory();
   const data = explicitData ?? directory;
@@ -108,6 +114,7 @@ export function TargetPicker({
               type="button"
               className={styles['chipRemove']}
               aria-label={nls.t('features.targets.remove')}
+              disabled={disabled}
               onClick={() => remove(target)}
             >
               <X size={12} aria-hidden="true" />
@@ -116,10 +123,13 @@ export function TargetPicker({
         ))}
         <input
           className={styles['input']}
+          id={id}
           value={query}
           disabled={disabled}
           placeholder={value.length === 0 ? (placeholder ?? nls.t('features.search.field')) : ''}
           aria-label={ariaLabel ?? nls.t('features.search.field')}
+          aria-describedby={ariaDescribedBy}
+          aria-invalid={ariaInvalid}
           aria-controls={listId}
           aria-expanded={open}
           role="combobox"

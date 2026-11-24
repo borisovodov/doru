@@ -12,7 +12,7 @@ import type {
   TitleRecord,
 } from '@doru/core';
 import { TARGET_TYPES } from '@doru/core/model';
-import { CitationAttachments, NoteAttachments, useAttachments } from '../attachments';
+import { CitationAttachments, NoteAttachments, refreshAfterTagAttach, useAttachments } from '../attachments';
 import { AutoSaveError } from '../autoSaveFeedback';
 import { useEntityDelete } from '../entityDelete';
 import { Button, DangerZone, InlineError, SectionCard, useAutoSaveOnBlur } from '@doru/ui';
@@ -156,6 +156,7 @@ function SourceTabBody({
   const [titles, setTitles] = useState<TitleRecord[]>([]);
   const [linkTargets, setLinkTargets] = useState<TargetRef[]>([]);
   const [linkError, setLinkError] = useState(false);
+  const [citationError, setCitationError] = useState(false);
   const recordRef = useRef(record);
   const draftRef = useRef(draft);
   const baselineRef = useRef(record);
@@ -371,6 +372,7 @@ function SourceTabBody({
       />
       {currentSource !== undefined && (
         <>
+          {citationError ? <InlineError>{nls.t('features.tree.autosaveFailed')}</InlineError> : null}
           <SourceCitationsList
             source={currentSource}
             persons={persons}
@@ -379,7 +381,10 @@ function SourceTabBody({
             citations={citations}
             notes={notes}
             onOpenPerson={onOpenPerson}
-            onDetachCitation={(citationId) => void api.detachCitation(citationId)}
+            onDetachCitation={(citationId) => {
+              setCitationError(false);
+              void api.detachCitation(citationId).catch(() => setCitationError(true));
+            }}
           />
           {attachSourceToTargets !== undefined && (
             <SectionCard title={nls.t('features.tasks.target')}>
@@ -395,8 +400,18 @@ function SourceTabBody({
                 disabled={linkTargets.length === 0}
                 onClick={() => {
                   setLinkError(false);
-                  void attachSourceToTargets(currentSource.id, linkTargets)
-                    .then(() => setLinkTargets([]))
+                  const submitted = linkTargets;
+                  void attachSourceToTargets(currentSource.id, submitted)
+                    .then(() =>
+                      setLinkTargets((current) =>
+                        current.filter(
+                          (target) =>
+                            !submitted.some(
+                              (entry) => entry.targetType === target.targetType && entry.targetId === target.targetId,
+                            ),
+                        ),
+                      ),
+                    )
                     .catch(() => setLinkError(true));
                 }}
               >
@@ -478,7 +493,7 @@ function SourceTabBody({
                 onAddTag={api.addTag}
                 onUpdateTag={api.updateTag}
                 onDeleteTag={api.deleteTag}
-                onAttachTagToTargets={api.attachTagToTargets}
+                onAttachTagToTargets={refreshAfterTagAttach(api.attachTagToTargets, refreshAttachments)}
                 onAttachTag={async (link) => {
                   await api.attachTag(link);
                   await refreshAttachments();

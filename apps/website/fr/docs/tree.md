@@ -1,5 +1,5 @@
 ---
-source-hash: f6a2e6136547
+source-hash: 3cd0833d604b
 ---
 
 # Travailler avec l'arbre
@@ -69,8 +69,8 @@ famille se fait en un clic.
   modification doit mettre à jour le texte partagé partout ou seulement
   l'enregistrement courant. **Détacher de cet enregistrement** supprime un lien ;
   **Supprimer partout** supprime la note.
-- Les faits et les noms portent leurs propres sections Sources, Notes, Étiquettes,
-  Identifiants et Contacts dans l'éditeur de personne.
+- Les faits et les noms portent leurs propres sections Sources, Notes, Étiquettes
+  et Identifiants dans l'éditeur de personne ; les faits ont aussi des Contacts.
 
 ## Adresses
 
@@ -93,9 +93,11 @@ dépôt, une adresse ou une œuvre ; laissez-le vide pour une tâche indépendan
 Une tâche est partagée : la modifier n'importe où met à jour le même
 enregistrement, et supprimer un enregistrement lié laisse la tâche en place.
 
-Les œuvres, tâches, adresses, associations et liens partenaire/enfant d'une
-famille ont les mêmes sections Notes, Sources, Étiquettes, Identifiants, Contacts,
-Contributeurs et Tâches que les onglets de l'entité principale.
+Les œuvres, adresses, associations et liens partenaire/enfant d'une famille ont
+les mêmes sections Notes, Sources, Étiquettes, Identifiants, Contributeurs et
+Tâches que les onglets de l'entité principale. Les adresses ont aussi des
+Contacts. Les tâches conservent les sections Notes, Étiquettes, Identifiants,
+Contributeurs et l'ancienne section Tâches, mais n'ont ni Sources ni Contacts.
 
 ## Médias
 
@@ -108,9 +110,10 @@ et modifier les métadonnées de lien comme la légende, la séquence, l'indicat
 principal et l'indicateur d'exclusion.
 
 Un enregistrement média peut être lié à plusieurs cibles. **Détacher de cet
-enregistrement** supprime un lien ; **Supprimer le média** supprime
-l'enregistrement et ses copies de fichiers. Un enregistrement qui n'a plus aucun
-lien est supprimé automatiquement.
+enregistrement** supprime un lien et supprime l'enregistrement lorsqu'il était le
+dernier ; **Supprimer le média** supprime l'enregistrement et ses copies de
+fichiers. Supprimer un enregistrement cible ne supprime que ses liens, de sorte
+qu'un média partagé peut rester sans lien.
 
 ## Ordre
 

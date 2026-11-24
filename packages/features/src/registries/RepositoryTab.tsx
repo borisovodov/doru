@@ -4,7 +4,13 @@ import { SectionCard } from '@doru/ui';
 import { Field } from '@doru/ui';
 import { Archive } from 'lucide-react';
 import type { AddressRecord, RepositoryRecord, SourceRecord, TitleRecord } from '@doru/core';
-import { AttachmentsPanel, CitationAttachments, NoteAttachments, useAttachments } from '../attachments';
+import {
+  AttachmentsPanel,
+  CitationAttachments,
+  NoteAttachments,
+  refreshAfterTagAttach,
+  useAttachments,
+} from '../attachments';
 import { AutoSaveError } from '../autoSaveFeedback';
 import { useEntityDelete } from '../entityDelete';
 import { MediaSection } from '../media/MediaSection';
@@ -404,7 +410,7 @@ function RepositoryTabBody({
             onAddTag={api.addTag}
             onUpdateTag={api.updateTag}
             onDeleteTag={api.deleteTag}
-            onAttachTagToTargets={api.attachTagToTargets}
+            onAttachTagToTargets={refreshAfterTagAttach(api.attachTagToTargets, refreshAttachments)}
             onAttachTag={async (link) => {
               await api.attachTag(link);
               await refreshAttachments();

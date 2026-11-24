@@ -58,15 +58,19 @@ export function SourcesSection({
     if (!trimmed) {
       return;
     }
+    const submitted = extraTargets;
+    if (submitted.length > 0 && onAddSourceToTargets === undefined) {
+      return;
+    }
     const source = { id: crypto.randomUUID(), title: trimmed, author: author.trim() || undefined };
     if (onAddSourceToTargets !== undefined) {
-      await onAddSourceToTargets(source, [{ targetType, targetId }, ...extraTargets]);
+      await onAddSourceToTargets(source, [{ targetType, targetId }, ...submitted]);
+      setExtraTargets((current) => current.filter((target) => !containsTarget(submitted, target)));
     } else {
       await onAddSource(source, targetType, targetId);
     }
     setTitle('');
     setAuthor('');
-    setExtraTargets([]);
     await refresh();
   };
 
@@ -79,12 +83,16 @@ export function SourcesSection({
   };
 
   const attach = async (sourceId: string) => {
+    const submitted = extraTargets;
+    if (submitted.length > 0 && onAttachSourceToTargets === undefined) {
+      return;
+    }
     if (onAttachSourceToTargets !== undefined) {
-      await onAttachSourceToTargets(sourceId, [{ targetType, targetId }, ...extraTargets]);
+      await onAttachSourceToTargets(sourceId, [{ targetType, targetId }, ...submitted]);
+      setExtraTargets((current) => current.filter((target) => !containsTarget(submitted, target)));
     } else {
       await onAttachSource(sourceId, targetType, targetId);
     }
-    setExtraTargets([]);
     await refresh();
   };
 
@@ -156,7 +164,11 @@ export function SourcesSection({
           value={author}
           onChange={(event) => setAuthor(event.target.value)}
         />
-        <Button variant="primary" onClick={() => void addNew()}>
+        <Button
+          variant="primary"
+          disabled={extraTargets.length > 0 && onAddSourceToTargets === undefined}
+          onClick={() => void addNew()}
+        >
           {nls.t('features.tree.sources.add')}
         </Button>
       </div>
@@ -168,6 +180,7 @@ export function SourcesSection({
               size="sm"
               variant="secondary"
               title={source.title}
+              disabled={extraTargets.length > 0 && onAttachSourceToTargets === undefined}
               onClick={() => void attach(source.id)}
             >
               {nls.t('features.tree.sources.attach')}: {source.title}
@@ -177,4 +190,8 @@ export function SourcesSection({
       )}
     </SectionCard>
   );
+}
+
+function containsTarget(targets: readonly TargetRef[], target: TargetRef): boolean {
+  return targets.some((entry) => entry.targetType === target.targetType && entry.targetId === target.targetId);
 }

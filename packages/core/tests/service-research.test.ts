@@ -117,6 +117,27 @@ describe('TreeService research layer', () => {
     }
   });
 
+  it('rejects a new task whose link belongs to another task', () => {
+    const { fixture, service } = makeService();
+    try {
+      service.addTask(task());
+      expect(() =>
+        service.addTask(
+          task({
+            id: 'T2',
+            text: 'Foreign link',
+            targets: [{ id: 'TL2', taskId: 'T1', targetType: 'person', targetId: 'P1' }],
+          }),
+        ),
+      ).toThrow('task link TL2 belongs to T1, not T2');
+
+      expect(fixture.repo.getTask('T2')).toBeUndefined();
+      expect(fixture.repo.getTask('T1')).toMatchObject({ targets: [] });
+    } finally {
+      cleanupRepo(fixture);
+    }
+  });
+
   it('normalizes status and priority on task update', () => {
     const { fixture, service } = makeService();
     try {

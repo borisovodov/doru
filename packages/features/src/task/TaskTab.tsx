@@ -322,8 +322,9 @@ function TaskTabBody({
               JSON.stringify(baselineDraft) === JSON.stringify(taskToDraft(before)) ||
               JSON.stringify(baselineDraft) === JSON.stringify(taskToDraft(after))
             ) {
-              savedRef.current = after;
-              setLastSaved(after);
+              const acknowledged: TaskRecord = { ...after, targets: currentBaseline.targets };
+              savedRef.current = acknowledged;
+              setLastSaved(acknowledged);
             }
           }
         } catch (error) {

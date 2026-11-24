@@ -417,6 +417,7 @@ export function attachMediaLinksOp(links: MediaLinkRecord[]): Op {
     },
     (ctx) => {
       for (const link of links) {
+        ctx.repo.deleteAttachmentsFor('media_link', link.id);
         ctx.repo.removeMediaLinkOnly(link.id);
       }
     },

@@ -743,8 +743,18 @@ function MediaTabBody({
                 disabled={linkTargets.length === 0}
                 onClick={() => {
                   setLinkError(false);
-                  void attachMediaToTargets(record.id, linkTargets)
-                    .then(() => setLinkTargets([]))
+                  const submitted = linkTargets;
+                  void attachMediaToTargets(record.id, submitted)
+                    .then(() =>
+                      setLinkTargets((current) =>
+                        current.filter(
+                          (target) =>
+                            !submitted.some(
+                              (entry) => entry.targetType === target.targetType && entry.targetId === target.targetId,
+                            ),
+                        ),
+                      ),
+                    )
                     .catch(() => setLinkError(true));
                 }}
               >

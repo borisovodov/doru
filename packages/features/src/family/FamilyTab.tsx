@@ -1,6 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { AssociationRecord, FamilyRecord, PersonRecord, SourceRecord } from '@doru/core';
-import { AttachmentsPanel, CitationAttachments, NoteAttachments, useAttachments } from '../attachments';
+import {
+  AttachmentsPanel,
+  CitationAttachments,
+  NoteAttachments,
+  refreshAfterTagAttach,
+  useAttachments,
+} from '../attachments';
 import { MediaSection } from '../media/MediaSection';
 import { EntityTab } from '../sidebar';
 import type { FamilyEditorApi, MediaTargetApi } from '../person/types';
@@ -481,7 +487,7 @@ function FamilyTabBody({
         onAddTag={api.addTag}
         onUpdateTag={api.updateTag}
         onDeleteTag={api.deleteTag}
-        onAttachTagToTargets={api.attachTagToTargets}
+        onAttachTagToTargets={refreshAfterTagAttach(api.attachTagToTargets, refreshAttachments)}
         onAttachTag={async (link) => {
           await api.attachTag(link);
           await refreshAttachments();

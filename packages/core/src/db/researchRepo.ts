@@ -20,6 +20,9 @@ export class ResearchRepo {
         )
         .run(...taskParams(task));
       for (const link of task.targets) {
+        if (link.taskId !== task.id) {
+          throw new Error(`task link ${link.id} belongs to ${link.taskId}, not ${task.id}`);
+        }
         this.insertTaskLink(link);
       }
     });

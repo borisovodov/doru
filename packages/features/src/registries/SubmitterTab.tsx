@@ -6,7 +6,13 @@ import { Field, FieldGrid, InlineForm } from '@doru/ui';
 import { Plus, User, X } from 'lucide-react';
 import type { AddressRecord, RecordSubmitterLink, SourceRecord, SubmitterRecord } from '@doru/core';
 import { MEDIA_VISIBLE } from '@doru/platform';
-import { AttachmentsPanel, CitationAttachments, NoteAttachments, useAttachments } from '../attachments';
+import {
+  AttachmentsPanel,
+  CitationAttachments,
+  NoteAttachments,
+  refreshAfterTagAttach,
+  useAttachments,
+} from '../attachments';
 import { AutoSaveError } from '../autoSaveFeedback';
 import { useEntityDelete } from '../entityDelete';
 import { MediaSection } from '../media/MediaSection';
@@ -460,7 +466,7 @@ function SubmitterTabBody({
             onAddTag={api.addTag}
             onUpdateTag={api.updateTag}
             onDeleteTag={api.deleteTag}
-            onAttachTagToTargets={api.attachTagToTargets}
+            onAttachTagToTargets={refreshAfterTagAttach(api.attachTagToTargets, refreshAttachments)}
             onAttachTag={async (link) => {
               await api.attachTag(link);
               await refreshAttachments();

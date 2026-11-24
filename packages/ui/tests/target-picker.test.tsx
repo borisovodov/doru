@@ -1,7 +1,9 @@
 import { useState } from 'react';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { fireEvent, screen } from '@testing-library/react';
 import type { TargetRef } from '@doru/core/model';
+import { Field } from '../src/atoms/field/Field';
+import { nls } from '../src/nls';
 import { TargetDirectoryProvider, TargetPicker } from '../src/domain/targets';
 import type { TargetData } from '../src/domain/task/taskTargets';
 import { renderUi } from '../../../test/ui/harness';
@@ -63,5 +65,39 @@ describe('TargetPicker', () => {
     fireEvent.click(screen.getByRole('option', { name: /Anna Petrova/ }));
     expect(screen.getByText('Moscow')).toBeInTheDocument();
     expect(screen.getByText('Anna Petrova')).toBeInTheDocument();
+  });
+
+  it('links the field label to the picker input', () => {
+    renderUi(
+      <TargetDirectoryProvider data={data}>
+        <Field label="Related to">
+          <TargetPicker allowedTypes={['person']} value={[]} onChange={() => undefined} />
+        </Field>
+      </TargetDirectoryProvider>,
+    );
+
+    const input = screen.getByRole('combobox');
+    const label = screen.getByText('Related to');
+    expect(input.id).not.toBe('');
+    expect(label).toHaveAttribute('for', input.id);
+  });
+
+  it('does not remove selected targets while disabled', () => {
+    const onChange = vi.fn();
+    renderUi(
+      <TargetDirectoryProvider data={data}>
+        <TargetPicker
+          allowedTypes={['person']}
+          value={[{ targetType: 'person', targetId: 'P1' }]}
+          onChange={onChange}
+          disabled
+        />
+      </TargetDirectoryProvider>,
+    );
+
+    const remove = screen.getByRole('button', { name: nls.t('features.targets.remove') });
+    expect(remove).toBeDisabled();
+    fireEvent.click(remove);
+    expect(onChange).not.toHaveBeenCalled();
   });
 });

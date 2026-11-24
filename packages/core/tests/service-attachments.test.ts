@@ -207,6 +207,7 @@ describe('TreeService attachments', () => {
   it('refuses to cite a task', () => {
     const { fixture, service } = makeService();
     try {
+      service.addPerson({ id: 'P1', names: [], sex: 'U', facts: [] });
       service.addTask({ id: 'T1', text: 'Find the record', targets: [] });
 
       expect(() => service.addSource(source(), 'task', 'T1')).toThrow('A source cannot be attached to a task.');
@@ -214,6 +215,14 @@ describe('TreeService attachments', () => {
 
       service.addSource(source());
       expect(() => service.attachSource('S1', 'task', 'T1')).toThrow('A source cannot be attached to a task.');
+      expect(fixture.repo.listCitationsFor('task', 'T1')).toEqual([]);
+
+      service.attachSource('S1', 'person', 'P1');
+      const [citation] = fixture.repo.listCitationRecordsFor('person', 'P1');
+      expect(() => service.updateCitation(citation!, { ...citation!, targetType: 'task', targetId: 'T1' })).toThrow(
+        'A source cannot be attached to a task.',
+      );
+      expect(fixture.repo.listCitationRecordsFor('person', 'P1')).toEqual([citation]);
       expect(fixture.repo.listCitationsFor('task', 'T1')).toEqual([]);
     } finally {
       cleanupRepo(fixture);
@@ -499,13 +508,23 @@ describe('TreeService attachments', () => {
       expect(fixture.repo.listMediaFor('person', 'P1')).toHaveLength(1);
       expect(fixture.repo.listMediaFor('person', 'P2')).toHaveLength(1);
       expect(fixture.repo.getMedia('M1')?.links).toHaveLength(2);
+      const [firstLink] = fixture.repo.listMediaLinksFor('person', 'P1');
+      fixture.repo.insertCitation({
+        id: 'C1',
+        sourceId: 'S1',
+        targetType: 'media_link',
+        targetId: firstLink!.link.id,
+      });
 
       service.undo();
       expect(fixture.repo.getMedia('M1')?.links).toEqual([]);
+      expect(fixture.repo.listCitationRecordsFor('media_link', firstLink!.link.id)).toEqual([]);
       service.undo();
       expect(fixture.repo.listTagLinksFor('person', 'P1')).toEqual([]);
+      expect(fixture.repo.listTagLinksFor('person', 'P2')).toEqual([]);
       service.undo();
       expect(fixture.repo.listCitationsFor('person', 'P1')).toEqual([]);
+      expect(fixture.repo.listCitationsFor('person', 'P2')).toEqual([]);
     } finally {
       cleanupRepo(fixture);
     }

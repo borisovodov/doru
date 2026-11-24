@@ -1,6 +1,12 @@
 import { useEffect, useRef, useState } from 'react';
 import type { FactRecord, FamilyRecord, PersonRecord, PlaceRecord, SourceRecord } from '@doru/core';
-import { AttachmentsPanel, CitationAttachments, NoteAttachments, useAttachments } from '../attachments';
+import {
+  AttachmentsPanel,
+  CitationAttachments,
+  NoteAttachments,
+  refreshAfterTagAttach,
+  useAttachments,
+} from '../attachments';
 import { MediaSection } from '../media/MediaSection';
 import { AutoSaveError } from '../autoSaveFeedback';
 import { useEntityDelete } from '../entityDelete';
@@ -406,7 +412,7 @@ function PlaceTabBody({
                 onAddTag={api.addTag}
                 onUpdateTag={api.updateTag}
                 onDeleteTag={api.deleteTag}
-                onAttachTagToTargets={api.attachTagToTargets}
+                onAttachTagToTargets={refreshAfterTagAttach(api.attachTagToTargets, refreshAttachments)}
                 onAttachTag={async (link) => {
                   await api.attachTag(link);
                   await refreshAttachments();

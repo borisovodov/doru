@@ -436,6 +436,56 @@ describe('SourceTab', () => {
     expect(screen.getAllByRole('button', { name: nls.t('features.tree.sources.attach') })[0]).toBeEnabled();
   });
 
+  it('keeps a citation and reports a failed detach', async () => {
+    const detachCitation = vi.fn(async () => {
+      throw new Error('disk full');
+    });
+    const api = stubApi<SourceEditorApi>({
+      getRepositories: async () => [],
+      getTitles: async () => [],
+      getNotes: async () => [],
+      getAllNotes: async () => [],
+      getCitations: async () => [],
+      getTags: async () => [],
+      getTagLinks: async () => [],
+      getIdentifiers: async () => [],
+      getContacts: async () => [],
+      getSubmitters: async () => [],
+      getRecordSubmitters: async () => [],
+      getMediaFor: async () => [],
+      getAllMedia: async () => [],
+      getTasksFor: async () => [],
+      detachCitation,
+    });
+    const mediaApi = stubApi<MediaTargetApi>({ getMediaFor: async () => [], getAllMedia: async () => [] });
+    const citation = { id: 'C1', sourceId: 'S1', targetType: 'person', targetId: 'P1' };
+    renderUi(
+      <SourceTab
+        entityId="S1"
+        sources={[{ id: 'S1', title: 'Book' }]}
+        api={api}
+        persons={[{ id: 'P1', names: [{ id: 'N1', given: 'Ivan', surname: 'Petrov' }], sex: 'M', facts: [] }]}
+        families={[]}
+        facts={[]}
+        places={[]}
+        citations={[citation]}
+        notes={[]}
+        media={[]}
+        mediaApi={mediaApi}
+        onOpenPerson={vi.fn()}
+        onOpenMedia={vi.fn()}
+        onOpenSource={vi.fn()}
+        onClose={vi.fn()}
+        onCreated={vi.fn()}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: nls.t('features.tree.sources.detach') }));
+    await waitFor(() => expect(detachCitation).toHaveBeenCalledWith('C1'));
+    expect(await screen.findByText(nls.t('features.tree.autosaveFailed'))).toBeInTheDocument();
+    expect(screen.getByText('Ivan Petrov')).toBeInTheDocument();
+  });
+
   it('shows a missing-source message for an unknown id', () => {
     renderTab({ entityId: 'missing' });
     expect(screen.getByText(nls.t('features.sources.notFound'))).toBeInTheDocument();

@@ -55,12 +55,16 @@ export function MediaSection({
   }, [api]);
 
   const add = async () => {
+    const submitted = extraTargets;
+    if (submitted.length > 0 && api.addMediaToTargets === undefined) {
+      return;
+    }
     if (api.addMediaToTargets !== undefined) {
-      await api.addMediaToTargets([{ targetType, targetId }, ...extraTargets]);
+      await api.addMediaToTargets([{ targetType, targetId }, ...submitted]);
+      setExtraTargets((current) => current.filter((target) => !containsTarget(submitted, target)));
     } else {
       await api.addMediaToTarget(targetType, targetId);
     }
-    setExtraTargets([]);
     await refresh();
     setAllMedia(await api.getAllMedia());
   };
@@ -69,13 +73,17 @@ export function MediaSection({
     if (attachId === '') {
       return;
     }
+    const submitted = extraTargets;
+    if (submitted.length > 0 && api.attachMediaToTargets === undefined) {
+      return;
+    }
     if (api.attachMediaToTargets !== undefined) {
-      await api.attachMediaToTargets(attachId, [{ targetType, targetId }, ...extraTargets]);
+      await api.attachMediaToTargets(attachId, [{ targetType, targetId }, ...submitted]);
+      setExtraTargets((current) => current.filter((target) => !containsTarget(submitted, target)));
     } else {
       await api.attachMedia({ id: crypto.randomUUID(), mediaId: attachId, targetType, targetId });
     }
     setAttachId('');
-    setExtraTargets([]);
     await refresh();
     setAllMedia(await api.getAllMedia());
   };
@@ -161,7 +169,11 @@ export function MediaSection({
         />
       )}
       <div className={styles['actions']}>
-        <Button variant="primary" onClick={() => void add()}>
+        <Button
+          variant="primary"
+          disabled={extraTargets.length > 0 && api.addMediaToTargets === undefined}
+          onClick={() => void add()}
+        >
           {nls.t('features.tree.media.add')}
         </Button>
         {attachable.length > 0 && (
@@ -174,7 +186,11 @@ export function MediaSection({
                 </option>
               ))}
             </Select>
-            <Button variant="secondary" disabled={attachId === ''} onClick={() => void attach()}>
+            <Button
+              variant="secondary"
+              disabled={attachId === '' || (extraTargets.length > 0 && api.attachMediaToTargets === undefined)}
+              onClick={() => void attach()}
+            >
               {nls.t('features.tree.media.attach')}
             </Button>
           </>
@@ -182,4 +198,8 @@ export function MediaSection({
       </div>
     </SectionCard>
   );
+}
+
+function containsTarget(targets: readonly TargetRef[], target: TargetRef): boolean {
+  return targets.some((entry) => entry.targetType === target.targetType && entry.targetId === target.targetId);
 }

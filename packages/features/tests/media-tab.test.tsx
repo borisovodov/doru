@@ -313,6 +313,51 @@ describe('MediaTab', () => {
     await act(async () => second.resolve());
   });
 
+  it('keeps targets selected while an attach request is pending', async () => {
+    const pending = deferred();
+    const attachMediaToTargets = vi.fn(async () => pending.promise);
+    const api = stubApi<MediaAdminApi>({
+      getMediaFor: async () => [],
+      getAllMedia: async () => [],
+      attachMediaToTargets,
+    });
+    renderUi(
+      <TargetDirectoryProvider
+        data={{
+          ...targetData,
+          places: [
+            { id: 'PL1', names: [{ id: 'PN1', kind: 'official', position: 0, value: 'Moscow' }] },
+            { id: 'PL2', names: [{ id: 'PN2', kind: 'official', position: 0, value: 'Kazan' }] },
+          ],
+        }}
+      >
+        <MediaTab
+          entityId="M1"
+          media={[{ id: 'M1', title: 'Photo', absolutePath: '', files: [] }]}
+          api={api}
+          attachmentsApi={attachmentsStub()}
+          sources={[]}
+          targetData={targetData}
+          onClose={vi.fn()}
+        />
+      </TargetDirectoryProvider>,
+    );
+
+    fireEvent.focus(screen.getAllByRole('combobox', { name: nls.t('features.tasks.target') })[0]!);
+    fireEvent.click(screen.getByRole('option', { name: 'MoscowPlace' }));
+    fireEvent.click(screen.getAllByRole('button', { name: nls.t('features.tree.media.attach') })[0]!);
+    await waitFor(() => expect(attachMediaToTargets).toHaveBeenCalledTimes(1));
+
+    fireEvent.click(screen.getByRole('option', { name: 'KazanPlace' }));
+    expect(screen.getAllByRole('button', { name: nls.t('features.targets.remove') })).toHaveLength(2);
+
+    await act(async () => pending.resolve());
+    await waitFor(() =>
+      expect(screen.getAllByRole('button', { name: nls.t('features.targets.remove') })).toHaveLength(1),
+    );
+    expect(screen.getByText('Kazan')).toBeInTheDocument();
+  });
+
   it('opens a source from the media-link sources panel', async () => {
     const openSource = vi.fn();
     const api = stubApi<MediaAdminApi>({

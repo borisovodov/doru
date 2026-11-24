@@ -33,6 +33,7 @@ import { FactsSection } from '@doru/ui/domain';
 import { FamilySection } from '@doru/ui/domain';
 import { NotesSection } from '@doru/ui/domain';
 import { AttachmentsPanel } from '../attachments/AttachmentsPanel';
+import { refreshAfterTagAttach } from '../attachments/useAttachments';
 import { CitationAttachments, NoteAttachments } from '../attachments/TargetAttachments';
 import { MediaSection } from '../media/MediaSection';
 import { NamesSection } from '@doru/ui/domain';
@@ -592,7 +593,7 @@ export function PersonEditor({
               await api.deleteTag(tag);
               await refreshAttachments();
             }}
-            onAttachTagToTargets={api.attachTagToTargets}
+            onAttachTagToTargets={refreshAfterTagAttach(api.attachTagToTargets, refreshAttachments)}
             onAttachTag={async (link) => {
               try {
                 await api.attachTag(link);
