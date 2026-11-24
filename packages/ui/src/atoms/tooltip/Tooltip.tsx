@@ -8,7 +8,7 @@ import {
   useState,
   type CSSProperties,
   type FocusEvent,
-  type KeyboardEvent,
+  type KeyboardEvent as ReactKeyboardEvent,
   type MouseEvent,
   type PointerEvent,
   type ReactElement,
@@ -28,7 +28,7 @@ interface TriggerProps {
   onMouseLeave?: ((event: MouseEvent<HTMLElement>) => void) | undefined;
   onFocus?: ((event: FocusEvent<HTMLElement>) => void) | undefined;
   onBlur?: ((event: FocusEvent<HTMLElement>) => void) | undefined;
-  onKeyDown?: ((event: KeyboardEvent<HTMLElement>) => void) | undefined;
+  onKeyDown?: ((event: ReactKeyboardEvent<HTMLElement>) => void) | undefined;
   onClick?: ((event: MouseEvent<HTMLElement>) => void) | undefined;
   onPointerDown?: ((event: PointerEvent<HTMLElement>) => void) | undefined;
 }
@@ -44,18 +44,24 @@ export interface TooltipProps {
 }
 
 const DEFAULT_DELAY_MS = 600;
+const TOOLTIP_HIDE_DELAY_MS = 200;
 const VIEWPORT_PADDING = 8;
 const GAP = 8;
 
 /** Only one tooltip may be scheduled or visible at a time across the window. */
 let activeTooltip: (() => void) | null = null;
 
-function assignRef<T>(ref: Ref<T> | undefined, value: T | null): void {
+type RefCleanup = () => void;
+
+function assignRef<T>(ref: Ref<T> | undefined, value: T | null): RefCleanup | undefined {
   if (typeof ref === 'function') {
-    ref(value);
-  } else if (ref !== null && ref !== undefined) {
+    const cleanup = ref(value);
+    return typeof cleanup === 'function' ? cleanup : undefined;
+  }
+  if (ref !== null && ref !== undefined) {
     ref.current = value;
   }
+  return undefined;
 }
 
 interface AnchorRect {
@@ -125,6 +131,7 @@ export function Tooltip({
   const [anchor, setAnchor] = useState<AnchorRect | null>(null);
   const [position, setPosition] = useState<Position | null>(null);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const leaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const tooltipRef = useRef<HTMLSpanElement | null>(null);
   const triggerElementRef = useRef<HTMLElement | null>(null);
   const id = useId();
@@ -135,7 +142,18 @@ export function Tooltip({
   const setTriggerRef = useCallback(
     (node: HTMLElement | null) => {
       triggerElementRef.current = node;
-      assignRef(triggerProps.ref, node);
+      const cleanup = assignRef(triggerProps.ref, node);
+      if (node === null) {
+        return undefined;
+      }
+      return () => {
+        triggerElementRef.current = null;
+        if (cleanup !== undefined) {
+          cleanup();
+        } else {
+          assignRef(triggerProps.ref, null);
+        }
+      };
     },
     [triggerProps.ref],
   );
@@ -147,9 +165,17 @@ export function Tooltip({
     }
   }, []);
 
+  const clearLeaveTimer = useCallback(() => {
+    if (leaveTimerRef.current !== null) {
+      clearTimeout(leaveTimerRef.current);
+      leaveTimerRef.current = null;
+    }
+  }, []);
+
   const hide = useCallback(
     function hideTooltip() {
       clearTimer();
+      clearLeaveTimer();
       if (activeTooltip === hideTooltip) {
         activeTooltip = null;
       }
@@ -157,8 +183,17 @@ export function Tooltip({
       setAnchor(null);
       setPosition(null);
     },
-    [clearTimer],
+    [clearLeaveTimer, clearTimer],
   );
+
+  const scheduleHide = useCallback(() => {
+    clearLeaveTimer();
+    if (!open) {
+      hide();
+      return;
+    }
+    leaveTimerRef.current = setTimeout(hide, TOOLTIP_HIDE_DELAY_MS);
+  }, [clearLeaveTimer, hide, open]);
 
   const show = useCallback(
     (element: HTMLElement) => {
@@ -167,6 +202,7 @@ export function Tooltip({
       }
       activeTooltip = hide;
       clearTimer();
+      clearLeaveTimer();
       timerRef.current = setTimeout(() => {
         const rect = element.getBoundingClientRect();
         setAnchor({
@@ -181,17 +217,18 @@ export function Tooltip({
         setOpen(true);
       }, delay);
     },
-    [clearTimer, delay, hide],
+    [clearLeaveTimer, clearTimer, delay, hide],
   );
 
   useEffect(
     () => () => {
       clearTimer();
+      clearLeaveTimer();
       if (activeTooltip === hide) {
         activeTooltip = null;
       }
     },
-    [clearTimer, hide],
+    [clearLeaveTimer, clearTimer, hide],
   );
 
   useEffect(() => {
@@ -199,11 +236,18 @@ export function Tooltip({
       return;
     }
     const onScrollOrResize = () => hide();
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        hide();
+      }
+    };
     window.addEventListener('scroll', onScrollOrResize, true);
     window.addEventListener('resize', onScrollOrResize);
+    document.addEventListener('keydown', onKeyDown);
     return () => {
       window.removeEventListener('scroll', onScrollOrResize, true);
       window.removeEventListener('resize', onScrollOrResize);
+      document.removeEventListener('keydown', onKeyDown);
     };
   }, [open, hide]);
 
@@ -216,14 +260,14 @@ export function Tooltip({
       return;
     }
     const enter = () => show(element);
-    const leave = () => hide();
+    const leave = () => scheduleHide();
     element.addEventListener('pointerenter', enter);
     element.addEventListener('pointerleave', leave);
     return () => {
       element.removeEventListener('pointerenter', enter);
       element.removeEventListener('pointerleave', leave);
     };
-  }, [disabled, hide, show]);
+  }, [disabled, scheduleHide, show]);
 
   useLayoutEffect(() => {
     if (!open || anchor === null) {
@@ -257,7 +301,7 @@ export function Tooltip({
         },
         onMouseLeave: (event: MouseEvent<HTMLElement>) => {
           triggerProps.onMouseLeave?.(event);
-          hide();
+          scheduleHide();
         },
         onFocus: (event: FocusEvent<HTMLElement>) => {
           triggerProps.onFocus?.(event);
@@ -267,7 +311,7 @@ export function Tooltip({
           triggerProps.onBlur?.(event);
           hide();
         },
-        onKeyDown: (event: KeyboardEvent<HTMLElement>) => {
+        onKeyDown: (event: ReactKeyboardEvent<HTMLElement>) => {
           triggerProps.onKeyDown?.(event);
           if (event.key === 'Escape') {
             hide();
@@ -284,7 +328,15 @@ export function Tooltip({
       })}
       {open
         ? createPortal(
-            <span id={id} ref={tooltipRef} role="tooltip" className={cx(styles['tooltip'], className)} style={style}>
+            <span
+              id={id}
+              ref={tooltipRef}
+              role="tooltip"
+              className={cx(styles['tooltip'], className)}
+              style={style}
+              onPointerEnter={clearLeaveTimer}
+              onPointerLeave={scheduleHide}
+            >
               <span className={styles['label']}>{label}</span>
               {shortcut !== undefined ? <Kbd>{shortcut}</Kbd> : null}
             </span>,

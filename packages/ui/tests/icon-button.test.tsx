@@ -36,8 +36,28 @@ describe('IconButton tooltip', () => {
     expect(button).toHaveAttribute('aria-describedby', tooltip.id);
 
     fireEvent.mouseLeave(button);
+    act(() => {
+      vi.advanceTimersByTime(250);
+    });
     expect(screen.queryByRole('tooltip')).not.toBeInTheDocument();
     expect(button).not.toHaveAttribute('aria-describedby');
+  });
+
+  it('does not open when the pointer leaves before the delay', () => {
+    vi.useFakeTimers();
+    renderUi(<IconButton label="Edit person" icon={<Pencil aria-hidden="true" />} />);
+
+    const button = screen.getByRole('button', { name: 'Edit person' });
+    fireEvent.mouseEnter(button);
+    act(() => {
+      vi.advanceTimersByTime(550);
+    });
+    fireEvent.mouseLeave(button);
+    act(() => {
+      vi.advanceTimersByTime(100);
+    });
+
+    expect(screen.queryByRole('tooltip')).not.toBeInTheDocument();
   });
 
   it('opens on keyboard focus and closes on blur or Escape', () => {
@@ -86,6 +106,9 @@ describe('IconButton tooltip', () => {
     expect(screen.getByRole('tooltip')).toHaveTextContent('Edit person');
 
     fireEvent.pointerLeave(button);
+    act(() => {
+      vi.advanceTimersByTime(250);
+    });
     expect(screen.queryByRole('tooltip')).not.toBeInTheDocument();
   });
 
@@ -114,10 +137,59 @@ describe('IconButton tooltip', () => {
     expect(tooltips[0]).toHaveTextContent('Second');
   });
 
+  it('stays open while the pointer moves onto the tooltip', () => {
+    vi.useFakeTimers();
+    renderUi(<IconButton label="Edit person" icon={<Pencil aria-hidden="true" />} />);
+
+    const button = screen.getByRole('button', { name: 'Edit person' });
+    showTooltip(button);
+
+    const tooltip = screen.getByRole('tooltip');
+    fireEvent.mouseLeave(button);
+    fireEvent.pointerEnter(tooltip);
+    act(() => {
+      vi.advanceTimersByTime(250);
+    });
+    expect(screen.getByRole('tooltip')).toBeInTheDocument();
+
+    fireEvent.pointerLeave(tooltip);
+    act(() => {
+      vi.advanceTimersByTime(250);
+    });
+    expect(screen.queryByRole('tooltip')).not.toBeInTheDocument();
+  });
+
+  it('closes on Escape even when the trigger is not focused', () => {
+    vi.useFakeTimers();
+    renderUi(<IconButton label="Edit person" icon={<Pencil aria-hidden="true" />} />);
+
+    showTooltip(screen.getByRole('button', { name: 'Edit person' }));
+    expect(screen.getByRole('tooltip')).toBeInTheDocument();
+
+    fireEvent.keyDown(document, { key: 'Escape' });
+    expect(screen.queryByRole('tooltip')).not.toBeInTheDocument();
+  });
+
   it('forwards the ref to the underlying button', () => {
     const ref = createRef<HTMLButtonElement>();
-    renderUi(<IconButton ref={ref} label="Edit person" icon={<Pencil aria-hidden="true" />} />);
+    const result = renderUi(<IconButton ref={ref} label="Edit person" icon={<Pencil aria-hidden="true" />} />);
 
     expect(ref.current).toBe(screen.getByRole('button', { name: 'Edit person' }));
+    result.unmount();
+    expect(ref.current).toBeNull();
+  });
+
+  it('runs callback-ref cleanup on unmount', () => {
+    const cleanup = vi.fn();
+    const ref = (node: HTMLButtonElement | null) => {
+      if (node === null) {
+        return undefined;
+      }
+      return cleanup;
+    };
+    const result = renderUi(<IconButton ref={ref} label="Edit person" icon={<Pencil aria-hidden="true" />} />);
+
+    result.unmount();
+    expect(cleanup).toHaveBeenCalledTimes(1);
   });
 });
