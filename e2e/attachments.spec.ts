@@ -108,6 +108,11 @@ test('attachments, addresses and task fields round-trip through the desktop IPC'
         text: 'Check the register',
         targets: [{ id: 'ATL2', taskId: 'AT2', targetType: 'person', targetId: 'I1' }],
       });
+      await window.doru.addTask(project, {
+        id: 'AT3',
+        text: 'Attach the 1905 copy',
+        targets: [],
+      });
       const personTasks = await window.doru.getTasksFor(project, 'person', 'I1');
       if (personTasks.length !== 1 || personTasks[0]?.id !== 'AT2') {
         throw new Error('per-target task query missing');
@@ -127,9 +132,24 @@ test('attachments, addresses and task fields round-trip through the desktop IPC'
   await peopleList.getByRole('button').first().click();
   await expect(page.getByRole('region', { name: 'Person editor' })).toBeVisible();
 
-  const tasks = page.getByRole('region', { name: 'Tasks' }).filter({ hasText: 'Check the register' });
-  await expect(tasks).toBeVisible();
-  await tasks.getByRole('button', { name: 'Open task' }).click();
+  const tasksRegion = page
+    .getByRole('region', { name: 'Tasks' })
+    .filter({ has: page.getByRole('button', { name: 'Open task' }) });
+  await expect(tasksRegion).toBeVisible();
+  await tasksRegion.getByRole('combobox', { name: 'Attach an existing task' }).selectOption('AT3');
+  await tasksRegion.getByRole('button', { name: 'Attach' }).click();
+  await expect(tasksRegion.getByText('Attach the 1905 copy')).toBeVisible();
+  const linkedTaskIds = await page.evaluate(
+    async (projectPath) => (await window.doru.getTasksFor(projectPath, 'person', 'I1')).map((task) => task.id),
+    project,
+  );
+  expect(linkedTaskIds).toContain('AT3');
+
+  await tasksRegion
+    .getByRole('listitem')
+    .filter({ hasText: 'Check the register' })
+    .getByRole('button', { name: 'Open task' })
+    .click();
   const taskRelated = page.getByRole('region', { name: 'Related to' });
   const targetOptions = taskRelated.getByRole('listbox');
   await taskRelated.getByLabel('Related to').click();

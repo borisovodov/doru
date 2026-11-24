@@ -53,6 +53,8 @@
   "features.sources.placeholder": "Még nincsenek források.",
   "features.targets.remove": "Eltávolítás",
   "features.tasks.add": "Feladat hozzáadása",
+  "features.tasks.attach": "Csatolás",
+  "features.tasks.attachExisting": "Meglévő feladat csatolása",
   "features.tasks.cancel": "Mégse",
   "features.tasks.chooseDate": "Dátum kiválasztása",
   "features.tasks.clear": "Törlés",

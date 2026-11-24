@@ -46,6 +46,7 @@ function attachmentsStub(overrides: Partial<AttachmentsPanelApi> = {}): Attachme
     getMediaFor: async () => [],
     getAllMedia: async () => [],
     getTasksFor: async () => [],
+    getAllTasks: async () => [],
     ...overrides,
   });
 }

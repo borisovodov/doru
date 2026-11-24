@@ -53,6 +53,8 @@
   "features.sources.placeholder": "Δεν υπάρχουν πηγές ακόμα.",
   "features.targets.remove": "Αφαίρεση",
   "features.tasks.add": "Προσθήκη εργασίας",
+  "features.tasks.attach": "Επισύναψη",
+  "features.tasks.attachExisting": "Επισύναψη υπάρχουσας εργασίας",
   "features.tasks.cancel": "Ακύρωση",
   "features.tasks.chooseDate": "Επιλογή ημερομηνίας",
   "features.tasks.clear": "Καθαρισμός",

@@ -53,6 +53,8 @@
   "features.sources.placeholder": "Все още няма източници.",
   "features.targets.remove": "Премахване",
   "features.tasks.add": "Добавяне на задача",
+  "features.tasks.attach": "Прикачване",
+  "features.tasks.attachExisting": "Прикачване на съществуваща задача",
   "features.tasks.cancel": "Отказ",
   "features.tasks.chooseDate": "Избор на дата",
   "features.tasks.clear": "Изчистване",

@@ -53,6 +53,8 @@
   "features.sources.placeholder": "아직 출처가 없습니다.",
   "features.targets.remove": "제거",
   "features.tasks.add": "작업 추가",
+  "features.tasks.attach": "첨부",
+  "features.tasks.attachExisting": "기존 작업 첨부",
   "features.tasks.cancel": "취소",
   "features.tasks.chooseDate": "날짜 선택",
   "features.tasks.clear": "지우기",

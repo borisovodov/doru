@@ -67,6 +67,7 @@ export interface AttachmentsApi extends AttachmentApi, MediaTargetApi {
   updateContact(before: ContactRecord, after: ContactRecord): Promise<void>;
   deleteContact(contact: ContactRecord): Promise<void>;
   getTasksFor(targetType: string, targetId: string): Promise<TaskRecord[]>;
+  getAllTasks(): Promise<TaskRecord[]>;
   addTask(task: TaskRecord): Promise<void>;
   updateTask(before: TaskRecord, after: TaskRecord): Promise<void>;
   deleteTask(task: TaskRecord): Promise<void>;

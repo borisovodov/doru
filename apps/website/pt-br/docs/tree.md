@@ -1,5 +1,5 @@
 ---
-source-hash: 13cfab1dc709
+source-hash: e652812a38c3
 ---
 
 # Trabalhando com a árvore
@@ -82,7 +82,7 @@ endereço** e **Editar endereço** para editar um endereço no próprio local.
 As tarefas têm datas de criação e encerramento além das datas agendadas e de
 lembrete. Todo editor tem uma seção **Tarefas**: adicione uma tarefa ali e ela
 é vinculada automaticamente àquele registro. Eventos, nomes, citações e notas
-têm sua própria seção Tarefas no painel de anexos. **Relacionado a** vincula uma tarefa a um ou mais registros da árvore — uma pessoa, família, evento, nome, fonte, citação, nota, mídia, lugar, repositório, endereço ou obra; deixe vazio para uma tarefa independente. Uma tarefa é compartilhada: editá-la em qualquer lugar atualiza o mesmo registro, e excluir um registro relacionado mantém a tarefa.
+têm sua própria seção Tarefas no painel de anexos. **Relacionado a** vincula uma tarefa a um ou mais registros da árvore — uma pessoa, família, evento, nome, fonte, citação, nota, mídia, lugar, repositório, endereço ou obra; deixe vazio para uma tarefa independente. Uma tarefa é compartilhada: editá-la em qualquer lugar atualiza o mesmo registro, e excluir um registro relacionado mantém a tarefa. Use **Anexar uma tarefa existente** para reutilizar uma tarefa compartilhada em vez de criar uma nova.
 
 Obras, endereços, associações e vínculos de parceiro/filho das famílias têm as mesmas seções Notas, Fontes, Identificadores, Colaboradores e Tarefas das abas das entidades principais. Endereços também têm Contatos. As tarefas mantêm Notas, Identificadores, Colaboradores e a seção Tarefas existente, mas não têm Fontes nem Contatos.
 

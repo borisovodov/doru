@@ -53,6 +53,8 @@
   "features.sources.placeholder": "暂无来源。",
   "features.targets.remove": "移除",
   "features.tasks.add": "添加任务",
+  "features.tasks.attach": "附加",
+  "features.tasks.attachExisting": "附加现有任务",
   "features.tasks.cancel": "取消",
   "features.tasks.chooseDate": "选择日期",
   "features.tasks.clear": "清除",

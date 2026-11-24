@@ -53,6 +53,8 @@
   "features.sources.placeholder": "資料はまだありません。",
   "features.targets.remove": "削除",
   "features.tasks.add": "タスクを追加",
+  "features.tasks.attach": "添付",
+  "features.tasks.attachExisting": "既存のタスクを添付",
   "features.tasks.cancel": "キャンセル",
   "features.tasks.chooseDate": "日付を選択",
   "features.tasks.clear": "クリア",

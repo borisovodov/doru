@@ -6,6 +6,7 @@ export { EntityRow, type EntityRowProps } from './entity-row/EntityRow';
 export { EditorPage, type EditorPageProps } from './editor-page/EditorPage';
 export { Subcard, type SubcardProps } from './subcard/Subcard';
 export { ActionBar, type ActionBarProps } from './action-bar/ActionBar';
+export { AttachExisting, type AttachExistingOption, type AttachExistingProps } from './attach-existing/AttachExisting';
 export { AttachmentRow, RowList, type AttachmentRowProps, type RowListProps } from './row-list/RowList';
 export { SearchField, type SearchFieldProps } from './search-field/SearchField';
 export { Toolbar, type ToolbarProps } from './toolbar/Toolbar';

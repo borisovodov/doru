@@ -1,5 +1,5 @@
 ---
-source-hash: 13cfab1dc709
+source-hash: e652812a38c3
 ---
 
 # Travailler avec l'arbre
@@ -90,7 +90,7 @@ relie une tâche à un ou plusieurs enregistrements de l'arbre — une personne,
 famille, un événement, un nom, une citation, une note, un média, un lieu, un
 dépôt, une adresse ou une œuvre ; laissez-le vide pour une tâche indépendante.
 Une tâche est partagée : la modifier n'importe où met à jour le même
-enregistrement, et supprimer un enregistrement lié laisse la tâche en place.
+enregistrement, et supprimer un enregistrement lié laisse la tâche en place. Utilisez **Joindre une tâche existante** pour réutiliser une tâche partagée au lieu d'en créer une nouvelle.
 
 Les œuvres, adresses, associations et liens partenaire/enfant d'une famille ont
 les mêmes sections Notes, Sources, Identifiants, Contributeurs et

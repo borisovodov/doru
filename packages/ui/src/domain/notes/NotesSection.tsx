@@ -4,6 +4,7 @@ import { IconButton } from '../../atoms/icon-button/IconButton';
 import { Input } from '../../atoms/form/Input';
 import { Select } from '../../atoms/form/Select';
 import { Textarea } from '../../atoms/form/Textarea';
+import { AttachExisting } from '../../patterns/attach-existing/AttachExisting';
 import { SectionCard } from '../../patterns/section-card/SectionCard';
 import { useState, type ReactNode } from 'react';
 import { Paperclip, Pencil, Plus, Trash2, X } from 'lucide-react';
@@ -46,7 +47,6 @@ export function NotesSection({
   onDelete: (note: NoteRecord) => Promise<void>;
 }) {
   const [draft, setDraft] = useState('');
-  const [attachId, setAttachId] = useState('');
   const [editingId, setEditingId] = useState<string | null>(null);
   const [expandedAttachmentsId, setExpandedAttachmentsId] = useState<string | null>(null);
   const [editText, setEditText] = useState('');
@@ -62,14 +62,6 @@ export function NotesSection({
     }
     await onAdd(text);
     setDraft('');
-  };
-
-  const attach = async () => {
-    if (attachId === '' || onAttach === undefined) {
-      return;
-    }
-    await onAttach(attachId);
-    setAttachId('');
   };
 
   const startEdit = (note: NoteRecord) => {
@@ -272,20 +264,16 @@ export function NotesSection({
           ))}
         </ul>
       )}
-      {onAttach !== undefined && attachableNotes.length > 0 && (
-        <div className="notes-add">
-          <Select value={attachId} onChange={(event) => setAttachId(event.target.value)}>
-            <option value="">{nls.t('features.tree.notes.attachExisting')}</option>
-            {attachableNotes.map((note) => (
-              <option key={note.id} value={note.id}>
-                {note.text.length > 60 ? `${note.text.slice(0, 60)}…` : note.text}
-              </option>
-            ))}
-          </Select>
-          <Button variant="secondary" disabled={attachId === ''} onClick={() => void attach()}>
-            {nls.t('features.tree.notes.attach')}
-          </Button>
-        </div>
+      {onAttach !== undefined && (
+        <AttachExisting
+          label={nls.t('features.tree.notes.attachExisting')}
+          actionLabel={nls.t('features.tree.notes.attach')}
+          options={attachableNotes.map((note) => ({
+            id: note.id,
+            label: note.text.length > 60 ? `${note.text.slice(0, 60)}…` : note.text,
+          }))}
+          onAttach={onAttach}
+        />
       )}
       <div className="notes-add">
         <Input

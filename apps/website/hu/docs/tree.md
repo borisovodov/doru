@@ -1,5 +1,5 @@
 ---
-source-hash: 13cfab1dc709
+source-hash: e652812a38c3
 ---
 
 # A családfa használata
@@ -45,7 +45,7 @@ A **Források** nézetben van egy **Címek** szakasz. Itt önálló címeket hoz
 
 ## Feladatok
 
-A feladatoknak a tervezett és emlékeztető dátumok mellett létrehozási és lezárási dátumuk is van. Minden szerkesztőnek van **Feladatok** szakasza: adjon hozzá ott egy feladatot, és az automatikusan ahhoz a rekordhoz kapcsolódik. A tények, nevek, hivatkozások és jegyzetek saját Feladatok szakasszal rendelkeznek a csatolási panelükön. A **Kapcsolódó** egy feladatot egy vagy több rekordhoz kapcsol a fában — személyhez, családhoz, eseményhez, névhez, hivatkozáshoz, jegyzethez, médiához, helyhez, levéltárhoz, címhez vagy műhöz; hagyja üresen egy szabadon álló feladathoz. A feladat megosztott: bárhol szerkesztve ugyanazt a rekordot frissíti, és egy kapcsolódó rekord törlése helyben hagyja a feladatot.
+A feladatoknak a tervezett és emlékeztető dátumok mellett létrehozási és lezárási dátumuk is van. Minden szerkesztőnek van **Feladatok** szakasza: adjon hozzá ott egy feladatot, és az automatikusan ahhoz a rekordhoz kapcsolódik. A tények, nevek, hivatkozások és jegyzetek saját Feladatok szakasszal rendelkeznek a csatolási panelükön. A **Kapcsolódó** egy feladatot egy vagy több rekordhoz kapcsol a fában — személyhez, családhoz, eseményhez, névhez, hivatkozáshoz, jegyzethez, médiához, helyhez, levéltárhoz, címhez vagy műhöz; hagyja üresen egy szabadon álló feladathoz. A feladat megosztott: bárhol szerkesztve ugyanazt a rekordot frissíti, és egy kapcsolódó rekord törlése helyben hagyja a feladatot. A **Meglévő feladat csatolása** lehetőséggel új feladat létrehozása helyett újra felhasználhat egy megosztott feladatot.
 
 A művek, címek, társítások és családi partner/gyermek kapcsolatok ugyanazokkal a Jegyzetek, Források, Azonosítók, Közreműködők és Feladatok szakaszokkal rendelkeznek, mint a fő entitáslapok. A címeknek Elérhetőségeik is vannak. A feladatok megtartják a Jegyzetek, Azonosítók, Közreműködők és a régi Feladatok szakaszt, de nincs Forrásuk vagy Elérhetőségük.
 

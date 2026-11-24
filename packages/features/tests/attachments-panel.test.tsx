@@ -17,6 +17,7 @@ function apiStub(overrides: Partial<AttachmentsPanelApi> = {}): AttachmentsPanel
     getMediaFor: async () => [],
     getAllMedia: async () => [],
     getTasksFor: async () => [],
+    getAllTasks: async () => [],
     attachSourceToTargets: async () => undefined,
     attachMediaToTargets: async () => undefined,
     ...overrides,
@@ -81,5 +82,41 @@ describe('AttachmentsPanel contacts', () => {
 
     fireEvent.click(screen.getByRole('button', { name: nls.t('features.tree.media.add') }));
     await waitFor(() => expect(addMediaToTarget).toHaveBeenCalledWith('person', 'P1'));
+  });
+
+  it('attaches existing media to the current target', async () => {
+    const attachMedia = vi.fn(async () => undefined);
+    const candidate = {
+      id: 'M2',
+      title: 'Portrait of Anna',
+      absolutePath: '/demo/anna.jpg',
+      files: [{ id: 'MF2', path: 'media/anna.jpg', absolutePath: '/demo/anna.jpg' }],
+    };
+    renderUi(
+      <MediaSection
+        targetType="person"
+        targetId="P1"
+        media={[]}
+        api={{
+          getMediaFor: async () => [],
+          getAllMedia: async () => [candidate],
+          addMediaToTarget: async () => undefined,
+          attachMedia,
+          detachMedia: async () => undefined,
+          deleteMedia: async () => undefined,
+        }}
+        refresh={async () => undefined}
+      />,
+    );
+
+    const select = await screen.findByRole('combobox', { name: nls.t('features.tree.media.attachExisting') });
+    fireEvent.change(select, { target: { value: 'M2' } });
+    fireEvent.click(screen.getByRole('button', { name: nls.t('features.tree.media.attach') }));
+
+    await waitFor(() =>
+      expect(attachMedia).toHaveBeenCalledWith(
+        expect.objectContaining({ mediaId: 'M2', targetType: 'person', targetId: 'P1' }),
+      ),
+    );
   });
 });

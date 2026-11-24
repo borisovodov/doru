@@ -20,9 +20,19 @@ const tasks: TaskRecord[] = [
   },
 ];
 
+const otherTask: TaskRecord = {
+  id: 'T3',
+  text: 'Ask the archive about the 1890 census',
+  targets: [],
+  priority: 'low',
+  status: 'open',
+};
+
 const api = {
   getTasksFor: async () => tasks,
+  getAllTasks: async () => [...tasks, otherTask],
   addTask: async () => undefined,
+  addTaskLink: async () => undefined,
   deleteTaskLink: async () => undefined,
   openTask: () => undefined,
 };
@@ -54,6 +64,7 @@ export const Empty: DemoCase = {
     api: {
       ...api,
       getTasksFor: async () => [],
+      getAllTasks: async () => [],
     },
   },
 };

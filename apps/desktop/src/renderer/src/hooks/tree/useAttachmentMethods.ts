@@ -53,6 +53,7 @@ export function useAttachmentMethods(
       },
       getTasksFor: (targetType: string, targetId: string) =>
         projectPath ? window.doru.getTasksFor(projectPath, targetType, targetId) : Promise.resolve([] as TaskRecord[]),
+      getAllTasks: () => (projectPath ? window.doru.getTasks(projectPath) : Promise.resolve([] as TaskRecord[])),
       addTask: async (task: TaskRecord) => {
         if (!projectPath) return;
         await window.doru.addTask(projectPath, task);

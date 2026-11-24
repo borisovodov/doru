@@ -53,6 +53,8 @@
   "features.sources.placeholder": "Zatím žádné prameny.",
   "features.targets.remove": "Odebrat",
   "features.tasks.add": "Přidat úkol",
+  "features.tasks.attach": "Připojit",
+  "features.tasks.attachExisting": "Připojit existující úkol",
   "features.tasks.cancel": "Zrušit",
   "features.tasks.chooseDate": "Vybrat datum",
   "features.tasks.clear": "Vymazat",

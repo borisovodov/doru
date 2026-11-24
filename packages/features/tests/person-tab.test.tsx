@@ -29,6 +29,7 @@ function renderTab(
     getIdentifiers: async () => [],
     getContacts: async () => [],
     getTasksFor: async () => [],
+    getAllTasks: async () => [],
     getSources: async () => [],
     getRecordSubmitters: async () => [],
     getAssociations: async () => [],

@@ -11,6 +11,10 @@
   gap: 8px;
 }
 
+.attach {
+  flex: 1 1 240px;
+}
+
 .fallback {
   display: flex;
   max-width: 100px;
