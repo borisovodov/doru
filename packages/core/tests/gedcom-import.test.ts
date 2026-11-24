@@ -182,6 +182,33 @@ describe('importGedcomDataset media', () => {
   });
 });
 
+describe('importGedcomDataset duplicate note references', () => {
+  it('links a shared note once when it is referenced twice', () => {
+    const fixture = makeRepo();
+    try {
+      const text = [
+        '0 HEAD',
+        '1 GEDC',
+        '2 VERS 7.0',
+        '0 @I1@ INDI',
+        '1 NAME Ivan /Petrov/',
+        '1 SNOTE @N1@',
+        '1 SNOTE @N1@',
+        '0 @N1@ SNOTE Shared note text',
+        '0 TRLR',
+      ].join('\n');
+      importGedcomDataset(parseDataset(text), fixture.repo);
+
+      const person = fixture.repo.listAllPersons()[0]!;
+      const notes = fixture.repo.listNotesFor('person', person.id);
+      expect(notes).toHaveLength(1);
+      expect(notes[0]?.text).toBe('Shared note text');
+    } finally {
+      cleanupRepo(fixture);
+    }
+  });
+});
+
 describe('importGedcomDataset', () => {
   it('maps persons, names, facts, dates, families, sources, citations and notes', () => {
     const fixture = makeRepo();

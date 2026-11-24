@@ -988,7 +988,16 @@ export class TreeService {
 
   /** Attaches an existing note to another target (makes it shared). */
   attachNote(noteId: string, link: NoteLinkRecord): UndoRedoState {
-    return this.apply(attachNoteOp(noteId, link));
+    return this.applyAfterCommit(() => {
+      const current = this.repo.getNote(noteId);
+      const alreadyLinked = current?.links?.some(
+        (entry) => entry.targetType === link.targetType && entry.targetId === link.targetId,
+      );
+      if (alreadyLinked) {
+        return undefined;
+      }
+      return attachNoteOp(noteId, link);
+    });
   }
 
   /**
