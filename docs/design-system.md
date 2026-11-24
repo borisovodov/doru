@@ -56,6 +56,15 @@ import { Button, Field, Input, SectionCard } from '@doru/ui';
 </SectionCard>;
 ```
 
+## Component first
+
+Compose a `@doru/ui` component before writing raw HTML. `IconButton` is the
+only icon-only control; its required `label` is both the accessible name and
+the tooltip text. Use `Button` for text actions and `Field`/`Input`/`Select`/
+`Textarea`/`Checkbox` for forms. A raw `<button>`, `<input>` or `<select>`
+belongs only inside the `@doru/ui` component that owns its behavior; if no
+component fits, add one to the library with a gallery demo instead.
+
 ## Gallery
 
 ```bash

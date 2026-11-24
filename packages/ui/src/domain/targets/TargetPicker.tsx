@@ -1,6 +1,7 @@
 import { useEffect, useId, useMemo, useRef, useState } from 'react';
 import { X } from 'lucide-react';
 import { foldCase, type TargetRef, type TargetType } from '@doru/core/model';
+import { IconButton } from '../../atoms/icon-button/IconButton';
 import { nls } from '../../nls';
 import {
   createTaskTargetLabeler,
@@ -110,15 +111,13 @@ export function TargetPicker({
           <span key={targetKey(target)} className={styles['chip']}>
             <span className={styles['chipType']}>{typeLabel(target.targetType)}</span>
             <span className={styles['chipLabel']}>{labelFor(target)}</span>
-            <button
-              type="button"
-              className={styles['chipRemove']}
-              aria-label={nls.t('features.targets.remove')}
+            <IconButton
+              size="sm"
+              label={nls.t('features.targets.remove')}
+              icon={<X size={12} aria-hidden="true" />}
               disabled={disabled}
               onClick={() => remove(target)}
-            >
-              <X size={12} aria-hidden="true" />
-            </button>
+            />
           </span>
         ))}
         <input

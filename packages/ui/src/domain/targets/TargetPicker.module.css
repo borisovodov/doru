@@ -41,20 +41,6 @@
   white-space: nowrap;
 }
 
-.chipRemove {
-  display: inline-flex;
-  padding: 0;
-  border: 0;
-  border-radius: var(--doru-radius-sm);
-  background: transparent;
-  color: var(--doru-fg-muted);
-  cursor: pointer;
-}
-
-.chipRemove:hover {
-  color: var(--doru-fg);
-}
-
 .input {
   flex: 1;
   min-width: 140px;
