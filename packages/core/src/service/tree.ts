@@ -884,11 +884,13 @@ export class TreeService {
 
   attachSource(sourceId: string, targetType: string, targetId: string): UndoRedoState {
     assertCitationTarget(targetType);
-    if (this.repo.listCitationRecordsFor(targetType, targetId).some((citation) => citation.sourceId === sourceId)) {
-      return this.historyState();
-    }
-    const citation: CitationRecord = { id: crypto.randomUUID(), sourceId, targetType, targetId };
-    return this.apply(attachCitationOp(citation));
+    return this.applyAfterCommit(() => {
+      if (this.repo.listCitationRecordsFor(targetType, targetId).some((citation) => citation.sourceId === sourceId)) {
+        return undefined;
+      }
+      const citation: CitationRecord = { id: crypto.randomUUID(), sourceId, targetType, targetId };
+      return attachCitationOp(citation);
+    });
   }
 
   /** Attaches one source to several targets with a separate citation per target. */
