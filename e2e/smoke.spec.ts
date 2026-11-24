@@ -9,6 +9,18 @@ test('app launches and shows the welcome screen', async () => {
   await app.close();
 });
 
+test('icon buttons show a custom tooltip', async () => {
+  const { app, page } = await launchApp();
+  const settings = page.getByRole('button', { name: 'Settings', exact: true });
+
+  await settings.focus();
+  await expect(page.getByRole('tooltip')).toHaveText('Settings');
+
+  await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
+  await expect(page.getByRole('tooltip')).toHaveCount(0);
+  await app.close();
+});
+
 test('New Window shortcut opens a second welcome window', async () => {
   const { app, page } = await launchApp();
   // The native macOS menu consumes the accelerator before the DOM; other

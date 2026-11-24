@@ -19,7 +19,6 @@ export {
   type SegmentedControlProps,
   type SegmentedOption,
 } from './segmented-control/SegmentedControl';
-export { Tooltip, type TooltipProps } from './tooltip/Tooltip';
 export { MediaTile, type MediaTileProps } from './media-tile/MediaTile';
 export { AppMenu, type AppMenuProps } from './app-menu/AppMenu';
 export { RecentProjectsList, type RecentProjectsListProps } from './recent-projects/RecentProjectsList';

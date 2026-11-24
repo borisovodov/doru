@@ -320,10 +320,13 @@ decisions about what we deliberately do **not** build, see
   a 4px threshold, Escape to cancel — never native HTML5 drag: the OS drag
   session flashes the macOS copy cursor and replaces our cursor/ghost
   styling. Native `title` tooltips are unreliable under the drag region on
-  macOS, so tooltips are custom (`ActivityBar` pattern: fixed pill, delay,
-  `aria-label` instead of `title`). Icon-only buttons must reset the UA
-  `padding: 0` and use `display: inline-flex`, or the flex child SVG
-  collapses to the leftover content box. The `BrowserWindow`
+  macOS, so tooltips are custom: `Tooltip` clones its trigger, portals the
+  fixed pill to the document body (escaping scroll clipping), waits 600 ms,
+  flips and clamps it to the viewport, and links it with `aria-describedby`
+  while visible. `IconButton` derives the tooltip from its required `label`;
+  `ActivityBar` adds the optional shortcut to the same pill. Icon-only
+  buttons must reset the UA `padding: 0` and use `display: inline-flex`, or
+  the flex child SVG collapses to the leftover content box. The `BrowserWindow`
   `backgroundColor` follows the theme (`windowBackgroundColor()` in the main
   process) so live resizes never flash white. Accepted macOS quirk: the drag
   region makes the window background movable (`isMovableByWindowBackground`),

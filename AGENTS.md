@@ -94,9 +94,10 @@ non-goals: [docs/decisions.md](docs/decisions.md).
   side-bar sashes): `setPointerCapture` + a gesture threshold + Escape
   cancel. Native drag sessions flash the macOS copy cursor and fight our
   cursor/ghost styling. Use custom tooltips instead of `title` (broken under
-  the drag region on macOS), and always reset `padding: 0` on icon-only
-  buttons — the UA button padding collapses flex child SVGs. See the
-  "Interaction conventions" bullet in docs/architecture.md.
+  the drag region on macOS); `IconButton` renders one from its required
+  `label`. Always reset `padding: 0` on icon-only buttons — the UA button
+  padding collapses flex child SVGs. See the "Interaction conventions" bullet
+  in docs/architecture.md.
 - **The UI comes from `@doru/ui`.** Atoms, shared patterns and reusable
   domain components live in `packages/ui`; feature code composes them and
   keeps only layout CSS. Component styles are CSS Modules; tokens and base
@@ -104,6 +105,15 @@ non-goals: [docs/decisions.md](docs/decisions.md).
   the component gallery (`npm run gallery`), and Playwright tests select by
   role and accessible name, never by CSS class or `data-testid`. See
   docs/design-system.md.
+- **Compose `@doru/ui` components before raw HTML.** In app and feature code,
+  reach for the library before writing a control: `IconButton` for icon-only
+  actions (its required `label` is also the tooltip), `Button` for text
+  actions, `Field`/`Input`/`Select`/`Textarea`/`Checkbox` for forms, and
+  `EntityRow`/`EntityCard` for list rows. Raw `<button>`, `<input>` or
+  `<select>` elements belong only inside the `@doru/ui` component that owns
+  their behavior, never in a feature screen as a shortcut. If no component
+  fits, extend `@doru/ui` and add a gallery demo instead of hand-rolling the
+  control locally.
 - **The AI model catalog ships as the `@opencode-ai/models` dependency.** Model lists, pricing, limits, capabilities and reasoning options come from its offline `./snapshot` export (models.dev data, MIT) via `packages/ai/src/catalog.ts`; the app never fetches model data at runtime. Refreshing the catalog at release time is a version bump of that package — no other step.
 - **The agent runtime is the Vercel AI SDK.** `packages/ai` wraps `streamText`
   (tools, step-count stop); Anthropic goes through `@ai-sdk/anthropic`,

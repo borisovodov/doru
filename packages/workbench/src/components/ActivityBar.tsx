@@ -1,7 +1,7 @@
-import { useEffect, useRef, useState, type FocusEvent, type MouseEvent, type ReactNode } from 'react';
+import type { ReactNode } from 'react';
 import { Blend, BookOpenText, Image, ListTodo, Map, Search, Settings, TreeDeciduous, User } from 'lucide-react';
 import { MEDIA_VISIBLE, SEARCH_VISIBLE } from '@doru/platform';
-import { IconButton, Kbd } from '@doru/ui';
+import { IconButton } from '@doru/ui';
 import { nls } from '../nls';
 
 export type ActivityViewId = 'tree' | 'search' | 'people' | 'families' | 'places' | 'media' | 'sources' | 'tasks';
@@ -14,52 +14,9 @@ export interface ActivityBarProps {
   shortcuts?: Partial<Record<ActivityViewId, string>> | undefined;
 }
 
-/** Native title tooltips are unreliable under the custom drag region on
- *  macOS, so the activity bar draws its own. */
-const TOOLTIP_DELAY_MS = 600;
-
-const TOOLTIP_ID = 'activity-bar-tooltip';
-
 const ICON_SIZE = 24;
 
 export function ActivityBar({ activeView, onSelectView, onOpenSettings, shortcuts }: ActivityBarProps) {
-  const [tooltip, setTooltip] = useState<{ label: string; shortcut?: string | undefined; top: number } | null>(null);
-  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  useEffect(
-    () => () => {
-      if (timerRef.current) {
-        clearTimeout(timerRef.current);
-      }
-    },
-    [],
-  );
-
-  const showTooltip = (label: string, element: HTMLElement, shortcut?: string) => {
-    if (timerRef.current) {
-      clearTimeout(timerRef.current);
-    }
-    timerRef.current = setTimeout(() => {
-      const rect = element.getBoundingClientRect();
-      setTooltip({ label, shortcut, top: rect.top + rect.height / 2 });
-    }, TOOLTIP_DELAY_MS);
-  };
-
-  const hideTooltip = () => {
-    if (timerRef.current) {
-      clearTimeout(timerRef.current);
-      timerRef.current = null;
-    }
-    setTooltip(null);
-  };
-
-  const tooltipHandlers = (label: string, shortcut?: string) => ({
-    onMouseEnter: (event: MouseEvent<HTMLButtonElement>) => showTooltip(label, event.currentTarget, shortcut),
-    onMouseLeave: hideTooltip,
-    onFocus: (event: FocusEvent<HTMLButtonElement>) => showTooltip(label, event.currentTarget, shortcut),
-    onBlur: hideTooltip,
-  });
-
   const views: Array<{ id: ActivityViewId; title: string; icon: ReactNode }> = [
     {
       id: 'tree',
@@ -111,8 +68,6 @@ export function ActivityBar({ activeView, onSelectView, onOpenSettings, shortcut
     },
   ];
 
-  const describedBy = (label: string): string | undefined => (tooltip?.label === label ? TOOLTIP_ID : undefined);
-
   return (
     <nav className="activity-bar" aria-label={nls.t('workbench.activityBar.label')}>
       {views.map((view) => (
@@ -123,9 +78,9 @@ export function ActivityBar({ activeView, onSelectView, onOpenSettings, shortcut
           label={view.title}
           icon={view.icon}
           aria-current={view.id === activeView ? 'page' : undefined}
-          aria-describedby={describedBy(view.title)}
+          shortcut={shortcuts?.[view.id]}
+          tooltipPlacement="right"
           onClick={() => onSelectView(view.id)}
-          {...tooltipHandlers(view.title, shortcuts?.[view.id])}
         />
       ))}
       <IconButton
@@ -133,16 +88,9 @@ export function ActivityBar({ activeView, onSelectView, onOpenSettings, shortcut
         size="nav"
         label={nls.t('workbench.activityBar.settings')}
         icon={<Settings size={ICON_SIZE} aria-hidden="true" />}
-        aria-describedby={describedBy(nls.t('workbench.activityBar.settings'))}
+        tooltipPlacement="right"
         onClick={onOpenSettings}
-        {...tooltipHandlers(nls.t('workbench.activityBar.settings'))}
       />
-      {tooltip && (
-        <div id={TOOLTIP_ID} className="activity-tooltip" style={{ top: tooltip.top }} role="tooltip">
-          <span>{tooltip.label}</span>
-          {tooltip.shortcut !== undefined && <Kbd>{tooltip.shortcut}</Kbd>}
-        </div>
-      )}
     </nav>
   );
 }

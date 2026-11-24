@@ -80,3 +80,12 @@ export const Disabled: DemoCase = {
     </div>
   ),
 };
+
+export const WithShortcut: DemoCase = {
+  render: () => (
+    <div style={row}>
+      <IconButton label="Edit person" shortcut="⌘E" icon={<Pencil size={16} />} />
+      <IconButton label="Add person" shortcut="⌘N" icon={<Plus size={16} />} />
+    </div>
+  ),
+};
