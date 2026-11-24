@@ -1,5 +1,6 @@
 import { Button } from '../../atoms/button/Button';
 import { EmptyText } from '../../atoms/feedback/EmptyText';
+import { InlineError } from '../../atoms/feedback/InlineError';
 import { IconButton } from '../../atoms/icon-button/IconButton';
 import { Input } from '../../atoms/form/Input';
 import { SectionCard } from '../../patterns/section-card/SectionCard';
@@ -41,6 +42,7 @@ export function TagsSection({
 }) {
   const [input, setInput] = useState('');
   const [extraTargets, setExtraTargets] = useState<TargetRef[]>([]);
+  const [attachError, setAttachError] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editValue, setEditValue] = useState('');
   // Guards the rename against double commits (Enter followed by the
@@ -53,19 +55,24 @@ export function TagsSection({
     if (name === '') {
       return;
     }
-    let tag = tags.find((entry) => foldCase(entry.name) === foldCase(name));
-    if (!tag) {
-      tag = { id: crypto.randomUUID(), name };
-      await onAddTag(tag);
+    setAttachError(false);
+    try {
+      let tag = tags.find((entry) => foldCase(entry.name) === foldCase(name));
+      if (!tag) {
+        tag = { id: crypto.randomUUID(), name };
+        await onAddTag(tag);
+      }
+      const targets = [{ targetType, targetId }, ...extraTargets];
+      if (onAttachTagToTargets !== undefined) {
+        await onAttachTagToTargets(tag.id, targets);
+      } else {
+        await onAttachTag({ id: crypto.randomUUID(), tagId: tag.id, targetType, targetId });
+      }
+      setInput('');
+      setExtraTargets([]);
+    } catch {
+      setAttachError(true);
     }
-    const targets = [{ targetType, targetId }, ...extraTargets];
-    if (onAttachTagToTargets !== undefined) {
-      await onAttachTagToTargets(tag.id, targets);
-    } else {
-      await onAttachTag({ id: crypto.randomUUID(), tagId: tag.id, targetType, targetId });
-    }
-    setInput('');
-    setExtraTargets([]);
   };
 
   const startRename = (tag: TagRecord) => {
@@ -149,7 +156,10 @@ export function TagsSection({
         <TargetPicker
           allowedTypes={TARGET_TYPES}
           value={extraTargets}
-          onChange={setExtraTargets}
+          onChange={(targets) => {
+            setAttachError(false);
+            setExtraTargets(targets);
+          }}
           ariaLabel={nls.t('features.tasks.target')}
         />
       )}
@@ -158,7 +168,10 @@ export function TagsSection({
           list="doru-tag-names"
           placeholder={nls.t('features.tree.tags.newTag')}
           value={input}
-          onChange={(event) => setInput(event.target.value)}
+          onChange={(event) => {
+            setAttachError(false);
+            setInput(event.target.value);
+          }}
         />
         <datalist id="doru-tag-names">
           {tags.map((tag) => (
@@ -169,6 +182,7 @@ export function TagsSection({
           {nls.t('features.tree.tags.attach')}
         </Button>
       </div>
+      {attachError ? <InlineError>{nls.t('features.tree.autosaveFailed')}</InlineError> : null}
     </SectionCard>
   );
 }

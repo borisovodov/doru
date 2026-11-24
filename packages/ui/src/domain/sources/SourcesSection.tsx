@@ -1,5 +1,6 @@
 import { Button } from '../../atoms/button/Button';
 import { EmptyText } from '../../atoms/feedback/EmptyText';
+import { InlineError } from '../../atoms/feedback/InlineError';
 import { IconButton } from '../../atoms/icon-button/IconButton';
 import { Input } from '../../atoms/form/Input';
 import { SectionCard } from '../../patterns/section-card/SectionCard';
@@ -51,6 +52,7 @@ export function SourcesSection({
   const [title, setTitle] = useState('');
   const [author, setAuthor] = useState('');
   const [extraTargets, setExtraTargets] = useState<TargetRef[]>([]);
+  const [sourceError, setSourceError] = useState(false);
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
   const addNew = async () => {
@@ -63,15 +65,20 @@ export function SourcesSection({
       return;
     }
     const source = { id: crypto.randomUUID(), title: trimmed, author: author.trim() || undefined };
-    if (onAddSourceToTargets !== undefined) {
-      await onAddSourceToTargets(source, [{ targetType, targetId }, ...submitted]);
-      setExtraTargets((current) => current.filter((target) => !containsTarget(submitted, target)));
-    } else {
-      await onAddSource(source, targetType, targetId);
+    setSourceError(false);
+    try {
+      if (onAddSourceToTargets !== undefined) {
+        await onAddSourceToTargets(source, [{ targetType, targetId }, ...submitted]);
+        setExtraTargets((current) => current.filter((target) => !containsTarget(submitted, target)));
+      } else {
+        await onAddSource(source, targetType, targetId);
+      }
+      setTitle('');
+      setAuthor('');
+      await refresh();
+    } catch {
+      setSourceError(true);
     }
-    setTitle('');
-    setAuthor('');
-    await refresh();
   };
 
   const detach = async (citationId: string) => {
@@ -87,13 +94,18 @@ export function SourcesSection({
     if (submitted.length > 0 && onAttachSourceToTargets === undefined) {
       return;
     }
-    if (onAttachSourceToTargets !== undefined) {
-      await onAttachSourceToTargets(sourceId, [{ targetType, targetId }, ...submitted]);
-      setExtraTargets((current) => current.filter((target) => !containsTarget(submitted, target)));
-    } else {
-      await onAttachSource(sourceId, targetType, targetId);
+    setSourceError(false);
+    try {
+      if (onAttachSourceToTargets !== undefined) {
+        await onAttachSourceToTargets(sourceId, [{ targetType, targetId }, ...submitted]);
+        setExtraTargets((current) => current.filter((target) => !containsTarget(submitted, target)));
+      } else {
+        await onAttachSource(sourceId, targetType, targetId);
+      }
+      await refresh();
+    } catch {
+      setSourceError(true);
     }
-    await refresh();
   };
 
   const saveCitation = async (before: CitationRecord, after: CitationRecord) => {
@@ -149,7 +161,10 @@ export function SourcesSection({
         <TargetPicker
           allowedTypes={CITATION_TARGET_TYPES}
           value={extraTargets}
-          onChange={setExtraTargets}
+          onChange={(targets) => {
+            setSourceError(false);
+            setExtraTargets(targets);
+          }}
           ariaLabel={nls.t('features.tasks.target')}
         />
       )}
@@ -157,12 +172,18 @@ export function SourcesSection({
         <Input
           placeholder={nls.t('features.tree.sources.titleField')}
           value={title}
-          onChange={(event) => setTitle(event.target.value)}
+          onChange={(event) => {
+            setSourceError(false);
+            setTitle(event.target.value);
+          }}
         />
         <Input
           placeholder={nls.t('features.tree.sources.authorField')}
           value={author}
-          onChange={(event) => setAuthor(event.target.value)}
+          onChange={(event) => {
+            setSourceError(false);
+            setAuthor(event.target.value);
+          }}
         />
         <Button
           variant="primary"
@@ -172,6 +193,7 @@ export function SourcesSection({
           {nls.t('features.tree.sources.add')}
         </Button>
       </div>
+      {sourceError ? <InlineError>{nls.t('features.tree.autosaveFailed')}</InlineError> : null}
       {uncited.length > 0 && (
         <div className="sources-attach">
           {uncited.map((source) => (

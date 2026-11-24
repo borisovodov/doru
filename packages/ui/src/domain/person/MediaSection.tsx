@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { nls } from '../../nls';
 import { Button } from '../../atoms/button/Button';
 import { EmptyText } from '../../atoms/feedback/EmptyText';
+import { InlineError } from '../../atoms/feedback/InlineError';
 import { MediaTile } from '../../patterns/media-tile/MediaTile';
 import { SectionCard } from '../../patterns/section-card/SectionCard';
 import { Select } from '../../atoms/form/Select';
@@ -41,6 +42,7 @@ export function MediaSection({
   const [allMedia, setAllMedia] = useState<MediaWithPath[]>([]);
   const [attachId, setAttachId] = useState('');
   const [extraTargets, setExtraTargets] = useState<TargetRef[]>([]);
+  const [mediaError, setMediaError] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -59,14 +61,19 @@ export function MediaSection({
     if (submitted.length > 0 && api.addMediaToTargets === undefined) {
       return;
     }
-    if (api.addMediaToTargets !== undefined) {
-      await api.addMediaToTargets([{ targetType, targetId }, ...submitted]);
-      setExtraTargets((current) => current.filter((target) => !containsTarget(submitted, target)));
-    } else {
-      await api.addMediaToTarget(targetType, targetId);
+    setMediaError(false);
+    try {
+      if (api.addMediaToTargets !== undefined) {
+        await api.addMediaToTargets([{ targetType, targetId }, ...submitted]);
+        setExtraTargets((current) => current.filter((target) => !containsTarget(submitted, target)));
+      } else {
+        await api.addMediaToTarget(targetType, targetId);
+      }
+      await refresh();
+      setAllMedia(await api.getAllMedia());
+    } catch {
+      setMediaError(true);
     }
-    await refresh();
-    setAllMedia(await api.getAllMedia());
   };
 
   const attach = async () => {
@@ -77,15 +84,20 @@ export function MediaSection({
     if (submitted.length > 0 && api.attachMediaToTargets === undefined) {
       return;
     }
-    if (api.attachMediaToTargets !== undefined) {
-      await api.attachMediaToTargets(attachId, [{ targetType, targetId }, ...submitted]);
-      setExtraTargets((current) => current.filter((target) => !containsTarget(submitted, target)));
-    } else {
-      await api.attachMedia({ id: crypto.randomUUID(), mediaId: attachId, targetType, targetId });
+    setMediaError(false);
+    try {
+      if (api.attachMediaToTargets !== undefined) {
+        await api.attachMediaToTargets(attachId, [{ targetType, targetId }, ...submitted]);
+        setExtraTargets((current) => current.filter((target) => !containsTarget(submitted, target)));
+      } else {
+        await api.attachMedia({ id: crypto.randomUUID(), mediaId: attachId, targetType, targetId });
+      }
+      setAttachId('');
+      await refresh();
+      setAllMedia(await api.getAllMedia());
+    } catch {
+      setMediaError(true);
     }
-    setAttachId('');
-    await refresh();
-    setAllMedia(await api.getAllMedia());
   };
 
   const remove = async (item: MediaRecord) => {
@@ -164,7 +176,10 @@ export function MediaSection({
         <TargetPicker
           allowedTypes={TARGET_TYPES}
           value={extraTargets}
-          onChange={setExtraTargets}
+          onChange={(targets) => {
+            setMediaError(false);
+            setExtraTargets(targets);
+          }}
           ariaLabel={nls.t('features.tasks.target')}
         />
       )}
@@ -178,7 +193,13 @@ export function MediaSection({
         </Button>
         {attachable.length > 0 && (
           <>
-            <Select value={attachId} onChange={(event) => setAttachId(event.target.value)}>
+            <Select
+              value={attachId}
+              onChange={(event) => {
+                setMediaError(false);
+                setAttachId(event.target.value);
+              }}
+            >
               <option value="">{nls.t('features.tree.media.attachExisting')}</option>
               {attachable.map((item) => (
                 <option key={item.id} value={item.id}>
@@ -196,6 +217,7 @@ export function MediaSection({
           </>
         )}
       </div>
+      {mediaError ? <InlineError>{nls.t('features.tree.autosaveFailed')}</InlineError> : null}
     </SectionCard>
   );
 }
