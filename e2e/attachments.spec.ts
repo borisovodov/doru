@@ -130,9 +130,9 @@ test('attachments, addresses and task fields round-trip through the desktop IPC'
   const tasks = page.getByRole('region', { name: 'Tasks' }).filter({ hasText: 'Check the register' });
   await expect(tasks).toBeVisible();
   await tasks.getByRole('button', { name: 'Open task' }).click();
-  const taskDetails = page.getByRole('region', { name: 'Details' });
-  const targetOptions = taskDetails.getByRole('listbox');
-  await taskDetails.getByLabel('Related to').click();
+  const taskRelated = page.getByRole('region', { name: 'Related to' });
+  const targetOptions = taskRelated.getByRole('listbox');
+  await taskRelated.getByLabel('Related to').click();
   await expect(targetOptions.getByRole('group', { name: 'Person' })).toBeVisible();
   await expect(targetOptions.getByRole('group', { name: 'Family' })).toBeVisible();
   await expect(targetOptions.getByRole('group', { name: 'Event' })).toBeVisible();

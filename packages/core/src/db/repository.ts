@@ -22,8 +22,6 @@ import type {
   RepositoryRecord,
   SourceRecord,
   SubmitterRecord,
-  TagLinkRecord,
-  TagRecord,
   TaskRecord,
   TaskTargetLink,
   TitleRecord,
@@ -207,18 +205,6 @@ export interface TreeRepository {
   deleteContact(id: string): boolean;
   updateContact(contact: ContactRecord): void;
   listContactsFor(targetType: string, targetId: string): ContactRecord[];
-  insertTag(tag: TagRecord): void;
-  deleteTag(id: string): boolean;
-  updateTag(tag: TagRecord): void;
-  listTags(): TagRecord[];
-  insertTagLink(link: TagLinkRecord): void;
-  deleteTagLink(id: string): boolean;
-  updateTagLink(link: TagLinkRecord): void;
-  listTagLinksFor(targetType: string, targetId: string): Array<{ tagId: string; link: TagLinkRecord }>;
-  listTagLinksByTag(tagId: string): TagLinkRecord[];
-  getTagLink(id: string): TagLinkRecord | undefined;
-  /** Every tag link in the tree, for the global tag registry. */
-  listAllTagLinks(): TagLinkRecord[];
   insertAssociation(association: AssociationRecord): void;
   updateAssociation(association: AssociationRecord): void;
   deleteAssociation(id: string): boolean;
@@ -1046,52 +1032,6 @@ export class SqliteTreeRepository implements TreeRepository {
     return this.attachments.listContactsFor(targetType, targetId);
   }
 
-  insertTag(tag: TagRecord): void {
-    this.attachments.insertTag(tag);
-  }
-
-  deleteTag(id: string): boolean {
-    return this.attachments.deleteTag(id);
-  }
-
-  updateTag(tag: TagRecord): void {
-    this.attachments.updateTag(tag);
-  }
-
-  listTags(): TagRecord[] {
-    return this.attachments.listTags();
-  }
-
-  insertTagLink(link: TagLinkRecord): void {
-    this.attachments.insertTagLink(link);
-  }
-
-  deleteTagLink(id: string): boolean {
-    return this.attachments.deleteTagLink(id);
-  }
-
-  updateTagLink(link: TagLinkRecord): void {
-    this.transactions.run(() => {
-      this.attachments.updateTagLink(link);
-    });
-  }
-
-  listTagLinksFor(targetType: string, targetId: string): Array<{ tagId: string; link: TagLinkRecord }> {
-    return this.attachments.listTagLinksFor(targetType, targetId);
-  }
-
-  listTagLinksByTag(tagId: string): TagLinkRecord[] {
-    return this.attachments.listTagLinksByTag(tagId);
-  }
-
-  getTagLink(id: string): TagLinkRecord | undefined {
-    return this.attachments.getTagLink(id);
-  }
-
-  listAllTagLinks(): TagLinkRecord[] {
-    return this.attachments.listAllTagLinks();
-  }
-
   insertAssociation(association: AssociationRecord): void {
     this.relations.insertAssociation(association);
   }
@@ -1277,7 +1217,6 @@ export class SqliteTreeRepository implements TreeRepository {
       })),
       identifiers: this.attachments.listIdentifiersFor(targetType, targetId),
       contacts: this.attachments.listContactsFor(targetType, targetId),
-      tagLinks: this.attachments.listTagLinksFor(targetType, targetId),
       taskLinks,
       recordSubmitters: this.submitters.listRecordSubmittersFor(targetType, targetId),
     };
@@ -1455,23 +1394,6 @@ export class SqliteTreeRepository implements TreeRepository {
       if (!contactIds.has(contact.id)) {
         this.attachments.insertContact(contact);
         contactIds.add(contact.id);
-      }
-    }
-    const tags = new Set(this.listTags().map((tag) => tag.id));
-    const tagLinkIds = new Set(
-      [...new Set(snapshot.tagLinks.map((entry) => `${entry.link.targetType}:${entry.link.targetId}`))].flatMap(
-        (key) => {
-          const [targetType, targetId] = key.split(':');
-          return this.attachments
-            .listTagLinksFor(targetType as string, targetId as string)
-            .map((entry) => entry.link.id);
-        },
-      ),
-    );
-    for (const entry of snapshot.tagLinks) {
-      if (tags.has(entry.tagId) && !tagLinkIds.has(entry.link.id)) {
-        this.attachments.insertTagLink(entry.link);
-        tagLinkIds.add(entry.link.id);
       }
     }
     for (const link of snapshot.taskLinks) {

@@ -60,8 +60,8 @@ Removing a person from a family or deleting a family is one click.
   record's Notes section, then choose whether an edit should update the
   shared text everywhere or only the current record. **Detach from this
   record** removes one link; **Delete everywhere** removes the note.
-- Facts and names carry their own Sources, Notes, Tags and Identifiers
-  sections inside the person editor; facts also have Contacts.
+- Facts and names carry their own Sources, Notes and Identifiers sections
+  inside the person editor; facts also have Contacts.
 
 ## Addresses
 
@@ -83,18 +83,18 @@ a free-standing task. A task is shared: editing it anywhere updates the same
 record, and deleting one related record leaves the task in place.
 
 Titles, addresses, associations and family partner/child links have the same
-Notes, Sources, Tags, Identifiers, Contributors and Tasks sections as the main
-entity tabs. Addresses also have Contacts. Tasks keep Notes, Tags, Identifiers,
-Contributors and the legacy Tasks section, but have no Sources or Contacts.
+Notes, Sources, Identifiers, Contributors and Tasks sections as the main entity
+tabs. Addresses also have Contacts. Tasks keep Notes, Identifiers, Contributors
+and the legacy Tasks section, but have no Sources or Contacts.
 
 ## Media
 
 Photos are ordinary files in the `media/` folder next to the project. Add them
 from a person, family, source, place, repository, submitter, title, task or
-address; the media section also lets you attach an existing record to another
-target. Click a preview to open the media tab, where you can edit the title,
-manage files and edit link metadata such as the caption, sequence, primary
-flag and exclusion flag.
+address; the media tab's **Related to** section lets you attach an existing
+record to additional targets. Click a preview to open the media tab, where you
+can edit the title, manage files and edit link metadata such as the caption,
+sequence, primary flag and exclusion flag.
 
 A media record can be linked to several targets. **Detach from this record**
 removes one link and deletes the record when it was the last one; **Delete

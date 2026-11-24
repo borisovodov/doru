@@ -13,8 +13,6 @@ function apiStub(overrides: Partial<RegistriesEditorApi>): RegistriesEditorApi {
     getNotes: async () => [],
     getAllNotes: async () => [],
     getCitations: async () => [],
-    getTags: async () => [],
-    getTagLinks: async () => [],
     getIdentifiers: async () => [],
     getContacts: async () => [],
     getSubmitters: async () => [],

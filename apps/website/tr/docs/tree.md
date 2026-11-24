@@ -1,5 +1,5 @@
 ---
-source-hash: 3cd0833d604b
+source-hash: 13cfab1dc709
 ---
 
 # Ağaçla çalışma
@@ -37,7 +37,7 @@ Tam kişi düzenleyicisinde ebeveyn, partner veya çocuk ekleyin. Mevcut bir ki�
 
 - **Kaynaklar**: bir kişiye kaynak ekleyin (başlık ve yazarla) veya mevcut bir kaynağı yeniden kullanın. Her ekleme bir atıftır ve kaldırılabilir.
 - **Notlar**: bir kişiye eklenen serbest biçimli araştırma notları. Bir not birkaç kayda eklenebilir: başka bir kaydın Notlar bölümünde **Mevcut notu ekle**'yi kullanın, ardından bir düzenlemenin paylaşılan metni her yerde mi yoksa yalnızca geçerli kayıtta mı güncelleyeceğini seçin. **Bu kayıttan ayır** bir bağlantıyı kaldırır; **Her yerde sil** notu kaldırır.
-- Olgular ve adlar, kişi düzenleyicisi içinde kendi Kaynaklar, Notlar, Etiketler ve Tanımlayıcılar bölümlerine sahiptir; olguların ayrıca İletişim bilgileri vardır.
+- Olgular ve adlar, kişi düzenleyicisi içinde kendi Kaynaklar, Notlar ve Tanımlayıcılar bölümlerine sahiptir; olguların ayrıca İletişim bilgileri vardır.
 
 ## Adresler
 
@@ -47,11 +47,11 @@ Tam kişi düzenleyicisinde ebeveyn, partner veya çocuk ekleyin. Mevcut bir ki�
 
 Görevlerin planlanan ve hatırlatma tarihlerine ek olarak oluşturma ve kapatma tarihleri vardır. Her düzenleyicide bir **Görevler** bölümü vardır: oraya bir görev ekleyin, otomatik olarak o kayda bağlanır. Olgular, adlar, atıflar ve notlar, ekleme panellerinde kendi Görevler bölümlerine sahiptir. **İlgili** bir görevi ağaçtaki bir veya daha fazla kayda bağlar — bir kişi, aile, olay, ad, atıf, not, medya, yer, depo, adres veya eser; bağımsız bir görev için boş bırakın. Görev paylaşılır: herhangi bir yerde düzenlemek aynı kaydı günceller ve ilişkili bir kaydı silmek görevi yerinde bırakır.
 
-Eserler, adresler, ilişkilendirmeler ve aile partner/çocuk bağlantıları, ana varlık sekmeleriyle aynı Notlar, Kaynaklar, Etiketler, Tanımlayıcılar, Katkıda bulunanlar ve Görevler bölümlerine sahiptir. Adreslerin ayrıca İletişim bilgileri vardır. Görevler Notlar, Etiketler, Tanımlayıcılar, Katkıda bulunanlar ve eski Görevler bölümünü korur, ancak Kaynaklar ve İletişim bölümleri yoktur.
+Eserler, adresler, ilişkilendirmeler ve aile partner/çocuk bağlantıları, ana varlık sekmeleriyle aynı Notlar, Kaynaklar, Tanımlayıcılar, Katkıda bulunanlar ve Görevler bölümlerine sahiptir. Adreslerin ayrıca İletişim bilgileri vardır. Görevler Notlar, Tanımlayıcılar, Katkıda bulunanlar ve eski Görevler bölümünü korur, ancak Kaynaklar ve İletişim bölümleri yoktur.
 
 ## Medya
 
-Fotoğraflar, projenin yanındaki `media/` klasöründeki sıradan dosyalardır. Bunları bir kişi, aile, kaynak, yer, depo, gönderen, eser, görev veya adresten ekleyin; medya bölümü mevcut bir kaydı başka bir hedefe eklemenize de olanak tanır. Medya sekmesini açmak için bir önizlemeye tıklayın; burada başlığı düzenleyebilir, dosyaları yönetebilir ve altyazı, sıra, birincil bayrağı ve dışlama bayrağı gibi bağlantı meta verilerini düzenleyebilirsiniz.
+Fotoğraflar, projenin yanındaki `media/` klasöründeki sıradan dosyalardır. Bunları bir kişi, aile, kaynak, yer, depo, gönderen, eser, görev veya adresten ekleyin; medya sekmesindeki **İlgili** bölümünde mevcut bir kaydı ek hedeflere bağlayabilirsiniz. Medya sekmesini açmak için bir önizlemeye tıklayın; burada başlığı düzenleyebilir, dosyaları yönetebilir ve altyazı, sıra, birincil bayrağı ve dışlama bayrağı gibi bağlantı meta verilerini düzenleyebilirsiniz.
 
 Bir medya kaydı birkaç hedefe bağlanabilir. **Bu kayıttan ayır** bir bağlantıyı kaldırır ve son bağlantıysa kaydı siler; **Medyayı sil** kaydı ve dosya kopyalarını kaldırır. Bir hedef kaydı silmek yalnızca bağlantılarını kaldırır, bu nedenle paylaşılan bir medya kaydı bağlantısız kalabilir.
 

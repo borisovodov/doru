@@ -1,5 +1,5 @@
 ---
-source-hash: 3cd0833d604b
+source-hash: 13cfab1dc709
 ---
 
 # Arbeiten mit dem Stammbaum
@@ -69,7 +69,7 @@ oder eine Familie zu löschen ist ein Klick.
   dann, ob eine Bearbeitung den gemeinsamen Text überall oder nur im aktuellen
   Datensatz aktualisieren soll. **Von diesem Datensatz lösen** entfernt eine
   Verknüpfung; **Überall löschen** entfernt die Notiz.
-- Fakten und Namen tragen ihre eigenen Abschnitte Quellen, Notizen, Schlagwörter und Kennungen im Personen-Editor; Fakten haben außerdem Kontakte.
+- Fakten und Namen tragen ihre eigenen Abschnitte Quellen, Notizen und Kennungen im Personen-Editor; Fakten haben außerdem Kontakte.
 
 ## Adressen
 
@@ -88,14 +88,14 @@ dort eine Aufgabe hinzu, wird sie automatisch mit diesem Datensatz verknüpft.
 Fakten, Namen, Zitate und Notizen tragen ihren eigenen Abschnitt Aufgaben
 in ihrem Anhängebereich. **Verknüpft mit** verbindet eine Aufgabe mit einem oder mehreren Datensätzen im Stammbaum — einer Person, Familie, einem Ereignis, Namen, einer Quelle, einem Zitat, einer Notiz, einem Medium, einem Ort, einem Archiv, einer Adresse oder einem Werk; lassen Sie es leer für eine freistehende Aufgabe. Eine Aufgabe ist geteilt: Eine Bearbeitung an beliebiger Stelle aktualisiert denselben Datensatz, und das Löschen eines verknüpften Datensatzes lässt die Aufgabe bestehen.
 
-Werke, Adressen, Assoziationen und Partner-/Kind-Verknüpfungen von Familien haben dieselben Abschnitte Notizen, Quellen, Schlagwörter, Kennungen, Beiträger und Aufgaben wie die Tabs der Hauptentität. Adressen haben außerdem Kontakte. Aufgaben behalten Notizen, Schlagwörter, Kennungen, Beiträger und den bisherigen Aufgaben-Abschnitt, haben aber keine Quellen oder Kontakte.
+Werke, Adressen, Assoziationen und Partner-/Kind-Verknüpfungen von Familien haben dieselben Abschnitte Notizen, Quellen, Kennungen, Beiträger und Aufgaben wie die Tabs der Hauptentität. Adressen haben außerdem Kontakte. Aufgaben behalten Notizen, Kennungen, Beiträger und den bisherigen Aufgaben-Abschnitt, haben aber keine Quellen oder Kontakte.
 
 ## Medien
 
 Fotos sind gewöhnliche Dateien im Ordner `media/` neben dem Projekt. Fügen Sie sie
 von einer Person, Familie, Quelle, einem Ort, einem Archiv, einem Einsender, einem Werk,
-einer Aufgabe oder Adresse hinzu; der Medienbereich erlaubt es außerdem, einen
-vorhandenen Datensatz an ein anderes Ziel anzuhängen. Klicken Sie auf eine
+einer Aufgabe oder Adresse hinzu; im Abschnitt **Verknüpft mit** des Medien-Tabs
+können Sie einen vorhandenen Datensatz an weitere Ziele anhängen. Klicken Sie auf eine
 Vorschau, um den Medien-Tab zu öffnen, in dem Sie den Titel bearbeiten, Dateien
 verwalten und Link-Metadaten wie Bildunterschrift, Reihenfolge, Primärmarkierung
 und Ausschlussmarkierung bearbeiten können.

@@ -1,16 +1,9 @@
 import type { DatabaseSync } from 'node:sqlite';
-import type { ContactRecord, IdentifierRecord, TagLinkRecord, TagRecord } from '../model/types';
-
-interface TagLinkRow {
-  id: string;
-  tag_id: string;
-  target_type: string;
-  target_id: string;
-}
+import type { ContactRecord, IdentifierRecord } from '../model/types';
 
 /**
- * The universal attachment tables: identifiers, contacts, tags and tag links
- * — all sharing the polymorphic `(target_type, target_id)` shape.
+ * The universal attachment tables: identifiers and contacts, both sharing
+ * the polymorphic `(target_type, target_id)` shape.
  */
 export class AttachmentRepo {
   constructor(private readonly db: DatabaseSync) {}
@@ -109,109 +102,11 @@ export class AttachmentRepo {
     }));
   }
 
-  // tags ---------------------------------------------------------------------
-
-  insertTag(tag: TagRecord): void {
-    this.db.prepare('INSERT INTO tag (id, name) VALUES (?, ?)').run(tag.id, tag.name);
-  }
-
-  deleteTag(id: string): boolean {
-    return this.db.prepare('DELETE FROM tag WHERE id = ?').run(id).changes > 0;
-  }
-
-  updateTag(tag: TagRecord): void {
-    this.db.prepare('UPDATE tag SET name = ? WHERE id = ?').run(tag.name, tag.id);
-  }
-
-  listTags(): TagRecord[] {
-    const rows = this.db.prepare('SELECT id, name FROM tag ORDER BY name').all() as unknown as {
-      id: string;
-      name: string;
-    }[];
-    return rows.map((row) => ({ id: row.id, name: row.name }));
-  }
-
-  insertTagLink(link: TagLinkRecord): void {
-    this.db
-      .prepare('INSERT INTO tag_link (id, tag_id, target_type, target_id) VALUES (?, ?, ?, ?)')
-      .run(link.id, link.tagId, link.targetType, link.targetId);
-  }
-
-  deleteTagLink(id: string): boolean {
-    return this.db.prepare('DELETE FROM tag_link WHERE id = ?').run(id).changes > 0;
-  }
-
-  updateTagLink(link: TagLinkRecord): void {
-    const changed = this.db
-      .prepare('UPDATE tag_link SET tag_id = ?, target_type = ?, target_id = ? WHERE id = ?')
-      .run(link.tagId, link.targetType, link.targetId, link.id).changes;
-    if (changed === 0) {
-      throw new Error(`tag_link ${link.id} no longer exists`);
-    }
-  }
-
-  listTagLinksFor(targetType: string, targetId: string): Array<{ tagId: string; link: TagLinkRecord }> {
-    const rows = this.db
-      .prepare(
-        'SELECT id, tag_id, target_type, target_id FROM tag_link WHERE target_type = ? AND target_id = ? ORDER BY id',
-      )
-      .all(targetType, targetId) as unknown as TagLinkRow[];
-    return rows.map((row) => ({
-      tagId: row.tag_id,
-      link: {
-        id: row.id,
-        tagId: row.tag_id,
-        targetType: row.target_type,
-        targetId: row.target_id,
-      },
-    }));
-  }
-
-  getTagLink(id: string): TagLinkRecord | undefined {
-    const row = this.db.prepare('SELECT id, tag_id, target_type, target_id FROM tag_link WHERE id = ?').get(id) as
-      | TagLinkRow
-      | undefined;
-    if (row === undefined) {
-      return undefined;
-    }
-    return {
-      id: row.id,
-      tagId: row.tag_id,
-      targetType: row.target_type,
-      targetId: row.target_id,
-    };
-  }
-
-  listTagLinksByTag(tagId: string): TagLinkRecord[] {
-    const rows = this.db
-      .prepare('SELECT id, tag_id, target_type, target_id FROM tag_link WHERE tag_id = ? ORDER BY id')
-      .all(tagId) as unknown as TagLinkRow[];
-    return rows.map((row) => ({
-      id: row.id,
-      tagId: row.tag_id,
-      targetType: row.target_type,
-      targetId: row.target_id,
-    }));
-  }
-
-  /** Every tag link in the tree, for the global tag registry. */
-  listAllTagLinks(): TagLinkRecord[] {
-    const rows = this.db
-      .prepare('SELECT id, tag_id, target_type, target_id FROM tag_link ORDER BY id')
-      .all() as unknown as TagLinkRow[];
-    return rows.map((row) => ({
-      id: row.id,
-      tagId: row.tag_id,
-      targetType: row.target_type,
-      targetId: row.target_id,
-    }));
-  }
-
   // bulk cascade -------------------------------------------------------------
 
   /** Deletes every attachment row of the target (except notes/citations/media, which own their links). */
   deleteAllFor(targetType: string, targetId: string): void {
-    for (const table of ['identifier', 'contact', 'tag_link'] as const) {
+    for (const table of ['identifier', 'contact'] as const) {
       this.db.prepare(`DELETE FROM ${table} WHERE target_type = ? AND target_id = ?`).run(targetType, targetId);
     }
   }

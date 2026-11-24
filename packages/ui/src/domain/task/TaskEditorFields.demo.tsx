@@ -6,15 +6,12 @@ import { emptyTaskDraft } from './taskDraft';
 
 function StatefulTaskEditorFields(args: ComponentProps<typeof TaskEditorFields>) {
   const [edit, setEdit] = useState(args.edit);
-  const [targets, setTargets] = useState(args.targets);
   return (
     <SectionCard title="Details">
       <TaskEditorFields
         {...args}
         edit={edit}
-        targets={targets}
         onChange={(update) => setEdit((current) => ({ ...current, ...update }))}
-        onChangeTargets={setTargets}
       />
     </SectionCard>
   );
@@ -25,25 +22,7 @@ const meta = {
   component: TaskEditorFields,
   args: {
     edit: { ...emptyTaskDraft(), text: 'Find the parish register' },
-    data: {
-      persons: [],
-      families: [],
-      sources: [],
-      places: [],
-      repositories: [],
-      titles: [],
-      facts: [],
-      citations: [],
-      notes: [],
-      media: [],
-      submitters: [],
-      addresses: [],
-      associations: [],
-      tasks: [],
-    },
-    targets: [],
     onChange: () => undefined,
-    onChangeTargets: () => undefined,
   },
   decorators: [
     (Story) => (

@@ -12,8 +12,6 @@ import type {
   RecordSubmitterLink,
   SourceRecord,
   SubmitterRecord,
-  TagLinkRecord,
-  TagRecord,
   TitleRecord,
 } from '../model/types';
 import { emptyAttachments } from '../model/types';
@@ -25,7 +23,6 @@ import {
   restoreRecordSubmitter,
   restoreSource,
   restoreSourceRepository,
-  restoreTagLink,
   sameRecord,
 } from './restore';
 import type { NestedAttachments, Op } from './op';
@@ -198,7 +195,7 @@ export function addSourceOp(source: SourceRecord, citation?: { targetType: strin
   );
 }
 
-export function addSourceWithCitationsOp(source: SourceRecord, citations: CitationRecord[]): Op {
+function addSourceWithCitationsOp(source: SourceRecord, citations: CitationRecord[]): Op {
   return {
     ...op(
       crypto.randomUUID(),
@@ -562,133 +559,6 @@ export function updateContactOp(before: ContactRecord, after: ContactRecord): Op
       (ctx) => ctx.repo.updateContact(before),
     ),
     change: { targetType: after.targetType, targetId: after.targetId, kind: 'changed' },
-  };
-}
-
-export function addTagOp(tag: TagRecord): Op {
-  return op(
-    crypto.randomUUID(),
-    'tag.add',
-    (ctx) => ctx.repo.insertTag(tag),
-    (ctx) => ctx.repo.deleteTag(tag.id),
-    { targetType: 'tag', targetId: tag.id, kind: 'created' },
-  );
-}
-
-export function updateTagOp(before: TagRecord, after: TagRecord): Op {
-  return op(
-    crypto.randomUUID(),
-    'tag.update',
-    (ctx) => ctx.repo.updateTag(after),
-    (ctx) => ctx.repo.updateTag(before),
-    { targetType: 'tag', targetId: before.id, kind: 'changed' },
-  );
-}
-
-/**
- * Deletes a tag together with its links (the FK cascade removes the
- * tag_link rows); inverse restores the tag and every link — one undo
- * step, no losses.
- */
-export function deleteTagOp(
-  tag: TagRecord,
-  links: TagLinkRecord[],
-  attachments: AttachmentsSnapshot = emptyAttachments(),
-): Op {
-  let baselineLinks = links;
-  let attachmentBaseline = attachments;
-  return {
-    ...op(
-      crypto.randomUUID(),
-      'tag.delete',
-      (ctx) => {
-        ctx.repo.deleteAttachmentsFor('tag', tag.id);
-        ctx.repo.deleteTag(tag.id);
-      },
-      (ctx) => {
-        ctx.repo.insertTag(tag);
-        ctx.repo.restoreAttachments(attachments);
-        for (const link of links) {
-          restoreTagLink(ctx, link);
-        }
-        baselineLinks = ctx.repo.listTagLinksByTag(tag.id);
-        attachmentBaseline = ctx.repo.listAttachmentsFor('tag', tag.id);
-      },
-      { targetType: 'tag', targetId: tag.id, kind: 'changed' },
-      (ctx) => {
-        const current = ctx.repo.listTags().find((entry) => entry.id === tag.id);
-        if (current === undefined || !sameRecord(current, tag)) {
-          return false;
-        }
-        if (!attachmentsMatch(ctx, 'tag', tag.id, attachmentBaseline)) {
-          return false;
-        }
-        const capturedLinks = baselineLinks.map((link) => JSON.stringify(link)).sort();
-        const liveLinks = ctx.repo
-          .listTagLinksByTag(tag.id)
-          .map((link) => JSON.stringify(link))
-          .sort();
-        return JSON.stringify(capturedLinks) === JSON.stringify(liveLinks);
-      },
-    ),
-    snapshots: [attachments],
-  };
-}
-
-export function attachTagOp(link: TagLinkRecord): Op {
-  return op(
-    crypto.randomUUID(),
-    'tag_link.attach',
-    (ctx) => ctx.repo.insertTagLink(link),
-    (ctx) => ctx.repo.deleteTagLink(link.id),
-    { targetType: link.targetType, targetId: link.targetId, kind: 'changed' },
-  );
-}
-
-export function attachTagLinksOp(links: TagLinkRecord[]): Op {
-  return op(
-    crypto.randomUUID(),
-    'tag_link.attach',
-    (ctx) => {
-      for (const link of links) {
-        ctx.repo.insertTagLink(link);
-      }
-    },
-    (ctx) => {
-      for (const link of links) {
-        ctx.repo.deleteTagLink(link.id);
-      }
-    },
-    links[0] === undefined
-      ? undefined
-      : { targetType: links[0].targetType, targetId: links[0].targetId, kind: 'changed' },
-  );
-}
-
-export function detachTagOp(link: TagLinkRecord): Op {
-  return op(
-    crypto.randomUUID(),
-    'tag_link.detach',
-    (ctx) => ctx.repo.deleteTagLink(link.id),
-    (ctx) => ctx.repo.insertTagLink(link),
-    { targetType: link.targetType, targetId: link.targetId, kind: 'changed' },
-  );
-}
-
-/** Changes the attachment date of a tag link. */
-export function updateTagLinkOp(before: TagLinkRecord, after: TagLinkRecord): Op {
-  return {
-    ...op(
-      crypto.randomUUID(),
-      'tag_link.update',
-      (ctx) => ctx.repo.updateTagLink(after),
-      (ctx) => ctx.repo.updateTagLink(before),
-    ),
-    change: { targetType: after.targetType, targetId: after.targetId, kind: 'changed' },
-    redoSafe: (ctx) => {
-      const current = ctx.repo.getTagLink(before.id);
-      return current !== undefined && sameRecord(current, before);
-    },
   };
 }
 

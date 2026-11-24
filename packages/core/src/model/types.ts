@@ -807,19 +807,6 @@ export interface ContactRecord {
   value: string;
 }
 
-/** A named label attached to any target (no color — presentation lives in themes). */
-export interface TagRecord {
-  id: string;
-  name: string;
-}
-
-export interface TagLinkRecord {
-  id: string;
-  tagId: string;
-  targetType: string;
-  targetId: string;
-}
-
 /** A submitter link: contributor or an ANCI/DESI research interest. */
 export interface RecordSubmitterLink {
   id: string;
@@ -854,7 +841,6 @@ export interface AttachmentsSnapshot {
   mediaLinkAttachments: NestedAttachmentSnapshot[];
   identifiers: IdentifierRecord[];
   contacts: ContactRecord[];
-  tagLinks: Array<{ tagId: string; link: TagLinkRecord }>;
   /** Task links targeting this record; the tasks themselves survive. */
   taskLinks: TaskTargetLink[];
   recordSubmitters: RecordSubmitterLink[];
@@ -872,7 +858,6 @@ export function emptyAttachments(): AttachmentsSnapshot {
     mediaLinkAttachments: [],
     identifiers: [],
     contacts: [],
-    tagLinks: [],
     taskLinks: [],
     recordSubmitters: [],
   };

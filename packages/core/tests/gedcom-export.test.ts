@@ -6,24 +6,6 @@ import type { FactRecord, PersonRecord, SourceRecord } from '../src/model/types'
 import { cleanupRepo, makeRepo } from './helpers';
 
 describe('buildGedcomDataset', () => {
-  it('gives _TAG records an xref and points the tag links at it', () => {
-    const fixture = makeRepo();
-    try {
-      const { repo } = fixture;
-      repo.insertPerson({ id: 'P1', names: [], sex: 'U', facts: [] });
-      repo.insertTag({ id: 'TG1', name: 'favorites' });
-      repo.insertTagLink({ id: 'TL1', tagId: 'TG1', targetType: 'person', targetId: 'P1' });
-
-      const dataset = buildGedcomDataset(repo);
-      const tag = dataset.records.find((record) => record.tag === '_TAG');
-      expect(tag).toEqual(expect.objectContaining({ xref: '@TAG1@', name: 'favorites' }));
-      const person = dataset.records.find((record) => record.tag === 'INDI');
-      expect(person?.tagLinks?.[0]?.target).toBe('@TAG1@');
-    } finally {
-      cleanupRepo(fixture);
-    }
-  });
-
   it('keeps an adoption phrase when no adopting parent is selected', () => {
     const fixture = makeRepo();
     try {

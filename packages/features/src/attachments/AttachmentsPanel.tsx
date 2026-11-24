@@ -8,23 +8,14 @@ import {
   IdentifiersSection,
   NotesSection,
   SourcesSection,
-  TagsSection,
   TasksSection,
   type MediaWithPath,
 } from '@doru/ui/domain';
 import { MediaSection } from '../media/MediaSection';
 import type { AttachmentsApi } from '../person/types';
-import { refreshAfterTagAttach, useAttachments, type ContributorApi } from './useAttachments';
+import { useAttachments, type ContributorApi } from './useAttachments';
 
-export type AttachmentSection =
-  | 'notes'
-  | 'sources'
-  | 'media'
-  | 'tags'
-  | 'identifiers'
-  | 'contacts'
-  | 'contributors'
-  | 'tasks';
+export type AttachmentSection = 'notes' | 'sources' | 'media' | 'identifiers' | 'contacts' | 'contributors' | 'tasks';
 
 export type AttachmentsPanelApi = AttachmentsApi & ContributorApi;
 
@@ -32,7 +23,6 @@ const ALL_SECTIONS: readonly AttachmentSection[] = [
   'notes',
   'sources',
   'media',
-  'tags',
   'identifiers',
   'contacts',
   'contributors',
@@ -63,8 +53,12 @@ export function AttachmentsPanel({
   onOpenMedia?: ((mediaId: string) => void) | undefined;
   renderCitationAttachments?: ((citation: CitationRecord) => ReactNode) | undefined;
 }) {
-  const { notes, allNotes, citations, tags, tagLinks, identifiers, contacts, submitters, contributors, refresh } =
-    useAttachments(targetType, targetId, api, true);
+  const { notes, allNotes, citations, identifiers, contacts, submitters, contributors, refresh } = useAttachments(
+    targetType,
+    targetId,
+    api,
+    true,
+  );
 
   if (targetId === undefined) {
     return null;
@@ -135,9 +129,7 @@ export function AttachmentsPanel({
           citations={citations}
           refresh={refresh}
           onAddSource={api.addSource}
-          onAddSourceToTargets={api.addSourceToTargets}
           onAttachSource={api.attachSource}
-          onAttachSourceToTargets={api.attachSourceToTargets}
           onDetachCitation={api.detachCitation}
           onUpdateCitation={api.updateCitation}
           onOpenSource={onOpenSource ?? (() => undefined)}
@@ -146,32 +138,6 @@ export function AttachmentsPanel({
       )}
       {include.has('media') && (
         <MediaAttachments targetType={targetType} targetId={targetId} api={api} onOpenMedia={onOpenMedia} />
-      )}
-      {include.has('tags') && (
-        <TagsSection
-          targetType={targetType}
-          targetId={targetId}
-          tags={tags}
-          tagLinks={tagLinks}
-          onAddTag={api.addTag}
-          onUpdateTag={async (before, after) => {
-            await api.updateTag(before, after);
-            await refresh();
-          }}
-          onDeleteTag={async (tag) => {
-            await api.deleteTag(tag);
-            await refresh();
-          }}
-          onAttachTagToTargets={refreshAfterTagAttach(api.attachTagToTargets, refresh)}
-          onAttachTag={async (link) => {
-            await api.attachTag(link);
-            await refresh();
-          }}
-          onDetachTag={async (link) => {
-            await api.detachTag(link);
-            await refresh();
-          }}
-        />
       )}
       {include.has('identifiers') && (
         <IdentifiersSection

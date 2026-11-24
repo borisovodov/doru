@@ -1,5 +1,5 @@
 ---
-source-hash: 3cd0833d604b
+source-hash: 13cfab1dc709
 ---
 
 # Praca z drzewem
@@ -65,7 +65,7 @@ osoby z rodziny albo usunięcie rodziny to jedno kliknięcie.
   Notatki innego rekordu, a następnie wybierz, czy edycja ma zaktualizować
   wspólny tekst wszędzie, czy tylko bieżący rekord. **Odłącz od tego rekordu**
   usuwa jedno powiązanie; **Usuń wszędzie** usuwa notatkę.
-- Wydarzenia i imiona mają własne sekcje Źródła, Notatki, Etykiety i Identyfikatory w edytorze osoby; wydarzenia mają także Kontakty.
+- Wydarzenia i imiona mają własne sekcje Źródła, Notatki i Identyfikatory w edytorze osoby; wydarzenia mają także Kontakty.
 
 ## Adresy
 
@@ -82,13 +82,13 @@ przypomnień. Każdy edytor ma sekcję **Zadania**: dodaj tam zadanie, a zostani
 automatycznie powiązane z tym rekordem. Wydarzenia, imiona, cytaty i notatki
 mają własną sekcję Zadania w swoim panelu załączników. **Powiązane z** łączy zadanie z jednym lub kilkoma rekordami w drzewie — osobą, rodziną, wydarzeniem, imieniem, cytatem, notatką, multimediami, miejscem, repozytorium, adresem lub dziełem; pozostaw puste dla samodzielnego zadania. Zadanie jest współdzielone: edycja w dowolnym miejscu aktualizuje ten sam rekord, a usunięcie powiązanego rekordu pozostawia zadanie na miejscu.
 
-Dzieła, adresy, powiązania i relacje partner/dziecko w rodzinach mają te same sekcje Notatki, Źródła, Etykiety, Identyfikatory, Współtwórcy i Zadania co karty głównych encji. Adresy mają także Kontakty. Zadania zachowują sekcje Notatki, Etykiety, Identyfikatory, Współtwórcy oraz dotychczasową sekcję Zadania, ale nie mają Źródeł ani Kontaktów.
+Dzieła, adresy, powiązania i relacje partner/dziecko w rodzinach mają te same sekcje Notatki, Źródła, Identyfikatory, Współtwórcy i Zadania co karty głównych encji. Adresy mają także Kontakty. Zadania zachowują sekcje Notatki, Identyfikatory, Współtwórcy oraz dotychczasową sekcję Zadania, ale nie mają Źródeł ani Kontaktów.
 
 ## Multimedia
 
 Zdjęcia to zwykłe pliki w folderze `media/` obok projektu. Dodawaj je z osoby,
 rodziny, źródła, miejsca, repozytorium, nadawcy, dzieła, zadania lub adresu;
-sekcja multimediów pozwala też dołączyć istniejący rekord do innego celu.
+w sekcji **Powiązane z** na karcie multimediów możesz dołączyć istniejący rekord do innych celów.
 Kliknij podgląd, aby otworzyć kartę multimediów, gdzie możesz edytować tytuł,
 zarządzać plikami i edytować metadane powiązania, takie jak podpis, kolejność,
 znacznik główny i znacznik wykluczenia.

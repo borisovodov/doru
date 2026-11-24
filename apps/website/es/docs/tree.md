@@ -1,5 +1,5 @@
 ---
-source-hash: 3cd0833d604b
+source-hash: 13cfab1dc709
 ---
 
 # Trabajar con el árbol
@@ -69,7 +69,7 @@ familia es un clic.
   el texto compartido en todas partes o solo en el registro actual. **Desvincular
   de este registro** elimina un enlace; **Eliminar en todas partes** elimina la
   nota.
-- Los hechos y los nombres llevan sus propias secciones de Fuentes, Notas, Etiquetas e Identificadores dentro del editor de la persona; los hechos también tienen Contactos.
+- Los hechos y los nombres llevan sus propias secciones de Fuentes, Notas e Identificadores dentro del editor de la persona; los hechos también tienen Contactos.
 
 ## Direcciones
 
@@ -86,14 +86,14 @@ de recordatorio. Cada editor tiene una sección **Tareas**: añade allí una tar
 se vincula automáticamente a ese registro. Los hechos, nombres, citas y notas
 llevan su propia sección Tareas en su panel de elementos adjuntos. **Relacionado con** vincula una tarea con uno o varios registros del árbol — una persona, familia, evento, nombre, fuente, cita, nota, multimedia, lugar, repositorio, dirección u obra; déjalo vacío para una tarea independiente. Una tarea es compartida: editarla en cualquier lugar actualiza el mismo registro y eliminar un registro relacionado deja la tarea en su sitio.
 
-Las obras, direcciones, asociaciones y enlaces de pareja/hijo de una familia tienen las mismas secciones Notas, Fuentes, Etiquetas, Identificadores, Contribuyentes y Tareas que las pestañas de la entidad principal. Las direcciones también tienen Contactos. Las tareas conservan Notas, Etiquetas, Identificadores, Contribuyentes y la sección Tareas existente, pero no tienen Fuentes ni Contactos.
+Las obras, direcciones, asociaciones y enlaces de pareja/hijo de una familia tienen las mismas secciones Notas, Fuentes, Identificadores, Contribuyentes y Tareas que las pestañas de la entidad principal. Las direcciones también tienen Contactos. Las tareas conservan Notas, Identificadores, Contribuyentes y la sección Tareas existente, pero no tienen Fuentes ni Contactos.
 
 ## Multimedia
 
 Las fotos son archivos normales en la carpeta `media/` junto al proyecto. Añádelas
 desde una persona, familia, fuente, lugar, repositorio, remitente, obra, tarea o
-dirección; la sección multimedia también permite adjuntar un registro existente a
-otro destino. Haz clic en una vista previa para abrir la pestaña multimedia, donde
+dirección; en la sección **Relacionado con** de la pestaña multimedia puedes adjuntar
+un registro existente a destinos adicionales. Haz clic en una vista previa para abrir la pestaña multimedia, donde
 puedes editar el título, gestionar archivos y editar metadatos del enlace como la
 leyenda, la secuencia, la marca de principal y la marca de exclusión.
 

@@ -191,11 +191,6 @@ dates in the `_TODO` structure form. Date-only values become local midnight.
 Partial, approximate, range, or otherwise unparseable task dates are dropped
 rather than inventing an instant.
 
-`tag_link.date` is dropped entirely. The tag-application date is rare in the
-corpus (a handful of modern dates in the tag-extension examples) and Dóru's
-tag model does not need it; `@doru/gedcom` still parses and serializes the wire
-field, but the tree database does not store it.
-
 ## No persistent change log
 
 There is no `change_log` table and no `CHAN`/`CREA` mapping. Undo/redo is an
@@ -213,6 +208,17 @@ standard GEDCOM `ASSO` association row (`association`), which points at a
 person and carries a role. Giving the free-text rows stable ids and
 attachment panels would make them look like first-class entities that Dóru
 does not model.
+
+## No tags or global attachment lists
+
+Tags are not part of the document model: there is no tag table, tag link,
+UI section, IPC surface, or import/export mapping. `@doru/gedcom` still
+parses `_TAG`, `_MTTAG` and similar vendor records, but the tree ignores
+them on import and never writes them on export.
+
+The Sources sidebar intentionally has no global Notes or Citations
+registries either. Notes and citations are browsed from the record they
+belong to, which keeps the sidebar focused on records with their own tabs.
 
 ## GEDCOM media
 

@@ -23,8 +23,6 @@ function renderTab(
     getFamilies: async () => [],
     getPlaces: async () => [],
     getAddresses: async () => [],
-    getTags: async () => [],
-    getTagLinks: async () => [],
     getNotes: async () => [],
     getAllNotes: async () => [],
     getCitations: async () => [],

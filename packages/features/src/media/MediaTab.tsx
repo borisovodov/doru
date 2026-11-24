@@ -728,42 +728,6 @@ function MediaTabBody({
             />
           ))}
         </ul>
-        {attachMediaToTargets !== undefined && (
-          <>
-            <div className="media-link-add">
-              <TargetPicker
-                allowedTypes={TARGET_TYPES}
-                value={linkTargets}
-                onChange={setLinkTargets}
-                ariaLabel={nls.t('features.tasks.target')}
-              />
-              <Button
-                variant="primary"
-                size="sm"
-                disabled={linkTargets.length === 0}
-                onClick={() => {
-                  setLinkError(false);
-                  const submitted = linkTargets;
-                  void attachMediaToTargets(record.id, submitted)
-                    .then(() =>
-                      setLinkTargets((current) =>
-                        current.filter(
-                          (target) =>
-                            !submitted.some(
-                              (entry) => entry.targetType === target.targetType && entry.targetId === target.targetId,
-                            ),
-                        ),
-                      ),
-                    )
-                    .catch(() => setLinkError(true));
-                }}
-              >
-                {nls.t('features.tree.media.attach')}
-              </Button>
-            </div>
-            {linkError ? <InlineError>{nls.t('features.tree.autosaveFailed')}</InlineError> : null}
-          </>
-        )}
       </SectionCard>
 
       <AttachmentsPanel
@@ -773,6 +737,42 @@ function MediaTabBody({
         sources={sources}
         onOpenSource={(sourceId) => api.openSource?.(sourceId)}
       />
+      {attachMediaToTargets !== undefined && (
+        <SectionCard title={nls.t('features.tasks.target')}>
+          <div className="media-link-add">
+            <TargetPicker
+              allowedTypes={TARGET_TYPES}
+              value={linkTargets}
+              onChange={setLinkTargets}
+              ariaLabel={nls.t('features.tasks.target')}
+            />
+            <Button
+              variant="primary"
+              size="sm"
+              disabled={linkTargets.length === 0}
+              onClick={() => {
+                setLinkError(false);
+                const submitted = linkTargets;
+                void attachMediaToTargets(record.id, submitted)
+                  .then(() =>
+                    setLinkTargets((current) =>
+                      current.filter(
+                        (target) =>
+                          !submitted.some(
+                            (entry) => entry.targetType === target.targetType && entry.targetId === target.targetId,
+                          ),
+                      ),
+                    ),
+                  )
+                  .catch(() => setLinkError(true));
+              }}
+            >
+              {nls.t('features.tree.media.attach')}
+            </Button>
+          </div>
+          {linkError ? <InlineError>{nls.t('features.tree.autosaveFailed')}</InlineError> : null}
+        </SectionCard>
+      )}
       <DangerZone>
         <Button variant="danger" size="sm" data-autosave-skip="true" disabled={deletion.deleting} onClick={remove}>
           {nls.t('features.tree.fact.delete')}

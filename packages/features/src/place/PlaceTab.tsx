@@ -1,12 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import type { FactRecord, FamilyRecord, PersonRecord, PlaceRecord, SourceRecord } from '@doru/core';
-import {
-  AttachmentsPanel,
-  CitationAttachments,
-  NoteAttachments,
-  refreshAfterTagAttach,
-  useAttachments,
-} from '../attachments';
+import { AttachmentsPanel, CitationAttachments, NoteAttachments, useAttachments } from '../attachments';
 import { MediaSection } from '../media/MediaSection';
 import { AutoSaveError } from '../autoSaveFeedback';
 import { useEntityDelete } from '../entityDelete';
@@ -24,14 +18,7 @@ import {
   type PlaceDraft,
 } from './placeDraft';
 import type { MediaWithPath } from '@doru/ui/domain';
-import {
-  ContributorsSection,
-  IdentifiersSection,
-  NotesSection,
-  SourcesSection,
-  TagsSection,
-  TasksSection,
-} from '@doru/ui/domain';
+import { ContributorsSection, IdentifiersSection, NotesSection, SourcesSection, TasksSection } from '@doru/ui/domain';
 import { nls } from '../nls';
 
 /** A new place starts with the placeholder text as the first name value. */
@@ -158,8 +145,6 @@ function PlaceTabBody({
     notes: placeNotes,
     allNotes,
     citations: placeCitations,
-    tags,
-    tagLinks,
     identifiers,
     submitters,
     contributors,
@@ -348,9 +333,7 @@ function PlaceTabBody({
                 citations={placeCitations}
                 refresh={refreshAttachments}
                 onAddSource={api.addSource}
-                onAddSourceToTargets={api.addSourceToTargets}
                 onAttachSource={api.attachSource}
-                onAttachSourceToTargets={api.attachSourceToTargets}
                 onDetachCitation={api.detachCitation}
                 onUpdateCitation={api.updateCitation}
                 onOpenSource={onOpenSource}
@@ -401,24 +384,6 @@ function PlaceTabBody({
                 }}
                 onDelete={async (identifier) => {
                   await api.deleteIdentifier(identifier);
-                  await refreshAttachments();
-                }}
-              />
-              <TagsSection
-                targetType="place"
-                targetId={targetId}
-                tags={tags}
-                tagLinks={tagLinks}
-                onAddTag={api.addTag}
-                onUpdateTag={api.updateTag}
-                onDeleteTag={api.deleteTag}
-                onAttachTagToTargets={refreshAfterTagAttach(api.attachTagToTargets, refreshAttachments)}
-                onAttachTag={async (link) => {
-                  await api.attachTag(link);
-                  await refreshAttachments();
-                }}
-                onDetachTag={async (link) => {
-                  await api.detachTag(link);
                   await refreshAttachments();
                 }}
               />

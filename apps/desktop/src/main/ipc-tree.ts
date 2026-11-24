@@ -18,8 +18,6 @@ import type {
   RepositoryRecord,
   SourceRecord,
   SubmitterRecord,
-  TagLinkRecord,
-  TagRecord,
   TargetRef,
   TaskRecord,
   TaskTargetLink,
@@ -28,7 +26,6 @@ import type {
 import {
   addFilesToMedia,
   addMediaToTarget,
-  addMediaToTargets,
   addStandaloneMedia,
   listAllMedia,
   listMediaForTarget,
@@ -308,68 +305,6 @@ export function registerTreeIpc(): void {
     },
   );
 
-  ipcMain.handle('tree:tags', async (_event, options: { projectPath: string }) => {
-    const { runtime } = await ensureRuntime(options.projectPath);
-    return runtime.service.listTags();
-  });
-
-  ipcMain.handle(
-    'tree:tagLinks',
-    async (_event, options: { projectPath: string; targetType: string; targetId: string }) => {
-      const { runtime } = await ensureRuntime(options.projectPath);
-      return runtime.service.listTagLinksFor(options.targetType, options.targetId);
-    },
-  );
-
-  ipcMain.handle('tree:allTagLinks', async (_event, options: { projectPath: string }) => {
-    const { runtime } = await ensureRuntime(options.projectPath);
-    return runtime.service.listAllTagLinks();
-  });
-
-  ipcMain.handle('tree:addTag', async (_event, options: { projectPath: string; tag: TagRecord }) => {
-    const { runtime } = await ensureRuntime(options.projectPath);
-    return runtime.service.addTag(options.tag);
-  });
-
-  ipcMain.handle(
-    'tree:updateTag',
-    async (_event, options: { projectPath: string; before: TagRecord; after: TagRecord }) => {
-      const { runtime } = await ensureRuntime(options.projectPath);
-      return runtime.service.updateTag(options.before, options.after);
-    },
-  );
-
-  ipcMain.handle('tree:deleteTag', async (_event, options: { projectPath: string; tag: TagRecord }) => {
-    const { runtime } = await ensureRuntime(options.projectPath);
-    return runtime.service.deleteTag(options.tag);
-  });
-
-  ipcMain.handle('tree:attachTag', async (_event, options: { projectPath: string; link: TagLinkRecord }) => {
-    const { runtime } = await ensureRuntime(options.projectPath);
-    return runtime.service.attachTag(options.link);
-  });
-
-  ipcMain.handle(
-    'tree:attachTagToTargets',
-    async (_event, options: { projectPath: string; tagId: string; targets: TargetRef[] }) => {
-      const { runtime } = await ensureRuntime(options.projectPath);
-      return runtime.service.attachTagToTargets(options.tagId, options.targets);
-    },
-  );
-
-  ipcMain.handle('tree:detachTag', async (_event, options: { projectPath: string; link: TagLinkRecord }) => {
-    const { runtime } = await ensureRuntime(options.projectPath);
-    return runtime.service.detachTag(options.link);
-  });
-
-  ipcMain.handle(
-    'tree:updateTagLink',
-    async (_event, options: { projectPath: string; before: TagLinkRecord; after: TagLinkRecord }) => {
-      const { runtime } = await ensureRuntime(options.projectPath);
-      return runtime.service.updateTagLink(options.before, options.after);
-    },
-  );
-
   ipcMain.handle('tree:sources', async (_event, options: { projectPath: string }) => {
     const { runtime } = await ensureRuntime(options.projectPath);
     return runtime.service.listSources();
@@ -380,14 +315,6 @@ export function registerTreeIpc(): void {
     async (_event, options: { projectPath: string; source: SourceRecord; targetType?: string; targetId?: string }) => {
       const { runtime } = await ensureRuntime(options.projectPath);
       return runtime.service.addSource(options.source, options.targetType, options.targetId);
-    },
-  );
-
-  ipcMain.handle(
-    'tree:addSourceToTargets',
-    async (_event, options: { projectPath: string; source: SourceRecord; targets: TargetRef[] }) => {
-      const { runtime } = await ensureRuntime(options.projectPath);
-      return runtime.service.addSourceToTargets(options.source, options.targets);
     },
   );
 
@@ -683,10 +610,6 @@ export function registerTreeIpc(): void {
     'tree:addMedia',
     async (_event, options: { projectPath: string; targetType: string; targetId: string }) =>
       addMediaToTarget(options.projectPath, options.targetType, options.targetId),
-  );
-
-  ipcMain.handle('tree:addMediaToTargets', async (_event, options: { projectPath: string; targets: TargetRef[] }) =>
-    addMediaToTargets(options.projectPath, options.targets),
   );
 
   ipcMain.handle('tree:addStandaloneMedia', async (_event, options: { projectPath: string }) =>

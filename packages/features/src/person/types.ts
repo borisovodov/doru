@@ -18,8 +18,6 @@ import type {
   RepositoryRecord,
   SourceRecord,
   SubmitterRecord,
-  TagLinkRecord,
-  TagRecord,
   TargetRef,
   TaskRecord,
   TaskTargetLink,
@@ -33,7 +31,6 @@ export interface MediaTargetApi {
   getMediaFor(targetType: string, targetId: string): Promise<MediaWithPath[]>;
   getAllMedia(): Promise<MediaWithPath[]>;
   addMediaToTarget(targetType: string, targetId: string): Promise<void>;
-  addMediaToTargets?(targets: TargetRef[]): Promise<void>;
   attachMedia(link: MediaLinkRecord): Promise<void>;
   attachMediaToTargets?(mediaId: string, targets: TargetRef[]): Promise<void>;
   detachMedia(link: MediaLinkRecord): Promise<void>;
@@ -60,7 +57,6 @@ export interface AttachmentsApi extends AttachmentApi, MediaTargetApi {
   updateCitation(before: CitationRecord, after: CitationRecord): Promise<void>;
   getSources(): Promise<SourceRecord[]>;
   addSource(source: SourceRecord, targetType?: string, targetId?: string): Promise<void>;
-  addSourceToTargets?(source: SourceRecord, targets: TargetRef[]): Promise<void>;
   attachSource(sourceId: string, targetType: string, targetId: string): Promise<void>;
   attachSourceToTargets?(sourceId: string, targets: TargetRef[]): Promise<void>;
   detachCitation(citationId: string): Promise<void>;
@@ -70,13 +66,6 @@ export interface AttachmentsApi extends AttachmentApi, MediaTargetApi {
   addContact(contact: ContactRecord): Promise<void>;
   updateContact(before: ContactRecord, after: ContactRecord): Promise<void>;
   deleteContact(contact: ContactRecord): Promise<void>;
-  addTag(tag: TagRecord): Promise<void>;
-  updateTag(before: TagRecord, after: TagRecord): Promise<void>;
-  deleteTag(tag: TagRecord): Promise<void>;
-  attachTag(link: TagLinkRecord): Promise<void>;
-  attachTagToTargets?(tagId: string, targets: TargetRef[]): Promise<void>;
-  detachTag(link: TagLinkRecord): Promise<void>;
-  updateTagLink(before: TagLinkRecord, after: TagLinkRecord): Promise<void>;
   getTasksFor(targetType: string, targetId: string): Promise<TaskRecord[]>;
   addTask(task: TaskRecord): Promise<void>;
   updateTask(before: TaskRecord, after: TaskRecord): Promise<void>;

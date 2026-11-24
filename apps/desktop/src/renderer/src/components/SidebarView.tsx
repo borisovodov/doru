@@ -15,16 +15,12 @@ import type {
   RepositoryRecord,
   SourceRecord,
   SubmitterRecord,
-  TagLinkRecord,
-  TagRecord,
   TitleRecord,
   TaskRecord,
 } from '@doru/core';
-import { PersonList, TasksView, type TaskTargetData } from '@doru/ui/domain';
+import { PersonList, TasksView } from '@doru/ui/domain';
 import {
   AddressList,
-  CitationsList,
-  NotesList,
   RepositoryList,
   SidebarFamilies,
   SidebarMedia,
@@ -32,7 +28,6 @@ import {
   SidebarSearch,
   SidebarSources,
   SubmitterList,
-  TagsList,
   TitleList,
   type SidebarMediaItem,
 } from '@doru/features';
@@ -57,8 +52,6 @@ export function SidebarView({
   places,
   repositories,
   submitters,
-  tags,
-  tagLinks,
   addresses,
   titles,
   tasks,
@@ -82,7 +75,6 @@ export function SidebarView({
   onNewAddress,
   onOpenTask,
   onNewTask,
-  onDeleteTag,
 }: {
   activeView: ActivityViewId;
   /** Whether the app has a project open (a saved tree or an imported GEDCOM). */
@@ -101,8 +93,6 @@ export function SidebarView({
   places: PlaceRecord[];
   repositories: RepositoryRecord[];
   submitters: SubmitterRecord[];
-  tags: TagRecord[];
-  tagLinks: TagLinkRecord[];
   addresses: AddressRecord[];
   titles: TitleRecord[];
   tasks: TaskRecord[];
@@ -116,7 +106,6 @@ export function SidebarView({
   onOpenSubmitter: (submitterId: string) => void;
   onOpenAddress: (addressId: string) => void;
   onOpenTitle: (titleId: string) => void;
-  onDeleteTag: (tag: TagRecord) => void;
   onNewTitle: () => void;
   onNewPerson: () => void;
   onNewPlace: () => void;
@@ -128,22 +117,6 @@ export function SidebarView({
   onOpenTask: (taskId: string) => void;
   onNewTask: () => void;
 }) {
-  const targetData: TaskTargetData = {
-    persons,
-    families,
-    sources,
-    places,
-    repositories,
-    titles,
-    facts,
-    citations,
-    notes,
-    media,
-    submitters,
-    addresses,
-    associations,
-    tasks,
-  };
   const selectedId = (kind: EntityTabKind): string | undefined => {
     if (activeTabId === null) {
       return undefined;
@@ -234,20 +207,15 @@ export function SidebarView({
           selectedId={selectedId}
           sources={sources}
           citations={citations}
-          notes={notes}
           repositories={repositories}
           submitters={submitters}
-          tags={tags}
-          tagLinks={tagLinks}
           addresses={addresses}
           titles={titles}
-          targetData={targetData}
           onOpenSource={onOpenSource}
           onOpenRepository={onOpenRepository}
           onOpenSubmitter={onOpenSubmitter}
           onOpenAddress={onOpenAddress}
           onOpenTitle={onOpenTitle}
-          onDeleteTag={onDeleteTag}
           onNewTitle={onNewTitle}
           onNewSource={onNewSource}
           onNewRepository={onNewRepository}
@@ -333,20 +301,15 @@ function SourcesSidebar({
   selectedId,
   sources,
   citations,
-  notes,
   repositories,
   submitters,
-  tags,
-  tagLinks,
   addresses,
   titles,
-  targetData,
   onOpenSource,
   onOpenRepository,
   onOpenSubmitter,
   onOpenAddress,
   onOpenTitle,
-  onDeleteTag,
   onNewTitle,
   onNewSource,
   onNewRepository,
@@ -357,29 +320,22 @@ function SourcesSidebar({
   selectedId: (kind: EntityTabKind) => string | undefined;
   sources: SourceRecord[];
   citations: CitationRecord[];
-  notes: NoteRecord[];
   repositories: RepositoryRecord[];
   submitters: SubmitterRecord[];
-  tags: TagRecord[];
-  tagLinks: TagLinkRecord[];
   addresses: AddressRecord[];
   titles: TitleRecord[];
-  targetData: TaskTargetData;
   onOpenSource: (sourceId: string) => void;
   onOpenRepository: (repositoryId: string) => void;
   onOpenSubmitter: (submitterId: string) => void;
   onOpenAddress: (addressId: string) => void;
   onOpenTitle: (titleId: string) => void;
-  onDeleteTag: (tag: TagRecord) => void;
   onNewTitle: () => void;
   onNewSource: () => void;
   onNewRepository: () => void;
   onNewSubmitter: () => void;
   onNewAddress: () => void;
 }) {
-  const [segment, setSegment] = useState<
-    'sources' | 'citations' | 'notes' | 'repositories' | 'submitters' | 'addresses' | 'titles' | 'tags'
-  >('sources');
+  const [segment, setSegment] = useState<'sources' | 'repositories' | 'submitters' | 'addresses' | 'titles'>('sources');
 
   const panels = {
     sources: {
@@ -397,16 +353,6 @@ function SourcesSidebar({
             selectedId={selectedId('source')}
           />
         ),
-    },
-    citations: {
-      focusable: citations.length > 0,
-      content: (
-        <CitationsList citations={citations} sources={sources} targetData={targetData} onOpenSource={onOpenSource} />
-      ),
-    },
-    notes: {
-      focusable: notes.length > 0,
-      content: <NotesList notes={notes} targetData={targetData} />,
     },
     repositories: {
       addLabel: nls.t('features.tree.repository.add'),
@@ -440,21 +386,14 @@ function SourcesSidebar({
       focusable: titles.length > 0,
       content: <TitleList titles={titles} onOpenTitle={onOpenTitle} selectedId={selectedId('title')} />,
     },
-    tags: {
-      focusable: tags.length > 0,
-      content: <TagsList tags={tags} tagLinks={tagLinks} onDeleteTag={onDeleteTag} />,
-    },
   } as const;
   const current = panels[segment];
   const segments = [
     { value: 'sources', label: nls.t('workbench.activityBar.sources') },
-    { value: 'citations', label: nls.t('features.tree.citations.title') },
-    { value: 'notes', label: nls.t('features.tree.notes.title') },
     { value: 'titles', label: nls.t('workbench.activityBar.titles') },
     { value: 'repositories', label: nls.t('workbench.activityBar.repositories') },
     { value: 'submitters', label: nls.t('workbench.activityBar.submitters') },
     { value: 'addresses', label: nls.t('workbench.activityBar.addresses') },
-    { value: 'tags', label: nls.t('features.tree.tags.title') },
   ] as const;
   const tabPrefix = 'sources-tab';
   const panelId = 'sources-panel';

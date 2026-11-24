@@ -187,14 +187,6 @@ describe('redo guards for nested attachment targets', () => {
 
       service.addPerson(person('P1'));
       service.addPerson(person('P2'));
-      service.addTag({ id: 'TAG1', name: 'Family' });
-      service.attachTag({ id: 'TL1', tagId: 'TAG1', targetType: 'person', targetId: 'P1' });
-      const link = repo.listTagLinksByTag('TAG1')[0]!;
-      service.updateTagLink(link, { ...link, targetId: 'P2' });
-      service.undo();
-      repo.deleteTagLink('TL1');
-      expect(service.redo().redoBlocked).toBe(true);
-
       service.addPerson(person('P3'));
       service.addAssociation({ id: 'A1', personId: 'P1', otherPersonId: 'P2', role: 'witness' });
       service.updateAssociation(repo.listAssociationsFor('P1')[0]!, {
@@ -477,24 +469,6 @@ describe('redo guards for nested attachment targets', () => {
       repo.insertCitation({ id: 'C1', sourceId: 'S1', targetType: 'media_file', targetId: 'MF1' });
       expect(repo.listAttachmentsFor('media_file', 'MF1').citations).toHaveLength(1);
       expect(service.redo().redoBlocked).toBe(true);
-    } finally {
-      cleanupRepo(fixture);
-    }
-  });
-
-  it('allows tag redo when a linked person vanished before undo', () => {
-    const { fixture, service } = makeService();
-    const { repo } = fixture;
-    try {
-      service.addPerson(person('P1'));
-      service.addTag({ id: 'TAG1', name: 'Family' });
-      service.attachTag({ id: 'TL1', tagId: 'TAG1', targetType: 'person', targetId: 'P1' });
-      service.deleteTag(repo.listTags()[0]!);
-      repo.deletePerson('P1');
-      service.undo();
-      expect(repo.listTagLinksByTag('TAG1')).toEqual([]);
-      expect(service.redo().redoBlocked).toBeUndefined();
-      expect(repo.listTags()).toEqual([]);
     } finally {
       cleanupRepo(fixture);
     }

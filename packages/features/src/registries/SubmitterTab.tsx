@@ -6,13 +6,7 @@ import { Field, FieldGrid, InlineForm } from '@doru/ui';
 import { Plus, User, X } from 'lucide-react';
 import type { AddressRecord, RecordSubmitterLink, SourceRecord, SubmitterRecord } from '@doru/core';
 import { MEDIA_VISIBLE } from '@doru/platform';
-import {
-  AttachmentsPanel,
-  CitationAttachments,
-  NoteAttachments,
-  refreshAfterTagAttach,
-  useAttachments,
-} from '../attachments';
+import { AttachmentsPanel, CitationAttachments, NoteAttachments, useAttachments } from '../attachments';
 import { AutoSaveError } from '../autoSaveFeedback';
 import { useEntityDelete } from '../entityDelete';
 import { MediaSection } from '../media/MediaSection';
@@ -26,7 +20,6 @@ import {
   IdentifiersSection,
   NotesSection,
   SourcesSection,
-  TagsSection,
   TasksSection,
   addressDraftEmpty,
   addressDraftMatches,
@@ -147,8 +140,6 @@ function SubmitterTabBody({
     notes: submitterNotes,
     allNotes,
     citations: submitterCitations,
-    tags,
-    tagLinks,
     identifiers,
     contacts,
     submitters: contributorOptions,
@@ -385,9 +376,7 @@ function SubmitterTabBody({
             citations={submitterCitations}
             refresh={refreshAttachments}
             onAddSource={api.addSource}
-            onAddSourceToTargets={api.addSourceToTargets}
             onAttachSource={api.attachSource}
-            onAttachSourceToTargets={api.attachSourceToTargets}
             onDetachCitation={api.detachCitation}
             onUpdateCitation={api.updateCitation}
             onOpenSource={onOpenSource}
@@ -455,24 +444,6 @@ function SubmitterTabBody({
             }}
             onDelete={async (contact) => {
               await api.deleteContact(contact);
-              await refreshAttachments();
-            }}
-          />
-          <TagsSection
-            targetType="submitter"
-            targetId={targetId}
-            tags={tags}
-            tagLinks={tagLinks}
-            onAddTag={api.addTag}
-            onUpdateTag={api.updateTag}
-            onDeleteTag={api.deleteTag}
-            onAttachTagToTargets={refreshAfterTagAttach(api.attachTagToTargets, refreshAttachments)}
-            onAttachTag={async (link) => {
-              await api.attachTag(link);
-              await refreshAttachments();
-            }}
-            onDetachTag={async (link) => {
-              await api.detachTag(link);
               await refreshAttachments();
             }}
           />

@@ -12,7 +12,6 @@ function renderEditor(overrides: { onSave?: () => void; onCancel?: () => void } 
     getFamilies: async () => [],
     getPlaces: async () => [],
     getAddresses: async () => [],
-    getTags: async () => [],
   });
   const mediaApi = stubApi<MediaTargetApi>({
     getMediaFor: async () => [],

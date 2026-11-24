@@ -2,7 +2,7 @@
 
 A Dóru project is a single `.doru` file: a SQLite database branded with
 `application_id = 0x444F5255` ("DORU") and versioned with `user_version`.
-This document is the field-level reference for **schema version 18**. The
+This document is the field-level reference for **schema version 19**. The
 source of truth is [`packages/core/src/db/schema.ts`](../packages/core/src/db/schema.ts);
 the domain shapes that the repositories map onto the rows live in
 [`packages/core/src/model/types.ts`](../packages/core/src/model/types.ts).
@@ -17,15 +17,15 @@ in its README; that guarantee does not extend to the tree database.
 
 ## At a glance
 
-- **50 tables**, **77 indexes**, and no date-delete triggers.
+- **48 tables**, **75 indexes**, and no date-delete triggers.
 - The core genealogy model is `person` → `person_name` / `fact`, with
   `family` joining people through `family_partner` and `family_child`.
 - Dates are normalized into one `date` value table; owner rows reference
   their date slots through explicit `*_date_id` foreign keys.
 - Task lifecycle times are epoch-millisecond integers (`created_at`,
   `scheduled_at`, `reminder_at`, `closed_at`), not `date` rows.
-- Notes, citations, media, tags, identifiers, contacts, contributors, and
-  tasks attach through a polymorphic `(target_type, target_id)` pair.
+- Notes, citations, media, identifiers, contacts, contributors, and tasks
+  attach through a polymorphic `(target_type, target_id)` pair.
 - Files are not stored in SQLite. `media_file` rows hold project-relative
   paths; the bytes live in the `media/` folder next to the `.doru` file.
 
@@ -52,7 +52,9 @@ in its README; that guarantee does not extend to the tree database.
 - `xref` stores the identifier assigned by a GEDCOM import. It is provenance
   only and has no meaning inside Dóru.
 - `position` preserves user-visible order in names, name parts, family
-  partners/children, places, source sub-rows, files, and participants.
+  partners/children, marriage statuses, family witnesses, place names,
+  source and citation template fields, media files and their translations,
+  event-family links, additional places, participants, and address lines.
 - Boolean-like columns are `INTEGER` with `0`/`1`; flags are stored in
   lowercase where they have a textual form.
 - Enum-like columns have no `CHECK` constraint. The only structural checks are
@@ -232,6 +234,7 @@ erDiagram
     fact }o--o| address : "address_id"
     fact ||--o{ fact_age : "ages"
     fact ||--o{ fact_participant : "participants"
+    person |o--o{ fact_participant : "participant person"
     fact ||--o{ fact_flag : "flags"
     fact ||--o{ fact_event_family : "event families"
     family ||--o{ fact_event_family : "events"
@@ -442,7 +445,7 @@ the owner row and release them explicitly:
   all collected date rows.
 
 A date row has exactly one owner by application convention. The schema cannot
-express "unique across fourteen tables"; repositories never share a date, and
+express "unique across twelve tables"; repositories never share a date, and
 a copy gets a fresh id. Tests check that no date is orphaned, and
 `ON DELETE RESTRICT` catches a leaked share during deletion. Any new
 date-owning table must add its `*_date_id` columns, indexes, and delete
@@ -614,8 +617,9 @@ erDiagram
     }
 ```
 
-`source.pub_date` and `source_data_event.date` are stored through `date`
-(`publication` and `date` roles respectively), not as columns here.
+`source.publication_date_id` and `source_data_event.date_id` point into the
+`date` table (`publication` and `date` roles respectively); the date value
+itself is not duplicated here.
 
 ## Citations
 
@@ -855,7 +859,7 @@ from the owner table.
 
 ```mermaid
 erDiagram
-    tag ||--o{ tag_link : "links"
+    task ||--o{ task_link : "links"
 
     identifier {
         TEXT id PK
@@ -874,18 +878,6 @@ erDiagram
         TEXT value "NOT NULL"
     }
 
-    tag {
-        TEXT id PK
-        TEXT name "NOT NULL"
-    }
-
-    tag_link {
-        TEXT id PK
-        TEXT tag_id FK
-        TEXT target_type "NOT NULL, polymorphic target"
-        TEXT target_id "NOT NULL, UUID"
-    }
-
     task {
         TEXT id PK
         TEXT text "NOT NULL"
@@ -899,7 +891,7 @@ erDiagram
 
     task_link {
         TEXT id PK
-        TEXT task_id FK
+        TEXT task_id FK "UNIQUE with target_type and target_id"
         TEXT target_type "NOT NULL, polymorphic target"
         TEXT target_id "NOT NULL, UUID"
     }
@@ -919,8 +911,6 @@ are user-chosen instants, and `closed_at` is set when the status becomes
 `closed` and cleared when the task is reopened. Import accepts complete exact
 dates only (including My Family Tree's encoded `DDMMYYYY` record slots);
 partial, approximate, range, or otherwise unparseable task dates are dropped.
-`tag_link.date` is deliberately not stored: the tag-application date is rare
-in the corpus and is not part of Dóru's tag model.
 
 The GEDCOM `TODO` `REPO`, `_CAT`, `_LOCL`, `_TTIL`, `TYPE`, and `DATA` slots are
 still parsed by `@doru/gedcom` but are deliberately ignored on import and not
@@ -933,9 +923,6 @@ spellings are normalized on import (`Open` → open, `Completed` → closed,
 become `open` immediately. Priorities use `low`, `medium`, and `high`; empty,
 missing, and unknown values become `medium`, and numeric 1–9 priorities are
 mapped with 1 as the highest.
-
-`tag` has no color column on purpose; presentation belongs to themes and UI
-state.
 
 ---
 
@@ -950,7 +937,6 @@ The following tables use `(target_type, target_id)` without a foreign key:
 | `media_link` | a media record |
 | `identifier` | an external identifier |
 | `contact` | an email, phone, fax, URL, or www contact |
-| `tag_link` | a tag |
 | `task_link` | a task |
 | `record_submitter` | a contributor or research-interest link |
 
@@ -974,8 +960,8 @@ deliberately absent: it is free text without stable identity.
 A `citation` never targets a task: a source is evidence for a genealogical
 assertion, while a task is a work item that asserts nothing. The task tab
 therefore has no sources section, and `TreeService` rejects a citation whose
-target type is `task`; `task` remains a valid target for notes, media, tags and
-the other non-citation attachments.
+target type is `task`; `task` remains a valid target for notes, media and the
+other non-citation attachments.
 
 A `contact` row exists only on a target GEDCOM can carry contact details for:
 `person`, `fact`, `address`, `repository`, or `submitter`. Addresses carry
@@ -1006,7 +992,6 @@ Most child rows are removed with their parent:
 - `note` → note links and translations.
 - `address` → address lines.
 - `submitter` → languages and record-submitter links.
-- `tag` → tag links.
 - `task` → task links (the task itself survives a target deletion).
 - `fact` → ages, participants, flags, event-family links, additional places.
 
@@ -1027,12 +1012,12 @@ must add a `*_date_id` column and date cleanup to its repository.
 
 ## Indexes
 
-The schema has 77 regular indexes:
+The schema has 75 regular indexes:
 
 - Parent/child lookups are indexed on the child columns: `person_name`,
   `name_part`, `family_partner`, `family_child`, `fact_*`, `place_*`,
   `source_*`, `citation_*`, `media_*`, `note_*`, `address_line`,
-  `submitter_language`, `record_submitter`, `tag_link`, and the rest.
+  `submitter_language`, `record_submitter`, and the rest.
 - Ordered child lists use `(parent_id, position)`.
 - Polymorphic attachment tables use `(target_type, target_id)`.
 - Every date slot has its own index (`person_name.period_date_id`,
@@ -1063,7 +1048,7 @@ edited inside a parent card or through an attachment section.
 
 The compact list card is `EntityCard`; the shared editor header is
 `EntityViewCard`; the canvas has its own `PersonCardView`. `Note`,
-`citation`, `tag`, `association`, `fact`, `date`, person/place name rows,
+`citation`, `association`, `fact`, `date`, person/place name rows,
 family link rows, source child rows, media files/links, identifiers, contacts,
 and contributor links do not have their own tabs.
 
@@ -1074,6 +1059,11 @@ whose `user_version` differs from its `SCHEMA_VERSION`; the error is loud
 rather than a half-understood upgrade. Existing test projects must be
 recreated or re-imported after a schema bump.
 
+Keep a copy of the original file and the build that wrote it before opening
+it with a newer schema. Re-importing does not preserve data the current
+schema does not model, including tags and other unsupported vendor records;
+older builds cannot read files written by newer ones.
+
 When adding a table or column, keep the following checklist:
 
 1. Bump `SCHEMA_VERSION` in `packages/core/src/db/schema.ts`.
@@ -1082,7 +1072,7 @@ When adding a table or column, keep the following checklist:
 3. Add `position` when the rows are user-ordered.
 4. Use `ON DELETE CASCADE` for owned child rows and `SET NULL` for optional
    shared references.
-5. If the new row can receive notes, sources, media, tags, tasks, or other
+5. If the new row can receive notes, sources, media, tasks, or other
    attachments, add its type to `TARGET_TYPES` and wire the op cleanup.
 6. If the new row can own dates, add its `*_date_id` columns (with
    `ON DELETE RESTRICT`), indexes, and repository delete cleanup.

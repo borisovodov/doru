@@ -1,12 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { AssociationRecord, FamilyRecord, PersonRecord, SourceRecord } from '@doru/core';
-import {
-  AttachmentsPanel,
-  CitationAttachments,
-  NoteAttachments,
-  refreshAfterTagAttach,
-  useAttachments,
-} from '../attachments';
+import { AttachmentsPanel, CitationAttachments, NoteAttachments, useAttachments } from '../attachments';
 import { MediaSection } from '../media/MediaSection';
 import { EntityTab } from '../sidebar';
 import type { FamilyEditorApi, MediaTargetApi } from '../person/types';
@@ -20,7 +14,6 @@ import {
   IdentifiersSection,
   NotesSection,
   SourcesSection,
-  TagsSection,
   TasksSection,
   familyDraftMatches,
   familyDraftToRecord,
@@ -292,8 +285,6 @@ function FamilyTabBody({
     notes: familyNotes,
     allNotes,
     citations: familyCitations,
-    tags,
-    tagLinks,
     identifiers,
     submitters,
     contributors,
@@ -423,9 +414,7 @@ function FamilyTabBody({
         citations={familyCitations}
         refresh={refreshAttachments}
         onAddSource={api.addSource}
-        onAddSourceToTargets={api.addSourceToTargets}
         onAttachSource={api.attachSource}
-        onAttachSourceToTargets={api.attachSourceToTargets}
         onDetachCitation={api.detachCitation}
         onUpdateCitation={api.updateCitation}
         onOpenSource={onOpenSource}
@@ -476,24 +465,6 @@ function FamilyTabBody({
         }}
         onDelete={async (identifier) => {
           await api.deleteIdentifier(identifier);
-          await refreshAttachments();
-        }}
-      />
-      <TagsSection
-        targetType="family"
-        targetId={record.id}
-        tags={tags}
-        tagLinks={tagLinks}
-        onAddTag={api.addTag}
-        onUpdateTag={api.updateTag}
-        onDeleteTag={api.deleteTag}
-        onAttachTagToTargets={refreshAfterTagAttach(api.attachTagToTargets, refreshAttachments)}
-        onAttachTag={async (link) => {
-          await api.attachTag(link);
-          await refreshAttachments();
-        }}
-        onDetachTag={async (link) => {
-          await api.detachTag(link);
           await refreshAttachments();
         }}
       />

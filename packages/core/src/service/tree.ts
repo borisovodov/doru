@@ -19,8 +19,6 @@ import type {
   RepositoryRecord,
   SourceRecord,
   SubmitterRecord,
-  TagLinkRecord,
-  TagRecord,
   TargetRef,
   TaskRecord,
   TaskTargetLink,
@@ -54,10 +52,8 @@ import {
   addRelativeOp,
   addRepositoryOp,
   addSourceOp,
-  addSourceWithCitationsOp,
   addSubmitterOp,
   addRecordSubmitterOp,
-  addTagOp,
   addTaskLinkOp,
   addTaskOp,
   addTitleOp,
@@ -65,8 +61,6 @@ import {
   attachCitationsOp,
   attachMediaLinksOp,
   attachMediaOp,
-  attachTagLinksOp,
-  attachTagOp,
   deleteAddressOp,
   deleteAliasOp,
   deleteAssociationOp,
@@ -84,15 +78,12 @@ import {
   deleteSourceOp,
   deleteSubmitterOp,
   deleteRecordSubmitterOp,
-  deleteTagOp,
   deleteTaskLinkOp,
   deleteTaskOp,
   deleteTitleOp,
   detachCitationOp,
   detachMediaOp,
   detachNoteOp,
-  detachTagOp,
-  updateTagLinkOp,
   reparentOp,
   splitNoteOp,
   updateAddressOp,
@@ -106,7 +97,6 @@ import {
   updateRepositoryOp,
   updateSourceOp,
   updateSubmitterOp,
-  updateTagOp,
   updateTitleOp,
   updateTaskOp,
   type FamilyLinkAttachments,
@@ -868,12 +858,6 @@ export class TreeService {
     return this.apply(addSourceOp(source, citation));
   }
 
-  /** Creates one source and one citation per target in a single undo step. */
-  addSourceToTargets(source: SourceRecord, targets: readonly TargetRef[]): UndoRedoState {
-    const citations = this.citationsForTargets(source.id, targets);
-    return this.apply(addSourceWithCitationsOp(source, citations));
-  }
-
   updateSource(before: SourceRecord, after: SourceRecord): UndoRedoState {
     return this.applyAfterCommit(() => {
       const current = this.repo.getSource(before.id) ?? before;
@@ -900,8 +884,13 @@ export class TreeService {
 
   attachSource(sourceId: string, targetType: string, targetId: string): UndoRedoState {
     assertCitationTarget(targetType);
-    const citation: CitationRecord = { id: crypto.randomUUID(), sourceId, targetType, targetId };
-    return this.apply(attachCitationOp(citation));
+    return this.applyAfterCommit(() => {
+      if (this.repo.listCitationRecordsFor(targetType, targetId).some((citation) => citation.sourceId === sourceId)) {
+        return undefined;
+      }
+      const citation: CitationRecord = { id: crypto.randomUUID(), sourceId, targetType, targetId };
+      return attachCitationOp(citation);
+    });
   }
 
   /** Attaches one source to several targets with a separate citation per target. */
@@ -1131,6 +1120,11 @@ export class TreeService {
   attachMedia(link: MediaLinkRecord): UndoRedoState {
     return this.applyAfterCommit(() => {
       const media = this.repo.getMedia(link.mediaId);
+      if (
+        media?.links?.some((existing) => existing.targetType === link.targetType && existing.targetId === link.targetId)
+      ) {
+        return undefined;
+      }
       const attachments = this.repo.listAttachmentsFor('media', link.mediaId);
       const fileAttachments = (media?.files ?? []).map((file) => ({
         targetType: 'media_file',
@@ -1222,75 +1216,6 @@ export class TreeService {
   updateContact(before: ContactRecord, after: ContactRecord): UndoRedoState {
     assertContactTarget(after.targetType);
     return this.apply(updateContactOp(before, after));
-  }
-
-  listTags(): TagRecord[] {
-    return this.repo.listTags();
-  }
-
-  listTagLinksFor(targetType: string, targetId: string): Array<{ tagId: string; link: TagLinkRecord }> {
-    return this.repo.listTagLinksFor(targetType, targetId);
-  }
-
-  listAllTagLinks(): TagLinkRecord[] {
-    return this.repo.listAllTagLinks();
-  }
-
-  addTag(tag: TagRecord): UndoRedoState {
-    return this.apply(addTagOp(tag));
-  }
-
-  updateTag(before: TagRecord, after: TagRecord): UndoRedoState {
-    return this.apply(updateTagOp(before, after));
-  }
-
-  deleteTag(tag: TagRecord): UndoRedoState {
-    return this.applyAfterCommit(() => {
-      const stored = this.repo.listTags().find((entry) => entry.id === tag.id);
-      if (stored === undefined) {
-        return undefined;
-      }
-      return deleteTagOp(
-        stored,
-        this.repo.listTagLinksByTag(stored.id),
-        this.repo.listAttachmentsFor('tag', stored.id),
-      );
-    });
-  }
-
-  attachTag(link: TagLinkRecord): UndoRedoState {
-    return this.apply(attachTagOp(link));
-  }
-
-  /** Attaches one tag to several targets in a single undo step. */
-  attachTagToTargets(tagId: string, targets: readonly TargetRef[]): UndoRedoState {
-    const seen = new Set<string>();
-    const links: TagLinkRecord[] = [];
-    for (const target of targets) {
-      const key = `${target.targetType}\u0000${target.targetId}`;
-      if (seen.has(key)) {
-        continue;
-      }
-      seen.add(key);
-      if (this.repo.listTagLinksFor(target.targetType, target.targetId).some((entry) => entry.tagId === tagId)) {
-        continue;
-      }
-      links.push({
-        id: crypto.randomUUID(),
-        tagId,
-        targetType: target.targetType,
-        targetId: target.targetId,
-      });
-    }
-    return links.length === 0 ? this.historyState() : this.apply(attachTagLinksOp(links));
-  }
-
-  detachTag(link: TagLinkRecord): UndoRedoState {
-    return this.apply(detachTagOp(link));
-  }
-
-  updateTagLink(before: TagLinkRecord, after: TagLinkRecord): UndoRedoState {
-    return this.apply(updateTagLinkOp(before, after));
   }
 
   // --- registries: repositories, submitters, addresses, fact types, header ------

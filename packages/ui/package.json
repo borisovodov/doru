@@ -20,7 +20,6 @@
     "./domain/registries": "./src/domain/registries/index.ts",
     "./domain/source": "./src/domain/source/index.ts",
     "./domain/sources": "./src/domain/sources/index.ts",
-    "./domain/tags": "./src/domain/tags/index.ts",
     "./domain/targets": "./src/domain/targets/index.ts",
     "./domain/task": "./src/domain/task/index.ts",
     "./domain/tree": "./src/domain/tree/index.ts",

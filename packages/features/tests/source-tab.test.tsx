@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { fireEvent, screen, waitFor } from '@testing-library/react';
+import { fireEvent, screen, waitFor, within } from '@testing-library/react';
 import type { SourceRecord } from '@doru/core';
 import { SourceTab } from '@doru/features/source';
 import type { MediaTargetApi, SourceEditorApi } from '@doru/features/person';
@@ -61,6 +61,38 @@ function renderTab(overrides: { entityId?: string; onCreated?: (realId: string) 
 }
 
 describe('SourceTab', () => {
+  it('renders Related to after every attachment section', () => {
+    const api = stubApi<SourceEditorApi>({
+      getRepositories: async () => [],
+      getTitles: async () => [],
+      attachSourceToTargets: async () => undefined,
+    });
+    const mediaApi = stubApi<MediaTargetApi>({ getMediaFor: async () => [], getAllMedia: async () => [] });
+    renderUi(
+      <SourceTab
+        entityId="S1"
+        sources={[{ id: 'S1', title: 'Book' }]}
+        api={api}
+        persons={[]}
+        families={[]}
+        facts={[]}
+        places={[]}
+        citations={[]}
+        notes={[]}
+        media={[]}
+        mediaApi={mediaApi}
+        onOpenPerson={vi.fn()}
+        onOpenMedia={vi.fn()}
+        onOpenSource={vi.fn()}
+        onClose={vi.fn()}
+        onCreated={vi.fn()}
+      />,
+    );
+
+    const regions = screen.getAllByRole('region');
+    expect(regions[regions.length - 1]).toHaveAccessibleName(nls.t('features.tasks.target'));
+  });
+
   it('prefills the new-source title, focuses it and selects the text', () => {
     renderTab();
     const title = nls.t('features.tree.source.newSource');
@@ -137,8 +169,6 @@ describe('SourceTab', () => {
       getNotes: async () => [],
       getAllNotes: async () => [],
       getCitations: async () => [],
-      getTags: async () => [],
-      getTagLinks: async () => [],
       getIdentifiers: async () => [],
       getContacts: async () => [],
       getSubmitters: async () => [],
@@ -219,8 +249,6 @@ describe('SourceTab', () => {
       getNotes: async () => [],
       getAllNotes: async () => [],
       getCitations: async () => [],
-      getTags: async () => [],
-      getTagLinks: async () => [],
       getIdentifiers: async () => [],
       getContacts: async () => [],
       getSubmitters: async () => [],
@@ -276,8 +304,6 @@ describe('SourceTab', () => {
       getNotes: async () => [],
       getAllNotes: async () => [],
       getCitations: async () => [],
-      getTags: async () => [],
-      getTagLinks: async () => [],
       getIdentifiers: async () => [],
       getContacts: async () => [],
       getSubmitters: async () => [],
@@ -338,8 +364,6 @@ describe('SourceTab', () => {
       getNotes: async () => [],
       getAllNotes: async () => [],
       getCitations: async () => [],
-      getTags: async () => [],
-      getTagLinks: async () => [],
       getIdentifiers: async () => [],
       getContacts: async () => [],
       getSubmitters: async () => [],
@@ -391,8 +415,6 @@ describe('SourceTab', () => {
       getNotes: async () => [],
       getAllNotes: async () => [],
       getCitations: async () => [],
-      getTags: async () => [],
-      getTagLinks: async () => [],
       getIdentifiers: async () => [],
       getContacts: async () => [],
       getSubmitters: async () => [],
@@ -426,14 +448,15 @@ describe('SourceTab', () => {
       </TargetDirectoryProvider>,
     );
 
-    fireEvent.focus(screen.getAllByRole('combobox', { name: nls.t('features.tasks.target') })[0]!);
+    const related = screen.getByRole('region', { name: nls.t('features.tasks.target') });
+    fireEvent.focus(within(related).getByRole('combobox', { name: nls.t('features.tasks.target') }));
     fireEvent.click(screen.getByRole('option', { name: 'MoscowPlace' }));
-    fireEvent.click(screen.getAllByRole('button', { name: nls.t('features.tree.sources.attach') })[0]!);
+    fireEvent.click(within(related).getByRole('button', { name: nls.t('features.tree.sources.attach') }));
 
     await waitFor(() => expect(attachSourceToTargets).toHaveBeenCalledTimes(1));
     expect(attachSourceToTargets).toHaveBeenCalledWith('S1', [{ targetType: 'place', targetId: 'PL1' }]);
     expect(await screen.findByText(nls.t('features.tree.autosaveFailed'))).toBeInTheDocument();
-    expect(screen.getAllByRole('button', { name: nls.t('features.tree.sources.attach') })[0]).toBeEnabled();
+    expect(within(related).getByRole('button', { name: nls.t('features.tree.sources.attach') })).toBeEnabled();
   });
 
   it('keeps a citation and reports a failed detach', async () => {
@@ -446,8 +469,6 @@ describe('SourceTab', () => {
       getNotes: async () => [],
       getAllNotes: async () => [],
       getCitations: async () => [],
-      getTags: async () => [],
-      getTagLinks: async () => [],
       getIdentifiers: async () => [],
       getContacts: async () => [],
       getSubmitters: async () => [],

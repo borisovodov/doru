@@ -1,10 +1,6 @@
 import type { Demo, DemoMeta } from '../../../gallery/types';
 import { FactsSection } from '../fact/FactsSection';
 import { FamilySection } from '../family/FamilySection';
-import { SourcesSection } from '../sources/SourcesSection';
-import { NotesSection } from '../notes/NotesSection';
-import { TagsSection } from '../tags/TagsSection';
-import { ContactsSection, IdentifiersSection } from '../attachments/AttachmentsSection';
 import { FactEditor } from '../fact/FactEditor';
 import { CitationEditor } from '../citation/CitationEditor';
 import { emptyFactDraft, factDraftToRecord } from '../fact/factDraft';
@@ -49,96 +45,6 @@ export const Families: DemoCase = {
       onAddFact={noop}
       onDeleteFact={noop}
     />
-  ),
-};
-
-export const Sources: DemoCase = {
-  render: () => (
-    <SourcesSection
-      targetType="person"
-      targetId="P1"
-      sources={[]}
-      citations={[]}
-      refresh={noop}
-      onAddSource={noop}
-      onAttachSource={noop}
-      onDetachCitation={async () => undefined}
-      onUpdateCitation={async () => undefined}
-      onOpenSource={() => undefined}
-    />
-  ),
-};
-
-export const Notes: DemoCase = {
-  render: () => (
-    <NotesSection
-      targetType="person"
-      targetId="P1"
-      notes={[]}
-      onAdd={noop}
-      onUpdate={async () => undefined}
-      onDelete={async () => undefined}
-    />
-  ),
-};
-
-export const Tags: DemoCase = {
-  render: () => (
-    <TagsSection
-      targetType="person"
-      targetId="P1"
-      tags={[]}
-      tagLinks={[]}
-      onAddTag={noop}
-      onUpdateTag={async () => undefined}
-      onDeleteTag={async () => undefined}
-      onAttachTag={async () => undefined}
-      onDetachTag={async () => undefined}
-    />
-  ),
-};
-
-export const Tagged: DemoCase = {
-  render: () => (
-    <TagsSection
-      targetType="person"
-      targetId="P1"
-      tags={[{ id: 'T1', name: 'Ivanovka' }]}
-      tagLinks={[
-        {
-          tagId: 'T1',
-          link: { id: 'L1', tagId: 'T1', targetType: 'person', targetId: 'P1' },
-        },
-      ]}
-      onAddTag={noop}
-      onUpdateTag={async () => undefined}
-      onDeleteTag={async () => undefined}
-      onAttachTag={async () => undefined}
-      onDetachTag={async () => undefined}
-    />
-  ),
-};
-
-export const Attachments: DemoCase = {
-  render: () => (
-    <>
-      <IdentifiersSection
-        targetType="person"
-        targetId="P1"
-        identifiers={[]}
-        onAdd={noop}
-        onUpdate={async () => undefined}
-        onDelete={async () => undefined}
-      />
-      <ContactsSection
-        targetType="person"
-        targetId="P1"
-        contacts={[]}
-        onAdd={noop}
-        onUpdate={async () => undefined}
-        onDelete={async () => undefined}
-      />
-    </>
   ),
 };
 

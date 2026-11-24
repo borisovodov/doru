@@ -12,7 +12,7 @@ import type {
   TitleRecord,
 } from '@doru/core';
 import { TARGET_TYPES } from '@doru/core/model';
-import { CitationAttachments, NoteAttachments, refreshAfterTagAttach, useAttachments } from '../attachments';
+import { CitationAttachments, NoteAttachments, useAttachments } from '../attachments';
 import { AutoSaveError } from '../autoSaveFeedback';
 import { useEntityDelete } from '../entityDelete';
 import { Button, DangerZone, InlineError, SectionCard, useAutoSaveOnBlur } from '@doru/ui';
@@ -26,7 +26,6 @@ import {
   IdentifiersSection,
   NotesSection,
   SourcesSection,
-  TagsSection,
   TargetPicker,
   TasksSection,
   emptySourceDraft,
@@ -176,8 +175,6 @@ function SourceTabBody({
     notes: sourceNotes,
     allNotes,
     citations: sourceCitations,
-    tags,
-    tagLinks,
     identifiers,
     submitters,
     contributors,
@@ -386,40 +383,6 @@ function SourceTabBody({
               void api.detachCitation(citationId).catch(() => setCitationError(true));
             }}
           />
-          {attachSourceToTargets !== undefined && (
-            <SectionCard title={nls.t('features.tasks.target')}>
-              <TargetPicker
-                allowedTypes={SOURCE_TARGET_TYPES}
-                value={linkTargets}
-                onChange={setLinkTargets}
-                ariaLabel={nls.t('features.tasks.target')}
-              />
-              <Button
-                variant="primary"
-                size="sm"
-                disabled={linkTargets.length === 0}
-                onClick={() => {
-                  setLinkError(false);
-                  const submitted = linkTargets;
-                  void attachSourceToTargets(currentSource.id, submitted)
-                    .then(() =>
-                      setLinkTargets((current) =>
-                        current.filter(
-                          (target) =>
-                            !submitted.some(
-                              (entry) => entry.targetType === target.targetType && entry.targetId === target.targetId,
-                            ),
-                        ),
-                      ),
-                    )
-                    .catch(() => setLinkError(true));
-                }}
-              >
-                {nls.t('features.tree.sources.attach')}
-              </Button>
-              {linkError ? <InlineError>{nls.t('features.tree.autosaveFailed')}</InlineError> : null}
-            </SectionCard>
-          )}
           {targetId !== undefined && (
             <>
               <SourcesSection
@@ -429,9 +392,7 @@ function SourceTabBody({
                 citations={sourceCitations}
                 refresh={refreshAttachments}
                 onAddSource={api.addSource}
-                onAddSourceToTargets={api.addSourceToTargets}
                 onAttachSource={api.attachSource}
-                onAttachSourceToTargets={api.attachSourceToTargets}
                 onDetachCitation={api.detachCitation}
                 onUpdateCitation={api.updateCitation}
                 onOpenSource={onOpenSource}
@@ -485,24 +446,6 @@ function SourceTabBody({
                   await refreshAttachments();
                 }}
               />
-              <TagsSection
-                targetType="source"
-                targetId={targetId}
-                tags={tags}
-                tagLinks={tagLinks}
-                onAddTag={api.addTag}
-                onUpdateTag={api.updateTag}
-                onDeleteTag={api.deleteTag}
-                onAttachTagToTargets={refreshAfterTagAttach(api.attachTagToTargets, refreshAttachments)}
-                onAttachTag={async (link) => {
-                  await api.attachTag(link);
-                  await refreshAttachments();
-                }}
-                onDetachTag={async (link) => {
-                  await api.detachTag(link);
-                  await refreshAttachments();
-                }}
-              />
               <MediaSection
                 targetType="source"
                 targetId={targetId}
@@ -523,6 +466,40 @@ function SourceTabBody({
               />
               <TasksSection targetType="source" targetId={targetId} api={api} />
             </>
+          )}
+          {attachSourceToTargets !== undefined && (
+            <SectionCard title={nls.t('features.tasks.target')}>
+              <TargetPicker
+                allowedTypes={SOURCE_TARGET_TYPES}
+                value={linkTargets}
+                onChange={setLinkTargets}
+                ariaLabel={nls.t('features.tasks.target')}
+              />
+              <Button
+                variant="primary"
+                size="sm"
+                disabled={linkTargets.length === 0}
+                onClick={() => {
+                  setLinkError(false);
+                  const submitted = linkTargets;
+                  void attachSourceToTargets(currentSource.id, submitted)
+                    .then(() =>
+                      setLinkTargets((current) =>
+                        current.filter(
+                          (target) =>
+                            !submitted.some(
+                              (entry) => entry.targetType === target.targetType && entry.targetId === target.targetId,
+                            ),
+                        ),
+                      ),
+                    )
+                    .catch(() => setLinkError(true));
+                }}
+              >
+                {nls.t('features.tree.sources.attach')}
+              </Button>
+              {linkError ? <InlineError>{nls.t('features.tree.autosaveFailed')}</InlineError> : null}
+            </SectionCard>
           )}
         </>
       )}

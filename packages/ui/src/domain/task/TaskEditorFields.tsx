@@ -1,4 +1,4 @@
-import { normalizeTaskPriority, normalizeTaskStatus, type TargetRef } from '@doru/core/model';
+import { normalizeTaskPriority, normalizeTaskStatus } from '@doru/core/model';
 import { nls } from '../../nls';
 import { Field } from '../../atoms/field/Field';
 import { FieldGrid } from '../../atoms/field-grid/FieldGrid';
@@ -6,33 +6,21 @@ import { DateTimePicker } from '../../atoms/date-time-picker/DateTimePicker';
 import { Input } from '../../atoms/form/Input';
 import { Select } from '../../atoms/form/Select';
 import { useAutoFocusSelect } from '../../lib/useAutoFocusSelect';
-import { TargetPicker } from '../targets';
-import type { TaskTargetData } from './taskTargets';
-import { TASK_TARGET_TYPES } from './taskTargets';
 import { inputToTimestamp, type TaskDraft } from './taskDraft';
 
 /**
  * The editable fields of a task, shared by the task tab editor: the text,
- * the classification fields (priority, status), the entity links, and the
- * scheduled/reminder instants. `data` carries every record type a task can
- * be related to. Creation and closing timestamps are managed by the service.
+ * the classification fields (priority, status), and the scheduled/reminder
+ * instants. Creation and closing timestamps are managed by the service, and
+ * the related records are picked in their own final card block.
  */
 export function TaskEditorFields({
   edit,
-  data,
-  targets,
   onChange,
-  onChangeTargets,
-  targetTypes = TASK_TARGET_TYPES,
   autoFocusText = false,
 }: {
   edit: TaskDraft;
-  data: TaskTargetData;
-  targets: readonly TargetRef[];
   onChange: (update: Partial<TaskDraft>) => void;
-  onChangeTargets: (targets: TargetRef[]) => void;
-  /** The target types offered by the picker; stored targets outside it stay visible. */
-  targetTypes?: readonly string[];
   /** Focuses the task text when a new task tab opens. */
   autoFocusText?: boolean;
 }) {
@@ -81,15 +69,6 @@ export function TaskEditorFields({
           </Select>
         </Field>
       </FieldGrid>
-      <Field label={nls.t('features.tasks.target')}>
-        <TargetPicker
-          allowedTypes={targetTypes}
-          value={targets}
-          data={data}
-          ariaLabel={nls.t('features.tasks.target')}
-          onChange={onChangeTargets}
-        />
-      </Field>
       <FieldGrid columns={2}>
         <Field label={nls.t('features.tasks.scheduled')} {...(scheduledInvalid ? { error: invalidTimestamp } : {})}>
           <DateTimePicker

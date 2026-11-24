@@ -282,15 +282,6 @@ export function buildKitchenSinkTree(fixture: RepoFixture): void {
   repo.insertContact({ id: 'CT4', targetType: 'person', targetId: 'P1', kind: 'url', value: 'https://ivan.example' });
   repo.insertContact({ id: 'CT5', targetType: 'person', targetId: 'P1', kind: 'other', value: 'unused' });
 
-  // Tags and tag links.
-  repo.insertTag({ id: 'TG1', name: 'favorites' });
-  repo.insertTagLink({
-    id: 'TL1',
-    tagId: 'TG1',
-    targetType: 'person',
-    targetId: 'P1',
-  });
-
   // Associations and aliases.
   repo.insertAssociation({
     id: 'AS1',

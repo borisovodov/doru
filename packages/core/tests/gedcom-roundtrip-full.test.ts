@@ -39,7 +39,6 @@ describe('buildGedcomDataset kitchen sink', () => {
       expect(tags).toContain('TITL');
       expect(tags).toContain('SNOTE');
       expect(tags).toContain('_TODO');
-      expect(tags).toContain('_TAG');
       // The evidence/research, census and event-definition records stay
       // out of the tree: the export must not carry them.
       expect(tags).not.toContain('_EVID');
@@ -117,7 +116,6 @@ describe('buildGedcomDataset kitchen sink', () => {
         expect(target.repo.listSubmitters()).toHaveLength(1);
         expect(target.repo.listTitles()).toHaveLength(1);
         expect(target.repo.listNotes()).toHaveLength(2);
-        expect(target.repo.listTags()).toHaveLength(1);
         expect(target.repo.listAssociations().length).toBeGreaterThan(0);
       } finally {
         cleanupRepo(target);

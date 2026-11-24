@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { act, fireEvent, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, screen, waitFor, within } from '@testing-library/react';
 import { AutoSaveTabProvider, flushAutoSaves } from '@doru/ui';
 import { MediaTab } from '@doru/features/media';
 import type { MediaAdminApi } from '@doru/features/person';
@@ -39,8 +39,6 @@ function attachmentsStub(overrides: Partial<AttachmentsPanelApi> = {}): Attachme
     getNotes: async () => [],
     getAllNotes: async () => [],
     getCitations: async () => [],
-    getTags: async () => [],
-    getTagLinks: async () => [],
     getIdentifiers: async () => [],
     getContacts: async () => [],
     getSubmitters: async () => [],
@@ -61,6 +59,28 @@ const record: MediaWithPath = {
 };
 
 describe('MediaTab', () => {
+  it('renders Related to after every attachment section', () => {
+    const api = stubApi<MediaAdminApi>({
+      getMediaFor: async () => [],
+      getAllMedia: async () => [],
+      attachMediaToTargets: async () => undefined,
+    });
+    renderUi(
+      <MediaTab
+        entityId="M1"
+        media={[record]}
+        api={api}
+        attachmentsApi={attachmentsStub()}
+        sources={[]}
+        targetData={targetData}
+        onClose={vi.fn()}
+      />,
+    );
+
+    const regions = screen.getAllByRole('region');
+    expect(regions[regions.length - 1]).toHaveAccessibleName(nls.t('features.tasks.target'));
+  });
+
   it('saves a file title on the registered close flush', async () => {
     const updateMedia = vi.fn(async (_before: MediaRecord, _after: MediaRecord) => undefined);
     const api = stubApi<MediaAdminApi>({
@@ -343,9 +363,10 @@ describe('MediaTab', () => {
       </TargetDirectoryProvider>,
     );
 
-    fireEvent.focus(screen.getAllByRole('combobox', { name: nls.t('features.tasks.target') })[0]!);
+    const related = screen.getByRole('region', { name: nls.t('features.tasks.target') });
+    fireEvent.focus(within(related).getByRole('combobox', { name: nls.t('features.tasks.target') }));
     fireEvent.click(screen.getByRole('option', { name: 'MoscowPlace' }));
-    fireEvent.click(screen.getAllByRole('button', { name: nls.t('features.tree.media.attach') })[0]!);
+    fireEvent.click(within(related).getByRole('button', { name: nls.t('features.tree.media.attach') }));
     await waitFor(() => expect(attachMediaToTargets).toHaveBeenCalledTimes(1));
 
     fireEvent.click(screen.getByRole('option', { name: 'KazanPlace' }));
@@ -415,13 +436,14 @@ describe('MediaTab', () => {
       </TargetDirectoryProvider>,
     );
 
-    fireEvent.focus(screen.getAllByRole('combobox', { name: nls.t('features.tasks.target') })[0]!);
+    const related = screen.getByRole('region', { name: nls.t('features.tasks.target') });
+    fireEvent.focus(within(related).getByRole('combobox', { name: nls.t('features.tasks.target') }));
     fireEvent.click(screen.getByRole('option', { name: 'MoscowPlace' }));
-    fireEvent.click(screen.getAllByRole('button', { name: nls.t('features.tree.media.attach') })[0]!);
+    fireEvent.click(within(related).getByRole('button', { name: nls.t('features.tree.media.attach') }));
 
     await waitFor(() => expect(attachMediaToTargets).toHaveBeenCalledTimes(1));
     expect(attachMediaToTargets).toHaveBeenCalledWith('M1', [{ targetType: 'place', targetId: 'PL1' }]);
     expect(await screen.findByText(nls.t('features.tree.autosaveFailed'))).toBeInTheDocument();
-    expect(screen.getAllByRole('button', { name: nls.t('features.tree.media.attach') })[0]).toBeEnabled();
+    expect(within(related).getByRole('button', { name: nls.t('features.tree.media.attach') })).toBeEnabled();
   });
 });

@@ -10,7 +10,6 @@ export * from './targets';
 export * from './registries';
 export * from './family';
 export * from './notes';
-export * from './tags';
 export * from './attachments';
 export * from './contributors';
 export * from './date';
