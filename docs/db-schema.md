@@ -52,7 +52,9 @@ in its README; that guarantee does not extend to the tree database.
 - `xref` stores the identifier assigned by a GEDCOM import. It is provenance
   only and has no meaning inside Dóru.
 - `position` preserves user-visible order in names, name parts, family
-  partners/children, places, source sub-rows, files, and participants.
+  partners/children and marriage statuses, place names, template fields,
+  files and their translations, event families and additional places, and
+  participants.
 - Boolean-like columns are `INTEGER` with `0`/`1`; flags are stored in
   lowercase where they have a textual form.
 - Enum-like columns have no `CHECK` constraint. The only structural checks are
@@ -232,6 +234,7 @@ erDiagram
     fact }o--o| address : "address_id"
     fact ||--o{ fact_age : "ages"
     fact ||--o{ fact_participant : "participants"
+    person |o--o{ fact_participant : "participant person"
     fact ||--o{ fact_flag : "flags"
     fact ||--o{ fact_event_family : "event families"
     family ||--o{ fact_event_family : "events"
@@ -442,7 +445,7 @@ the owner row and release them explicitly:
   all collected date rows.
 
 A date row has exactly one owner by application convention. The schema cannot
-express "unique across fourteen tables"; repositories never share a date, and
+express "unique across twelve tables"; repositories never share a date, and
 a copy gets a fresh id. Tests check that no date is orphaned, and
 `ON DELETE RESTRICT` catches a leaked share during deletion. Any new
 date-owning table must add its `*_date_id` columns, indexes, and delete
@@ -614,8 +617,9 @@ erDiagram
     }
 ```
 
-`source.pub_date` and `source_data_event.date` are stored through `date`
-(`publication` and `date` roles respectively), not as columns here.
+`source.publication_date_id` and `source_data_event.date_id` point into the
+`date` table (`publication` and `date` roles respectively); the date value
+itself is not duplicated here.
 
 ## Citations
 
@@ -856,6 +860,7 @@ from the owner table.
 ```mermaid
 erDiagram
     tag ||--o{ tag_link : "links"
+    task ||--o{ task_link : "links"
 
     identifier {
         TEXT id PK
@@ -899,7 +904,7 @@ erDiagram
 
     task_link {
         TEXT id PK
-        TEXT task_id FK
+        TEXT task_id FK "UNIQUE with target_type and target_id"
         TEXT target_type "NOT NULL, polymorphic target"
         TEXT target_id "NOT NULL, UUID"
     }
