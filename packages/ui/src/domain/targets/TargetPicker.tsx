@@ -143,8 +143,10 @@ export function TargetPicker({
             <p className={styles['empty']}>{nls.t('features.search.empty')}</p>
           ) : (
             groups.map((group) => (
-              <div key={group.type} className={styles['group']}>
-                <p className={styles['groupTitle']}>{typeLabel(group.type)}</p>
+              <div key={group.type} className={styles['group']} role="group" aria-label={typeLabel(group.type)}>
+                <p className={styles['groupTitle']} aria-hidden="true">
+                  {typeLabel(group.type)}
+                </p>
                 {group.options.slice(0, 50).map((option) => (
                   <button
                     key={`${option.type}:${option.id}`}
