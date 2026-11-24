@@ -53,6 +53,8 @@
   "features.sources.placeholder": "Источников пока нет.",
   "features.targets.remove": "Удалить",
   "features.tasks.add": "Добавить задачу",
+  "features.tasks.attach": "Прикрепить",
+  "features.tasks.attachExisting": "Прикрепить существующую задачу",
   "features.tasks.cancel": "Отмена",
   "features.tasks.chooseDate": "Выбрать дату",
   "features.tasks.clear": "Очистить",

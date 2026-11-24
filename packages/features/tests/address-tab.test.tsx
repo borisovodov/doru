@@ -20,6 +20,7 @@ function apiStub(overrides: Partial<RegistriesEditorApi>): RegistriesEditorApi {
     getMediaFor: async () => [],
     getAllMedia: async () => [],
     getTasksFor: async () => [],
+    getAllTasks: async () => [],
     getSources: async () => [],
     ...overrides,
   });

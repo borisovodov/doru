@@ -1,5 +1,5 @@
 ---
-source-hash: 13cfab1dc709
+source-hash: e652812a38c3
 ---
 
 # Práce se stromem
@@ -78,7 +78,7 @@ adresy přímo na místě.
 Úkoly mají kromě naplánovaných dat a dat připomenutí také data vytvoření a
 uzavření. Každý editor má sekci **Úkoly**: přidejte tam úkol a automaticky se
 propojí s daným záznamem. Události, jména, citace a poznámky mají vlastní sekci
-Úkoly ve svém panelu příloh. **Související s** propojí úkol s jedním nebo několika záznamy ve stromu — osobou, rodinou, událostí, jménem, citací, poznámkou, médiem, místem, archivem, adresou nebo dílem; ponechte prázdné pro samostatný úkol. Úkol je sdílený: úprava kdekoli aktualizuje stejný záznam a smazání souvisejícího záznamu úkol ponechá na místě.
+Úkoly ve svém panelu příloh. **Související s** propojí úkol s jedním nebo několika záznamy ve stromu — osobou, rodinou, událostí, jménem, citací, poznámkou, médiem, místem, archivem, adresou nebo dílem; ponechte prázdné pro samostatný úkol. Úkol je sdílený: úprava kdekoli aktualizuje stejný záznam a smazání souvisejícího záznamu úkol ponechá na místě. Pomocí **Připojit existující úkol** můžete znovu použít sdílený úkol místo vytvoření nového.
 
 Díla, adresy, spojení a vazby partnera/dítěte v rodinách mají stejné sekce Poznámky, Prameny, Identifikátory, Přispěvatelé a Úkoly jako karty hlavních entit. Adresy mají také Kontakty. Úkoly si zachovávají sekce Poznámky, Identifikátory, Přispěvatelé a starší sekci Úkoly, ale nemají Prameny ani Kontakty.
 

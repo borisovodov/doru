@@ -176,6 +176,7 @@ describe('SourceTab', () => {
       getMediaFor: async () => [],
       getAllMedia: async () => [],
       getTasksFor: async () => [],
+      getAllTasks: async () => [],
     });
     const mediaApi = stubApi<MediaTargetApi>({ getMediaFor: async () => [], getAllMedia: async () => [] });
     const source = { id: 'S1', title: 'Old title', author: 'Alice' };
@@ -256,6 +257,7 @@ describe('SourceTab', () => {
       getMediaFor: async () => [],
       getAllMedia: async () => [],
       getTasksFor: async () => [],
+      getAllTasks: async () => [],
     });
     const mediaApi = stubApi<MediaTargetApi>({ getMediaFor: async () => [], getAllMedia: async () => [] });
     const source = { id: 'S1', title: 'Old', author: 'Alice' };
@@ -311,6 +313,7 @@ describe('SourceTab', () => {
       getMediaFor: async () => [],
       getAllMedia: async () => [],
       getTasksFor: async () => [],
+      getAllTasks: async () => [],
     });
     const mediaApi = stubApi<MediaTargetApi>({ getMediaFor: async () => [], getAllMedia: async () => [] });
     const source = { id: 'S1', title: 'Old', author: 'Alice' };
@@ -371,6 +374,7 @@ describe('SourceTab', () => {
       getMediaFor: async () => [],
       getAllMedia: async () => [],
       getTasksFor: async () => [],
+      getAllTasks: async () => [],
     });
     const mediaApi = stubApi<MediaTargetApi>({ getMediaFor: async () => [], getAllMedia: async () => [] });
     const renderSource = (author: string) => (
@@ -422,6 +426,7 @@ describe('SourceTab', () => {
       getMediaFor: async () => [],
       getAllMedia: async () => [],
       getTasksFor: async () => [],
+      getAllTasks: async () => [],
       attachSourceToTargets,
     });
     const mediaApi = stubApi<MediaTargetApi>({ getMediaFor: async () => [], getAllMedia: async () => [] });
@@ -476,6 +481,7 @@ describe('SourceTab', () => {
       getMediaFor: async () => [],
       getAllMedia: async () => [],
       getTasksFor: async () => [],
+      getAllTasks: async () => [],
       detachCitation,
     });
     const mediaApi = stubApi<MediaTargetApi>({ getMediaFor: async () => [], getAllMedia: async () => [] });

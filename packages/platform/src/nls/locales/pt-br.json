@@ -53,6 +53,8 @@
   "features.sources.placeholder": "Sem fontes ainda.",
   "features.targets.remove": "Remover",
   "features.tasks.add": "Adicionar tarefa",
+  "features.tasks.attach": "Anexar",
+  "features.tasks.attachExisting": "Anexar uma tarefa existente",
   "features.tasks.cancel": "Cancelar",
   "features.tasks.chooseDate": "Escolher data",
   "features.tasks.clear": "Limpar",

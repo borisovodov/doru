@@ -53,6 +53,8 @@
   "features.sources.placeholder": "Noch keine Quellen.",
   "features.targets.remove": "Entfernen",
   "features.tasks.add": "Aufgabe hinzufügen",
+  "features.tasks.attach": "Anhängen",
+  "features.tasks.attachExisting": "Bestehende Aufgabe anhängen",
   "features.tasks.cancel": "Abbrechen",
   "features.tasks.chooseDate": "Datum auswählen",
   "features.tasks.clear": "Löschen",

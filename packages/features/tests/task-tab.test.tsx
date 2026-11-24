@@ -18,6 +18,7 @@ function apiStub(overrides: Partial<TaskEditorApi> = {}): TaskEditorApi {
     getMediaFor: async () => [],
     getAllMedia: async () => [],
     getTasksFor: async () => [],
+    getAllTasks: async () => [],
     getSources: async () => [],
     ...overrides,
   });

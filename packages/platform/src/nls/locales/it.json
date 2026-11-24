@@ -53,6 +53,8 @@
   "features.sources.placeholder": "Ancora nessuna fonte.",
   "features.targets.remove": "Rimuovi",
   "features.tasks.add": "Aggiungi attività",
+  "features.tasks.attach": "Allega",
+  "features.tasks.attachExisting": "Allega un'attività esistente",
   "features.tasks.cancel": "Annulla",
   "features.tasks.chooseDate": "Scegli data",
   "features.tasks.clear": "Cancella",

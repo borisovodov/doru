@@ -1,9 +1,11 @@
 import { Button } from '../../atoms/button/Button';
 import { EmptyText } from '../../atoms/feedback/EmptyText';
+import { InlineError } from '../../atoms/feedback/InlineError';
 import { IconButton } from '../../atoms/icon-button/IconButton';
 import { Input } from '../../atoms/form/Input';
 import { Select } from '../../atoms/form/Select';
 import { Textarea } from '../../atoms/form/Textarea';
+import { AttachExisting } from '../../patterns/attach-existing/AttachExisting';
 import { SectionCard } from '../../patterns/section-card/SectionCard';
 import { useState, type ReactNode } from 'react';
 import { Paperclip, Pencil, Plus, Trash2, X } from 'lucide-react';
@@ -46,7 +48,7 @@ export function NotesSection({
   onDelete: (note: NoteRecord) => Promise<void>;
 }) {
   const [draft, setDraft] = useState('');
-  const [attachId, setAttachId] = useState('');
+  const [attachError, setAttachError] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [expandedAttachmentsId, setExpandedAttachmentsId] = useState<string | null>(null);
   const [editText, setEditText] = useState('');
@@ -64,12 +66,9 @@ export function NotesSection({
     setDraft('');
   };
 
-  const attach = async () => {
-    if (attachId === '' || onAttach === undefined) {
-      return;
-    }
-    await onAttach(attachId);
-    setAttachId('');
+  const attach = async (noteId: string) => {
+    setAttachError(false);
+    await onAttach?.(noteId);
   };
 
   const startEdit = (note: NoteRecord) => {
@@ -272,20 +271,18 @@ export function NotesSection({
           ))}
         </ul>
       )}
-      {onAttach !== undefined && attachableNotes.length > 0 && (
-        <div className="notes-add">
-          <Select value={attachId} onChange={(event) => setAttachId(event.target.value)}>
-            <option value="">{nls.t('features.tree.notes.attachExisting')}</option>
-            {attachableNotes.map((note) => (
-              <option key={note.id} value={note.id}>
-                {note.text.length > 60 ? `${note.text.slice(0, 60)}…` : note.text}
-              </option>
-            ))}
-          </Select>
-          <Button variant="secondary" disabled={attachId === ''} onClick={() => void attach()}>
-            {nls.t('features.tree.notes.attach')}
-          </Button>
-        </div>
+      {attachError ? <InlineError>{nls.t('features.tree.autosaveFailed')}</InlineError> : null}
+      {onAttach !== undefined && (
+        <AttachExisting
+          label={nls.t('features.tree.notes.attachExisting')}
+          actionLabel={nls.t('features.tree.notes.attach')}
+          options={attachableNotes.map((note) => ({
+            id: note.id,
+            label: note.text.length > 60 ? `${note.text.slice(0, 60)}…` : note.text,
+          }))}
+          onAttach={attach}
+          onError={() => setAttachError(true)}
+        />
       )}
       <div className="notes-add">
         <Input

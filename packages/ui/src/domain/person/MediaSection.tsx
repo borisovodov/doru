@@ -5,9 +5,9 @@ import { nls } from '../../nls';
 import { Button } from '../../atoms/button/Button';
 import { EmptyText } from '../../atoms/feedback/EmptyText';
 import { InlineError } from '../../atoms/feedback/InlineError';
+import { AttachExisting } from '../../patterns/attach-existing/AttachExisting';
 import { MediaTile } from '../../patterns/media-tile/MediaTile';
 import { SectionCard } from '../../patterns/section-card/SectionCard';
-import { Select } from '../../atoms/form/Select';
 import type { MediaWithPath } from './types';
 import styles from './MediaSection.module.css';
 
@@ -37,7 +37,6 @@ export function MediaSection({
   onOpenMedia?: ((mediaId: string) => void) | undefined;
 }) {
   const [allMedia, setAllMedia] = useState<MediaWithPath[]>([]);
-  const [attachId, setAttachId] = useState('');
   const [mediaError, setMediaError] = useState(false);
 
   useEffect(() => {
@@ -63,18 +62,15 @@ export function MediaSection({
     }
   };
 
-  const attach = async () => {
-    if (attachId === '') {
-      return;
-    }
+  const attach = async (mediaId: string) => {
     setMediaError(false);
     try {
-      await api.attachMedia({ id: crypto.randomUUID(), mediaId: attachId, targetType, targetId });
-      setAttachId('');
+      await api.attachMedia({ id: crypto.randomUUID(), mediaId, targetType, targetId });
       await refresh();
       setAllMedia(await api.getAllMedia());
-    } catch {
+    } catch (error) {
       setMediaError(true);
+      throw error;
     }
   };
 
@@ -154,27 +150,16 @@ export function MediaSection({
         <Button variant="secondary" onClick={() => void add()}>
           {nls.t('features.tree.media.add')}
         </Button>
-        {attachable.length > 0 && (
-          <>
-            <Select
-              value={attachId}
-              onChange={(event) => {
-                setMediaError(false);
-                setAttachId(event.target.value);
-              }}
-            >
-              <option value="">{nls.t('features.tree.media.attachExisting')}</option>
-              {attachable.map((item) => (
-                <option key={item.id} value={item.id}>
-                  {item.title ?? item.path ?? item.id}
-                </option>
-              ))}
-            </Select>
-            <Button variant="secondary" disabled={attachId === ''} onClick={() => void attach()}>
-              {nls.t('features.tree.media.attach')}
-            </Button>
-          </>
-        )}
+        <AttachExisting
+          className={styles['attach']}
+          label={nls.t('features.tree.media.attachExisting')}
+          actionLabel={nls.t('features.tree.media.attach')}
+          options={attachable.map((item) => ({
+            id: item.id,
+            label: item.title ?? item.path ?? item.id,
+          }))}
+          onAttach={attach}
+        />
       </div>
       {mediaError ? <InlineError>{nls.t('features.tree.autosaveFailed')}</InlineError> : null}
     </SectionCard>

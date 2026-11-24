@@ -67,6 +67,7 @@ export function usePersonEditorApi(
       },
       getTasksFor: (targetType, targetId) =>
         projectPath ? window.doru.getTasksFor(projectPath, targetType, targetId) : Promise.resolve([] as TaskRecord[]),
+      getAllTasks: () => (projectPath ? window.doru.getTasks(projectPath) : Promise.resolve([] as TaskRecord[])),
       addTask: async (task) => {
         if (!projectPath) {
           return;

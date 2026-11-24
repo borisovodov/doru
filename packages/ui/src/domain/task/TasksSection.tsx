@@ -8,6 +8,7 @@ import { EmptyText } from '../../atoms/feedback/EmptyText';
 import { InlineError } from '../../atoms/feedback/InlineError';
 import { IconButton } from '../../atoms/icon-button/IconButton';
 import { Input } from '../../atoms/form/Input';
+import { AttachExisting } from '../../patterns/attach-existing/AttachExisting';
 import { SectionCard } from '../../patterns/section-card/SectionCard';
 import { nls } from '../../nls';
 import { formatTimestamp } from '../format/format';
@@ -17,7 +18,9 @@ import './TasksSection.css';
 /** The task operations an entity editor needs for one target. */
 export interface TasksSectionApi {
   getTasksFor(targetType: string, targetId: string): Promise<TaskRecord[]>;
+  getAllTasks(): Promise<TaskRecord[]>;
   addTask(task: TaskRecord): Promise<void>;
+  addTaskLink(link: TaskTargetLink): Promise<void>;
   deleteTaskLink(link: TaskTargetLink): Promise<void>;
   openTask?: ((taskId: string) => void) | undefined;
 }
@@ -36,41 +39,70 @@ export function TasksSection({
   targetId: string;
   api: TasksSectionApi;
 }) {
+  const canAdd = (TASK_TARGET_TYPES as readonly string[]).includes(targetType);
   const [tasks, setTasks] = useState<TaskRecord[]>([]);
+  const [allTasks, setAllTasks] = useState<TaskRecord[]>([]);
   const [draft, setDraft] = useState('');
-  const [removeError, setRemoveError] = useState(false);
+  const [actionError, setActionError] = useState(false);
 
-  const reload = useCallback(async () => {
-    setTasks(await api.getTasksFor(targetType, targetId));
-  }, [api, targetType, targetId]);
+  const load = useCallback(async () => {
+    const [loadedTasks, loadedAllTasks] = await Promise.all([
+      api.getTasksFor(targetType, targetId),
+      canAdd ? api.getAllTasks().catch(() => [] as TaskRecord[]) : Promise.resolve([] as TaskRecord[]),
+    ]);
+    return { tasks: loadedTasks, allTasks: loadedAllTasks };
+  }, [api, canAdd, targetType, targetId]);
 
   useEffect(() => {
     let cancelled = false;
-    void api.getTasksFor(targetType, targetId).then((loaded) => {
+    void load().then((loaded) => {
       if (!cancelled) {
-        setTasks(loaded);
+        setTasks(loaded.tasks);
+        setAllTasks(loaded.allTasks);
       }
     });
     return () => {
       cancelled = true;
     };
-  }, [api, targetType, targetId]);
+  }, [load]);
+
+  const reload = useCallback(async () => {
+    const loaded = await load();
+    setTasks(loaded.tasks);
+    setAllTasks(loaded.allTasks);
+  }, [load]);
 
   const add = async () => {
     const text = draft.trim();
     if (text === '') {
       return;
     }
+    setActionError(false);
     const id = crypto.randomUUID();
-    await api.addTask({
-      id,
-      text,
-      targets: [{ id: crypto.randomUUID(), taskId: id, targetType, targetId }],
-      status: 'open',
-      priority: 'medium',
-    });
-    setDraft('');
-    await reload();
+    try {
+      await api.addTask({
+        id,
+        text,
+        targets: [{ id: crypto.randomUUID(), taskId: id, targetType, targetId }],
+        status: 'open',
+        priority: 'medium',
+      });
+      setDraft('');
+      await reload();
+    } catch {
+      setActionError(true);
+    }
+  };
+
+  const attach = async (taskId: string) => {
+    setActionError(false);
+    try {
+      await api.addTaskLink({ id: crypto.randomUUID(), taskId, targetType, targetId });
+      await reload();
+    } catch (error) {
+      setActionError(true);
+      throw error;
+    }
   };
 
   const remove = async (task: TaskRecord) => {
@@ -78,19 +110,24 @@ export function TasksSection({
     if (link === undefined) {
       return;
     }
-    setRemoveError(false);
+    setActionError(false);
     try {
       await api.deleteTaskLink(link);
       await reload();
     } catch {
-      setRemoveError(true);
+      setActionError(true);
     }
   };
 
   const sorted = [...tasks].sort(
     (a, b) => Number(normalizeTaskStatus(a.status) === 'closed') - Number(normalizeTaskStatus(b.status) === 'closed'),
   );
-  const canAdd = (TASK_TARGET_TYPES as readonly string[]).includes(targetType);
+  const linkedIds = new Set(tasks.map((task) => task.id));
+  const attachable = allTasks
+    .filter((task) => !linkedIds.has(task.id))
+    .sort(
+      (a, b) => Number(normalizeTaskStatus(a.status) === 'closed') - Number(normalizeTaskStatus(b.status) === 'closed'),
+    );
   // Sources and tasks cannot gain child tasks; legacy links stay visible.
   if (!canAdd && sorted.length === 0) {
     return null;
@@ -99,7 +136,7 @@ export function TasksSection({
   return (
     <SectionCard title={nls.t('features.tasks.title')}>
       {sorted.length === 0 && <EmptyText>{nls.t('features.tasks.empty')}</EmptyText>}
-      {removeError ? <InlineError>{nls.t('features.tree.autosaveFailed')}</InlineError> : null}
+      {actionError ? <InlineError>{nls.t('features.tree.autosaveFailed')}</InlineError> : null}
       <ul className="tasks-section-list">
         {sorted.map((task) => (
           <li key={task.id} className="tasks-section-item">
@@ -146,6 +183,17 @@ export function TasksSection({
             {nls.t('features.tasks.add')}
           </Button>
         </div>
+      )}
+      {canAdd && (
+        <AttachExisting
+          label={nls.t('features.tasks.attachExisting')}
+          actionLabel={nls.t('features.tasks.attach')}
+          options={attachable.map((task) => ({
+            id: task.id,
+            label: task.text.length > 60 ? `${task.text.slice(0, 60)}…` : task.text,
+          }))}
+          onAttach={attach}
+        />
       )}
     </SectionCard>
   );

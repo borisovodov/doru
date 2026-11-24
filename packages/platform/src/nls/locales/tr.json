@@ -53,6 +53,8 @@
   "features.sources.placeholder": "Henüz kaynak yok.",
   "features.targets.remove": "Kaldır",
   "features.tasks.add": "Görev ekle",
+  "features.tasks.attach": "Ekle",
+  "features.tasks.attachExisting": "Mevcut bir görevi ekle",
   "features.tasks.cancel": "İptal",
   "features.tasks.chooseDate": "Tarih seç",
   "features.tasks.clear": "Temizle",

@@ -23,6 +23,7 @@ function apiStub(overrides: Partial<FamilyEditorApi> = {}): FamilyEditorApi {
     getMediaFor: async () => [],
     getAllMedia: async () => [],
     getTasksFor: async () => [],
+    getAllTasks: async () => [],
     getSources: async () => [],
     ...overrides,
   });
