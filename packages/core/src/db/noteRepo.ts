@@ -46,9 +46,13 @@ export class NoteRepo {
     return this.db.prepare('DELETE FROM note WHERE id = ?').run(id).changes > 0;
   }
 
+  /** Inserts a link; a note already linked to the same target is left unchanged. */
   addNoteLink(noteId: string, link: NoteLinkRecord): void {
     this.db
-      .prepare('INSERT INTO note_link (id, note_id, target_type, target_id) VALUES (?, ?, ?, ?)')
+      .prepare(
+        `INSERT INTO note_link (id, note_id, target_type, target_id) VALUES (?, ?, ?, ?)
+         ON CONFLICT (note_id, target_type, target_id) DO NOTHING`,
+      )
       .run(link.id, noteId, link.targetType, link.targetId);
   }
 
