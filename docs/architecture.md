@@ -93,8 +93,11 @@ decisions about what we deliberately do **not** build, see
   A citation never targets a task: a source backs a genealogical assertion,
   while a task is a work item that asserts nothing. Contacts are likewise
   limited to the targets GEDCOM carries them for: person, fact, address,
-  repository and submitter. Tasks are shared through `task_link`: deleting one
-  target removes only its link, never the task or its attachments.
+  repository and submitter. Notes are citation targets only: a citation may
+  point at a note (GEDCOM `NOTE.SOUR`/`SNOTE.SOUR`), but media links,
+  identifiers, contributors, tasks and note links may not. Tasks are shared
+  through `task_link`: deleting one target removes only its link, never the
+  task or its attachments.
 
 ## GEDCOM
 

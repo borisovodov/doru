@@ -28,7 +28,7 @@
   gap: 6px;
 }
 
-.notes-attachments {
+.notes-sources {
   display: flex;
   flex-direction: column;
   gap: 8px;
@@ -37,49 +37,9 @@
   border-left: 2px solid var(--doru-border);
 }
 
-.notes-edit textarea {
+.notes-edit textarea,
+.notes-edit input {
   width: 100%;
-}
-
-.notes-edit-fields {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 0 12px;
-}
-
-.notes-edit-fields input,
-.notes-translations input {
-  width: 100%;
-}
-
-.notes-translations {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.notes-translations-title {
-  display: block;
-  margin: 0;
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--doru-fg-muted);
-}
-
-.translation-row {
-  display: flex;
-  gap: 6px;
-  align-items: center;
-}
-
-.translation-row input {
-  flex: 1;
-  min-width: 0;
-  margin-top: 0;
-}
-
-.translation-row .translation-text {
-  flex: 2;
 }
 
 .notes-meta {

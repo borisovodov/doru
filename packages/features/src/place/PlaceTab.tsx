@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import type { FactRecord, FamilyRecord, PersonRecord, PlaceRecord, SourceRecord } from '@doru/core';
-import { AttachmentsPanel, CitationAttachments, NoteAttachments, useAttachments } from '../attachments';
+import { AttachmentsPanel, CitationAttachments, NoteSources, useAttachments } from '../attachments';
 import { MediaSection } from '../media/MediaSection';
 import { AutoSaveError } from '../autoSaveFeedback';
 import { useEntityDelete } from '../entityDelete';
@@ -366,8 +366,8 @@ function PlaceTabBody({
                   await api.deleteNote(note);
                   await refreshAttachments();
                 }}
-                renderAttachments={(note) => (
-                  <NoteAttachments note={note} api={api} sources={sources} onOpenSource={onOpenSource} />
+                renderSources={(note) => (
+                  <NoteSources note={note} api={api} sources={sources} onOpenSource={onOpenSource} />
                 )}
               />
               <IdentifiersSection

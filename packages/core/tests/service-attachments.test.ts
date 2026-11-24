@@ -233,6 +233,57 @@ describe('TreeService attachments', () => {
     }
   });
 
+  it('allows citations on a note but refuses every other target link', () => {
+    const { fixture, service } = makeService();
+    try {
+      service.addNote(note());
+      service.addSource(source());
+      service.attachSource('S1', 'note', 'N1');
+      expect(fixture.repo.listCitationRecordsFor('note', 'N1')).toHaveLength(1);
+
+      service.addTask({ id: 'T1', text: 'Find the record', targets: [] });
+      expect(() => service.addTaskLink({ id: 'TL1', taskId: 'T1', targetType: 'note', targetId: 'N1' })).toThrow(
+        'Only source citations may target a note.',
+      );
+      expect(() =>
+        service.addTask({
+          id: 'T2',
+          text: 'Another task',
+          targets: [{ id: 'TL2', taskId: 'T2', targetType: 'note', targetId: 'N1' }],
+        }),
+      ).toThrow('Only source citations may target a note.');
+
+      expect(() => service.attachNote('N1', { id: 'L2', targetType: 'note', targetId: 'N2' })).toThrow(
+        'Only source citations may target a note.',
+      );
+      expect(() => service.addNote(note({ id: 'N2', targetType: 'note', targetId: 'N1' }))).toThrow(
+        'Only source citations may target a note.',
+      );
+
+      service.addMedia({ id: 'M1', links: [] });
+      expect(() => service.attachMedia({ id: 'ML1', mediaId: 'M1', targetType: 'note', targetId: 'N1' })).toThrow(
+        'Only source citations may target a note.',
+      );
+      expect(() => service.attachMediaToTargets('M1', [{ targetType: 'note', targetId: 'N1' }])).toThrow(
+        'Only source citations may target a note.',
+      );
+
+      expect(() => service.addIdentifier(identifier({ targetType: 'note', targetId: 'N1' }))).toThrow(
+        'Only source citations may target a note.',
+      );
+      expect(() => service.addRecordSubmitter('SU1', 'note', 'N1')).toThrow('Only source citations may target a note.');
+
+      // The failed attempts left no rows behind.
+      expect(fixture.repo.listTaskLinksFor('note', 'N1')).toEqual([]);
+      expect(fixture.repo.listMediaLinksFor('note', 'N1')).toEqual([]);
+      expect(fixture.repo.listIdentifiersFor('note', 'N1')).toEqual([]);
+      expect(fixture.repo.listRecordSubmittersFor('note', 'N1')).toEqual([]);
+      expect(fixture.repo.listNotesFor('note', 'N1')).toEqual([]);
+    } finally {
+      cleanupRepo(fixture);
+    }
+  });
+
   it('adds sources with and without a citation, updates and deletes them', () => {
     const { fixture, service } = makeService();
     try {

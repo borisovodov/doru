@@ -13,6 +13,7 @@ import {
 } from '@doru/ui/domain';
 import { MediaSection } from '../media/MediaSection';
 import type { AttachmentsApi } from '../person/types';
+import { NoteSources } from './NoteSources';
 import { useAttachments, type ContributorApi } from './useAttachments';
 
 export type AttachmentSection = 'notes' | 'sources' | 'media' | 'identifiers' | 'contacts' | 'contributors' | 'tasks';
@@ -119,6 +120,7 @@ export function AttachmentsPanel({
             await api.deleteNote(note);
             await refresh();
           }}
+          renderSources={(note) => <NoteSources note={note} api={api} sources={sources} onOpenSource={onOpenSource} />}
         />
       )}
       {include.has('sources') && (

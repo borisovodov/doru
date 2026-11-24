@@ -56,4 +56,23 @@ describe('NotesSection', () => {
     expect(await screen.findByText(nls.t('features.tree.autosaveFailed'))).toBeInTheDocument();
     expect(select).toHaveValue('N2');
   });
+
+  it('opens the sources panel from a note row', () => {
+    const note: NoteRecord = { id: 'N1', text: 'Cited note' };
+    renderUi(
+      <NotesSection
+        targetType="person"
+        targetId="P1"
+        notes={[note]}
+        onAdd={noop}
+        onUpdate={noop}
+        onDelete={noop}
+        renderSources={(entry) => <span>Sources of {entry.id}</span>}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: nls.t('features.tree.sources.title') }));
+
+    expect(screen.getByText('Sources of N1')).toBeInTheDocument();
+  });
 });

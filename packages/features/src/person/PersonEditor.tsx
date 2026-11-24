@@ -30,8 +30,8 @@ import { DateEditor } from '@doru/ui/domain';
 import { FactsSection } from '@doru/ui/domain';
 import { FamilySection } from '@doru/ui/domain';
 import { NotesSection } from '@doru/ui/domain';
-import { AttachmentsPanel } from '../attachments/AttachmentsPanel';
-import { CitationAttachments, NoteAttachments } from '../attachments/TargetAttachments';
+import { AttachmentsPanel, NoteSources } from '../attachments';
+import { CitationAttachments } from '../attachments/TargetAttachments';
 import { MediaSection } from '../media/MediaSection';
 import { NamesSection } from '@doru/ui/domain';
 import { SourcesSection } from '@doru/ui/domain';
@@ -519,8 +519,8 @@ export function PersonEditor({
               await api.deleteNote(note);
               await refreshNotes();
             }}
-            renderAttachments={(note) => (
-              <NoteAttachments
+            renderSources={(note) => (
+              <NoteSources
                 note={note}
                 api={api}
                 sources={sources}

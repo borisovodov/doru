@@ -9,7 +9,6 @@ const note: NoteRecord = {
   text: 'The family moved to Tula around 1905.',
   targetType: 'person',
   targetId: 'P1',
-  language: 'en',
 };
 
 const sharedNote: NoteRecord = {

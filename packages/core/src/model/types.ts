@@ -1037,8 +1037,10 @@ export interface TitleRecord {
 /**
  * The machine-readable list of attachment target types. The polymorphic
  * attachment tables pair `target_type` with the target row's UUID.
- * Free-text `family_witness` rows are deliberately absent: they are names
- * without stable identity and are not attachment targets.
+ * `note` is included because a source citation may point at a note (GEDCOM
+ * `NOTE.SOUR`/`SNOTE.SOUR`); every other attachment kind rejects it in
+ * `TreeService`. Free-text `family_witness` rows are deliberately absent:
+ * they are names without stable identity and are not attachment targets.
  */
 export const TARGET_TYPES = [
   'person',

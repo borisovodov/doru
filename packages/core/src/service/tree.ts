@@ -152,6 +152,18 @@ function assertCitationTarget(targetType: string): void {
 }
 
 /**
+ * A note is a leaf annotation: source citations may point at it (GEDCOM
+ * NOTE.SOUR/SNOTE.SOUR), but no other attachment may. This guard keeps the
+ * IPC and agent paths consistent with the UI, which only offers citations on
+ * a note.
+ */
+function assertNoteIsNotTarget(targetType: string): void {
+  if (targetType === 'note') {
+    throw new Error('Only source citations may target a note.');
+  }
+}
+
+/**
  * Contacts only exist on targets GEDCOM can carry them for: addresses, event
  * details, repositories, submitters, and the vendor INDI spellings Dóru keeps
  * on a person. A contact anywhere else has no import or export path.
@@ -964,6 +976,12 @@ export class TreeService {
   }
 
   addNote(note: NoteRecord): UndoRedoState {
+    if (note.targetType !== undefined) {
+      assertNoteIsNotTarget(note.targetType);
+    }
+    for (const link of note.links ?? []) {
+      assertNoteIsNotTarget(link.targetType);
+    }
     return this.apply(addNoteOp(note));
   }
 
@@ -988,6 +1006,7 @@ export class TreeService {
 
   /** Attaches an existing note to another target (makes it shared). */
   attachNote(noteId: string, link: NoteLinkRecord): UndoRedoState {
+    assertNoteIsNotTarget(link.targetType);
     return this.applyAfterCommit(() => {
       const current = this.repo.getNote(noteId);
       const alreadyLinked = current?.links?.some(
@@ -1028,6 +1047,12 @@ export class TreeService {
   }
 
   addMedia(media: MediaRecord): UndoRedoState {
+    if (media.targetType !== undefined) {
+      assertNoteIsNotTarget(media.targetType);
+    }
+    for (const link of media.links ?? []) {
+      assertNoteIsNotTarget(link.targetType);
+    }
     return this.apply(addMediaOp(media));
   }
 
@@ -1036,6 +1061,17 @@ export class TreeService {
   }
 
   updateMedia(before: MediaRecord, after: MediaRecord): UndoRedoState {
+    if (after.targetType === 'note' && before.targetType !== 'note') {
+      assertNoteIsNotTarget(after.targetType);
+    }
+    const existingNoteLinks = new Set(
+      (before.links ?? []).filter((link) => link.targetType === 'note').map((link) => link.id),
+    );
+    for (const link of after.links ?? []) {
+      if (!existingNoteLinks.has(link.id)) {
+        assertNoteIsNotTarget(link.targetType);
+      }
+    }
     return this.applyAfterCommit(() => {
       const current = this.repo.getMedia(before.id) ?? before;
       const merged: MediaRecord = { ...current };
@@ -1127,6 +1163,7 @@ export class TreeService {
   }
 
   attachMedia(link: MediaLinkRecord): UndoRedoState {
+    assertNoteIsNotTarget(link.targetType);
     return this.applyAfterCommit(() => {
       const media = this.repo.getMedia(link.mediaId);
       if (
@@ -1149,6 +1186,9 @@ export class TreeService {
     if (this.repo.getMedia(mediaId) === undefined) {
       throw new Error(`media ${mediaId} no longer exists`);
     }
+    for (const target of targets) {
+      assertNoteIsNotTarget(target.targetType);
+    }
     const existing = new Set(
       (this.repo.getMedia(mediaId)?.links ?? []).map((link) => `${link.targetType}\u0000${link.targetId}`),
     );
@@ -1170,6 +1210,7 @@ export class TreeService {
   }
 
   updateMediaLink(before: MediaLinkRecord, after: MediaLinkRecord): UndoRedoState {
+    assertNoteIsNotTarget(after.targetType);
     return this.apply(updateMediaLinkOp(before, after));
   }
 
@@ -1198,6 +1239,7 @@ export class TreeService {
   }
 
   addIdentifier(identifier: IdentifierRecord): UndoRedoState {
+    assertNoteIsNotTarget(identifier.targetType);
     return this.apply(addIdentifierOp(identifier));
   }
 
@@ -1206,6 +1248,7 @@ export class TreeService {
   }
 
   updateIdentifier(before: IdentifierRecord, after: IdentifierRecord): UndoRedoState {
+    assertNoteIsNotTarget(after.targetType);
     return this.apply(updateIdentifierOp(before, after));
   }
 
@@ -1298,6 +1341,7 @@ export class TreeService {
     targetId: string,
     kind: RecordSubmitterLink['kind'] = 'contributor',
   ): UndoRedoState {
+    assertNoteIsNotTarget(targetType);
     return this.apply(addRecordSubmitterOp(submitterId, targetType, targetId, kind));
   }
 
@@ -1406,6 +1450,9 @@ export class TreeService {
   }
 
   addTask(task: TaskRecord): UndoRedoState {
+    for (const link of task.targets) {
+      assertNoteIsNotTarget(link.targetType);
+    }
     const status = normalizeTaskStatus(task.status);
     const now = Date.now();
     return this.apply(
@@ -1432,6 +1479,7 @@ export class TreeService {
   }
 
   addTaskLink(link: TaskTargetLink): UndoRedoState {
+    assertNoteIsNotTarget(link.targetType);
     if (this.repo.getTask(link.taskId) === undefined) {
       throw new Error(`task ${link.taskId} no longer exists`);
     }
