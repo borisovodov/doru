@@ -186,8 +186,7 @@ describe('importGedcomDataset edge coverage', () => {
         .sort();
       expect(factKinds).toEqual(['email', 'fax', 'phone', 'www']);
 
-      // Restrictions, submitter links and tag links.
-      expect(repo.listRestrictionsFor('person', ivan.id).map((entry) => entry.level)).toEqual(['confidential']);
+      // Submitter links and tag links.
       expect(repo.listSubmittersFor('person', ivan.id)).toHaveLength(1);
       expect(repo.listTagLinksFor('person', ivan.id)).toHaveLength(1);
 

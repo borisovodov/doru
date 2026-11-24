@@ -213,16 +213,10 @@ export function restoreAlias(ctx: MutationContext, id: string, personId: string,
 }
 
 export function restoreTask(ctx: MutationContext, task: TaskRecord): void {
-  const clean: TaskRecord = { ...task };
-  if (
-    clean.targetType !== undefined &&
-    clean.targetId !== undefined &&
-    !attachmentTargetExists(ctx, clean.targetType, clean.targetId)
-  ) {
-    delete clean.targetType;
-    delete clean.targetId;
-  }
-  ctx.repo.insertTask(clean);
+  ctx.repo.insertTask({
+    ...task,
+    targets: task.targets.filter((link) => attachmentTargetExists(ctx, link.targetType, link.targetId)),
+  });
 }
 
 export function restoreTitle(ctx: MutationContext, title: TitleRecord): void {
@@ -303,9 +297,8 @@ export function attachmentsMatch(
       .sort(),
     identifiers: snapshot.identifiers.map((entry) => JSON.stringify(entry)).sort(),
     contacts: snapshot.contacts.map((entry) => JSON.stringify(entry)).sort(),
-    restrictions: snapshot.restrictions.map((entry) => JSON.stringify(entry)).sort(),
     tagLinks: snapshot.tagLinks.map((entry) => JSON.stringify(entry.link)).sort(),
-    tasks: snapshot.tasks.map((entry) => JSON.stringify(entry)).sort(),
+    taskLinks: snapshot.taskLinks.map((entry) => JSON.stringify(entry)).sort(),
     recordSubmitters: snapshot.recordSubmitters.map((entry) => JSON.stringify(entry)).sort(),
   });
   const flatten = (snapshot: AttachmentsSnapshot, rootKey: string): string => {
@@ -322,7 +315,6 @@ export function attachmentsMatch(
         ...node.mediaAttachments,
         ...node.mediaFileAttachments,
         ...node.mediaLinkAttachments,
-        ...node.taskAttachments,
       ]) {
         const childKey = `${nested.targetType}\u0000${nested.targetId}`;
         edges.push(`${key}>${childKey}`);

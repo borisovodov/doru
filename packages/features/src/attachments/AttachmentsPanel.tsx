@@ -1,12 +1,12 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import type { CitationRecord, SourceRecord } from '@doru/core';
+import { isContactTargetType } from '@doru/core/model';
 import { MEDIA_VISIBLE } from '@doru/platform';
 import {
   ContactsSection,
   ContributorsSection,
   IdentifiersSection,
   NotesSection,
-  RestrictionsSection,
   SourcesSection,
   TagsSection,
   TasksSection,
@@ -14,7 +14,7 @@ import {
 } from '@doru/ui/domain';
 import { MediaSection } from '../media/MediaSection';
 import type { AttachmentsApi } from '../person/types';
-import { useAttachments, type ContributorApi } from './useAttachments';
+import { refreshAfterTagAttach, useAttachments, type ContributorApi } from './useAttachments';
 
 export type AttachmentSection =
   | 'notes'
@@ -23,7 +23,6 @@ export type AttachmentSection =
   | 'tags'
   | 'identifiers'
   | 'contacts'
-  | 'restrictions'
   | 'contributors'
   | 'tasks';
 
@@ -36,7 +35,6 @@ const ALL_SECTIONS: readonly AttachmentSection[] = [
   'tags',
   'identifiers',
   'contacts',
-  'restrictions',
   'contributors',
   'tasks',
 ];
@@ -65,25 +63,30 @@ export function AttachmentsPanel({
   onOpenMedia?: ((mediaId: string) => void) | undefined;
   renderCitationAttachments?: ((citation: CitationRecord) => ReactNode) | undefined;
 }) {
-  const {
-    notes,
-    allNotes,
-    citations,
-    tags,
-    tagLinks,
-    identifiers,
-    contacts,
-    restrictions,
-    submitters,
-    contributors,
-    refresh,
-  } = useAttachments(targetType, targetId, api, true);
+  const { notes, allNotes, citations, tags, tagLinks, identifiers, contacts, submitters, contributors, refresh } =
+    useAttachments(targetType, targetId, api, true);
 
   if (targetId === undefined) {
     return null;
   }
 
-  const include = new Set(MEDIA_VISIBLE ? sections : sections.filter((section) => section !== 'media'));
+  // A task is a work item, not an assertion about the tree: a source cited on
+  // it would be evidence for nothing. Hide the sources section regardless of
+  // the caller's list, matching the service-level rejection in @doru/core.
+  // Contacts likewise exist only on targets GEDCOM can carry them for; other
+  // targets have no import or export path.
+  const availableSections = sections.filter((section) => {
+    if (section === 'sources' && targetType === 'task') {
+      return false;
+    }
+    if (section === 'contacts' && !isContactTargetType(targetType)) {
+      return false;
+    }
+    return true;
+  });
+  const include = new Set(
+    MEDIA_VISIBLE ? availableSections : availableSections.filter((section) => section !== 'media'),
+  );
   return (
     <>
       {include.has('notes') && (
@@ -132,7 +135,9 @@ export function AttachmentsPanel({
           citations={citations}
           refresh={refresh}
           onAddSource={api.addSource}
+          onAddSourceToTargets={api.addSourceToTargets}
           onAttachSource={api.attachSource}
+          onAttachSourceToTargets={api.attachSourceToTargets}
           onDetachCitation={api.detachCitation}
           onUpdateCitation={api.updateCitation}
           onOpenSource={onOpenSource ?? (() => undefined)}
@@ -157,6 +162,7 @@ export function AttachmentsPanel({
             await api.deleteTag(tag);
             await refresh();
           }}
+          onAttachTagToTargets={refreshAfterTagAttach(api.attachTagToTargets, refresh)}
           onAttachTag={async (link) => {
             await api.attachTag(link);
             await refresh();
@@ -202,25 +208,6 @@ export function AttachmentsPanel({
           }}
           onDelete={async (contact) => {
             await api.deleteContact(contact);
-            await refresh();
-          }}
-        />
-      )}
-      {include.has('restrictions') && (
-        <RestrictionsSection
-          targetType={targetType}
-          targetId={targetId}
-          restrictions={restrictions}
-          onAdd={async (restriction) => {
-            await api.addRestriction(restriction);
-            await refresh();
-          }}
-          onUpdate={async (before, after) => {
-            await api.updateRestriction(before, after);
-            await refresh();
-          }}
-          onDelete={async (restriction) => {
-            await api.deleteRestriction(restriction);
             await refresh();
           }}
         />

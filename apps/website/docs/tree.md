@@ -60,8 +60,8 @@ Removing a person from a family or deleting a family is one click.
   record's Notes section, then choose whether an edit should update the
   shared text everywhere or only the current record. **Detach from this
   record** removes one link; **Delete everywhere** removes the note.
-- Facts and names carry their own Sources, Notes, Tags, Identifiers,
-  Contacts and Restrictions sections inside the person editor.
+- Facts and names carry their own Sources, Notes, Tags and Identifiers
+  sections inside the person editor; facts also have Contacts.
 
 ## Addresses
 
@@ -77,13 +77,15 @@ Tasks have creation and closing dates in addition to the scheduled and
 reminder dates. Every editor has a **Tasks** section: add a task there and it
 is linked to that record automatically. Facts, names, citations and notes
 carry their own Tasks section in their attachment panel. **Related to** links
-a task to any record in the tree — a person, family, event, name, source,
-citation, note, media file, place, repository, submitter, address, title or
-even another task; leave it empty for a free-standing task.
+a task to one or more records in the tree — a person, family, event, name,
+citation, note, media, place, repository, address or title; leave it empty for
+a free-standing task. A task is shared: editing it anywhere updates the same
+record, and deleting one related record leaves the task in place.
 
-Titles, tasks, addresses, associations and family partner/child links have the
-same Notes, Sources, Tags, Identifiers, Contacts, Restrictions, Contributors
-and Tasks sections as the main entity tabs.
+Titles, addresses, associations and family partner/child links have the same
+Notes, Sources, Tags, Identifiers, Contributors and Tasks sections as the main
+entity tabs. Addresses also have Contacts. Tasks keep Notes, Tags, Identifiers,
+Contributors and the legacy Tasks section, but have no Sources or Contacts.
 
 ## Media
 
@@ -95,8 +97,9 @@ manage files and edit link metadata such as the caption, sequence, primary
 flag and exclusion flag.
 
 A media record can be linked to several targets. **Detach from this record**
-removes one link; **Delete media** removes the record and its file copies. A
-record with no remaining links is removed automatically.
+removes one link and deletes the record when it was the last one; **Delete
+media** removes the record and its file copies. Deleting a target record
+removes only its links, so a shared media record can remain without links.
 
 ## Ordering
 

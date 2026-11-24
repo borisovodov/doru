@@ -15,7 +15,6 @@ function apiStub(overrides: Partial<TaskEditorApi> = {}): TaskEditorApi {
     getTagLinks: async () => [],
     getIdentifiers: async () => [],
     getContacts: async () => [],
-    getRestrictions: async () => [],
     getSubmitters: async () => [],
     getRecordSubmitters: async () => [],
     getMediaFor: async () => [],
@@ -51,13 +50,21 @@ function taskElement(entityId: string, tasks: TaskRecord[], api: TaskEditorApi) 
       api={api}
       onClose={vi.fn()}
       onOpenMedia={vi.fn()}
-      onOpenSource={vi.fn()}
       onCreated={vi.fn()}
     />
   );
 }
 
 describe('TaskTab', () => {
+  it('does not offer source or contact attachments', () => {
+    const task: TaskRecord = { id: 'T1', text: 'Find the record', targets: [] };
+    renderUi(taskElement(task.id, [task], apiStub()));
+
+    expect(screen.queryByText(nls.t('features.tree.sources.title'))).not.toBeInTheDocument();
+    expect(screen.queryByText(nls.t('features.tree.contacts.title'))).not.toBeInTheDocument();
+    expect(screen.getByText(nls.t('features.tree.notes.title'))).toBeInTheDocument();
+  });
+
   it('runs one create request for repeated clicks', async () => {
     let finishCreate!: () => void;
     const addTask = vi.fn(
@@ -80,7 +87,7 @@ describe('TaskTab', () => {
   });
 
   it('keeps a refreshed status when only the text is edited', async () => {
-    const openTask: TaskRecord = { id: 'T1', text: 'Old text', status: 'open' };
+    const openTask: TaskRecord = { id: 'T1', text: 'Old text', status: 'open', targets: [] };
     const closedTask: TaskRecord = { ...openTask, status: 'closed' };
     const updateTask = vi.fn(async (_before: TaskRecord, _after: TaskRecord) => undefined);
     const api = apiStub({ updateTask });
@@ -99,7 +106,7 @@ describe('TaskTab', () => {
   });
 
   it('keeps a post-submission status reversal', async () => {
-    const openTask: TaskRecord = { id: 'T1', text: 'Old text', status: 'open' };
+    const openTask: TaskRecord = { id: 'T1', text: 'Old text', status: 'open', targets: [] };
     const closedTask: TaskRecord = { ...openTask, status: 'closed' };
     let finishSave!: () => void;
     const updateTask = vi.fn(
@@ -124,7 +131,7 @@ describe('TaskTab', () => {
   });
 
   it('keeps a newer persisted baseline when an older save completes', async () => {
-    const openTask: TaskRecord = { id: 'T1', text: 'Old text', status: 'open' };
+    const openTask: TaskRecord = { id: 'T1', text: 'Old text', status: 'open', targets: [] };
     const waitingTask: TaskRecord = { ...openTask, status: 'waiting' };
     let finishSave!: () => void;
     const updateTask = vi.fn(
@@ -151,7 +158,7 @@ describe('TaskTab', () => {
   });
 
   it('advances the baseline after a fresh pre-write refresh', async () => {
-    const openTask: TaskRecord = { id: 'T1', text: 'Old', status: 'open' };
+    const openTask: TaskRecord = { id: 'T1', text: 'Old', status: 'open', targets: [] };
     let finishSave!: () => void;
     const updateTask = vi.fn(
       (_before: TaskRecord, _after: TaskRecord) =>
@@ -176,6 +183,40 @@ describe('TaskTab', () => {
     expect(updateTask.mock.calls[1]?.[1]).toMatchObject({ text: 'Old' });
   });
 
+  it('keeps a target added while a field save is pending', async () => {
+    const task: TaskRecord = {
+      id: 'T1',
+      text: 'Old text',
+      status: 'open',
+      targets: [{ id: 'TL1', taskId: 'T1', targetType: 'person', targetId: 'P1' }],
+    };
+    const refreshed: TaskRecord = {
+      ...task,
+      targets: [...task.targets, { id: 'TL2', taskId: 'T1', targetType: 'person', targetId: 'P2' }],
+    };
+    let finishSave!: () => void;
+    const updateTask = vi.fn(
+      (_before: TaskRecord, _after: TaskRecord) =>
+        new Promise<void>((resolve) => {
+          finishSave = resolve;
+        }),
+    );
+    const api = apiStub({ updateTask });
+    const view = renderUi(taskElement(task.id, [task], api));
+
+    const text = screen.getByPlaceholderText(nls.t('features.tasks.text'));
+    fireEvent.change(text, { target: { value: 'New text' } });
+    fireEvent.blur(text, { relatedTarget: document.body });
+    await waitFor(() => expect(updateTask).toHaveBeenCalledTimes(1));
+
+    view.rerender(taskElement(task.id, [refreshed], api));
+    await act(async () => finishSave());
+
+    await waitFor(() =>
+      expect(screen.getAllByRole('button', { name: nls.t('features.targets.remove') })).toHaveLength(2),
+    );
+  });
+
   it('shows a creation error when adding a task fails', async () => {
     const addTask = vi.fn(async () => {
       throw new Error('disk full');
@@ -191,5 +232,22 @@ describe('TaskTab', () => {
 
     fireEvent.change(text, { target: { value: 'Write a new report' } });
     expect(screen.queryByText(nls.t('features.tree.autosaveFailed'))).not.toBeInTheDocument();
+  });
+
+  it('shows an error when unlinking an existing task target fails', async () => {
+    const task: TaskRecord = {
+      id: 'T1',
+      text: 'Find the record',
+      targets: [{ id: 'TL1', taskId: 'T1', targetType: 'person', targetId: 'P1' }],
+    };
+    const deleteTaskLink = vi.fn(async () => {
+      throw new Error('disk full');
+    });
+    const api = apiStub({ deleteTaskLink });
+    renderUi(taskElement(task.id, [task], api));
+
+    fireEvent.click(screen.getByRole('button', { name: nls.t('features.targets.remove') }));
+    await waitFor(() => expect(deleteTaskLink).toHaveBeenCalledTimes(1));
+    expect(await screen.findByText(nls.t('features.tree.autosaveFailed'))).toBeInTheDocument();
   });
 });

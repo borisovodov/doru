@@ -214,13 +214,23 @@ describe('undo restore sanitizers', () => {
       const { repo } = fixture;
       const ctx = context(fixture);
       repo.insertRepository({ id: 'R1', name: 'Archive' });
-      restoreTask(ctx, { id: 'T1', text: 'Task' });
-      restoreTask(ctx, { id: 'T2', text: 'Orphan task', targetType: 'person', targetId: 'missing' });
-      restoreTask(ctx, { id: 'T3', text: 'Linked task', targetType: 'repository', targetId: 'R1' });
+      restoreTask(ctx, { id: 'T1', text: 'Task', targets: [] });
+      restoreTask(ctx, {
+        id: 'T2',
+        text: 'Orphan task',
+        targets: [{ id: 'TL2', taskId: 'T2', targetType: 'person', targetId: 'missing' }],
+      });
+      restoreTask(ctx, {
+        id: 'T3',
+        text: 'Linked task',
+        targets: [{ id: 'TL3', taskId: 'T3', targetType: 'repository', targetId: 'R1' }],
+      });
       expect(repo.getTask('T1')?.id).toBe('T1');
-      expect(repo.getTask('T3')?.targetId).toBe('R1');
+      expect(repo.getTask('T3')?.targets).toEqual([
+        expect.objectContaining({ targetType: 'repository', targetId: 'R1' }),
+      ]);
       expect(repo.getTask('T2')?.id).toBe('T2');
-      expect(repo.getTask('T2')?.targetType).toBeUndefined();
+      expect(repo.getTask('T2')?.targets).toEqual([]);
 
       restoreTitle(ctx, { id: 'TI1', name: 'Work', repositoryId: 'R1' });
       restoreTitle(ctx, { id: 'TI2', name: 'Orphan work', repositoryId: 'missing' });
@@ -302,10 +312,13 @@ describe('undo restore sanitizers', () => {
       expect([...noLinks]).toEqual([]);
       expect(repo.getMedia('M2')?.links).toEqual([]);
 
-      restoreTask(ctx, { id: 'T1', text: 'Task', targetType: 'person', targetId: 'missing' });
+      restoreTask(ctx, {
+        id: 'T1',
+        text: 'Task',
+        targets: [{ id: 'TL1', taskId: 'T1', targetType: 'person', targetId: 'missing' }],
+      });
       expect(repo.getTask('T1')?.id).toBe('T1');
-      expect(repo.getTask('T1')?.targetType).toBeUndefined();
-      expect(repo.getTask('T1')?.targetId).toBeUndefined();
+      expect(repo.getTask('T1')?.targets).toEqual([]);
     } finally {
       cleanupRepo(fixture);
     }
@@ -393,7 +406,7 @@ describe('undo restore sanitizers', () => {
       repo.insertRepository({ id: 'R1', name: 'Archive' });
       repo.insertSubmitter({ id: 'SU1', name: 'Person' });
       repo.insertAddress({ id: 'A1', lines: [] });
-      repo.insertTask({ id: 'T1', text: 'Task' });
+      repo.insertTask({ id: 'T1', text: 'Task', targets: [] });
       repo.insertNote({ id: 'N1', text: 'Note', targetType: 'person', targetId: 'P1' });
       repo.insertFact({ id: 'FACT1', personId: 'P1', tag: 'BIRT' });
       repo.insertAssociation({ id: 'AS1', personId: 'P1', otherPersonId: 'P1' });
@@ -435,10 +448,14 @@ describe('undo restore sanitizers', () => {
       expect(attachmentsMatch(ctx, 'person', 'P1', empty)).toBe(false);
       expect(attachmentsMatch(ctx, 'person', 'P1', emptyAttachments())).toBe(false);
 
-      repo.insertTask({ id: 'T1', text: 'Draft', targetType: 'person', targetId: 'P1' });
+      repo.insertTask({
+        id: 'T1',
+        text: 'Draft',
+        targets: [{ id: 'TL1', taskId: 'T1', targetType: 'person', targetId: 'P1' }],
+      });
       const withTask = repo.listAttachmentsFor('person', 'P1');
       expect(attachmentsMatch(ctx, 'person', 'P1', withTask)).toBe(true);
-      repo.updateTask({ id: 'T1', text: 'Reviewed', targetType: 'person', targetId: 'P1' });
+      repo.deleteTaskLink('TL1');
       expect(attachmentsMatch(ctx, 'person', 'P1', withTask)).toBe(false);
 
       repo.insertSource({ id: 'S1', title: 'Book' });
@@ -447,7 +464,6 @@ describe('undo restore sanitizers', () => {
       repo.insertTag({ id: 'TAG1', name: 'Family' });
       repo.insertTagLink({ id: 'TL1', tagId: 'TAG1', targetType: 'person', targetId: 'P1' });
       repo.insertContact({ id: 'CT1', targetType: 'person', targetId: 'P1', kind: 'email', value: 'a@b.c' });
-      repo.insertRestriction({ id: 'R1', targetType: 'person', targetId: 'P1', level: 'confidential' });
       repo.insertSubmitter({ id: 'SU1', name: 'Submitter' });
       repo.insertRecordSubmitter('RS1', 'SU1', 'person', 'P1', 'contributor');
       const rich = repo.listAttachmentsFor('person', 'P1');

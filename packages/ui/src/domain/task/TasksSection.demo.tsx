@@ -6,16 +6,14 @@ const tasks: TaskRecord[] = [
   {
     id: 'T1',
     text: 'Find the parish register',
-    targetType: 'person',
-    targetId: 'I1',
+    targets: [{ id: 'TL1', taskId: 'T1', targetType: 'person', targetId: 'I1' }],
     priority: 'high',
     status: 'open',
   },
   {
     id: 'T2',
     text: 'Translate the 1890 census',
-    targetType: 'person',
-    targetId: 'I1',
+    targets: [{ id: 'TL2', taskId: 'T2', targetType: 'person', targetId: 'I1' }],
     priority: 'medium',
     status: 'closed',
     scheduledAt: new Date(2026, 4, 12, 9, 0).getTime(),
@@ -25,7 +23,7 @@ const tasks: TaskRecord[] = [
 const api = {
   getTasksFor: async () => tasks,
   addTask: async () => undefined,
-  deleteTask: async () => undefined,
+  deleteTaskLink: async () => undefined,
   openTask: () => undefined,
 };
 

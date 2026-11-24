@@ -16,13 +16,14 @@ import type {
   PersonRecord,
   PlaceRecord,
   RepositoryRecord,
-  RestrictionRecord,
   SourceRecord,
   SubmitterRecord,
   TagLinkRecord,
   TagRecord,
-  TitleRecord,
+  TargetRef,
   TaskRecord,
+  TaskTargetLink,
+  TitleRecord,
 } from '@doru/core';
 
 export type { MediaWithPath } from '@doru/ui/domain';
@@ -32,7 +33,9 @@ export interface MediaTargetApi {
   getMediaFor(targetType: string, targetId: string): Promise<MediaWithPath[]>;
   getAllMedia(): Promise<MediaWithPath[]>;
   addMediaToTarget(targetType: string, targetId: string): Promise<void>;
+  addMediaToTargets?(targets: TargetRef[]): Promise<void>;
   attachMedia(link: MediaLinkRecord): Promise<void>;
+  attachMediaToTargets?(mediaId: string, targets: TargetRef[]): Promise<void>;
   detachMedia(link: MediaLinkRecord): Promise<void>;
   deleteMedia(media: MediaRecord): Promise<void>;
 }
@@ -57,7 +60,9 @@ export interface AttachmentsApi extends AttachmentApi, MediaTargetApi {
   updateCitation(before: CitationRecord, after: CitationRecord): Promise<void>;
   getSources(): Promise<SourceRecord[]>;
   addSource(source: SourceRecord, targetType?: string, targetId?: string): Promise<void>;
+  addSourceToTargets?(source: SourceRecord, targets: TargetRef[]): Promise<void>;
   attachSource(sourceId: string, targetType: string, targetId: string): Promise<void>;
+  attachSourceToTargets?(sourceId: string, targets: TargetRef[]): Promise<void>;
   detachCitation(citationId: string): Promise<void>;
   addIdentifier(identifier: IdentifierRecord): Promise<void>;
   updateIdentifier(before: IdentifierRecord, after: IdentifierRecord): Promise<void>;
@@ -65,19 +70,19 @@ export interface AttachmentsApi extends AttachmentApi, MediaTargetApi {
   addContact(contact: ContactRecord): Promise<void>;
   updateContact(before: ContactRecord, after: ContactRecord): Promise<void>;
   deleteContact(contact: ContactRecord): Promise<void>;
-  addRestriction(restriction: RestrictionRecord): Promise<void>;
-  updateRestriction(before: RestrictionRecord, after: RestrictionRecord): Promise<void>;
-  deleteRestriction(restriction: RestrictionRecord): Promise<void>;
   addTag(tag: TagRecord): Promise<void>;
   updateTag(before: TagRecord, after: TagRecord): Promise<void>;
   deleteTag(tag: TagRecord): Promise<void>;
   attachTag(link: TagLinkRecord): Promise<void>;
+  attachTagToTargets?(tagId: string, targets: TargetRef[]): Promise<void>;
   detachTag(link: TagLinkRecord): Promise<void>;
   updateTagLink(before: TagLinkRecord, after: TagLinkRecord): Promise<void>;
   getTasksFor(targetType: string, targetId: string): Promise<TaskRecord[]>;
   addTask(task: TaskRecord): Promise<void>;
   updateTask(before: TaskRecord, after: TaskRecord): Promise<void>;
   deleteTask(task: TaskRecord): Promise<void>;
+  addTaskLink(link: TaskTargetLink): Promise<void>;
+  deleteTaskLink(link: TaskTargetLink): Promise<void>;
   /** Opens the task tab of the app (host-level navigation). */
   openTask?: ((taskId: string) => void) | undefined;
 }

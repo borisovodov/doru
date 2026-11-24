@@ -6,12 +6,14 @@ const tasks: TaskRecord[] = [
   {
     id: 'T1',
     text: 'Find the parish register',
+    targets: [],
     priority: 'high',
     status: 'open',
   },
   {
     id: 'T2',
     text: 'Translate the 1890 census',
+    targets: [{ id: 'TL2', taskId: 'T2', targetType: 'person', targetId: 'P1' }],
     priority: 'medium',
     status: 'in-progress',
   },
@@ -28,8 +30,7 @@ const relatedTask: TaskRecord = {
   id: 'T3',
   text: 'Check the census entry',
   status: 'open',
-  targetType: 'person',
-  targetId: 'P1',
+  targets: [{ id: 'TL3', taskId: 'T3', targetType: 'person', targetId: 'P1' }],
 };
 
 const meta = {

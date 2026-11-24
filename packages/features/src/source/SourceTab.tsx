@@ -8,25 +8,26 @@ import type {
   PlaceRecord,
   RepositoryRecord,
   SourceRecord,
+  TargetRef,
   TitleRecord,
 } from '@doru/core';
-import { CitationAttachments, NoteAttachments, useAttachments } from '../attachments';
+import { TARGET_TYPES } from '@doru/core/model';
+import { CitationAttachments, NoteAttachments, refreshAfterTagAttach, useAttachments } from '../attachments';
 import { AutoSaveError } from '../autoSaveFeedback';
 import { useEntityDelete } from '../entityDelete';
-import { Button, DangerZone, InlineError, useAutoSaveOnBlur } from '@doru/ui';
+import { Button, DangerZone, InlineError, SectionCard, useAutoSaveOnBlur } from '@doru/ui';
 import { MediaSection } from '../media/MediaSection';
 import { EntityTab, SourceCitationsList } from '../sidebar';
 import type { MediaTargetApi, SourceEditorApi } from '../person/types';
 import { SourceEditor } from './SourceEditor';
 import type { MediaWithPath } from '@doru/ui/domain';
 import {
-  ContactsSection,
   ContributorsSection,
   IdentifiersSection,
   NotesSection,
-  RestrictionsSection,
   SourcesSection,
   TagsSection,
+  TargetPicker,
   TasksSection,
   emptySourceDraft,
   mergeSourceDraft,
@@ -41,6 +42,9 @@ import { nls } from '../nls';
 function newSourceDraft(): SourceDraft {
   return { ...emptySourceDraft(), title: nls.t('features.tree.source.newSource') };
 }
+
+/** A source citation may point at any record except a task. */
+const SOURCE_TARGET_TYPES = TARGET_TYPES.filter((type) => type !== 'task');
 
 export function SourceTab({
   entityId,
@@ -150,6 +154,9 @@ function SourceTabBody({
   const [saveError, setSaveError] = useState(false);
   const [repositories, setRepositories] = useState<RepositoryRecord[]>([]);
   const [titles, setTitles] = useState<TitleRecord[]>([]);
+  const [linkTargets, setLinkTargets] = useState<TargetRef[]>([]);
+  const [linkError, setLinkError] = useState(false);
+  const [citationError, setCitationError] = useState(false);
   const recordRef = useRef(record);
   const draftRef = useRef(draft);
   const baselineRef = useRef(record);
@@ -164,6 +171,7 @@ function SourceTabBody({
 
   const currentSource = lastSaved ?? record;
   const targetId = currentSource?.id;
+  const attachSourceToTargets = api.attachSourceToTargets;
   const {
     notes: sourceNotes,
     allNotes,
@@ -171,8 +179,6 @@ function SourceTabBody({
     tags,
     tagLinks,
     identifiers,
-    contacts,
-    restrictions,
     submitters,
     contributors,
     refresh: refreshAttachments,
@@ -366,6 +372,7 @@ function SourceTabBody({
       />
       {currentSource !== undefined && (
         <>
+          {citationError ? <InlineError>{nls.t('features.tree.autosaveFailed')}</InlineError> : null}
           <SourceCitationsList
             source={currentSource}
             persons={persons}
@@ -374,7 +381,45 @@ function SourceTabBody({
             citations={citations}
             notes={notes}
             onOpenPerson={onOpenPerson}
+            onDetachCitation={(citationId) => {
+              setCitationError(false);
+              void api.detachCitation(citationId).catch(() => setCitationError(true));
+            }}
           />
+          {attachSourceToTargets !== undefined && (
+            <SectionCard title={nls.t('features.tasks.target')}>
+              <TargetPicker
+                allowedTypes={SOURCE_TARGET_TYPES}
+                value={linkTargets}
+                onChange={setLinkTargets}
+                ariaLabel={nls.t('features.tasks.target')}
+              />
+              <Button
+                variant="primary"
+                size="sm"
+                disabled={linkTargets.length === 0}
+                onClick={() => {
+                  setLinkError(false);
+                  const submitted = linkTargets;
+                  void attachSourceToTargets(currentSource.id, submitted)
+                    .then(() =>
+                      setLinkTargets((current) =>
+                        current.filter(
+                          (target) =>
+                            !submitted.some(
+                              (entry) => entry.targetType === target.targetType && entry.targetId === target.targetId,
+                            ),
+                        ),
+                      ),
+                    )
+                    .catch(() => setLinkError(true));
+                }}
+              >
+                {nls.t('features.tree.sources.attach')}
+              </Button>
+              {linkError ? <InlineError>{nls.t('features.tree.autosaveFailed')}</InlineError> : null}
+            </SectionCard>
+          )}
           {targetId !== undefined && (
             <>
               <SourcesSection
@@ -384,7 +429,9 @@ function SourceTabBody({
                 citations={sourceCitations}
                 refresh={refreshAttachments}
                 onAddSource={api.addSource}
+                onAddSourceToTargets={api.addSourceToTargets}
                 onAttachSource={api.attachSource}
+                onAttachSourceToTargets={api.attachSourceToTargets}
                 onDetachCitation={api.detachCitation}
                 onUpdateCitation={api.updateCitation}
                 onOpenSource={onOpenSource}
@@ -438,40 +485,6 @@ function SourceTabBody({
                   await refreshAttachments();
                 }}
               />
-              <ContactsSection
-                targetType="source"
-                targetId={targetId}
-                contacts={contacts}
-                onAdd={async (contact) => {
-                  await api.addContact(contact);
-                  await refreshAttachments();
-                }}
-                onUpdate={async (before, after) => {
-                  await api.updateContact(before, after);
-                  await refreshAttachments();
-                }}
-                onDelete={async (contact) => {
-                  await api.deleteContact(contact);
-                  await refreshAttachments();
-                }}
-              />
-              <RestrictionsSection
-                targetType="source"
-                targetId={targetId}
-                restrictions={restrictions}
-                onAdd={async (restriction) => {
-                  await api.addRestriction(restriction);
-                  await refreshAttachments();
-                }}
-                onUpdate={async (before, after) => {
-                  await api.updateRestriction(before, after);
-                  await refreshAttachments();
-                }}
-                onDelete={async (restriction) => {
-                  await api.deleteRestriction(restriction);
-                  await refreshAttachments();
-                }}
-              />
               <TagsSection
                 targetType="source"
                 targetId={targetId}
@@ -480,6 +493,7 @@ function SourceTabBody({
                 onAddTag={api.addTag}
                 onUpdateTag={api.updateTag}
                 onDeleteTag={api.deleteTag}
+                onAttachTagToTargets={refreshAfterTagAttach(api.attachTagToTargets, refreshAttachments)}
                 onAttachTag={async (link) => {
                   await api.attachTag(link);
                   await refreshAttachments();

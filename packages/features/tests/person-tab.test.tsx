@@ -30,7 +30,6 @@ function renderTab(
     getCitations: async () => [],
     getIdentifiers: async () => [],
     getContacts: async () => [],
-    getRestrictions: async () => [],
     getTasksFor: async () => [],
     getSources: async () => [],
     getRecordSubmitters: async () => [],

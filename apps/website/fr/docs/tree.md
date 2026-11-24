@@ -1,5 +1,5 @@
 ---
-source-hash: ea1d373e7c9e
+source-hash: 3cd0833d604b
 ---
 
 # Travailler avec l'arbre
@@ -69,8 +69,8 @@ famille se fait en un clic.
   modification doit mettre à jour le texte partagé partout ou seulement
   l'enregistrement courant. **Détacher de cet enregistrement** supprime un lien ;
   **Supprimer partout** supprime la note.
-- Les faits et les noms portent leurs propres sections Sources, Notes, Étiquettes,
-  Identifiants, Contacts et Restrictions dans l'éditeur de personne.
+- Les faits et les noms portent leurs propres sections Sources, Notes, Étiquettes
+  et Identifiants dans l'éditeur de personne ; les faits ont aussi des Contacts.
 
 ## Adresses
 
@@ -87,14 +87,17 @@ Les tâches ont des dates de création et de clôture en plus des dates planifi�
 de rappel. Chaque éditeur a une section **Tâches** : ajoutez-y une tâche et elle
 est automatiquement liée à cet enregistrement. Les faits, noms, citations et notes
 portent leur propre section Tâches dans leur panneau de pièces jointes. **Lié à**
-relie une tâche à n'importe quel enregistrement de l'arbre — une personne, une
-famille, un événement, un nom, une source, une citation, une note, un fichier
-multimédia, un lieu, un dépôt, un soumetteur, une adresse, une œuvre ou même une
-autre tâche ; laissez-le vide pour une tâche indépendante.
+relie une tâche à un ou plusieurs enregistrements de l'arbre — une personne, une
+famille, un événement, un nom, une citation, une note, un média, un lieu, un
+dépôt, une adresse ou une œuvre ; laissez-le vide pour une tâche indépendante.
+Une tâche est partagée : la modifier n'importe où met à jour le même
+enregistrement, et supprimer un enregistrement lié laisse la tâche en place.
 
-Les œuvres, tâches, adresses, associations et liens partenaire/enfant d'une
-famille ont les mêmes sections Notes, Sources, Étiquettes, Identifiants, Contacts,
-Restrictions, Contributeurs et Tâches que les onglets de l'entité principale.
+Les œuvres, adresses, associations et liens partenaire/enfant d'une famille ont
+les mêmes sections Notes, Sources, Étiquettes, Identifiants, Contributeurs et
+Tâches que les onglets de l'entité principale. Les adresses ont aussi des
+Contacts. Les tâches conservent les sections Notes, Étiquettes, Identifiants,
+Contributeurs et l'ancienne section Tâches, mais n'ont ni Sources ni Contacts.
 
 ## Médias
 
@@ -107,9 +110,10 @@ et modifier les métadonnées de lien comme la légende, la séquence, l'indicat
 principal et l'indicateur d'exclusion.
 
 Un enregistrement média peut être lié à plusieurs cibles. **Détacher de cet
-enregistrement** supprime un lien ; **Supprimer le média** supprime
-l'enregistrement et ses copies de fichiers. Un enregistrement qui n'a plus aucun
-lien est supprimé automatiquement.
+enregistrement** supprime un lien et supprime l'enregistrement lorsqu'il était le
+dernier ; **Supprimer le média** supprime l'enregistrement et ses copies de
+fichiers. Supprimer un enregistrement cible ne supprime que ses liens, de sorte
+qu'un média partagé peut rester sans lien.
 
 ## Ordre
 

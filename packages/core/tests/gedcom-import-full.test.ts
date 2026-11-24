@@ -162,7 +162,6 @@ describe('importGedcomDataset (phase 4)', () => {
       expect(repo.listContactsFor('person', ivan.id)).toEqual([
         expect.objectContaining({ kind: 'email', value: 'ivan@example.org' }),
       ]);
-      expect(repo.listRestrictionsFor('person', ivan.id)).toEqual([expect.objectContaining({ level: 'confidential' })]);
 
       // Birth fact with the full detail set.
       const birth = repo.listFactsForPerson(ivan.id).find((fact) => fact.tag === 'BIRT')!;

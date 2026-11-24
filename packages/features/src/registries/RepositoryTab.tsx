@@ -4,7 +4,13 @@ import { SectionCard } from '@doru/ui';
 import { Field } from '@doru/ui';
 import { Archive } from 'lucide-react';
 import type { AddressRecord, RepositoryRecord, SourceRecord, TitleRecord } from '@doru/core';
-import { AttachmentsPanel, CitationAttachments, NoteAttachments, useAttachments } from '../attachments';
+import {
+  AttachmentsPanel,
+  CitationAttachments,
+  NoteAttachments,
+  refreshAfterTagAttach,
+  useAttachments,
+} from '../attachments';
 import { AutoSaveError } from '../autoSaveFeedback';
 import { useEntityDelete } from '../entityDelete';
 import { MediaSection } from '../media/MediaSection';
@@ -17,7 +23,6 @@ import {
   ContributorsSection,
   IdentifiersSection,
   NotesSection,
-  RestrictionsSection,
   SourcesSection,
   TagsSection,
   TasksSection,
@@ -136,7 +141,6 @@ function RepositoryTabBody({
     tagLinks,
     identifiers,
     contacts,
-    restrictions,
     submitters,
     contributors,
     refresh: refreshAttachments,
@@ -325,7 +329,9 @@ function RepositoryTabBody({
             citations={repositoryCitations}
             refresh={refreshAttachments}
             onAddSource={api.addSource}
+            onAddSourceToTargets={api.addSourceToTargets}
             onAttachSource={api.attachSource}
+            onAttachSourceToTargets={api.attachSourceToTargets}
             onDetachCitation={api.detachCitation}
             onUpdateCitation={api.updateCitation}
             onOpenSource={onOpenSource}
@@ -396,23 +402,6 @@ function RepositoryTabBody({
               await refreshAttachments();
             }}
           />
-          <RestrictionsSection
-            targetType="repository"
-            targetId={targetId}
-            restrictions={restrictions}
-            onAdd={async (restriction) => {
-              await api.addRestriction(restriction);
-              await refreshAttachments();
-            }}
-            onUpdate={async (before, after) => {
-              await api.updateRestriction(before, after);
-              await refreshAttachments();
-            }}
-            onDelete={async (restriction) => {
-              await api.deleteRestriction(restriction);
-              await refreshAttachments();
-            }}
-          />
           <TagsSection
             targetType="repository"
             targetId={targetId}
@@ -421,6 +410,7 @@ function RepositoryTabBody({
             onAddTag={api.addTag}
             onUpdateTag={api.updateTag}
             onDeleteTag={api.deleteTag}
+            onAttachTagToTargets={refreshAfterTagAttach(api.attachTagToTargets, refreshAttachments)}
             onAttachTag={async (link) => {
               await api.attachTag(link);
               await refreshAttachments();

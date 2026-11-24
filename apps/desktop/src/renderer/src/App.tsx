@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Save } from 'lucide-react';
 import { AppMenu, AutoSaveTabProvider, IconButton, flushAllAutoSaves } from '@doru/ui';
+import { TargetDirectoryProvider } from '@doru/ui/domain/targets';
 import { ChatPanel, ChatSetupPlaceholder, EmptyEditorPage, WelcomePage } from '@doru/features';
 import { Workbench, nls, type ActivityViewId } from '@doru/workbench';
 import { setSystemLocale } from '@doru/platform';
@@ -222,7 +223,9 @@ export function App() {
       <div className="editor-stack">
         {tabs.openTabs.map((tab) => (
           <div key={tab.id} className={tab.id === tabs.activeTabId ? 'editor-pane active' : 'editor-pane'}>
-            <AutoSaveTabProvider tabId={tab.id}>{renderTab(tab.id, tabContext)}</AutoSaveTabProvider>
+            <AutoSaveTabProvider tabId={tab.id}>
+              <TargetDirectoryProvider data={tree}>{renderTab(tab.id, tabContext)}</TargetDirectoryProvider>
+            </AutoSaveTabProvider>
           </div>
         ))}
       </div>

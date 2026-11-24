@@ -1,5 +1,5 @@
 ---
-source-hash: ea1d373e7c9e
+source-hash: 3cd0833d604b
 ---
 
 # Arbeiten mit dem Stammbaum
@@ -69,8 +69,7 @@ oder eine Familie zu löschen ist ein Klick.
   dann, ob eine Bearbeitung den gemeinsamen Text überall oder nur im aktuellen
   Datensatz aktualisieren soll. **Von diesem Datensatz lösen** entfernt eine
   Verknüpfung; **Überall löschen** entfernt die Notiz.
-- Fakten und Namen tragen ihre eigenen Abschnitte Quellen, Notizen,
-  Schlagwörter, Kennungen, Kontakte und Einschränkungen im Personen-Editor.
+- Fakten und Namen tragen ihre eigenen Abschnitte Quellen, Notizen, Schlagwörter und Kennungen im Personen-Editor; Fakten haben außerdem Kontakte.
 
 ## Adressen
 
@@ -87,16 +86,9 @@ Aufgaben haben zusätzlich zu den geplanten und Erinnerungsdaten ein Erstellungs
 und ein Abschlussdatum. Jeder Editor hat einen Abschnitt **Aufgaben**: Fügen Sie
 dort eine Aufgabe hinzu, wird sie automatisch mit diesem Datensatz verknüpft.
 Fakten, Namen, Zitate und Notizen tragen ihren eigenen Abschnitt Aufgaben
-in ihrem Anhängebereich. **Verknüpft mit** verbindet eine Aufgabe mit einem
-beliebigen Datensatz im Stammbaum — einer Person, Familie, einem Ereignis, Namen,
-einer Quelle, einem Zitat, einer Notiz, einer Mediendatei, einem Ort, einem Archiv,
-einem Einsender, einer Adresse, einem Werk oder sogar einer anderen Aufgabe;
-lassen Sie es leer für eine freistehende Aufgabe.
+in ihrem Anhängebereich. **Verknüpft mit** verbindet eine Aufgabe mit einem oder mehreren Datensätzen im Stammbaum — einer Person, Familie, einem Ereignis, Namen, einer Quelle, einem Zitat, einer Notiz, einem Medium, einem Ort, einem Archiv, einer Adresse oder einem Werk; lassen Sie es leer für eine freistehende Aufgabe. Eine Aufgabe ist geteilt: Eine Bearbeitung an beliebiger Stelle aktualisiert denselben Datensatz, und das Löschen eines verknüpften Datensatzes lässt die Aufgabe bestehen.
 
-Werke, Aufgaben, Adressen, Assoziationen und Partner-/Kind-Verknüpfungen von
-Familien haben dieselben Abschnitte Notizen, Quellen, Schlagwörter, Kennungen,
-Kontakte, Einschränkungen, Beiträger und Aufgaben wie die Tabs der
-Hauptentität.
+Werke, Adressen, Assoziationen und Partner-/Kind-Verknüpfungen von Familien haben dieselben Abschnitte Notizen, Quellen, Schlagwörter, Kennungen, Beiträger und Aufgaben wie die Tabs der Hauptentität. Adressen haben außerdem Kontakte. Aufgaben behalten Notizen, Schlagwörter, Kennungen, Beiträger und den bisherigen Aufgaben-Abschnitt, haben aber keine Quellen oder Kontakte.
 
 ## Medien
 
@@ -108,10 +100,7 @@ Vorschau, um den Medien-Tab zu öffnen, in dem Sie den Titel bearbeiten, Dateien
 verwalten und Link-Metadaten wie Bildunterschrift, Reihenfolge, Primärmarkierung
 und Ausschlussmarkierung bearbeiten können.
 
-Ein Mediendatensatz kann mit mehreren Zielen verknüpft werden. **Von diesem
-Datensatz lösen** entfernt eine Verknüpfung; **Medien löschen** entfernt den
-Datensatz und seine Dateikopien. Ein Datensatz ohne verbleibende Verknüpfungen
-wird automatisch entfernt.
+Ein Mediendatensatz kann mit mehreren Zielen verknüpft werden. **Von diesem Datensatz lösen** entfernt eine Verknüpfung und löscht den Datensatz, wenn es die letzte war; **Medien löschen** entfernt den Datensatz und seine Dateikopien. Das Löschen eines Ziel-Datensatzes entfernt nur seine Verknüpfungen, sodass ein geteilter Mediendatensatz ohne Verknüpfungen bestehen bleiben kann.
 
 ## Reihenfolge
 

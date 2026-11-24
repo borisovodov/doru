@@ -1,5 +1,5 @@
 ---
-source-hash: ea1d373e7c9e
+source-hash: 3cd0833d604b
 ---
 
 # Praca z drzewem
@@ -65,8 +65,7 @@ osoby z rodziny albo usunięcie rodziny to jedno kliknięcie.
   Notatki innego rekordu, a następnie wybierz, czy edycja ma zaktualizować
   wspólny tekst wszędzie, czy tylko bieżący rekord. **Odłącz od tego rekordu**
   usuwa jedno powiązanie; **Usuń wszędzie** usuwa notatkę.
-- Wydarzenia i imiona mają własne sekcje Źródła, Notatki, Etykiety,
-  Identyfikatory, Kontakty i Ograniczenia w edytorze osoby.
+- Wydarzenia i imiona mają własne sekcje Źródła, Notatki, Etykiety i Identyfikatory w edytorze osoby; wydarzenia mają także Kontakty.
 
 ## Adresy
 
@@ -81,15 +80,9 @@ adres** do edycji adresu na miejscu.
 Zadania mają daty utworzenia i zamknięcia oprócz dat zaplanowanych i
 przypomnień. Każdy edytor ma sekcję **Zadania**: dodaj tam zadanie, a zostanie
 automatycznie powiązane z tym rekordem. Wydarzenia, imiona, cytaty i notatki
-mają własną sekcję Zadania w swoim panelu załączników. **Powiązane z** łączy
-zadanie z dowolnym rekordem w drzewie — osobą, rodziną, wydarzeniem, imieniem,
-źródłem, cytatem, notatką, plikiem multimedialnym, miejscem, repozytorium,
-nadawcą, adresem, dziełem lub nawet innym zadaniem; pozostaw puste dla
-samodzielnego zadania.
+mają własną sekcję Zadania w swoim panelu załączników. **Powiązane z** łączy zadanie z jednym lub kilkoma rekordami w drzewie — osobą, rodziną, wydarzeniem, imieniem, cytatem, notatką, multimediami, miejscem, repozytorium, adresem lub dziełem; pozostaw puste dla samodzielnego zadania. Zadanie jest współdzielone: edycja w dowolnym miejscu aktualizuje ten sam rekord, a usunięcie powiązanego rekordu pozostawia zadanie na miejscu.
 
-Dzieła, zadania, adresy, powiązania i relacje partner/dziecko w rodzinach mają
-te same sekcje Notatki, Źródła, Etykiety, Identyfikatory, Kontakty,
-Ograniczenia, Współtwórcy i Zadania co karty głównych encji.
+Dzieła, adresy, powiązania i relacje partner/dziecko w rodzinach mają te same sekcje Notatki, Źródła, Etykiety, Identyfikatory, Współtwórcy i Zadania co karty głównych encji. Adresy mają także Kontakty. Zadania zachowują sekcje Notatki, Etykiety, Identyfikatory, Współtwórcy oraz dotychczasową sekcję Zadania, ale nie mają Źródeł ani Kontaktów.
 
 ## Multimedia
 
@@ -100,9 +93,7 @@ Kliknij podgląd, aby otworzyć kartę multimediów, gdzie możesz edytować tyt
 zarządzać plikami i edytować metadane powiązania, takie jak podpis, kolejność,
 znacznik główny i znacznik wykluczenia.
 
-Rekord multimediów można powiązać z kilkoma celami. **Odłącz od tego rekordu**
-usuwa jedno powiązanie; **Usuń multimedia** usuwa rekord i kopie jego plików.
-Rekord bez pozostałych powiązań jest usuwany automatycznie.
+Rekord multimediów można powiązać z kilkoma celami. **Odłącz od tego rekordu** usuwa jedno powiązanie i usuwa rekord, jeśli było ostatnie; **Usuń multimedia** usuwa rekord i kopie jego plików. Usunięcie rekordu docelowego usuwa tylko jego powiązania, więc współdzielony rekord multimediów może pozostać bez powiązań.
 
 ## Kolejność
 

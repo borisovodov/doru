@@ -6,7 +6,6 @@ import type {
   MediaLinkRecord,
   NoteRecord,
   RepositoryRecord,
-  RestrictionRecord,
   SourceRecord,
   SubmitterRecord,
   TagLinkRecord,
@@ -59,14 +58,6 @@ const contact = (overrides: Partial<ContactRecord> = {}): ContactRecord => ({
   targetId: 'P1',
   kind: 'email',
   value: 'ivan@example.org',
-  ...overrides,
-});
-
-const restriction = (overrides: Partial<RestrictionRecord> = {}): RestrictionRecord => ({
-  id: 'R1',
-  targetType: 'person',
-  targetId: 'P1',
-  level: 'confidential',
   ...overrides,
 });
 
@@ -208,6 +199,31 @@ describe('TreeService attachments', () => {
       service.undo();
       expect(fixture.repo.getNote('NN1')?.text).toBe('name note');
       expect(fixture.repo.listCitationRecordsFor('fact', 'F1')).toHaveLength(1);
+    } finally {
+      cleanupRepo(fixture);
+    }
+  });
+
+  it('refuses to cite a task', () => {
+    const { fixture, service } = makeService();
+    try {
+      service.addPerson({ id: 'P1', names: [], sex: 'U', facts: [] });
+      service.addTask({ id: 'T1', text: 'Find the record', targets: [] });
+
+      expect(() => service.addSource(source(), 'task', 'T1')).toThrow('A source cannot be attached to a task.');
+      expect(fixture.repo.listCitationsFor('task', 'T1')).toEqual([]);
+
+      service.addSource(source());
+      expect(() => service.attachSource('S1', 'task', 'T1')).toThrow('A source cannot be attached to a task.');
+      expect(fixture.repo.listCitationsFor('task', 'T1')).toEqual([]);
+
+      service.attachSource('S1', 'person', 'P1');
+      const [citation] = fixture.repo.listCitationRecordsFor('person', 'P1');
+      expect(() => service.updateCitation(citation!, { ...citation!, targetType: 'task', targetId: 'T1' })).toThrow(
+        'A source cannot be attached to a task.',
+      );
+      expect(fixture.repo.listCitationRecordsFor('person', 'P1')).toEqual([citation]);
+      expect(fixture.repo.listCitationsFor('task', 'T1')).toEqual([]);
     } finally {
       cleanupRepo(fixture);
     }
@@ -412,7 +428,7 @@ describe('TreeService attachments', () => {
     }
   });
 
-  it('manages identifiers, contacts and restrictions', () => {
+  it('manages identifiers and contacts', () => {
     const { fixture, service } = makeService();
     try {
       service.addIdentifier(identifier());
@@ -438,18 +454,77 @@ describe('TreeService attachments', () => {
       expect(fixture.repo.listContactsFor('person', 'P1')).toEqual([]);
       service.undo();
       expect(fixture.repo.listContactsFor('person', 'P1')).toEqual([contact()]);
+    } finally {
+      cleanupRepo(fixture);
+    }
+  });
 
-      service.addRestriction(restriction());
-      expect(fixture.repo.listRestrictionsFor('person', 'P1')).toEqual([restriction()]);
-      const editedRestriction = restriction({ level: 'locked' });
-      service.updateRestriction(restriction(), editedRestriction);
-      expect(fixture.repo.listRestrictionsFor('person', 'P1')).toEqual([editedRestriction]);
+  it('refuses contacts on targets without a GEDCOM contact slot', () => {
+    const { fixture, service } = makeService();
+    try {
+      service.addTask({ id: 'T1', text: 'Find the record', targets: [] });
+      expect(() => service.addContact(contact({ targetType: 'task', targetId: 'T1' }))).toThrow(
+        'A contact cannot be attached to a task.',
+      );
+      expect(fixture.repo.listContactsFor('task', 'T1')).toEqual([]);
+
+      const familyContact = contact({ id: 'C2', targetType: 'family', targetId: 'F1' });
+      fixture.repo.insertContact(familyContact);
+      expect(() => service.updateContact(familyContact, { ...familyContact, value: '+7 495 000-00-00' })).toThrow(
+        'A contact cannot be attached to a family.',
+      );
+    } finally {
+      cleanupRepo(fixture);
+    }
+  });
+
+  it('links one source, tag or media record to several targets in one undo step', () => {
+    const { fixture, service } = makeService();
+    try {
+      service.addPerson({ id: 'P1', names: [], sex: 'U', facts: [] });
+      service.addPerson({ id: 'P2', names: [], sex: 'U', facts: [] });
+      service.addSource(source());
+      service.addTag(tag());
+      service.addMedia({ id: 'M1', path: 'media/photo.jpg' });
+
+      service.attachSourceToTargets('S1', [
+        { targetType: 'person', targetId: 'P1' },
+        { targetType: 'person', targetId: 'P2' },
+      ]);
+      expect(fixture.repo.listCitationsFor('person', 'P1')).toHaveLength(1);
+      expect(fixture.repo.listCitationsFor('person', 'P2')).toHaveLength(1);
+
+      service.attachTagToTargets('TG1', [
+        { targetType: 'person', targetId: 'P1' },
+        { targetType: 'person', targetId: 'P2' },
+      ]);
+      expect(fixture.repo.listTagLinksFor('person', 'P1')).toHaveLength(1);
+      expect(fixture.repo.listTagLinksFor('person', 'P2')).toHaveLength(1);
+
+      service.attachMediaToTargets('M1', [
+        { targetType: 'person', targetId: 'P1' },
+        { targetType: 'person', targetId: 'P2' },
+      ]);
+      expect(fixture.repo.listMediaFor('person', 'P1')).toHaveLength(1);
+      expect(fixture.repo.listMediaFor('person', 'P2')).toHaveLength(1);
+      expect(fixture.repo.getMedia('M1')?.links).toHaveLength(2);
+      const [firstLink] = fixture.repo.listMediaLinksFor('person', 'P1');
+      fixture.repo.insertCitation({
+        id: 'C1',
+        sourceId: 'S1',
+        targetType: 'media_link',
+        targetId: firstLink!.link.id,
+      });
+
       service.undo();
-      expect(fixture.repo.listRestrictionsFor('person', 'P1')).toEqual([restriction()]);
-      service.deleteRestriction(restriction());
-      expect(fixture.repo.listRestrictionsFor('person', 'P1')).toEqual([]);
+      expect(fixture.repo.getMedia('M1')?.links).toEqual([]);
+      expect(fixture.repo.listCitationRecordsFor('media_link', firstLink!.link.id)).toEqual([]);
       service.undo();
-      expect(fixture.repo.listRestrictionsFor('person', 'P1')).toEqual([restriction()]);
+      expect(fixture.repo.listTagLinksFor('person', 'P1')).toEqual([]);
+      expect(fixture.repo.listTagLinksFor('person', 'P2')).toEqual([]);
+      service.undo();
+      expect(fixture.repo.listCitationsFor('person', 'P1')).toEqual([]);
+      expect(fixture.repo.listCitationsFor('person', 'P2')).toEqual([]);
     } finally {
       cleanupRepo(fixture);
     }
@@ -571,7 +646,7 @@ describe('TreeService attachments', () => {
 
       service.deleteSubmitter(submitter());
       expect(fixture.repo.getSubmitter('SU1')).toBeUndefined();
-      expect(fixture.repo.getMedia('M1')).toBeUndefined();
+      expect(fixture.repo.getMedia('M1')?.links).toEqual([]);
       expect(fixture.repo.listRecordSubmittersFor('media_link', 'ML1')).toEqual([]);
 
       service.undo();

@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import type { RecordSubmitterLink, TaskRecord } from '@doru/core';
+import type { RecordSubmitterLink, TargetRef, TaskRecord, TaskTargetLink } from '@doru/core';
 import type { MediaTargetApi, PersonEditorApi } from '@doru/features';
 import type { RefreshTree } from './types';
 
@@ -16,7 +16,7 @@ export function usePersonEditorApi(
           return;
         }
         await window.doru.addPerson(projectPath, person);
-        await refreshTree();
+        await refreshTree().catch(() => undefined);
       },
       updatePerson: async (before, after) => {
         if (!projectPath) {
@@ -35,35 +35,35 @@ export function usePersonEditorApi(
           return;
         }
         await window.doru.addNote(projectPath, note);
-        await refreshTree();
+        await refreshTree().catch(() => undefined);
       },
       updateNote: async (before, after, context) => {
         if (!projectPath) {
           return;
         }
         await window.doru.updateNote(projectPath, before, after, context);
-        await refreshTree();
+        await refreshTree().catch(() => undefined);
       },
       attachNote: async (noteId, link) => {
         if (!projectPath) {
           return;
         }
         await window.doru.attachNote(projectPath, noteId, link);
-        await refreshTree();
+        await refreshTree().catch(() => undefined);
       },
       detachNote: async (note, link) => {
         if (!projectPath) {
           return;
         }
         await window.doru.detachNote(projectPath, note, link);
-        await refreshTree();
+        await refreshTree().catch(() => undefined);
       },
       deleteNote: async (note) => {
         if (!projectPath) {
           return;
         }
         await window.doru.deleteNote(projectPath, note);
-        await refreshTree();
+        await refreshTree().catch(() => undefined);
       },
       getTasksFor: (targetType, targetId) =>
         projectPath ? window.doru.getTasksFor(projectPath, targetType, targetId) : Promise.resolve([] as TaskRecord[]),
@@ -72,21 +72,35 @@ export function usePersonEditorApi(
           return;
         }
         await window.doru.addTask(projectPath, task);
-        await refreshTree();
+        await refreshTree().catch(() => undefined);
       },
       updateTask: async (before, after) => {
         if (!projectPath) {
           return;
         }
         await window.doru.updateTask(projectPath, before, after);
-        await refreshTree();
+        await refreshTree().catch(() => undefined);
       },
       deleteTask: async (task) => {
         if (!projectPath) {
           return;
         }
         await window.doru.deleteTask(projectPath, task);
-        await refreshTree();
+        await refreshTree().catch(() => undefined);
+      },
+      addTaskLink: async (link: TaskTargetLink) => {
+        if (!projectPath) {
+          return;
+        }
+        await window.doru.addTaskLink(projectPath, link);
+        await refreshTree().catch(() => undefined);
+      },
+      deleteTaskLink: async (link: TaskTargetLink) => {
+        if (!projectPath) {
+          return;
+        }
+        await window.doru.deleteTaskLink(projectPath, link);
+        await refreshTree().catch(() => undefined);
       },
       getFamilies: () => (projectPath ? window.doru.getFamilies(projectPath) : Promise.resolve([])),
       addFamily: async (family) => {
@@ -135,28 +149,42 @@ export function usePersonEditorApi(
           return;
         }
         await window.doru.addSource(projectPath, source, targetType, targetId);
-        await refreshTree();
+        await refreshTree().catch(() => undefined);
+      },
+      addSourceToTargets: async (source, targets: TargetRef[]) => {
+        if (!projectPath) {
+          return;
+        }
+        await window.doru.addSourceToTargets(projectPath, source, targets);
+        await refreshTree().catch(() => undefined);
       },
       attachSource: async (sourceId, targetType, targetId) => {
         if (!projectPath) {
           return;
         }
         await window.doru.attachSource(projectPath, sourceId, targetType, targetId);
-        await refreshTree();
+        await refreshTree().catch(() => undefined);
+      },
+      attachSourceToTargets: async (sourceId: string, targets: TargetRef[]) => {
+        if (!projectPath) {
+          return;
+        }
+        await window.doru.attachSourceToTargets(projectPath, sourceId, targets);
+        await refreshTree().catch(() => undefined);
       },
       detachCitation: async (citationId) => {
         if (!projectPath) {
           return;
         }
         await window.doru.detachCitation(projectPath, citationId);
-        await refreshTree();
+        await refreshTree().catch(() => undefined);
       },
       updateCitation: async (before, after) => {
         if (!projectPath) {
           return;
         }
         await window.doru.updateCitation(projectPath, before, after);
-        await refreshTree();
+        await refreshTree().catch(() => undefined);
       },
       getFacts: (personId, familyId) =>
         projectPath ? window.doru.getFacts(projectPath, personId, familyId) : Promise.resolve([]),
@@ -165,21 +193,21 @@ export function usePersonEditorApi(
           return;
         }
         await window.doru.addFact(projectPath, fact);
-        await refreshTree();
+        await refreshTree().catch(() => undefined);
       },
       updateFact: async (before, after) => {
         if (!projectPath) {
           return;
         }
         await window.doru.updateFact(projectPath, before, after);
-        await refreshTree();
+        await refreshTree().catch(() => undefined);
       },
       deleteFact: async (fact) => {
         if (!projectPath) {
           return;
         }
         await window.doru.deleteFact(projectPath, fact);
-        await refreshTree();
+        await refreshTree().catch(() => undefined);
       },
       getMedia: (personId) =>
         projectPath ? window.doru.getMedia(projectPath, 'person', personId) : Promise.resolve([]),
@@ -235,26 +263,6 @@ export function usePersonEditorApi(
         }
         await window.doru.updateContact(projectPath, before, after);
       },
-      getRestrictions: (targetType, targetId) =>
-        projectPath ? window.doru.getRestrictions(projectPath, targetType, targetId) : Promise.resolve([]),
-      addRestriction: async (restriction) => {
-        if (!projectPath) {
-          return;
-        }
-        await window.doru.addRestriction(projectPath, restriction);
-      },
-      deleteRestriction: async (restriction) => {
-        if (!projectPath) {
-          return;
-        }
-        await window.doru.deleteRestriction(projectPath, restriction);
-      },
-      updateRestriction: async (before, after) => {
-        if (!projectPath) {
-          return;
-        }
-        await window.doru.updateRestriction(projectPath, before, after);
-      },
       getTags: () => (projectPath ? window.doru.getTags(projectPath) : Promise.resolve([])),
       getAliases: (personId) => (projectPath ? window.doru.getAliases(projectPath, personId) : Promise.resolve([])),
       addAlias: async (personId, aliasId) => {
@@ -262,14 +270,14 @@ export function usePersonEditorApi(
           return;
         }
         await window.doru.addAlias(projectPath, personId, aliasId);
-        await refreshTree();
+        await refreshTree().catch(() => undefined);
       },
       deleteAlias: async (id, personId, aliasId) => {
         if (!projectPath) {
           return;
         }
         await window.doru.deleteAlias(projectPath, id, personId, aliasId);
-        await refreshTree();
+        await refreshTree().catch(() => undefined);
       },
       getRecordSubmitters: (targetType, targetId): Promise<RecordSubmitterLink[]> =>
         projectPath ? window.doru.getRecordSubmitters(projectPath, targetType, targetId) : Promise.resolve([]),
@@ -283,7 +291,7 @@ export function usePersonEditorApi(
           return;
         }
         await window.doru.addRecordSubmitter(projectPath, submitterId, targetType, targetId, kind);
-        await refreshTree();
+        await refreshTree().catch(() => undefined);
       },
       deleteRecordSubmitter: async (
         id,
@@ -296,7 +304,7 @@ export function usePersonEditorApi(
           return;
         }
         await window.doru.deleteRecordSubmitter(projectPath, id, submitterId, targetType, targetId, kind);
-        await refreshTree();
+        await refreshTree().catch(() => undefined);
       },
       getTagLinks: (targetType, targetId) =>
         projectPath ? window.doru.getTagLinks(projectPath, targetType, targetId) : Promise.resolve([]),
@@ -318,47 +326,54 @@ export function usePersonEditorApi(
         // caller treat the attach as failed.
         await refreshTree().catch(() => undefined);
       },
+      attachTagToTargets: async (tagId: string, targets: TargetRef[]) => {
+        if (!projectPath) {
+          return;
+        }
+        await window.doru.attachTagToTargets(projectPath, tagId, targets);
+        await refreshTree().catch(() => undefined);
+      },
       detachTag: async (link) => {
         if (!projectPath) {
           return;
         }
         await window.doru.detachTag(projectPath, link);
-        await refreshTree();
+        await refreshTree().catch(() => undefined);
       },
       updateTagLink: async (before, after) => {
         if (!projectPath) {
           return;
         }
         await window.doru.updateTagLink(projectPath, before, after);
-        await refreshTree();
+        await refreshTree().catch(() => undefined);
       },
       updateTag: async (before, after) => {
         if (!projectPath) {
           return;
         }
         await window.doru.updateTag(projectPath, before, after);
-        await refreshTree();
+        await refreshTree().catch(() => undefined);
       },
       deleteTag: async (tag) => {
         if (!projectPath) {
           return;
         }
         await window.doru.deleteTag(projectPath, tag);
-        await refreshTree();
+        await refreshTree().catch(() => undefined);
       },
       getPlaces: () => (projectPath ? window.doru.getPlaces(projectPath) : Promise.resolve([])),
       getAddresses: () => (projectPath ? window.doru.listAddresses(projectPath) : Promise.resolve([])),
       addAddress: async (address) => {
         if (projectPath) {
           await window.doru.addAddress(projectPath, address);
-          await refreshTree();
+          await refreshTree().catch(() => undefined);
         }
         return address;
       },
       updateAddress: async (before, after) => {
         if (projectPath) {
           await window.doru.updateAddress(projectPath, before, after);
-          await refreshTree();
+          await refreshTree().catch(() => undefined);
         }
         return after;
       },

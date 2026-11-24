@@ -72,14 +72,14 @@ describe('P1 GEDCOM export gaps', () => {
       repo.insertTask({
         id: 'T1',
         text: 'Free task',
+        targets: [],
         status: 'waiting',
         createdAt: new Date(2026, 10, 17).getTime(),
       });
       repo.insertTask({
         id: 'T2',
         text: 'Attached task',
-        targetType: 'person',
-        targetId: 'P1',
+        targets: [{ id: 'TL2', taskId: 'T2', targetType: 'person', targetId: 'P1' }],
         status: 'waiting',
         createdAt: new Date(2026, 10, 18).getTime(),
       });
@@ -160,12 +160,10 @@ describe('P1 GEDCOM export gaps', () => {
           expect(freeTask).toMatchObject({
             createdAt: new Date(2026, 10, 17).getTime(),
           });
-          expect(freeTask.targetType).toBeUndefined();
-          expect(freeTask.targetId).toBeUndefined();
+          expect(freeTask.targets).toEqual([]);
           expect(attachedTask).toMatchObject({
             createdAt: new Date(2026, 10, 18).getTime(),
-            targetType: 'person',
-            targetId: person.id,
+            targets: [expect.objectContaining({ targetType: 'person', targetId: person.id })],
           });
         } finally {
           cleanupRepo(target);
@@ -184,12 +182,11 @@ describe('P1 GEDCOM export gaps', () => {
       expandedYear.setUTCFullYear(10_000, 0, 1);
       expandedYear.setUTCHours(0, 0, 0, 0);
       repo.insertPerson({ id: 'P1', names: [], sex: 'U', facts: [] });
-      repo.insertTask({ id: 'T1', text: 'Free task', createdAt: outside, reminderAt: outside });
+      repo.insertTask({ id: 'T1', text: 'Free task', targets: [], createdAt: outside, reminderAt: outside });
       repo.insertTask({
         id: 'T2',
         text: 'Attached task',
-        targetType: 'person',
-        targetId: 'P1',
+        targets: [{ id: 'TL2', taskId: 'T2', targetType: 'person', targetId: 'P1' }],
         createdAt: expandedYear.getTime(),
         scheduledAt: outside,
         closedAt: outside,
@@ -222,8 +219,7 @@ describe('P1 GEDCOM export gaps', () => {
       repo.insertTask({
         id: 'T1',
         text: 'Attached task',
-        targetType: 'person',
-        targetId: 'P1',
+        targets: [{ id: 'TL1', taskId: 'T1', targetType: 'person', targetId: 'P1' }],
         status: 'closed',
         createdAt,
         scheduledAt,

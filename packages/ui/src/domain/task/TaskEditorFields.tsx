@@ -1,4 +1,4 @@
-import { normalizeTaskPriority, normalizeTaskStatus, TARGET_TYPES, type TargetType } from '@doru/core/model';
+import { normalizeTaskPriority, normalizeTaskStatus, type TargetRef } from '@doru/core/model';
 import { nls } from '../../nls';
 import { Field } from '../../atoms/field/Field';
 import { FieldGrid } from '../../atoms/field-grid/FieldGrid';
@@ -6,8 +6,9 @@ import { DateTimePicker } from '../../atoms/date-time-picker/DateTimePicker';
 import { Input } from '../../atoms/form/Input';
 import { Select } from '../../atoms/form/Select';
 import { useAutoFocusSelect } from '../../lib/useAutoFocusSelect';
+import { TargetPicker } from '../targets';
 import type { TaskTargetData } from './taskTargets';
-import { taskTargetLabel, taskTargetOptions } from './taskTargets';
+import { TASK_TARGET_TYPES } from './taskTargets';
 import { inputToTimestamp, type TaskDraft } from './taskDraft';
 
 /**
@@ -19,28 +20,23 @@ import { inputToTimestamp, type TaskDraft } from './taskDraft';
 export function TaskEditorFields({
   edit,
   data,
+  targets,
   onChange,
-  targetTypes = TARGET_TYPES,
+  onChangeTargets,
+  targetTypes = TASK_TARGET_TYPES,
   autoFocusText = false,
 }: {
   edit: TaskDraft;
   data: TaskTargetData;
+  targets: readonly TargetRef[];
   onChange: (update: Partial<TaskDraft>) => void;
+  onChangeTargets: (targets: TargetRef[]) => void;
   /** The target types offered by the picker; stored targets outside it stay visible. */
-  targetTypes?: readonly TargetType[];
+  targetTypes?: readonly string[];
   /** Focuses the task text when a new task tab opens. */
   autoFocusText?: boolean;
 }) {
   const textRef = useAutoFocusSelect<HTMLInputElement>(autoFocusText);
-  const knownTarget = (targetTypes as readonly string[]).includes(edit.targetType);
-  // A stored target outside the offered types (e.g. media while its editor is
-  // hidden, or a legacy source/submitter link) stays visible as a single
-  // read-only reference. Canonical types keep their translated label; only
-  // genuinely unknown types show the raw id.
-  const offeredTargetLabel = (type: string): string =>
-    (TARGET_TYPES as readonly string[]).includes(type) ? nls.t(`features.tasks.target.${type as TargetType}`) : type;
-  const targetOptions = knownTarget ? taskTargetOptions(edit.targetType, data) : [];
-  const knownTargetId = targetOptions.some((option) => option.id === edit.targetId);
   const dateTimeLabels = {
     chooseDate: nls.t('features.tasks.chooseDate'),
     previousMonth: nls.t('features.tasks.previousMonth'),
@@ -85,49 +81,15 @@ export function TaskEditorFields({
           </Select>
         </Field>
       </FieldGrid>
-      <FieldGrid columns={2}>
-        <Field label={nls.t('features.tasks.target')}>
-          <Select
-            value={edit.targetType}
-            onChange={(event) =>
-              onChange({
-                targetType: event.target.value,
-                ...(event.target.value === edit.targetType ? {} : { targetId: '' }),
-              })
-            }
-          >
-            <option value="">{nls.t('features.tasks.none')}</option>
-            {targetTypes.map((type) => (
-              <option key={type} value={type}>
-                {nls.t(`features.tasks.target.${type}`)}
-              </option>
-            ))}
-            {!knownTarget && edit.targetType !== '' && (
-              <option value={edit.targetType}>{offeredTargetLabel(edit.targetType)}</option>
-            )}
-          </Select>
-        </Field>
-        <Field label={nls.t('features.tasks.targetRecord')}>
-          <Select
-            value={edit.targetId}
-            disabled={edit.targetType === '' || !knownTarget}
-            onChange={(event) => onChange({ targetId: event.target.value })}
-          >
-            <option value="">{nls.t('features.tasks.none')}</option>
-            {!knownTarget && edit.targetId !== '' && (
-              <option value={edit.targetId}>{taskTargetLabel(edit.targetType, edit.targetId, data)}</option>
-            )}
-            {knownTarget && edit.targetId !== '' && !knownTargetId && (
-              <option value={edit.targetId}>{edit.targetId}</option>
-            )}
-            {targetOptions.map((option) => (
-              <option key={option.id} value={option.id}>
-                {option.label}
-              </option>
-            ))}
-          </Select>
-        </Field>
-      </FieldGrid>
+      <Field label={nls.t('features.tasks.target')}>
+        <TargetPicker
+          allowedTypes={targetTypes}
+          value={targets}
+          data={data}
+          ariaLabel={nls.t('features.tasks.target')}
+          onChange={onChangeTargets}
+        />
+      </Field>
       <FieldGrid columns={2}>
         <Field label={nls.t('features.tasks.scheduled')} {...(scheduledInvalid ? { error: invalidTimestamp } : {})}>
           <DateTimePicker

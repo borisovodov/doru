@@ -87,8 +87,7 @@ test('attachments, addresses and task fields round-trip through the desktop IPC'
       await window.doru.addTask(project, {
         id: 'AT1',
         text: 'Check the register',
-        targetType: 'family',
-        targetId: 'F1',
+        targets: [{ id: 'ATL1', taskId: 'AT1', targetType: 'family', targetId: 'F1' }],
         status: 'closed',
         createdAt: createdStamp,
         closedAt: closedStamp,
@@ -97,8 +96,7 @@ test('attachments, addresses and task fields round-trip through the desktop IPC'
       const task = tasks.find((entry) => entry.id === 'AT1');
       if (
         task === undefined ||
-        task.targetType !== 'family' ||
-        task.targetId !== 'F1' ||
+        !task.targets.some((link) => link.targetType === 'family' && link.targetId === 'F1') ||
         task.createdAt !== createdStamp ||
         task.closedAt !== closedStamp
       ) {
@@ -108,8 +106,7 @@ test('attachments, addresses and task fields round-trip through the desktop IPC'
       await window.doru.addTask(project, {
         id: 'AT2',
         text: 'Check the register',
-        targetType: 'person',
-        targetId: 'I1',
+        targets: [{ id: 'ATL2', taskId: 'AT2', targetType: 'person', targetId: 'I1' }],
       });
       const personTasks = await window.doru.getTasksFor(project, 'person', 'I1');
       if (personTasks.length !== 1 || personTasks[0]?.id !== 'AT2') {
@@ -133,11 +130,15 @@ test('attachments, addresses and task fields round-trip through the desktop IPC'
   const tasks = page.getByRole('region', { name: 'Tasks' }).filter({ hasText: 'Check the register' });
   await expect(tasks).toBeVisible();
   await tasks.getByRole('button', { name: 'Open task' }).click();
-  await expect(page.getByLabel('Related to')).toBeVisible();
-  await expect(page.getByLabel('Related to').getByRole('option', { name: 'Event', exact: true })).toHaveCount(1);
-  await expect(page.getByLabel('Related to').getByRole('option', { name: 'Media link', exact: true })).toHaveCount(0);
-  await expect(page.getByLabel('Related to').getByRole('option', { name: 'Source', exact: true })).toHaveCount(0);
-  await expect(page.getByLabel('Related to').getByRole('option', { name: 'Task', exact: true })).toHaveCount(0);
-  await expect(page.getByLabel('Related to').getByRole('option', { name: 'Submitter', exact: true })).toHaveCount(0);
-  await expect(page.getByLabel('Related to').getByRole('option', { name: 'Sex sources', exact: true })).toHaveCount(0);
+  const taskDetails = page.getByRole('region', { name: 'Details' });
+  const targetOptions = taskDetails.getByRole('listbox');
+  await taskDetails.getByLabel('Related to').click();
+  await expect(targetOptions.getByRole('group', { name: 'Person' })).toBeVisible();
+  await expect(targetOptions.getByRole('group', { name: 'Family' })).toBeVisible();
+  await expect(targetOptions.getByRole('group', { name: 'Event' })).toBeVisible();
+  await expect(targetOptions.getByRole('group', { name: 'Media link' })).toHaveCount(0);
+  await expect(targetOptions.getByRole('group', { name: 'Source' })).toHaveCount(0);
+  await expect(targetOptions.getByRole('group', { name: 'Task' })).toHaveCount(0);
+  await expect(targetOptions.getByRole('group', { name: 'Submitter' })).toHaveCount(0);
+  await expect(targetOptions.getByRole('group', { name: 'Sex sources' })).toHaveCount(0);
 });

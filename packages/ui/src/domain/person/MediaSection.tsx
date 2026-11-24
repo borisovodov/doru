@@ -1,13 +1,15 @@
-import { isImagePath, type MediaLinkRecord, type MediaRecord } from '@doru/core/model';
+import { isImagePath, TARGET_TYPES, type MediaLinkRecord, type MediaRecord, type TargetRef } from '@doru/core/model';
 import { FileImage } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { nls } from '../../nls';
 import { Button } from '../../atoms/button/Button';
 import { EmptyText } from '../../atoms/feedback/EmptyText';
+import { InlineError } from '../../atoms/feedback/InlineError';
 import { MediaTile } from '../../patterns/media-tile/MediaTile';
 import { SectionCard } from '../../patterns/section-card/SectionCard';
 import { Select } from '../../atoms/form/Select';
 import type { MediaWithPath } from './types';
+import { TargetPicker } from '../targets';
 import styles from './MediaSection.module.css';
 
 /** The media operations an entity editor needs for one target. */
@@ -15,7 +17,9 @@ export interface MediaSectionApi {
   getMediaFor(targetType: string, targetId: string): Promise<MediaWithPath[]>;
   getAllMedia(): Promise<MediaWithPath[]>;
   addMediaToTarget(targetType: string, targetId: string): Promise<void>;
+  addMediaToTargets?(targets: TargetRef[]): Promise<void>;
   attachMedia(link: MediaLinkRecord): Promise<void>;
+  attachMediaToTargets?(mediaId: string, targets: TargetRef[]): Promise<void>;
   detachMedia(link: MediaLinkRecord): Promise<void>;
   deleteMedia(media: MediaRecord): Promise<void>;
 }
@@ -37,6 +41,8 @@ export function MediaSection({
 }) {
   const [allMedia, setAllMedia] = useState<MediaWithPath[]>([]);
   const [attachId, setAttachId] = useState('');
+  const [extraTargets, setExtraTargets] = useState<TargetRef[]>([]);
+  const [mediaError, setMediaError] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -51,19 +57,47 @@ export function MediaSection({
   }, [api]);
 
   const add = async () => {
-    await api.addMediaToTarget(targetType, targetId);
-    await refresh();
-    setAllMedia(await api.getAllMedia());
+    const submitted = extraTargets;
+    if (submitted.length > 0 && api.addMediaToTargets === undefined) {
+      return;
+    }
+    setMediaError(false);
+    try {
+      if (api.addMediaToTargets !== undefined) {
+        await api.addMediaToTargets([{ targetType, targetId }, ...submitted]);
+        setExtraTargets((current) => current.filter((target) => !containsTarget(submitted, target)));
+      } else {
+        await api.addMediaToTarget(targetType, targetId);
+      }
+      await refresh();
+      setAllMedia(await api.getAllMedia());
+    } catch {
+      setMediaError(true);
+    }
   };
 
   const attach = async () => {
     if (attachId === '') {
       return;
     }
-    await api.attachMedia({ id: crypto.randomUUID(), mediaId: attachId, targetType, targetId });
-    setAttachId('');
-    await refresh();
-    setAllMedia(await api.getAllMedia());
+    const submitted = extraTargets;
+    if (submitted.length > 0 && api.attachMediaToTargets === undefined) {
+      return;
+    }
+    setMediaError(false);
+    try {
+      if (api.attachMediaToTargets !== undefined) {
+        await api.attachMediaToTargets(attachId, [{ targetType, targetId }, ...submitted]);
+        setExtraTargets((current) => current.filter((target) => !containsTarget(submitted, target)));
+      } else {
+        await api.attachMedia({ id: crypto.randomUUID(), mediaId: attachId, targetType, targetId });
+      }
+      setAttachId('');
+      await refresh();
+      setAllMedia(await api.getAllMedia());
+    } catch {
+      setMediaError(true);
+    }
   };
 
   const remove = async (item: MediaRecord) => {
@@ -138,13 +172,34 @@ export function MediaSection({
           })}
         </div>
       )}
+      {(api.addMediaToTargets !== undefined || api.attachMediaToTargets !== undefined) && (
+        <TargetPicker
+          allowedTypes={TARGET_TYPES}
+          value={extraTargets}
+          onChange={(targets) => {
+            setMediaError(false);
+            setExtraTargets(targets);
+          }}
+          ariaLabel={nls.t('features.tasks.target')}
+        />
+      )}
       <div className={styles['actions']}>
-        <Button variant="primary" onClick={() => void add()}>
+        <Button
+          variant="primary"
+          disabled={extraTargets.length > 0 && api.addMediaToTargets === undefined}
+          onClick={() => void add()}
+        >
           {nls.t('features.tree.media.add')}
         </Button>
         {attachable.length > 0 && (
           <>
-            <Select value={attachId} onChange={(event) => setAttachId(event.target.value)}>
+            <Select
+              value={attachId}
+              onChange={(event) => {
+                setMediaError(false);
+                setAttachId(event.target.value);
+              }}
+            >
               <option value="">{nls.t('features.tree.media.attachExisting')}</option>
               {attachable.map((item) => (
                 <option key={item.id} value={item.id}>
@@ -152,12 +207,21 @@ export function MediaSection({
                 </option>
               ))}
             </Select>
-            <Button variant="secondary" disabled={attachId === ''} onClick={() => void attach()}>
+            <Button
+              variant="secondary"
+              disabled={attachId === '' || (extraTargets.length > 0 && api.attachMediaToTargets === undefined)}
+              onClick={() => void attach()}
+            >
               {nls.t('features.tree.media.attach')}
             </Button>
           </>
         )}
       </div>
+      {mediaError ? <InlineError>{nls.t('features.tree.autosaveFailed')}</InlineError> : null}
     </SectionCard>
   );
+}
+
+function containsTarget(targets: readonly TargetRef[], target: TargetRef): boolean {
+  return targets.some((entry) => entry.targetType === target.targetType && entry.targetId === target.targetId);
 }

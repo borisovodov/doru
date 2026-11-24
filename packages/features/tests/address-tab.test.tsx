@@ -17,7 +17,6 @@ function apiStub(overrides: Partial<RegistriesEditorApi>): RegistriesEditorApi {
     getTagLinks: async () => [],
     getIdentifiers: async () => [],
     getContacts: async () => [],
-    getRestrictions: async () => [],
     getSubmitters: async () => [],
     getRecordSubmitters: async () => [],
     getMediaFor: async () => [],

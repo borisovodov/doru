@@ -1,5 +1,5 @@
 import { useCallback, useMemo } from 'react';
-import type { MediaFile } from '@doru/core';
+import type { MediaFile, TargetRef } from '@doru/core';
 import type { MediaAdminApi, MediaTargetApi } from '@doru/features';
 import type { RefreshTree } from './types';
 
@@ -32,11 +32,25 @@ export function useMediaApis(projectPath: string | null | undefined, refreshTree
         await window.doru.addMedia(projectPath, targetType, targetId);
         await refreshAfterWrite(refreshTree);
       },
+      addMediaToTargets: async (targets: TargetRef[]) => {
+        if (!projectPath) {
+          return;
+        }
+        await window.doru.addMediaToTargets(projectPath, targets);
+        await refreshAfterWrite(refreshTree);
+      },
       attachMedia: async (link) => {
         if (!projectPath) {
           return;
         }
         await window.doru.attachMedia(projectPath, link);
+        await refreshAfterWrite(refreshTree);
+      },
+      attachMediaToTargets: async (mediaId: string, targets: TargetRef[]) => {
+        if (!projectPath) {
+          return;
+        }
+        await window.doru.attachMediaToTargets(projectPath, mediaId, targets);
         await refreshAfterWrite(refreshTree);
       },
       detachMedia: async (link) => {

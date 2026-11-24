@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useState } from 'react';
 import { X } from 'lucide-react';
-import type { TaskRecord } from '@doru/core';
+import type { TaskRecord, TaskTargetLink } from '@doru/core';
 import { normalizeTaskPriority, normalizeTaskStatus } from '@doru/core/model';
 import { Button } from '../../atoms/button/Button';
 import { Chip } from '../../atoms/display/Chip';
 import { EmptyText } from '../../atoms/feedback/EmptyText';
+import { InlineError } from '../../atoms/feedback/InlineError';
 import { IconButton } from '../../atoms/icon-button/IconButton';
 import { Input } from '../../atoms/form/Input';
 import { SectionCard } from '../../patterns/section-card/SectionCard';
@@ -17,7 +18,7 @@ import './TasksSection.css';
 export interface TasksSectionApi {
   getTasksFor(targetType: string, targetId: string): Promise<TaskRecord[]>;
   addTask(task: TaskRecord): Promise<void>;
-  deleteTask(task: TaskRecord): Promise<void>;
+  deleteTaskLink(link: TaskTargetLink): Promise<void>;
   openTask?: ((taskId: string) => void) | undefined;
 }
 
@@ -37,6 +38,7 @@ export function TasksSection({
 }) {
   const [tasks, setTasks] = useState<TaskRecord[]>([]);
   const [draft, setDraft] = useState('');
+  const [removeError, setRemoveError] = useState(false);
 
   const reload = useCallback(async () => {
     setTasks(await api.getTasksFor(targetType, targetId));
@@ -59,11 +61,11 @@ export function TasksSection({
     if (text === '') {
       return;
     }
+    const id = crypto.randomUUID();
     await api.addTask({
-      id: crypto.randomUUID(),
+      id,
       text,
-      targetType,
-      targetId,
+      targets: [{ id: crypto.randomUUID(), taskId: id, targetType, targetId }],
       status: 'open',
       priority: 'medium',
     });
@@ -72,8 +74,17 @@ export function TasksSection({
   };
 
   const remove = async (task: TaskRecord) => {
-    await api.deleteTask(task);
-    await reload();
+    const link = task.targets.find((entry) => entry.targetType === targetType && entry.targetId === targetId);
+    if (link === undefined) {
+      return;
+    }
+    setRemoveError(false);
+    try {
+      await api.deleteTaskLink(link);
+      await reload();
+    } catch {
+      setRemoveError(true);
+    }
   };
 
   const sorted = [...tasks].sort(
@@ -88,6 +99,7 @@ export function TasksSection({
   return (
     <SectionCard title={nls.t('features.tasks.title')}>
       {sorted.length === 0 && <EmptyText>{nls.t('features.tasks.empty')}</EmptyText>}
+      {removeError ? <InlineError>{nls.t('features.tree.autosaveFailed')}</InlineError> : null}
       <ul className="tasks-section-list">
         {sorted.map((task) => (
           <li key={task.id} className="tasks-section-item">
@@ -110,7 +122,7 @@ export function TasksSection({
               </button>
               <IconButton
                 size="sm"
-                label={nls.t('features.tasks.delete')}
+                label={nls.t('features.tasks.remove')}
                 icon={<X size={13} aria-hidden="true" />}
                 onClick={() => void remove(task)}
               />

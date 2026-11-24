@@ -269,7 +269,7 @@ export function buildKitchenSinkTree(fixture: RepoFixture): void {
     targetId: 'P1',
   });
 
-  // Identifiers, contacts, restrictions.
+  // Identifiers and contacts.
   repo.insertIdentifier({ id: 'I1', targetType: 'person', targetId: 'P1', namespace: 'uid', value: 'abc' });
   repo.insertIdentifier({ id: 'I2', targetType: 'person', targetId: 'P1', namespace: 'exid', value: 'xyz' });
   repo.insertIdentifier({ id: 'I3', targetType: 'person', targetId: 'P1', namespace: 'refn', value: '7' });
@@ -281,8 +281,6 @@ export function buildKitchenSinkTree(fixture: RepoFixture): void {
   repo.insertContact({ id: 'CT3', targetType: 'person', targetId: 'P1', kind: 'fax', value: '+7 001' });
   repo.insertContact({ id: 'CT4', targetType: 'person', targetId: 'P1', kind: 'url', value: 'https://ivan.example' });
   repo.insertContact({ id: 'CT5', targetType: 'person', targetId: 'P1', kind: 'other', value: 'unused' });
-  repo.insertRestriction({ id: 'R1', targetType: 'person', targetId: 'P1', level: 'confidential' });
-  repo.insertRestriction({ id: 'R2', targetType: 'family', targetId: 'F1', level: 'locked' });
 
   // Tags and tag links.
   repo.insertTag({ id: 'TG1', name: 'favorites' });
@@ -313,13 +311,18 @@ export function buildKitchenSinkTree(fixture: RepoFixture): void {
   repo.insertTask({
     id: 'TD1',
     text: 'Order the birth record',
+    targets: [],
     priority: 'high',
     status: 'closed',
     scheduledAt: new Date(2026, 0, 2).getTime(),
     reminderAt: new Date(2026, 1, 3).getTime(),
     closedAt: new Date(2026, 2, 4).getTime(),
   });
-  repo.insertTask({ id: 'TD2', text: 'Visit the cemetery', targetType: 'person', targetId: 'P1' });
+  repo.insertTask({
+    id: 'TD2',
+    text: 'Visit the cemetery',
+    targets: [{ id: 'TL2', taskId: 'TD2', targetType: 'person', targetId: 'P1' }],
+  });
 
   // Submitter links on a person.
   repo.insertRecordSubmitter('RS1', 'SU1', 'person', 'P1');

@@ -1,5 +1,5 @@
 ---
-source-hash: ea1d373e7c9e
+source-hash: 3cd0833d604b
 ---
 
 # Lavorare con l'albero
@@ -67,8 +67,7 @@ famiglia è un clic.
   di un altro record, poi scegli se una modifica deve aggiornare il testo
   condiviso ovunque o solo il record corrente. **Scollega da questo record**
   rimuove un collegamento; **Elimina ovunque** rimuove la nota.
-- Eventi e nomi hanno le proprie sezioni Fonti, Note, Etichette, Identificativi,
-  Contatti e Restrizioni all'interno dell'editor della persona.
+- Eventi e nomi hanno le proprie sezioni Fonti, Note, Etichette e Identificativi all'interno dell'editor della persona; gli eventi hanno anche Contatti.
 
 ## Indirizzi
 
@@ -84,15 +83,9 @@ Le attività hanno date di creazione e chiusura oltre alle date pianificate e di
 promemoria. Ogni editor ha una sezione **Attività**: aggiungi un'attività lì e
 viene collegata automaticamente a quel record. Eventi, nomi, citazioni e note
 hanno la propria sezione Attività nel loro pannello degli allegati.
-**Collegato a** collega un'attività a qualsiasi record dell'albero — una
-persona, famiglia, evento, nome, fonte, citazione, nota, file media, luogo,
-archivio, mittente, indirizzo, opera o persino un'altra attività; lascialo
-vuoto per un'attività indipendente.
+**Collegato a** collega un'attività a uno o più record dell'albero — una persona, famiglia, evento, nome, fonte, citazione, nota, media, luogo, archivio, indirizzo o opera; lascialo vuoto per un'attività indipendente. Un'attività è condivisa: modificarla ovunque aggiorna lo stesso record e l'eliminazione di un record collegato lascia l'attività al suo posto.
 
-Opere, attività, indirizzi, associazioni e collegamenti partner/figlio delle
-famiglie hanno le stesse sezioni Note, Fonti, Etichette, Identificativi,
-Contatti, Restrizioni, Contributori e Attività delle schede delle entità
-principali.
+Opere, indirizzi, associazioni e collegamenti partner/figlio delle famiglie hanno le stesse sezioni Note, Fonti, Etichette, Identificativi, Contributori e Attività delle schede delle entità principali. Gli indirizzi hanno anche Contatti. Le attività mantengono Note, Etichette, Identificativi, Contributori e la sezione Attività esistente, ma non hanno Fonti o Contatti.
 
 ## Media
 
@@ -104,10 +97,7 @@ media, dove puoi modificare il titolo, gestire i file e modificare i metadati
 del collegamento come la didascalia, la sequenza, il contrassegno principale e
 quello di esclusione.
 
-Un record media può essere collegato a più destinazioni. **Scollega da questo
-record** rimuove un collegamento; **Elimina media** rimuove il record e le
-copie dei suoi file. Un record senza collegamenti rimanenti viene rimosso
-automaticamente.
+Un record media può essere collegato a più destinazioni. **Scollega da questo record** rimuove un collegamento e elimina il record quando era l'ultimo; **Elimina media** rimuove il record e le copie dei suoi file. L'eliminazione di un record di destinazione rimuove solo i suoi collegamenti, quindi un record media condiviso può rimanere senza collegamenti.
 
 ## Ordinamento
 

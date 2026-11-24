@@ -17,19 +17,21 @@ import type {
   PlaceRecord,
   RecordSubmitterLink,
   RepositoryRecord,
-  RestrictionRecord,
   SourceRecord,
   SubmitterRecord,
   TagLinkRecord,
   TagRecord,
-  TitleRecord,
+  TargetRef,
   TaskRecord,
+  TaskTargetLink,
+  TitleRecord,
 } from '../model/types';
 import type { PersonQuery, TreeRepository } from '../db/repository';
 import { partsFromFlat } from '../db/nameRepo';
 import {
   collectNameIds,
   collectNamePartIds,
+  isContactTargetType,
   isProjectMediaPath,
   normalizeTaskPriority,
   normalizeTaskStatus,
@@ -51,15 +53,19 @@ import {
   addPlaceOp,
   addRelativeOp,
   addRepositoryOp,
-  addRestrictionOp,
   addSourceOp,
+  addSourceWithCitationsOp,
   addSubmitterOp,
   addRecordSubmitterOp,
   addTagOp,
-  addTitleOp,
+  addTaskLinkOp,
   addTaskOp,
+  addTitleOp,
   attachCitationOp,
+  attachCitationsOp,
+  attachMediaLinksOp,
   attachMediaOp,
+  attachTagLinksOp,
   attachTagOp,
   deleteAddressOp,
   deleteAliasOp,
@@ -75,14 +81,13 @@ import {
   deletePersonOp,
   deletePlaceOp,
   deleteRepositoryOp,
-  deleteRestrictionOp,
-  updateRestrictionOp,
   deleteSourceOp,
   deleteSubmitterOp,
   deleteRecordSubmitterOp,
   deleteTagOp,
-  deleteTitleOp,
+  deleteTaskLinkOp,
   deleteTaskOp,
+  deleteTitleOp,
   detachCitationOp,
   detachMediaOp,
   detachNoteOp,
@@ -141,6 +146,29 @@ export class ParentCycleError extends Error {
   ) {
     super(`Linking ${childId} as a child of ${parentId} would create a parent cycle`);
     this.name = 'ParentCycleError';
+  }
+}
+
+/**
+ * A source citation is evidence for a genealogical assertion. A task is a
+ * work item, not an assertion, so a citation never points at one. The task
+ * tab hides the sources section; this guard keeps the IPC and agent paths
+ * consistent with it.
+ */
+function assertCitationTarget(targetType: string): void {
+  if (targetType === 'task') {
+    throw new Error('A source cannot be attached to a task.');
+  }
+}
+
+/**
+ * Contacts only exist on targets GEDCOM can carry them for: addresses, event
+ * details, repositories, submitters, and the vendor INDI spellings Dóru keeps
+ * on a person. A contact anywhere else has no import or export path.
+ */
+function assertContactTarget(targetType: string): void {
+  if (!isContactTargetType(targetType)) {
+    throw new Error(`A contact cannot be attached to a ${targetType}.`);
   }
 }
 
@@ -833,8 +861,17 @@ export class TreeService {
   // --- sources and citations ------------------------------------------------
 
   addSource(source: SourceRecord, targetType?: string, targetId?: string): UndoRedoState {
+    if (targetType !== undefined && targetId !== undefined) {
+      assertCitationTarget(targetType);
+    }
     const citation = targetType && targetId ? { targetType, targetId } : undefined;
     return this.apply(addSourceOp(source, citation));
+  }
+
+  /** Creates one source and one citation per target in a single undo step. */
+  addSourceToTargets(source: SourceRecord, targets: readonly TargetRef[]): UndoRedoState {
+    const citations = this.citationsForTargets(source.id, targets);
+    return this.apply(addSourceWithCitationsOp(source, citations));
   }
 
   updateSource(before: SourceRecord, after: SourceRecord): UndoRedoState {
@@ -862,11 +899,46 @@ export class TreeService {
   }
 
   attachSource(sourceId: string, targetType: string, targetId: string): UndoRedoState {
+    assertCitationTarget(targetType);
     const citation: CitationRecord = { id: crypto.randomUUID(), sourceId, targetType, targetId };
     return this.apply(attachCitationOp(citation));
   }
 
+  /** Attaches one source to several targets with a separate citation per target. */
+  attachSourceToTargets(sourceId: string, targets: readonly TargetRef[]): UndoRedoState {
+    const citations = this.citationsForTargets(sourceId, targets);
+    return citations.length === 0 ? this.historyState() : this.apply(attachCitationsOp(citations));
+  }
+
+  private citationsForTargets(sourceId: string, targets: readonly TargetRef[]): CitationRecord[] {
+    const seen = new Set<string>();
+    const citations: CitationRecord[] = [];
+    for (const target of targets) {
+      assertCitationTarget(target.targetType);
+      const key = `${target.targetType}\u0000${target.targetId}`;
+      if (seen.has(key)) {
+        continue;
+      }
+      seen.add(key);
+      if (
+        this.repo
+          .listCitationRecordsFor(target.targetType, target.targetId)
+          .some((citation) => citation.sourceId === sourceId)
+      ) {
+        continue;
+      }
+      citations.push({
+        id: crypto.randomUUID(),
+        sourceId,
+        targetType: target.targetType,
+        targetId: target.targetId,
+      });
+    }
+    return citations;
+  }
+
   updateCitation(before: CitationRecord, after: CitationRecord): UndoRedoState {
+    assertCitationTarget(after.targetType);
     return this.apply(updateCitationOp(before, after));
   }
 
@@ -1069,6 +1141,31 @@ export class TreeService {
     });
   }
 
+  /** Attaches one media record to several targets in a single undo step. */
+  attachMediaToTargets(mediaId: string, targets: readonly TargetRef[]): UndoRedoState {
+    if (this.repo.getMedia(mediaId) === undefined) {
+      throw new Error(`media ${mediaId} no longer exists`);
+    }
+    const existing = new Set(
+      (this.repo.getMedia(mediaId)?.links ?? []).map((link) => `${link.targetType}\u0000${link.targetId}`),
+    );
+    const links: MediaLinkRecord[] = [];
+    for (const target of targets) {
+      const key = `${target.targetType}\u0000${target.targetId}`;
+      if (existing.has(key)) {
+        continue;
+      }
+      existing.add(key);
+      links.push({
+        id: crypto.randomUUID(),
+        mediaId,
+        targetType: target.targetType,
+        targetId: target.targetId,
+      });
+    }
+    return links.length === 0 ? this.historyState() : this.apply(attachMediaLinksOp(links));
+  }
+
   updateMediaLink(before: MediaLinkRecord, after: MediaLinkRecord): UndoRedoState {
     return this.apply(updateMediaLinkOp(before, after));
   }
@@ -1114,6 +1211,7 @@ export class TreeService {
   }
 
   addContact(contact: ContactRecord): UndoRedoState {
+    assertContactTarget(contact.targetType);
     return this.apply(addContactOp(contact));
   }
 
@@ -1122,23 +1220,8 @@ export class TreeService {
   }
 
   updateContact(before: ContactRecord, after: ContactRecord): UndoRedoState {
+    assertContactTarget(after.targetType);
     return this.apply(updateContactOp(before, after));
-  }
-
-  listRestrictionsFor(targetType: string, targetId: string): RestrictionRecord[] {
-    return this.repo.listRestrictionsFor(targetType, targetId);
-  }
-
-  addRestriction(restriction: RestrictionRecord): UndoRedoState {
-    return this.apply(addRestrictionOp(restriction));
-  }
-
-  deleteRestriction(restriction: RestrictionRecord): UndoRedoState {
-    return this.apply(deleteRestrictionOp(restriction));
-  }
-
-  updateRestriction(before: RestrictionRecord, after: RestrictionRecord): UndoRedoState {
-    return this.apply(updateRestrictionOp(before, after));
   }
 
   listTags(): TagRecord[] {
@@ -1177,6 +1260,29 @@ export class TreeService {
 
   attachTag(link: TagLinkRecord): UndoRedoState {
     return this.apply(attachTagOp(link));
+  }
+
+  /** Attaches one tag to several targets in a single undo step. */
+  attachTagToTargets(tagId: string, targets: readonly TargetRef[]): UndoRedoState {
+    const seen = new Set<string>();
+    const links: TagLinkRecord[] = [];
+    for (const target of targets) {
+      const key = `${target.targetType}\u0000${target.targetId}`;
+      if (seen.has(key)) {
+        continue;
+      }
+      seen.add(key);
+      if (this.repo.listTagLinksFor(target.targetType, target.targetId).some((entry) => entry.tagId === tagId)) {
+        continue;
+      }
+      links.push({
+        id: crypto.randomUUID(),
+        tagId,
+        targetType: target.targetType,
+        targetId: target.targetId,
+      });
+    }
+    return links.length === 0 ? this.historyState() : this.apply(attachTagLinksOp(links));
   }
 
   detachTag(link: TagLinkRecord): UndoRedoState {
@@ -1385,6 +1491,28 @@ export class TreeService {
 
   listTasksFor(targetType: string, targetId: string): TaskRecord[] {
     return this.repo.listTasksFor(targetType, targetId);
+  }
+
+  listTaskLinksFor(targetType: string, targetId: string): TaskTargetLink[] {
+    return this.repo.listTaskLinksFor(targetType, targetId);
+  }
+
+  addTaskLink(link: TaskTargetLink): UndoRedoState {
+    if (this.repo.getTask(link.taskId) === undefined) {
+      throw new Error(`task ${link.taskId} no longer exists`);
+    }
+    if (this.repo.listTaskLinksFor(link.targetType, link.targetId).some((entry) => entry.taskId === link.taskId)) {
+      return this.historyState();
+    }
+    return this.apply(addTaskLinkOp(link));
+  }
+
+  deleteTaskLink(link: TaskTargetLink): UndoRedoState {
+    const current = this.repo.getTaskLink(link.id);
+    if (current === undefined) {
+      return this.historyState();
+    }
+    return this.apply(deleteTaskLinkOp(current));
   }
 
   updateTask(before: TaskRecord, after: TaskRecord): UndoRedoState {

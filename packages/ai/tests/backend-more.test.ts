@@ -134,6 +134,11 @@ describe('TreeMcpBackend coverage', () => {
       expect(source.ok).toBe(true);
       expect(fixture.repo.listSources()[0]).toMatchObject({ title: 'The Book', author: 'A.' });
 
+      await expect(
+        backend.invoke('sources_add', { title: 'Task source', targetType: 'task', targetId: '@T@' }),
+      ).rejects.toThrow('A source cannot be attached to a task.');
+      expect(fixture.repo.listSources()).toHaveLength(1);
+
       const note = (await backend.invoke('notes_write', {
         text: 'a note',
         targetType: 'person',

@@ -6,7 +6,13 @@ import { Field, FieldGrid, InlineForm } from '@doru/ui';
 import { Plus, User, X } from 'lucide-react';
 import type { AddressRecord, RecordSubmitterLink, SourceRecord, SubmitterRecord } from '@doru/core';
 import { MEDIA_VISIBLE } from '@doru/platform';
-import { AttachmentsPanel, CitationAttachments, NoteAttachments, useAttachments } from '../attachments';
+import {
+  AttachmentsPanel,
+  CitationAttachments,
+  NoteAttachments,
+  refreshAfterTagAttach,
+  useAttachments,
+} from '../attachments';
 import { AutoSaveError } from '../autoSaveFeedback';
 import { useEntityDelete } from '../entityDelete';
 import { MediaSection } from '../media/MediaSection';
@@ -19,7 +25,6 @@ import {
   ContributorsSection,
   IdentifiersSection,
   NotesSection,
-  RestrictionsSection,
   SourcesSection,
   TagsSection,
   TasksSection,
@@ -146,7 +151,6 @@ function SubmitterTabBody({
     tagLinks,
     identifiers,
     contacts,
-    restrictions,
     submitters: contributorOptions,
     contributors,
     refresh: refreshAttachments,
@@ -381,7 +385,9 @@ function SubmitterTabBody({
             citations={submitterCitations}
             refresh={refreshAttachments}
             onAddSource={api.addSource}
+            onAddSourceToTargets={api.addSourceToTargets}
             onAttachSource={api.attachSource}
+            onAttachSourceToTargets={api.attachSourceToTargets}
             onDetachCitation={api.detachCitation}
             onUpdateCitation={api.updateCitation}
             onOpenSource={onOpenSource}
@@ -452,23 +458,6 @@ function SubmitterTabBody({
               await refreshAttachments();
             }}
           />
-          <RestrictionsSection
-            targetType="submitter"
-            targetId={targetId}
-            restrictions={restrictions}
-            onAdd={async (restriction) => {
-              await api.addRestriction(restriction);
-              await refreshAttachments();
-            }}
-            onUpdate={async (before, after) => {
-              await api.updateRestriction(before, after);
-              await refreshAttachments();
-            }}
-            onDelete={async (restriction) => {
-              await api.deleteRestriction(restriction);
-              await refreshAttachments();
-            }}
-          />
           <TagsSection
             targetType="submitter"
             targetId={targetId}
@@ -477,6 +466,7 @@ function SubmitterTabBody({
             onAddTag={api.addTag}
             onUpdateTag={api.updateTag}
             onDeleteTag={api.deleteTag}
+            onAttachTagToTargets={refreshAfterTagAttach(api.attachTagToTargets, refreshAttachments)}
             onAttachTag={async (link) => {
               await api.attachTag(link);
               await refreshAttachments();

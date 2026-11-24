@@ -105,13 +105,9 @@ export function TasksView({
   const isClosed = (task: TaskRecord) => normalizeTaskStatus(task.status) === 'closed';
   const sorted = [...tasks].sort((a, b) => Number(isClosed(a)) - Number(isClosed(b)));
 
-  const target = (task: TaskRecord): { label: string; open: (() => void) | undefined } | undefined => {
-    if (task.targetType === undefined || task.targetId === undefined) {
-      return undefined;
-    }
-    const id = task.targetId;
+  const target = (targetType: string, id: string): { label: string; open: (() => void) | undefined } => {
     let open: (() => void) | undefined;
-    switch (task.targetType) {
+    switch (targetType) {
       case 'person':
         open = () => onOpenPerson(id);
         break;
@@ -188,7 +184,7 @@ export function TasksView({
       default:
         open = undefined;
     }
-    return { label: targetLabel(task.targetType, id), open };
+    return { label: targetLabel(targetType, id), open };
   };
 
   return (
@@ -198,7 +194,10 @@ export function TasksView({
       ) : (
         <SideBarList>
           {sorted.map((task) => {
-            const related = target(task);
+            const related = task.targets.map((link) => ({
+              key: `${link.targetType}:${link.targetId}`,
+              ...target(link.targetType, link.targetId),
+            }));
             return (
               <li key={task.id} className={cx(styles['taskItem'], task.id === selectedId && styles['selected'])}>
                 <div className={styles['taskRow']}>
@@ -215,19 +214,23 @@ export function TasksView({
                         <Chip variant="neutral">{formatTimestamp(task.scheduledAt)}</Chip>
                       )}
                       {task.closedAt !== undefined && <Chip variant="neutral">{formatTimestamp(task.closedAt)}</Chip>}
-                      {related !== undefined && related.open === undefined && (
-                        <Chip variant="neutral">{related.label}</Chip>
-                      )}
                     </span>
                   </button>
-                  {related !== undefined && related.open !== undefined && (
-                    <button
-                      type="button"
-                      className={cx(styles['taskChip'], styles['taskChipLink'])}
-                      onClick={related.open}
-                    >
-                      {related.label}
-                    </button>
+                  {related.map((entry) =>
+                    entry.open === undefined ? (
+                      <Chip key={entry.key} variant="neutral">
+                        {entry.label}
+                      </Chip>
+                    ) : (
+                      <button
+                        key={entry.key}
+                        type="button"
+                        className={cx(styles['taskChip'], styles['taskChipLink'])}
+                        onClick={entry.open}
+                      >
+                        {entry.label}
+                      </button>
+                    ),
                   )}
                 </div>
               </li>

@@ -128,7 +128,7 @@ describe('media repo edge cases', () => {
     }
   });
 
-  it('keeps a shared media record while any link remains and removes it with the last', () => {
+  it('keeps a shared media record even when its last link is removed', () => {
     const fixture = makeRepo();
     try {
       const { repo } = fixture;
@@ -140,8 +140,8 @@ describe('media repo edge cases', () => {
       expect(repo.getMedia('M1')).toBeDefined();
 
       repo.deleteAttachmentsFor('person', 'P2');
-      // The last link went away, so did the record.
-      expect(repo.getMedia('M1')).toBeUndefined();
+      // The last link went away, but the shared record stays in the library.
+      expect(repo.getMedia('M1')?.links).toEqual([]);
     } finally {
       cleanupRepo(fixture);
     }
@@ -228,7 +228,7 @@ describe('media repo edge cases', () => {
       expect((store.db.prepare('SELECT COUNT(*) AS n FROM date').get() as { n: number }).n).toBe(0);
 
       repo.deleteAttachmentsFor('person', 'P1');
-      expect(repo.getMedia('M1')).toBeUndefined();
+      expect(repo.getMedia('M1')?.links).toEqual([]);
       expect(repo.listCitationRecordsFor('media_link', link.id)).toEqual([]);
     } finally {
       cleanupRepo(fixture);

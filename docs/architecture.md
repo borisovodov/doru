@@ -81,13 +81,20 @@ decisions about what we deliberately do **not** build, see
   reads or deletes a file. Historical media fields (date, place, object type,
   description, keywords, file medium) are stored; MIME, size and image
   dimensions are derived from the file at read time and never persisted.
-- A media record can be linked to several targets. Removing the last link
-  removes the record; removing a file copy is deliberately not undoable, so
-  undo restores the database rows but not bytes that were deleted from disk.
+- A media record can be linked to several targets. Detaching its last link
+  removes the record; deleting a target removes only that target's links and
+  keeps a media record that has no links left. Removing a file copy is
+  deliberately not undoable, so undo restores the database rows but not bytes
+  that were deleted from disk.
 - `target_type`/`target_id` attachments (notes, citations, tags, identifiers,
-  contacts, restrictions, contributors, media links) are polymorphic and
+  contacts, contributors, media links) are polymorphic and
   keyed by UUID. Every op that deletes or removes a target cleans its
   attachment rows; the matching inverse restores the captured snapshot.
+  A citation never targets a task: a source backs a genealogical assertion,
+  while a task is a work item that asserts nothing. Contacts are likewise
+  limited to the targets GEDCOM carries them for: person, fact, address,
+  repository and submitter. Tasks are shared through `task_link`: deleting one
+  target removes only its link, never the task or its attachments.
 
 ## GEDCOM
 

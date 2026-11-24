@@ -6,6 +6,7 @@ export * from './citation';
 export * from './source';
 export * from './sources';
 export * from './task';
+export * from './targets';
 export * from './registries';
 export * from './family';
 export * from './notes';

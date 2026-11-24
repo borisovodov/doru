@@ -1,5 +1,5 @@
 ---
-source-hash: ea1d373e7c9e
+source-hash: 3cd0833d604b
 ---
 
 # Trabajar con el árbol
@@ -69,9 +69,7 @@ familia es un clic.
   el texto compartido en todas partes o solo en el registro actual. **Desvincular
   de este registro** elimina un enlace; **Eliminar en todas partes** elimina la
   nota.
-- Los hechos y los nombres llevan sus propias secciones de Fuentes, Notas,
-  Etiquetas, Identificadores, Contactos y Restricciones dentro del editor de la
-  persona.
+- Los hechos y los nombres llevan sus propias secciones de Fuentes, Notas, Etiquetas e Identificadores dentro del editor de la persona; los hechos también tienen Contactos.
 
 ## Direcciones
 
@@ -86,15 +84,9 @@ de esos registros. El selector de dirección de un hecho también tiene las acci
 Las tareas tienen fechas de creación y de cierre además de las fechas programada y
 de recordatorio. Cada editor tiene una sección **Tareas**: añade allí una tarea y
 se vincula automáticamente a ese registro. Los hechos, nombres, citas y notas
-llevan su propia sección Tareas en su panel de elementos adjuntos. **Relacionado con**
-vincula una tarea con cualquier registro del árbol — una persona, familia, evento,
-nombre, fuente, cita, nota, archivo multimedia, lugar, repositorio, remitente,
-dirección, obra o incluso otra tarea; déjalo vacío para una tarea independiente.
+llevan su propia sección Tareas en su panel de elementos adjuntos. **Relacionado con** vincula una tarea con uno o varios registros del árbol — una persona, familia, evento, nombre, fuente, cita, nota, multimedia, lugar, repositorio, dirección u obra; déjalo vacío para una tarea independiente. Una tarea es compartida: editarla en cualquier lugar actualiza el mismo registro y eliminar un registro relacionado deja la tarea en su sitio.
 
-Las obras, tareas, direcciones, asociaciones y enlaces de pareja/hijo de una
-familia tienen las mismas secciones Notas, Fuentes, Etiquetas, Identificadores,
-Contactos, Restricciones, Contribuyentes y Tareas que las pestañas de la entidad
-principal.
+Las obras, direcciones, asociaciones y enlaces de pareja/hijo de una familia tienen las mismas secciones Notas, Fuentes, Etiquetas, Identificadores, Contribuyentes y Tareas que las pestañas de la entidad principal. Las direcciones también tienen Contactos. Las tareas conservan Notas, Etiquetas, Identificadores, Contribuyentes y la sección Tareas existente, pero no tienen Fuentes ni Contactos.
 
 ## Multimedia
 
@@ -105,10 +97,7 @@ otro destino. Haz clic en una vista previa para abrir la pestaña multimedia, do
 puedes editar el título, gestionar archivos y editar metadatos del enlace como la
 leyenda, la secuencia, la marca de principal y la marca de exclusión.
 
-Un registro multimedia puede estar vinculado a varios destinos. **Desvincular de
-este registro** elimina un enlace; **Eliminar multimedia** elimina el registro y
-sus copias de archivos. Un registro que no conserva ningún enlace se elimina
-automáticamente.
+Un registro multimedia puede estar vinculado a varios destinos. **Desvincular de este registro** elimina un enlace y borra el registro cuando era el último; **Eliminar multimedia** elimina el registro y sus copias de archivos. Eliminar un registro de destino elimina solo sus enlaces, así que un registro multimedia compartido puede quedar sin enlaces.
 
 ## Orden
 
