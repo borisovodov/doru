@@ -86,7 +86,7 @@ decisions about what we deliberately do **not** build, see
   keeps a media record that has no links left. Removing a file copy is
   deliberately not undoable, so undo restores the database rows but not bytes
   that were deleted from disk.
-- `target_type`/`target_id` attachments (notes, citations, tags, identifiers,
+- `target_type`/`target_id` attachments (notes, citations, identifiers,
   contacts, contributors, media links) are polymorphic and
   keyed by UUID. Every op that deletes or removes a target cleans its
   attachment rows; the matching inverse restores the captured snapshot.

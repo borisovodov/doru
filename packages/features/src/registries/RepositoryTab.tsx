@@ -18,7 +18,6 @@ import {
   IdentifiersSection,
   NotesSection,
   SourcesSection,
-  TagsSection,
   TasksSection,
   SourceLink,
   addressDraftEmpty,
@@ -131,8 +130,6 @@ function RepositoryTabBody({
     notes: repositoryNotes,
     allNotes,
     citations: repositoryCitations,
-    tags,
-    tagLinks,
     identifiers,
     contacts,
     submitters,
@@ -391,23 +388,6 @@ function RepositoryTabBody({
             }}
             onDelete={async (contact) => {
               await api.deleteContact(contact);
-              await refreshAttachments();
-            }}
-          />
-          <TagsSection
-            targetType="repository"
-            targetId={targetId}
-            tags={tags}
-            tagLinks={tagLinks}
-            onAddTag={api.addTag}
-            onUpdateTag={api.updateTag}
-            onDeleteTag={api.deleteTag}
-            onAttachTag={async (link) => {
-              await api.attachTag(link);
-              await refreshAttachments();
-            }}
-            onDetachTag={async (link) => {
-              await api.detachTag(link);
               await refreshAttachments();
             }}
           />

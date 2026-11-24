@@ -92,8 +92,6 @@ describe('Phase 2: attachments cascade and undo', () => {
       svc.addNote({ id: 'N1', text: 'check archive', targetType: 'person', targetId: 'P1' });
       svc.addIdentifier({ id: 'ID1', targetType: 'person', targetId: 'P1', namespace: 'uid', value: 'abc-123' });
       svc.addContact({ id: 'C1', targetType: 'person', targetId: 'P1', kind: 'email', value: 'i@example.org' });
-      svc.addTag({ id: 'T1', name: 'reviewed' });
-      svc.attachTag({ id: 'TL1', tagId: 'T1', targetType: 'person', targetId: 'P1' });
 
       svc.deletePerson(ivan);
       expect(repo.getPerson('P1')).toBeUndefined();
@@ -101,10 +99,8 @@ describe('Phase 2: attachments cascade and undo', () => {
       expect(repo.listCitationsFor('person', 'P1')).toEqual([]);
       expect(repo.listIdentifiersFor('person', 'P1')).toEqual([]);
       expect(repo.listContactsFor('person', 'P1')).toEqual([]);
-      expect(repo.listTagLinksFor('person', 'P1')).toEqual([]);
-      // The shared source and tag survive; only the links are gone.
+      // The shared source survives; only the link is gone.
       expect(repo.listSources()).toHaveLength(1);
-      expect(repo.listTags()).toHaveLength(1);
 
       svc.undo();
       expect(flatPerson(repo.getPerson('P1')!)).toEqual(ivan);
@@ -112,7 +108,6 @@ describe('Phase 2: attachments cascade and undo', () => {
       expect(repo.listCitationsFor('person', 'P1')).toHaveLength(1);
       expect(repo.listIdentifiersFor('person', 'P1').map((entry) => entry.value)).toEqual(['abc-123']);
       expect(repo.listContactsFor('person', 'P1').map((entry) => entry.value)).toEqual(['i@example.org']);
-      expect(repo.listTagLinksFor('person', 'P1')).toHaveLength(1);
     } finally {
       cleanupRepo(fixture);
     }

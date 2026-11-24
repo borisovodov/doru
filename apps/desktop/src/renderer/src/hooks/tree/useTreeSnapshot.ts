@@ -12,8 +12,6 @@ import type {
   RepositoryRecord,
   SourceRecord,
   SubmitterRecord,
-  TagLinkRecord,
-  TagRecord,
   TitleRecord,
   TaskRecord,
 } from '@doru/core';
@@ -31,8 +29,6 @@ export function useTreeSnapshot(projectPath: string | null | undefined) {
   const [repositories, setRepositories] = useState<RepositoryRecord[]>([]);
   const [submitters, setSubmitters] = useState<SubmitterRecord[]>([]);
   const [recordSubmitters, setRecordSubmitters] = useState<RecordSubmitterLink[]>([]);
-  const [tags, setTags] = useState<TagRecord[]>([]);
-  const [tagLinks, setTagLinks] = useState<TagLinkRecord[]>([]);
   const [addresses, setAddresses] = useState<AddressRecord[]>([]);
   const [tasks, setTasks] = useState<TaskRecord[]>([]);
   const [titles, setTitles] = useState<TitleRecord[]>([]);
@@ -57,8 +53,6 @@ export function useTreeSnapshot(projectPath: string | null | undefined) {
       allRepositories,
       allSubmitters,
       allRecordSubmitters,
-      allTags,
-      allTagLinks,
       allAddresses,
       allTasks,
       allTitles,
@@ -74,8 +68,6 @@ export function useTreeSnapshot(projectPath: string | null | undefined) {
       window.doru.getRepositories(path),
       window.doru.getSubmitters(path),
       window.doru.getAllRecordSubmitters(path),
-      window.doru.getTags(path),
-      window.doru.getAllTagLinks(path),
       window.doru.listAddresses(path),
       window.doru.getTasks(path),
       window.doru.getTitles(path),
@@ -96,8 +88,6 @@ export function useTreeSnapshot(projectPath: string | null | undefined) {
     setRepositories(allRepositories);
     setSubmitters(allSubmitters);
     setRecordSubmitters(allRecordSubmitters);
-    setTags(allTags);
-    setTagLinks(allTagLinks);
     setAddresses(allAddresses);
     setTasks(allTasks);
     setTitles(allTitles);
@@ -119,8 +109,6 @@ export function useTreeSnapshot(projectPath: string | null | undefined) {
       setRepositories([]);
       setSubmitters([]);
       setRecordSubmitters([]);
-      setTags([]);
-      setTagLinks([]);
       setAddresses([]);
       setTasks([]);
       setTitles([]);
@@ -160,8 +148,6 @@ export function useTreeSnapshot(projectPath: string | null | undefined) {
     repositories,
     submitters,
     recordSubmitters,
-    tags,
-    tagLinks,
     addresses,
     tasks,
     titles,

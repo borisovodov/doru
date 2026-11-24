@@ -54,7 +54,6 @@ import type {
   PersonRecord,
   PlaceRecord,
   SourceRecord,
-  TagRecord,
   TaskRecord,
 } from '../model/types';
 
@@ -145,7 +144,6 @@ export function buildGedcomDataset(repo: TreeRepository): GedcomDataset {
   const firstSubmitter = submitters[0];
   const notes = repo.listNotes().filter((note) => note.xref !== undefined || (note.links?.length ?? 0) > 1);
   const tasks = repo.listTasks().filter((task) => task.targets.length === 0);
-  const tags = repo.listTags();
 
   for (const person of persons) {
     xrefs.assign('I', person.id, person.xref);
@@ -168,9 +166,6 @@ export function buildGedcomDataset(repo: TreeRepository): GedcomDataset {
   for (const note of notes) {
     xrefs.assign('N', note.id, note.xref);
   }
-  for (const tag of tags) {
-    xrefs.assign('TAG', tag.id, undefined);
-  }
   for (const place of places) {
     xrefs.assign('P', place.id, place.xref);
   }
@@ -189,7 +184,6 @@ export function buildGedcomDataset(repo: TreeRepository): GedcomDataset {
     ...persons.map((person) => buildPerson(person, repo, xrefs)),
     ...families.map((family) => buildFamily(family, repo, xrefs)),
     ...tasks.map((task) => buildGedcomTodoRecord(task, repo, xrefs)),
-    ...tags.map((tag) => buildTagRecord(tag, xrefs)),
     ...buildAssociations(),
   ];
   // The schema keeps no header table: the export synthesizes a fresh
@@ -266,7 +260,6 @@ function buildPerson(person: PersonRecord, repo: TreeRepository, xrefs: Xrefs): 
     ...withSubmitterLinks(repo, 'person', person.id, xrefs),
     ...(ancestorInterests.length > 0 ? { ancestorInterests } : {}),
     ...(descendantInterests.length > 0 ? { descendantInterests } : {}),
-    ...withTagLinks(repo, 'person', person.id, xrefs),
     ...withGedcomTodoStructures(repo, 'person', person.id),
     ...withAssociations(repo, person.id, xrefs),
     ...withAliases(repo, person.id, xrefs),
@@ -571,7 +564,6 @@ function buildFamily(family: FamilyRecord, repo: TreeRepository, xrefs: Xrefs): 
     ...withNoteList(repo, 'family', family.id, xrefs),
     ...withMediaLinks(repo, 'family', family.id, xrefs),
     ...withSubmitterLinks(repo, 'family', family.id, xrefs),
-    ...withTagLinks(repo, 'family', family.id, xrefs),
     ...withGedcomTodoStructures(repo, 'family', family.id),
     ...withFamilyAssociations(repo, family.id, xrefs),
   };
@@ -645,7 +637,6 @@ function buildRepository(
     ...withContacts(repo, 'repository', repository.id),
     ...withNoteList(repo, 'repository', repository.id, xrefs),
     ...withSubmitterLinks(repo, 'repository', repository.id, xrefs),
-    ...withTagLinks(repo, 'repository', repository.id, xrefs),
   } as GedcomRecord;
   return record;
 }
@@ -709,7 +700,6 @@ function buildSharedNote(note: NoteRecord, repo: TreeRepository, xrefs: Xrefs): 
       : {}),
     ...withCitationList(repo, 'note', note.id, xrefs),
     ...withSubmitterLinks(repo, 'note', note.id, xrefs),
-    ...withTagLinks(repo, 'note', note.id, xrefs),
   };
 }
 
@@ -778,10 +768,6 @@ function taskTimestampToDateValue(value: number | undefined): DateValue | undefi
       utc: true,
     },
   };
-}
-
-function buildTagRecord(tag: TagRecord, xrefs: Xrefs): GedcomRecord {
-  return { tag: '_TAG', xref: xrefs.of(tag.id), name: tag.name };
 }
 
 // ---------------------------------------------------------------------------
@@ -989,7 +975,6 @@ function buildMediaRecord(media: MediaRecord, repo: TreeRepository, xrefs: Xrefs
     ...withCitationList(repo, 'media', media.id, xrefs),
     ...withNoteList(repo, 'media', media.id, xrefs),
     ...withSubmitterLinks(repo, 'media', media.id, xrefs),
-    ...withTagLinks(repo, 'media', media.id, xrefs),
   };
 }
 
@@ -1201,19 +1186,6 @@ function withSubmitterLinks(
   return submitters.length > 0 ? { submitters } : {};
 }
 
-function withTagLinks(
-  repo: TreeRepository,
-  targetType: string,
-  targetId: string,
-  xrefs: Xrefs,
-): { tagLinks?: Array<{ tag: '_TAG'; target: string }> } {
-  const links = repo.listTagLinksFor(targetType, targetId).map((entry) => ({
-    tag: '_TAG' as const,
-    target: xrefs.of(entry.tagId),
-  }));
-  return links.length > 0 ? { tagLinks: links } : {};
-}
-
 function withGedcomTodoStructures(
   repo: TreeRepository,
   targetType: string,
@@ -1333,7 +1305,6 @@ function buildSource(source: SourceRecord, repo: TreeRepository, xrefs: Xrefs): 
     ...withNoteList(repo, 'source', source.id, xrefs),
     ...withMediaLinks(repo, 'source', source.id, xrefs),
     ...withSubmitterLinks(repo, 'source', source.id, xrefs),
-    ...withTagLinks(repo, 'source', source.id, xrefs),
   };
 }
 

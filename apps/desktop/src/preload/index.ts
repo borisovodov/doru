@@ -1,5 +1,5 @@
 import { contextBridge, ipcRenderer } from 'electron';
-import type { RecordSubmitterLink, TagLinkRecord, TagRecord } from '@doru/core';
+import type { RecordSubmitterLink } from '@doru/core';
 
 type SubmitterKind = NonNullable<RecordSubmitterLink['kind']>;
 
@@ -158,29 +158,6 @@ const api = {
     ipcRenderer.invoke('tree:deleteContact', { projectPath, contact }),
   updateContact: (projectPath: string, before: unknown, after: unknown): Promise<unknown> =>
     ipcRenderer.invoke('tree:updateContact', { projectPath, before, after }),
-  getTags: (projectPath: string): Promise<TagRecord[]> => ipcRenderer.invoke('tree:tags', { projectPath }),
-  getTagLinks: (
-    projectPath: string,
-    targetType: string,
-    targetId: string,
-  ): Promise<Array<{ tagId: string; link: TagLinkRecord }>> =>
-    ipcRenderer.invoke('tree:tagLinks', { projectPath, targetType, targetId }),
-  getAllTagLinks: (projectPath: string): Promise<TagLinkRecord[]> =>
-    ipcRenderer.invoke('tree:allTagLinks', { projectPath }),
-  addTag: (projectPath: string, tag: unknown): Promise<unknown> =>
-    ipcRenderer.invoke('tree:addTag', { projectPath, tag }),
-  updateTag: (projectPath: string, before: unknown, after: unknown): Promise<unknown> =>
-    ipcRenderer.invoke('tree:updateTag', { projectPath, before, after }),
-  deleteTag: (projectPath: string, tag: unknown): Promise<unknown> =>
-    ipcRenderer.invoke('tree:deleteTag', { projectPath, tag }),
-  attachTag: (projectPath: string, link: unknown): Promise<unknown> =>
-    ipcRenderer.invoke('tree:attachTag', { projectPath, link }),
-  attachTagToTargets: (projectPath: string, tagId: string, targets: unknown): Promise<unknown> =>
-    ipcRenderer.invoke('tree:attachTagToTargets', { projectPath, tagId, targets }),
-  detachTag: (projectPath: string, link: unknown): Promise<unknown> =>
-    ipcRenderer.invoke('tree:detachTag', { projectPath, link }),
-  updateTagLink: (projectPath: string, before: unknown, after: unknown): Promise<unknown> =>
-    ipcRenderer.invoke('tree:updateTagLink', { projectPath, before, after }),
   getTasks: (projectPath: string): Promise<unknown> => ipcRenderer.invoke('tree:tasks', { projectPath }),
   getTasksFor: (projectPath: string, targetType: string, targetId: string): Promise<unknown> =>
     ipcRenderer.invoke('tree:tasksFor', { projectPath, targetType, targetId }),

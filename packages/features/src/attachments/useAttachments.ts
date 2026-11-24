@@ -6,8 +6,6 @@ import type {
   NoteRecord,
   RecordSubmitterLink,
   SubmitterRecord,
-  TagLinkRecord,
-  TagRecord,
 } from '@doru/core';
 
 /** The read methods every entity editor needs for its attachment sections. */
@@ -15,8 +13,6 @@ export interface AttachmentApi {
   getNotes(targetType: string, targetId: string): Promise<NoteRecord[]>;
   getAllNotes(): Promise<NoteRecord[]>;
   getCitations(targetType: string, targetId: string): Promise<CitationRecord[]>;
-  getTags(): Promise<TagRecord[]>;
-  getTagLinks(targetType: string, targetId: string): Promise<Array<{ tagId: string; link: TagLinkRecord }>>;
   getIdentifiers(targetType: string, targetId: string): Promise<IdentifierRecord[]>;
   getContacts(targetType: string, targetId: string): Promise<ContactRecord[]>;
 }
@@ -47,8 +43,6 @@ export interface AttachmentData {
   notes: NoteRecord[];
   allNotes: NoteRecord[];
   citations: CitationRecord[];
-  tags: TagRecord[];
-  tagLinks: Array<{ tagId: string; link: TagLinkRecord }>;
   identifiers: IdentifierRecord[];
   contacts: ContactRecord[];
   submitters: SubmitterRecord[];
@@ -59,8 +53,6 @@ const emptyAttachments = (): AttachmentData => ({
   notes: [],
   allNotes: [],
   citations: [],
-  tags: [],
-  tagLinks: [],
   identifiers: [],
   contacts: [],
   submitters: [],
@@ -97,12 +89,10 @@ export function useAttachments(
     if (targetId === undefined) {
       return emptyAttachments();
     }
-    const [notes, allNotes, citations, tags, tagLinks, identifiers, contacts] = await Promise.all([
+    const [notes, allNotes, citations, identifiers, contacts] = await Promise.all([
       api.getNotes(targetType, targetId),
       api.getAllNotes(),
       api.getCitations(targetType, targetId),
-      api.getTags(),
-      api.getTagLinks(targetType, targetId),
       api.getIdentifiers(targetType, targetId),
       api.getContacts(targetType, targetId),
     ]);
@@ -112,8 +102,6 @@ export function useAttachments(
         notes,
         allNotes,
         citations,
-        tags,
-        tagLinks,
         identifiers,
         contacts,
       };
@@ -127,8 +115,6 @@ export function useAttachments(
       notes,
       allNotes,
       citations,
-      tags,
-      tagLinks,
       identifiers,
       contacts,
       submitters,

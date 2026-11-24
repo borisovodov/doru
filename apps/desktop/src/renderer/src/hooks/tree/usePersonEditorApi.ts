@@ -263,7 +263,6 @@ export function usePersonEditorApi(
         }
         await window.doru.updateContact(projectPath, before, after);
       },
-      getTags: () => (projectPath ? window.doru.getTags(projectPath) : Promise.resolve([])),
       getAliases: (personId) => (projectPath ? window.doru.getAliases(projectPath, personId) : Promise.resolve([])),
       addAlias: async (personId, aliasId) => {
         if (!projectPath) {
@@ -304,61 +303,6 @@ export function usePersonEditorApi(
           return;
         }
         await window.doru.deleteRecordSubmitter(projectPath, id, submitterId, targetType, targetId, kind);
-        await refreshTree().catch(() => undefined);
-      },
-      getTagLinks: (targetType, targetId) =>
-        projectPath ? window.doru.getTagLinks(projectPath, targetType, targetId) : Promise.resolve([]),
-      addTag: async (tag) => {
-        if (!projectPath) {
-          return;
-        }
-        await window.doru.addTag(projectPath, tag);
-        // The tag already exists; a failed snapshot reload must not stop the
-        // caller from attaching it (the follow-up refresh runs then).
-        await refreshTree().catch(() => undefined);
-      },
-      attachTag: async (link) => {
-        if (!projectPath) {
-          return;
-        }
-        await window.doru.attachTag(projectPath, link);
-        // The link is committed; a failed snapshot reload must not make the
-        // caller treat the attach as failed.
-        await refreshTree().catch(() => undefined);
-      },
-      attachTagToTargets: async (tagId: string, targets: TargetRef[]) => {
-        if (!projectPath) {
-          return;
-        }
-        await window.doru.attachTagToTargets(projectPath, tagId, targets);
-        await refreshTree().catch(() => undefined);
-      },
-      detachTag: async (link) => {
-        if (!projectPath) {
-          return;
-        }
-        await window.doru.detachTag(projectPath, link);
-        await refreshTree().catch(() => undefined);
-      },
-      updateTagLink: async (before, after) => {
-        if (!projectPath) {
-          return;
-        }
-        await window.doru.updateTagLink(projectPath, before, after);
-        await refreshTree().catch(() => undefined);
-      },
-      updateTag: async (before, after) => {
-        if (!projectPath) {
-          return;
-        }
-        await window.doru.updateTag(projectPath, before, after);
-        await refreshTree().catch(() => undefined);
-      },
-      deleteTag: async (tag) => {
-        if (!projectPath) {
-          return;
-        }
-        await window.doru.deleteTag(projectPath, tag);
         await refreshTree().catch(() => undefined);
       },
       getPlaces: () => (projectPath ? window.doru.getPlaces(projectPath) : Promise.resolve([])),

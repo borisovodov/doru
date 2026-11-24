@@ -31,8 +31,6 @@ import type {
 import { isFamilyRecord, isIndividualRecord, isPlaceRecord } from '@doru/gedcom';
 import type {
   OccurrenceRecord as GedcomOccurrenceRecord,
-  TagLink as GedcomTagLink,
-  TagRecord as GedcomTagRecord,
   TodoRecord as GedcomTodoRecord,
   TodoStructure,
 } from '@doru/gedcom';
@@ -113,7 +111,6 @@ interface ImportContext {
   submitterIds: Map<string, string>;
   titleIds: Map<string, string>;
   noteIds: Map<string, string>;
-  tagIds: Map<string, string>;
   /** Dedupe of places by their joined name within this import. */
   placeIds: Map<string, string>;
   /** Place names that resolve to more than one distinct row. */
@@ -184,7 +181,6 @@ export function importGedcomDataset(
     submitterIds: new Map(),
     titleIds: new Map(),
     noteIds: new Map(),
-    tagIds: new Map(),
     placeIds: new Map(),
     ambiguousPlaceNames: new Set(),
     placeCardIds: new Map(),
@@ -209,7 +205,6 @@ export function importGedcomDataset(
     importTitles(dataset.records, ctx);
     importRepositories(dataset.records, ctx);
     importSubmitters(dataset.records, ctx);
-    importTags(dataset.records, ctx);
     importMediaRecords(dataset.records, ctx);
     importPlaceRecords(dataset.records, ctx);
     importedSources = importSources(dataset.records, ctx);
@@ -271,7 +266,6 @@ function importRepositories(records: GedcomRecord[], ctx: ImportContext): void {
       fax?: string[];
       www?: string[];
       submitters?: string[];
-      tagLinks?: GedcomTagLink[];
     };
     const id = crypto.randomUUID();
     if (repository.xref !== undefined) {
@@ -296,9 +290,6 @@ function importRepositories(records: GedcomRecord[], ctx: ImportContext): void {
       ctx,
     );
     importSubmitterLinks(repository.submitters, 'repository', id, ctx);
-    for (const tagLink of repository.tagLinks ?? []) {
-      importTagLink(tagLink, 'repository', id, ctx);
-    }
   }
 }
 
@@ -387,22 +378,6 @@ function numericSequence(value: string | undefined): number | undefined {
   return Number.isFinite(parsed) ? parsed : undefined;
 }
 
-function importTags(records: GedcomRecord[], ctx: ImportContext): void {
-  for (const record of records) {
-    if (record.tag !== '_TAG') {
-      continue;
-    }
-    const tag = record as GedcomTagRecord;
-    const id = crypto.randomUUID();
-    if (tag.xref !== undefined) {
-      ctx.tagIds.set(tag.xref, id);
-    }
-    if (tag.name !== undefined) {
-      ctx.repo.insertTag({ id, name: tag.name });
-    }
-  }
-}
-
 function importAddress(address: AddressStructure, ctx: ImportContext): string {
   const id = crypto.randomUUID();
   const values = address.payload
@@ -449,7 +424,6 @@ function importSharedNotes(records: GedcomRecord[], ctx: ImportContext): void {
       citations?: import('@doru/gedcom').SourceCitation[];
       identifiers?: IdentifierStructure[];
       submitters?: string[];
-      tagLinks?: GedcomTagLink[];
     };
     if (note.xref === undefined) {
       continue;
@@ -472,9 +446,6 @@ function importSharedNotes(records: GedcomRecord[], ctx: ImportContext): void {
     importCitations(note.citations, 'note', id, ctx);
     importIdentifiers(note.identifiers, 'note', id, ctx);
     importSubmitterLinks(note.submitters, 'note', id, ctx);
-    for (const tagLink of note.tagLinks ?? []) {
-      importTagLink(tagLink, 'note', id, ctx);
-    }
   }
 }
 
@@ -570,9 +541,6 @@ function importSources(records: GedcomRecord[], ctx: ImportContext): number {
     importIdentifiers(source.identifiers, 'source', id, ctx);
     importMediaLinks(source.media, 'source', id, ctx);
     importSubmitterLinks(source.submitters, 'source', id, ctx);
-    for (const tagLink of source.tagLinks ?? []) {
-      importTagLink(tagLink, 'source', id, ctx);
-    }
     imported += 1;
   }
   return imported;
@@ -745,9 +713,6 @@ function importPerson(record: GedcomIndividualRecord, ctx: ImportContext): void 
   importSubmitterLinks(record.submitters, 'person', id, ctx);
   importSubmitterLinks(record.ancestorInterests, 'person', id, ctx, 'ancestor_interest');
   importSubmitterLinks(record.descendantInterests, 'person', id, ctx, 'descendant_interest');
-  for (const tagLink of record.tagLinks ?? []) {
-    importTagLink(tagLink, 'person', id, ctx);
-  }
   for (const structure of record.todos ?? []) {
     importGedcomTodoStructure(structure, 'person', id, ctx);
   }
@@ -1259,9 +1224,6 @@ function importFamily(record: GedcomFamilyRecord, ctx: ImportContext): void {
   importIdentifiers(record.identifiers, 'family', id, ctx);
   importMediaLinks(record.media, 'family', id, ctx);
   importSubmitterLinks(record.submitters, 'family', id, ctx);
-  for (const tagLink of record.tagLinks ?? []) {
-    importTagLink(tagLink, 'family', id, ctx);
-  }
   for (const structure of record.todos ?? []) {
     importGedcomTodoStructure(structure, 'family', id, ctx);
   }
@@ -1827,19 +1789,6 @@ function importSubmitterLinks(
   }
 }
 
-function importTagLink(tagLink: GedcomTagLink, targetType: string, targetId: string, ctx: ImportContext): void {
-  const tagId = ctx.tagIds.get(tagLink.target);
-  if (tagId === undefined) {
-    return;
-  }
-  ctx.repo.insertTagLink({
-    id: crypto.randomUUID(),
-    tagId,
-    targetType,
-    targetId,
-  });
-}
-
 // ---------------------------------------------------------------------------
 // Dates and places
 // ---------------------------------------------------------------------------
@@ -2070,9 +2019,6 @@ function importMediaRecords(records: GedcomRecord[], ctx: ImportContext): void {
     importNotes(record.notes, 'media', id, ctx);
     importIdentifiers(record.identifiers, 'media', id, ctx);
     importSubmitterLinks(record.submitters, 'media', id, ctx);
-    for (const tagLink of record.tagLinks ?? []) {
-      importTagLink(tagLink, 'media', id, ctx);
-    }
   }
 }
 

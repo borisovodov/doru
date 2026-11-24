@@ -18,8 +18,6 @@ import type {
   RepositoryRecord,
   SourceRecord,
   SubmitterRecord,
-  TagLinkRecord,
-  TagRecord,
   TargetRef,
   TaskRecord,
   TaskTargetLink,
@@ -305,68 +303,6 @@ export function registerTreeIpc(): void {
     async (_event, options: { projectPath: string; before: ContactRecord; after: ContactRecord }) => {
       const { runtime } = await ensureRuntime(options.projectPath);
       return runtime.service.updateContact(options.before, options.after);
-    },
-  );
-
-  ipcMain.handle('tree:tags', async (_event, options: { projectPath: string }) => {
-    const { runtime } = await ensureRuntime(options.projectPath);
-    return runtime.service.listTags();
-  });
-
-  ipcMain.handle(
-    'tree:tagLinks',
-    async (_event, options: { projectPath: string; targetType: string; targetId: string }) => {
-      const { runtime } = await ensureRuntime(options.projectPath);
-      return runtime.service.listTagLinksFor(options.targetType, options.targetId);
-    },
-  );
-
-  ipcMain.handle('tree:allTagLinks', async (_event, options: { projectPath: string }) => {
-    const { runtime } = await ensureRuntime(options.projectPath);
-    return runtime.service.listAllTagLinks();
-  });
-
-  ipcMain.handle('tree:addTag', async (_event, options: { projectPath: string; tag: TagRecord }) => {
-    const { runtime } = await ensureRuntime(options.projectPath);
-    return runtime.service.addTag(options.tag);
-  });
-
-  ipcMain.handle(
-    'tree:updateTag',
-    async (_event, options: { projectPath: string; before: TagRecord; after: TagRecord }) => {
-      const { runtime } = await ensureRuntime(options.projectPath);
-      return runtime.service.updateTag(options.before, options.after);
-    },
-  );
-
-  ipcMain.handle('tree:deleteTag', async (_event, options: { projectPath: string; tag: TagRecord }) => {
-    const { runtime } = await ensureRuntime(options.projectPath);
-    return runtime.service.deleteTag(options.tag);
-  });
-
-  ipcMain.handle('tree:attachTag', async (_event, options: { projectPath: string; link: TagLinkRecord }) => {
-    const { runtime } = await ensureRuntime(options.projectPath);
-    return runtime.service.attachTag(options.link);
-  });
-
-  ipcMain.handle(
-    'tree:attachTagToTargets',
-    async (_event, options: { projectPath: string; tagId: string; targets: TargetRef[] }) => {
-      const { runtime } = await ensureRuntime(options.projectPath);
-      return runtime.service.attachTagToTargets(options.tagId, options.targets);
-    },
-  );
-
-  ipcMain.handle('tree:detachTag', async (_event, options: { projectPath: string; link: TagLinkRecord }) => {
-    const { runtime } = await ensureRuntime(options.projectPath);
-    return runtime.service.detachTag(options.link);
-  });
-
-  ipcMain.handle(
-    'tree:updateTagLink',
-    async (_event, options: { projectPath: string; before: TagLinkRecord; after: TagLinkRecord }) => {
-      const { runtime } = await ensureRuntime(options.projectPath);
-      return runtime.service.updateTagLink(options.before, options.after);
     },
   );
 

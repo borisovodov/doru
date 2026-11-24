@@ -37,8 +37,6 @@ export type {
   SourceRecord,
   SourceText,
   SubmitterRecord,
-  TagLinkRecord,
-  TagRecord,
   TargetRef,
   TargetType,
   TaskPriority,

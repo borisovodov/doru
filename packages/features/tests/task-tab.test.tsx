@@ -11,8 +11,6 @@ function apiStub(overrides: Partial<TaskEditorApi> = {}): TaskEditorApi {
     getNotes: async () => [],
     getAllNotes: async () => [],
     getCitations: async () => [],
-    getTags: async () => [],
-    getTagLinks: async () => [],
     getIdentifiers: async () => [],
     getContacts: async () => [],
     getSubmitters: async () => [],
@@ -63,15 +61,6 @@ describe('TaskTab', () => {
     expect(screen.queryByText(nls.t('features.tree.sources.title'))).not.toBeInTheDocument();
     expect(screen.queryByText(nls.t('features.tree.contacts.title'))).not.toBeInTheDocument();
     expect(screen.getByText(nls.t('features.tree.notes.title'))).toBeInTheDocument();
-  });
-
-  it('places Related to after the tags block', () => {
-    const task: TaskRecord = { id: 'T1', text: 'Find the record', targets: [] };
-    renderUi(taskElement(task.id, [task], apiStub()));
-
-    const tags = screen.getByRole('region', { name: nls.t('features.tree.tags.title') });
-    const related = screen.getByRole('region', { name: nls.t('features.tasks.target') });
-    expect(tags.compareDocumentPosition(related) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
 
   it('runs one create request for repeated clicks', async () => {

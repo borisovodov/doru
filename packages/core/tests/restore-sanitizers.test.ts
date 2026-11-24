@@ -15,7 +15,6 @@ import {
   restoreRecordSubmitter,
   restoreSource,
   restoreSourceRepository,
-  restoreTagLink,
   restoreTitle,
   restoreTask,
   sameRecord,
@@ -208,7 +207,7 @@ describe('undo restore sanitizers', () => {
     }
   });
 
-  it('restores tasks, titles, tag links, submitters and source links with live targets', () => {
+  it('restores tasks, titles, submitters and source links with live targets', () => {
     const fixture = makeRepo();
     try {
       const { repo } = fixture;
@@ -239,10 +238,6 @@ describe('undo restore sanitizers', () => {
       expect(repo.getTitle('TI2')?.repositoryId).toBeUndefined();
 
       repo.insertPerson({ id: 'P1', names: [], sex: 'U', facts: [] });
-      repo.insertTag({ id: 'TAG1', name: 'Family' });
-      expect(restoreTagLink(ctx, { id: 'TL1', tagId: 'TAG1', targetType: 'person', targetId: 'P1' })).toBe(true);
-      expect(restoreTagLink(ctx, { id: 'TL2', tagId: 'missing', targetType: 'person', targetId: 'P1' })).toBe(false);
-      expect(restoreTagLink(ctx, { id: 'TL3', tagId: 'TAG1', targetType: 'person', targetId: 'P1' })).toBe(true);
 
       repo.insertSubmitter({ id: 'SU1', name: 'Submitter' });
       expect(
@@ -324,14 +319,12 @@ describe('undo restore sanitizers', () => {
     }
   });
 
-  it('skips tag and submitter links whose targets vanished', () => {
+  it('skips submitter links whose targets vanished', () => {
     const fixture = makeRepo();
     try {
       const { repo } = fixture;
       const ctx = context(fixture);
-      repo.insertTag({ id: 'TAG1', name: 'Family' });
       repo.insertSubmitter({ id: 'SU1', name: 'Submitter' });
-      expect(restoreTagLink(ctx, { id: 'TL1', tagId: 'TAG1', targetType: 'person', targetId: 'missing' })).toBe(false);
       expect(
         restoreRecordSubmitter(ctx, {
           id: 'RS1',
@@ -345,7 +338,7 @@ describe('undo restore sanitizers', () => {
     }
   });
 
-  it('checks every nested target kind used by citations and tags', () => {
+  it('checks every nested target kind used by citations', () => {
     const fixture = makeRepo();
     try {
       const { repo } = fixture;
@@ -370,8 +363,6 @@ describe('undo restore sanitizers', () => {
         hierarchy: [{ id: 'PH1', parentId: 'PL1' }],
       });
       repo.insertAddress({ id: 'A1', lines: [{ id: 'AL1', value: 'Line' }] });
-      repo.insertTag({ id: 'TAG1', name: 'Family' });
-      repo.insertTagLink({ id: 'TL1', tagId: 'TAG1', targetType: 'person', targetId: 'P1' });
       repo.insertTitle({ id: 'TI1', name: 'Work' });
 
       for (const [type, id] of [
@@ -381,8 +372,6 @@ describe('undo restore sanitizers', () => {
         ['place_name', 'PN1'],
         ['place_hierarchy', 'PH1'],
         ['address_line', 'AL1'],
-        ['tag', 'TAG1'],
-        ['tag_link', 'TL1'],
         ['title', 'TI1'],
         ['name', 'N1'],
         ['name_part', 'NP1'],
@@ -461,8 +450,6 @@ describe('undo restore sanitizers', () => {
       repo.insertSource({ id: 'S1', title: 'Book' });
       repo.insertCitation({ id: 'C1', sourceId: 'S1', targetType: 'person', targetId: 'P1', page: '1' });
       repo.insertMedia({ id: 'M1', title: 'Photo', targetType: 'person', targetId: 'P1' });
-      repo.insertTag({ id: 'TAG1', name: 'Family' });
-      repo.insertTagLink({ id: 'TL1', tagId: 'TAG1', targetType: 'person', targetId: 'P1' });
       repo.insertContact({ id: 'CT1', targetType: 'person', targetId: 'P1', kind: 'email', value: 'a@b.c' });
       repo.insertSubmitter({ id: 'SU1', name: 'Submitter' });
       repo.insertRecordSubmitter('RS1', 'SU1', 'person', 'P1', 'contributor');

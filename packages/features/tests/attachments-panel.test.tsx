@@ -9,8 +9,6 @@ function apiStub(): AttachmentsPanelApi {
     getNotes: async () => [],
     getAllNotes: async () => [],
     getCitations: async () => [],
-    getTags: async () => [],
-    getTagLinks: async () => [],
     getIdentifiers: async () => [],
     getContacts: async () => [],
     getSubmitters: async () => [],
@@ -20,7 +18,6 @@ function apiStub(): AttachmentsPanelApi {
     getTasksFor: async () => [],
     addSourceToTargets: async () => undefined,
     attachSourceToTargets: async () => undefined,
-    attachTagToTargets: async () => undefined,
     addMediaToTargets: async () => undefined,
     attachMediaToTargets: async () => undefined,
   });

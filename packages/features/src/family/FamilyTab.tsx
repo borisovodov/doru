@@ -14,7 +14,6 @@ import {
   IdentifiersSection,
   NotesSection,
   SourcesSection,
-  TagsSection,
   TasksSection,
   familyDraftMatches,
   familyDraftToRecord,
@@ -286,8 +285,6 @@ function FamilyTabBody({
     notes: familyNotes,
     allNotes,
     citations: familyCitations,
-    tags,
-    tagLinks,
     identifiers,
     submitters,
     contributors,
@@ -468,23 +465,6 @@ function FamilyTabBody({
         }}
         onDelete={async (identifier) => {
           await api.deleteIdentifier(identifier);
-          await refreshAttachments();
-        }}
-      />
-      <TagsSection
-        targetType="family"
-        targetId={record.id}
-        tags={tags}
-        tagLinks={tagLinks}
-        onAddTag={api.addTag}
-        onUpdateTag={api.updateTag}
-        onDeleteTag={api.deleteTag}
-        onAttachTag={async (link) => {
-          await api.attachTag(link);
-          await refreshAttachments();
-        }}
-        onDetachTag={async (link) => {
-          await api.detachTag(link);
           await refreshAttachments();
         }}
       />

@@ -46,10 +46,10 @@ export const DORU_APPLICATION_ID = 0x444f5255;
  * Bumped whenever the schema changes. There are no migrations before 1.0.0:
  * a newer version may simply not understand files written by older ones
  * (the store refuses to open them with a loud error). This schema uses
- * version 18, above every version written by an earlier build (the old model
- * reached 17), so the open guard cannot mistake an old file for this one.
+ * version 19, above every version written by an earlier build (the old model
+ * reached 18), so the open guard cannot mistake an old file for this one.
  */
-export const SCHEMA_VERSION = 18;
+export const SCHEMA_VERSION = 19;
 
 export const SCHEMA_SQL = `
 CREATE TABLE IF NOT EXISTS person (
@@ -506,19 +506,6 @@ CREATE TABLE IF NOT EXISTS contact (
   value TEXT NOT NULL
 );
 
-CREATE TABLE IF NOT EXISTS tag (
-  id TEXT PRIMARY KEY,
-  name TEXT NOT NULL
-  -- no color: presentation lives in themes/UI, not in data (issue #174)
-);
-
-CREATE TABLE IF NOT EXISTS tag_link (
-  id TEXT PRIMARY KEY,
-  tag_id TEXT NOT NULL REFERENCES tag(id) ON DELETE CASCADE,
-  target_type TEXT NOT NULL,
-  target_id TEXT NOT NULL
-);
-
 -- Fact details: ages, participants (witnesses, shared-event people) and
 -- flags on facts; user-defined fact types.
 
@@ -650,8 +637,6 @@ CREATE INDEX IF NOT EXISTS idx_record_submitter_target ON record_submitter(targe
 CREATE INDEX IF NOT EXISTS idx_address_line_address ON address_line(address_id);
 CREATE INDEX IF NOT EXISTS idx_identifier_target ON identifier(target_type, target_id);
 CREATE INDEX IF NOT EXISTS idx_contact_target ON contact(target_type, target_id);
-CREATE INDEX IF NOT EXISTS idx_tag_link_tag ON tag_link(tag_id);
-CREATE INDEX IF NOT EXISTS idx_tag_link_target ON tag_link(target_type, target_id);
 CREATE INDEX IF NOT EXISTS idx_association_person ON association(person_id);
 CREATE INDEX IF NOT EXISTS idx_association_other ON association(other_person_id);
 CREATE INDEX IF NOT EXISTS idx_person_alias_person ON person_alias(person_id);

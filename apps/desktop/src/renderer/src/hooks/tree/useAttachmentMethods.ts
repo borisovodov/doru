@@ -8,8 +8,6 @@ import type {
   RecordSubmitterLink,
   SourceRecord,
   SubmitterRecord,
-  TagLinkRecord,
-  TagRecord,
   TargetRef,
   TaskRecord,
   TaskTargetLink,
@@ -151,46 +149,6 @@ export function useAttachmentMethods(
       updateContact: async (before: ContactRecord, after: ContactRecord) => {
         if (!projectPath) return;
         await window.doru.updateContact(projectPath, before, after);
-        await refreshTree();
-      },
-      getTags: () => (projectPath ? window.doru.getTags(projectPath) : Promise.resolve([] as TagRecord[])),
-      getTagLinks: (targetType: string, targetId: string) =>
-        projectPath
-          ? window.doru.getTagLinks(projectPath, targetType, targetId)
-          : Promise.resolve([] as Array<{ tagId: string; link: TagLinkRecord }>),
-      addTag: async (tag: TagRecord) => {
-        if (!projectPath) return;
-        await window.doru.addTag(projectPath, tag);
-        await refreshTree();
-      },
-      updateTag: async (before: TagRecord, after: TagRecord) => {
-        if (!projectPath) return;
-        await window.doru.updateTag(projectPath, before, after);
-        await refreshTree();
-      },
-      deleteTag: async (tag: TagRecord) => {
-        if (!projectPath) return;
-        await window.doru.deleteTag(projectPath, tag);
-        await refreshTree();
-      },
-      attachTag: async (link: TagLinkRecord) => {
-        if (!projectPath) return;
-        await window.doru.attachTag(projectPath, link);
-        await refreshTree();
-      },
-      attachTagToTargets: async (tagId: string, targets: TargetRef[]) => {
-        if (!projectPath) return;
-        await window.doru.attachTagToTargets(projectPath, tagId, targets);
-        await refreshTree();
-      },
-      detachTag: async (link: TagLinkRecord) => {
-        if (!projectPath) return;
-        await window.doru.detachTag(projectPath, link);
-        await refreshTree();
-      },
-      updateTagLink: async (before: TagLinkRecord, after: TagLinkRecord) => {
-        if (!projectPath) return;
-        await window.doru.updateTagLink(projectPath, before, after);
         await refreshTree();
       },
       getSubmitters: () =>

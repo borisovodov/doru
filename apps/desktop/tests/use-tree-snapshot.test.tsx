@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import { act, renderHook, waitFor } from '@testing-library/react';
-import type { FamilyRecord, PersonRecord, RecordSubmitterLink, TagLinkRecord, TagRecord } from '@doru/core';
+import type { FamilyRecord, PersonRecord, RecordSubmitterLink } from '@doru/core';
 import { useTreeSnapshot } from '../src/renderer/src/hooks/tree/useTreeSnapshot';
 
 const ada: PersonRecord = {
@@ -20,9 +20,6 @@ const grace: PersonRecord = {
 const recordSubmitters: RecordSubmitterLink[] = [
   { id: 'rs1', submitterId: 'su1', targetType: 'person', targetId: 'p1', kind: 'contributor' },
 ];
-const tags: TagRecord[] = [{ id: 'tag1', name: 'Family' }];
-const tagLinks: TagLinkRecord[] = [{ id: 'tl1', tagId: 'tag1', targetType: 'person', targetId: 'p1' }];
-
 type TreeData = { persons: PersonRecord[]; families: FamilyRecord[] };
 
 const originalDoru = window.doru;
@@ -57,8 +54,6 @@ function installDoru(all?: () => Promise<TreeData>) {
     getRepositories: empty,
     getSubmitters: empty,
     getAllRecordSubmitters: async () => recordSubmitters,
-    getTags: async () => tags,
-    getAllTagLinks: async () => tagLinks,
     listAddresses: empty,
     getTasks: empty,
     getTitles: empty,
@@ -82,8 +77,6 @@ describe('useTreeSnapshot', () => {
 
     await waitFor(() => expect(result.current.persons).toEqual([ada]));
     expect(result.current.recordSubmitters).toEqual(recordSubmitters);
-    expect(result.current.tags).toEqual(tags);
-    expect(result.current.tagLinks).toEqual(tagLinks);
     expect(doru.loadCount()).toBe(1);
 
     await act(async () => result.current.refreshTree());
@@ -106,15 +99,11 @@ describe('useTreeSnapshot', () => {
 
     await waitFor(() => expect(result.current.persons).toEqual([ada]));
     expect(result.current.recordSubmitters).toEqual(recordSubmitters);
-    expect(result.current.tags).toEqual(tags);
-    expect(result.current.tagLinks).toEqual(tagLinks);
 
     rerender({ path: null });
     expect(result.current.persons).toEqual([]);
     expect(result.current.families).toEqual([]);
     expect(result.current.recordSubmitters).toEqual([]);
-    expect(result.current.tags).toEqual([]);
-    expect(result.current.tagLinks).toEqual([]);
   });
 
   it('ignores an older reload that resolves after a newer one', async () => {

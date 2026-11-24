@@ -33,8 +33,6 @@ const GEDCOM = [
   '1 CREA',
   '2 DATE 2 JAN 2026',
   '1 SUBM @U1@',
-  '1 _TAG @T1@',
-  '1 _TAG @MISSINGTAG@',
   '1 BIRT',
   '2 DATE 12 MAR 1923',
   '2 PLAC Moscow, Russia',
@@ -72,9 +70,6 @@ const GEDCOM = [
   '1 TRAN translated',
   '2 MIME text/plain',
   '2 LANG ru',
-  '0 @T1@ _TAG',
-  '1 NAME favorites',
-  '0 @T2@ _TAG',
   '0 @TD1@ _TODO Order the record',
   '1 _CAT records',
   '1 _LOCL archive',
@@ -142,7 +137,6 @@ const EDGE_GEDCOM = [
   '0 @F1@ FAM',
   '1 HUSB @I1@',
   '1 WIFE @I2@',
-  '1 _TAG @T1@',
   '1 _TODO a family task',
   '2 PRTY high',
   '2 STAT open',
@@ -186,9 +180,8 @@ describe('importGedcomDataset edge coverage', () => {
         .sort();
       expect(factKinds).toEqual(['email', 'fax', 'phone', 'www']);
 
-      // Submitter links and tag links.
+      // Submitter links.
       expect(repo.listSubmittersFor('person', ivan.id)).toHaveLength(1);
-      expect(repo.listTagLinksFor('person', ivan.id)).toHaveLength(1);
 
       // The negated fact keeps its citations and notes.
       const negation = ivan.facts.find((fact) => fact.tag === 'MARR')!;
@@ -205,9 +198,6 @@ describe('importGedcomDataset edge coverage', () => {
       const submitter = repo.listSubmitters()[0]!;
       expect(repo.listIdentifiersFor('submitter', submitter.id)).toEqual([]);
       expect(repo.listNotesFor('submitter', submitter.id)).toHaveLength(1);
-
-      // Tag without a name is skipped; the tag link to a missing tag is skipped.
-      expect(repo.listTags()).toHaveLength(1);
 
       // Free-standing task with fields and uid.
       const tasks = repo.listTasks();
@@ -265,9 +255,8 @@ describe('importGedcomDataset edge coverage', () => {
       const note = repo.listNotesFor('person', ivan.id)[0]!;
       expect(note.translations?.[0]).toMatchObject({ text: 'переведено', language: 'ru' });
 
-      // The family tag link and attached task imported.
+      // The attached task imported.
       const family = repo.listFamilies()[0]!;
-      expect(repo.listTagLinksFor('family', family.id)).toHaveLength(1);
       expect(repo.listTasksFor('family', family.id)).toHaveLength(1);
     } finally {
       cleanupRepo(fixture);

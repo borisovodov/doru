@@ -18,8 +18,6 @@ import type {
   RepositoryRecord,
   SourceRecord,
   SubmitterRecord,
-  TagLinkRecord,
-  TagRecord,
   TargetRef,
   TaskRecord,
   TaskTargetLink,
@@ -70,13 +68,6 @@ export interface AttachmentsApi extends AttachmentApi, MediaTargetApi {
   addContact(contact: ContactRecord): Promise<void>;
   updateContact(before: ContactRecord, after: ContactRecord): Promise<void>;
   deleteContact(contact: ContactRecord): Promise<void>;
-  addTag(tag: TagRecord): Promise<void>;
-  updateTag(before: TagRecord, after: TagRecord): Promise<void>;
-  deleteTag(tag: TagRecord): Promise<void>;
-  attachTag(link: TagLinkRecord): Promise<void>;
-  attachTagToTargets?(tagId: string, targets: TargetRef[]): Promise<void>;
-  detachTag(link: TagLinkRecord): Promise<void>;
-  updateTagLink(before: TagLinkRecord, after: TagLinkRecord): Promise<void>;
   getTasksFor(targetType: string, targetId: string): Promise<TaskRecord[]>;
   addTask(task: TaskRecord): Promise<void>;
   updateTask(before: TaskRecord, after: TaskRecord): Promise<void>;

@@ -20,8 +20,6 @@ import type {
   RepositoryRecord,
   SourceRecord,
   SubmitterRecord,
-  TagLinkRecord,
-  TagRecord,
   TargetRef,
   TitleRecord,
   TaskRecord,
@@ -148,20 +146,6 @@ declare global {
       addContact(projectPath: string, contact: ContactRecord): Promise<UndoRedoState>;
       deleteContact(projectPath: string, contact: ContactRecord): Promise<UndoRedoState>;
       updateContact(projectPath: string, before: ContactRecord, after: ContactRecord): Promise<UndoRedoState>;
-      getTags(projectPath: string): Promise<TagRecord[]>;
-      getTagLinks(
-        projectPath: string,
-        targetType: string,
-        targetId: string,
-      ): Promise<Array<{ tagId: string; link: TagLinkRecord }>>;
-      getAllTagLinks(projectPath: string): Promise<TagLinkRecord[]>;
-      addTag(projectPath: string, tag: TagRecord): Promise<UndoRedoState>;
-      updateTag(projectPath: string, before: TagRecord, after: TagRecord): Promise<UndoRedoState>;
-      deleteTag(projectPath: string, tag: TagRecord): Promise<UndoRedoState>;
-      attachTag(projectPath: string, link: TagLinkRecord): Promise<UndoRedoState>;
-      attachTagToTargets(projectPath: string, tagId: string, targets: TargetRef[]): Promise<UndoRedoState>;
-      detachTag(projectPath: string, link: TagLinkRecord): Promise<UndoRedoState>;
-      updateTagLink(projectPath: string, before: TagLinkRecord, after: TagLinkRecord): Promise<UndoRedoState>;
       getTasks(projectPath: string): Promise<TaskRecord[]>;
       getTasksFor(projectPath: string, targetType: string, targetId: string): Promise<TaskRecord[]>;
       addTask(projectPath: string, task: TaskRecord): Promise<UndoRedoState>;

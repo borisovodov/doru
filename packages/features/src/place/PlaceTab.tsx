@@ -18,14 +18,7 @@ import {
   type PlaceDraft,
 } from './placeDraft';
 import type { MediaWithPath } from '@doru/ui/domain';
-import {
-  ContributorsSection,
-  IdentifiersSection,
-  NotesSection,
-  SourcesSection,
-  TagsSection,
-  TasksSection,
-} from '@doru/ui/domain';
+import { ContributorsSection, IdentifiersSection, NotesSection, SourcesSection, TasksSection } from '@doru/ui/domain';
 import { nls } from '../nls';
 
 /** A new place starts with the placeholder text as the first name value. */
@@ -152,8 +145,6 @@ function PlaceTabBody({
     notes: placeNotes,
     allNotes,
     citations: placeCitations,
-    tags,
-    tagLinks,
     identifiers,
     submitters,
     contributors,
@@ -393,23 +384,6 @@ function PlaceTabBody({
                 }}
                 onDelete={async (identifier) => {
                   await api.deleteIdentifier(identifier);
-                  await refreshAttachments();
-                }}
-              />
-              <TagsSection
-                targetType="place"
-                targetId={targetId}
-                tags={tags}
-                tagLinks={tagLinks}
-                onAddTag={api.addTag}
-                onUpdateTag={api.updateTag}
-                onDeleteTag={api.deleteTag}
-                onAttachTag={async (link) => {
-                  await api.attachTag(link);
-                  await refreshAttachments();
-                }}
-                onDetachTag={async (link) => {
-                  await api.detachTag(link);
                   await refreshAttachments();
                 }}
               />

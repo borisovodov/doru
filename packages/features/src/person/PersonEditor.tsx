@@ -19,8 +19,6 @@ import type {
   Sex,
   SourceRecord,
   SubmitterRecord,
-  TagLinkRecord,
-  TagRecord,
 } from '@doru/core';
 import { nls } from '../nls';
 import '../sidebar/sidebar.css';
@@ -37,7 +35,6 @@ import { CitationAttachments, NoteAttachments } from '../attachments/TargetAttac
 import { MediaSection } from '../media/MediaSection';
 import { NamesSection } from '@doru/ui/domain';
 import { SourcesSection } from '@doru/ui/domain';
-import { TagsSection } from '@doru/ui/domain';
 import { addressLabel } from '@doru/ui/domain';
 import { TasksSection } from '@doru/ui/domain';
 import { draftInitials, draftSpan, nameDraftDisplay, primaryNameDraft, type PersonDraft } from '@doru/ui/domain';
@@ -91,8 +88,6 @@ export function PersonEditor({
   const [media, setMedia] = useState<MediaWithPath[]>([]);
   const [identifiers, setIdentifiers] = useState<IdentifierRecord[]>([]);
   const [contacts, setContacts] = useState<ContactRecord[]>([]);
-  const [tags, setTags] = useState<TagRecord[]>([]);
-  const [tagLinks, setTagLinks] = useState<Array<{ tagId: string; link: TagLinkRecord }>>([]);
   const [places, setPlaces] = useState<PlaceRecord[]>([]);
   const [addresses, setAddresses] = useState<AddressRecord[]>([]);
   const [submitters, setSubmitters] = useState<SubmitterRecord[]>([]);
@@ -114,16 +109,12 @@ export function PersonEditor({
 
   /** Reloads every universal attachment list of the person. */
   const refreshAttachments = async () => {
-    const [loadedIdentifiers, loadedContacts, loadedTags, loadedTagLinks] = await Promise.all([
+    const [loadedIdentifiers, loadedContacts] = await Promise.all([
       api.getIdentifiers('person', draft.id),
       api.getContacts('person', draft.id),
-      api.getTags(),
-      api.getTagLinks('person', draft.id),
     ]);
     setIdentifiers(loadedIdentifiers);
     setContacts(loadedContacts);
-    setTags(loadedTags);
-    setTagLinks(loadedTagLinks);
   };
 
   const refreshNotes = async () => {
@@ -176,19 +167,14 @@ export function PersonEditor({
     void api.getMedia(draft.id).then((loaded) => {
       if (!cancelled) setMedia(loaded);
     });
-    void Promise.all([
-      api.getIdentifiers('person', draft.id),
-      api.getContacts('person', draft.id),
-      api.getTags(),
-      api.getTagLinks('person', draft.id),
-    ]).then(([loadedIdentifiers, loadedContacts, loadedTags, loadedTagLinks]) => {
-      if (!cancelled) {
-        setIdentifiers(loadedIdentifiers);
-        setContacts(loadedContacts);
-        setTags(loadedTags);
-        setTagLinks(loadedTagLinks);
-      }
-    });
+    void Promise.all([api.getIdentifiers('person', draft.id), api.getContacts('person', draft.id)]).then(
+      ([loadedIdentifiers, loadedContacts]) => {
+        if (!cancelled) {
+          setIdentifiers(loadedIdentifiers);
+          setContacts(loadedContacts);
+        }
+      },
+    );
     void Promise.all([api.getSubmitters(), api.getRecordSubmitters('person', draft.id)]).then(
       ([loadedSubmitters, loadedContributors]) => {
         if (!cancelled) {
@@ -300,7 +286,7 @@ export function PersonEditor({
                 api={api}
                 sources={sources}
                 onOpenSource={(sourceId) => api.openSource?.(sourceId)}
-                sections={['notes', 'sources', 'media', 'tags', 'identifiers', 'contacts', 'contributors', 'tasks']}
+                sections={['notes', 'sources', 'media', 'identifiers', 'contacts', 'contributors', 'tasks']}
                 renderCitationAttachments={(citation) => (
                   <CitationAttachments
                     citation={citation}
@@ -454,7 +440,7 @@ export function PersonEditor({
                 api={api}
                 sources={sources}
                 onOpenSource={(sourceId) => api.openSource?.(sourceId)}
-                sections={['notes', 'sources', 'media', 'tags', 'identifiers', 'contacts', 'contributors', 'tasks']}
+                sections={['notes', 'sources', 'media', 'identifiers', 'contacts', 'contributors', 'tasks']}
                 renderCitationAttachments={(citation) => (
                   <CitationAttachments
                     citation={citation}
@@ -573,32 +559,6 @@ export function PersonEditor({
             }}
             onDelete={async (contact) => {
               await api.deleteContact(contact);
-              await refreshAttachments();
-            }}
-          />
-          <TagsSection
-            targetType="person"
-            targetId={draft.id}
-            tags={tags}
-            tagLinks={tagLinks}
-            onAddTag={api.addTag}
-            onUpdateTag={async (before, after) => {
-              await api.updateTag(before, after);
-              await refreshAttachments();
-            }}
-            onDeleteTag={async (tag) => {
-              await api.deleteTag(tag);
-              await refreshAttachments();
-            }}
-            onAttachTag={async (link) => {
-              try {
-                await api.attachTag(link);
-              } finally {
-                await refreshAttachments();
-              }
-            }}
-            onDetachTag={async (link) => {
-              await api.detachTag(link);
               await refreshAttachments();
             }}
           />

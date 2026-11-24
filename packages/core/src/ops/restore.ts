@@ -227,20 +227,6 @@ export function restoreTitle(ctx: MutationContext, title: TitleRecord): void {
   ctx.repo.insertTitle(clean);
 }
 
-export function restoreTagLink(
-  ctx: MutationContext,
-  link: { id: string; tagId: string; targetType: string; targetId: string },
-): boolean {
-  if (
-    !ctx.repo.listTags().some((tag) => tag.id === link.tagId) ||
-    !attachmentTargetExists(ctx, link.targetType, link.targetId)
-  ) {
-    return false;
-  }
-  ctx.repo.insertTagLink(link);
-  return true;
-}
-
 export function restoreRecordSubmitter(
   ctx: MutationContext,
   link: {
@@ -297,7 +283,6 @@ export function attachmentsMatch(
       .sort(),
     identifiers: snapshot.identifiers.map((entry) => JSON.stringify(entry)).sort(),
     contacts: snapshot.contacts.map((entry) => JSON.stringify(entry)).sort(),
-    tagLinks: snapshot.tagLinks.map((entry) => JSON.stringify(entry.link)).sort(),
     taskLinks: snapshot.taskLinks.map((entry) => JSON.stringify(entry)).sort(),
     recordSubmitters: snapshot.recordSubmitters.map((entry) => JSON.stringify(entry)).sort(),
   });
@@ -396,8 +381,6 @@ export function attachmentTargetExists(ctx: MutationContext, targetType: string,
       return ctx.repo.getCitation(targetId) !== undefined;
     case 'title':
       return ctx.repo.getTitle(targetId) !== undefined;
-    case 'tag':
-      return ctx.repo.listTags().some((tag) => tag.id === targetId);
     case 'name':
       return names().includes(targetId);
     case 'name_part':
@@ -423,8 +406,6 @@ export function attachmentTargetExists(ctx: MutationContext, targetType: string,
         );
     case 'address_line':
       return ctx.repo.listAddresses().some((address) => address.lines.some((line) => line.id === targetId));
-    case 'tag_link':
-      return ctx.repo.listAllTagLinks().some((link) => link.id === targetId);
     case 'association':
       return ctx.repo.listAssociations().some((entry) => entry.id === targetId);
     default:

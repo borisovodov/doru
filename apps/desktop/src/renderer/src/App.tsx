@@ -285,8 +285,6 @@ export function App() {
             places={tree.places}
             repositories={tree.repositories}
             submitters={tree.submitters}
-            tags={tree.tags}
-            tagLinks={tree.tagLinks}
             addresses={tree.addresses}
             titles={tree.titles}
             tasks={tree.tasks}
@@ -310,7 +308,6 @@ export function App() {
             onNewAddress={tabs.openNew.address}
             onOpenTask={tabs.open.task}
             onNewTask={tabs.openNew.task}
-            onDeleteTag={(tag) => void tree.api.deleteTag(tag)}
           />
         }
         activeView={activeView}

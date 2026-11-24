@@ -8,8 +8,6 @@ import type {
   RepositoryRecord,
   SourceRecord,
   SubmitterRecord,
-  TagLinkRecord,
-  TagRecord,
 } from '../src/model/types';
 import { OpQueue } from '../src/ops/op';
 import { TreeService } from '../src/service/tree';
@@ -58,20 +56,6 @@ const contact = (overrides: Partial<ContactRecord> = {}): ContactRecord => ({
   targetId: 'P1',
   kind: 'email',
   value: 'ivan@example.org',
-  ...overrides,
-});
-
-const tag = (overrides: Partial<TagRecord> = {}): TagRecord => ({
-  id: 'TG1',
-  name: 'favorites',
-  ...overrides,
-});
-
-const tagLink = (overrides: Partial<TagLinkRecord> = {}): TagLinkRecord => ({
-  id: 'TL1',
-  tagId: 'TG1',
-  targetType: 'person',
-  targetId: 'P1',
   ...overrides,
 });
 
@@ -478,13 +462,12 @@ describe('TreeService attachments', () => {
     }
   });
 
-  it('links one source, tag or media record to several targets in one undo step', () => {
+  it('links one source or media record to several targets in one undo step', () => {
     const { fixture, service } = makeService();
     try {
       service.addPerson({ id: 'P1', names: [], sex: 'U', facts: [] });
       service.addPerson({ id: 'P2', names: [], sex: 'U', facts: [] });
       service.addSource(source());
-      service.addTag(tag());
       service.addMedia({ id: 'M1', path: 'media/photo.jpg' });
 
       service.attachSourceToTargets('S1', [
@@ -493,13 +476,6 @@ describe('TreeService attachments', () => {
       ]);
       expect(fixture.repo.listCitationsFor('person', 'P1')).toHaveLength(1);
       expect(fixture.repo.listCitationsFor('person', 'P2')).toHaveLength(1);
-
-      service.attachTagToTargets('TG1', [
-        { targetType: 'person', targetId: 'P1' },
-        { targetType: 'person', targetId: 'P2' },
-      ]);
-      expect(fixture.repo.listTagLinksFor('person', 'P1')).toHaveLength(1);
-      expect(fixture.repo.listTagLinksFor('person', 'P2')).toHaveLength(1);
 
       service.attachMediaToTargets('M1', [
         { targetType: 'person', targetId: 'P1' },
@@ -520,44 +496,8 @@ describe('TreeService attachments', () => {
       expect(fixture.repo.getMedia('M1')?.links).toEqual([]);
       expect(fixture.repo.listCitationRecordsFor('media_link', firstLink!.link.id)).toEqual([]);
       service.undo();
-      expect(fixture.repo.listTagLinksFor('person', 'P1')).toEqual([]);
-      expect(fixture.repo.listTagLinksFor('person', 'P2')).toEqual([]);
-      service.undo();
       expect(fixture.repo.listCitationsFor('person', 'P1')).toEqual([]);
       expect(fixture.repo.listCitationsFor('person', 'P2')).toEqual([]);
-    } finally {
-      cleanupRepo(fixture);
-    }
-  });
-
-  it('manages tags and tag links', () => {
-    const { fixture, service } = makeService();
-    try {
-      service.addPerson({ id: 'P1', names: [], sex: 'U', facts: [] });
-      service.addTag(tag());
-      expect(fixture.repo.listTags()).toEqual([tag()]);
-
-      service.attachTag(tagLink());
-      expect(fixture.repo.listTagLinksFor('person', 'P1')).toEqual([{ tagId: 'TG1', link: tagLink() }]);
-
-      service.detachTag(tagLink());
-      expect(fixture.repo.listTagLinksFor('person', 'P1')).toEqual([]);
-      service.undo();
-      expect(fixture.repo.listTagLinksFor('person', 'P1')).toHaveLength(1);
-
-      const renamed = tag({ name: 'Verified' });
-      service.updateTag(tag(), renamed);
-      expect(fixture.repo.listTags()).toEqual([renamed]);
-      service.undo();
-      expect(fixture.repo.listTags()).toEqual([tag()]);
-
-      service.deleteTag(tag());
-      expect(fixture.repo.listTags()).toEqual([]);
-      // The FK cascade removes the links; the undo restores them too.
-      expect(fixture.repo.listTagLinksFor('person', 'P1')).toEqual([]);
-      service.undo();
-      expect(fixture.repo.listTags()).toEqual([tag()]);
-      expect(fixture.repo.listTagLinksFor('person', 'P1')).toHaveLength(1);
     } finally {
       cleanupRepo(fixture);
     }
@@ -821,15 +761,10 @@ describe('TreeService attachments', () => {
     }
   });
 
-  it('lists every tag link and submitter link for the global registries', () => {
+  it('lists every submitter link for the global registry', () => {
     const { fixture, service } = makeService();
     try {
       service.addPerson({ id: 'P1', names: [], sex: 'U', facts: [] });
-      service.addTag({ id: 'TAG1', name: 'Priority' });
-      service.addTag({ id: 'TAG2', name: 'Orphan' });
-      service.attachTag({ id: 'TL1', tagId: 'TAG1', targetType: 'person', targetId: 'P1' });
-      expect(fixture.repo.listAllTagLinks().map((link) => link.id)).toEqual(['TL1']);
-
       service.addSubmitter(submitter());
       service.addRecordSubmitter('SU1', 'person', 'P1', 'ancestor_interest');
       expect(fixture.repo.listAllRecordSubmitters()).toEqual([

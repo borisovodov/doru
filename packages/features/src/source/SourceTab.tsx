@@ -26,7 +26,6 @@ import {
   IdentifiersSection,
   NotesSection,
   SourcesSection,
-  TagsSection,
   TargetPicker,
   TasksSection,
   emptySourceDraft,
@@ -176,8 +175,6 @@ function SourceTabBody({
     notes: sourceNotes,
     allNotes,
     citations: sourceCitations,
-    tags,
-    tagLinks,
     identifiers,
     submitters,
     contributors,
@@ -446,23 +443,6 @@ function SourceTabBody({
                 }}
                 onDelete={async (identifier) => {
                   await api.deleteIdentifier(identifier);
-                  await refreshAttachments();
-                }}
-              />
-              <TagsSection
-                targetType="source"
-                targetId={targetId}
-                tags={tags}
-                tagLinks={tagLinks}
-                onAddTag={api.addTag}
-                onUpdateTag={api.updateTag}
-                onDeleteTag={api.deleteTag}
-                onAttachTag={async (link) => {
-                  await api.attachTag(link);
-                  await refreshAttachments();
-                }}
-                onDetachTag={async (link) => {
-                  await api.detachTag(link);
                   await refreshAttachments();
                 }}
               />
