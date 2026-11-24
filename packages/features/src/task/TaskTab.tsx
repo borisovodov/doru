@@ -168,6 +168,7 @@ function TaskTabBody({
   const creatingRef = useRef(false);
   const [lastSaved, setLastSaved] = useState<TaskRecord | undefined>(record);
   const [saveError, setSaveError] = useState(false);
+  const [targetError, setTargetError] = useState(false);
   const [draft, setDraft] = useState<TaskDraft>(() =>
     isNew ? { ...emptyTaskDraft(), text: nls.t('features.tasks.newTask') } : taskToDraft(base),
   );
@@ -380,6 +381,7 @@ function TaskTabBody({
       />
       <AutoSaveError failed={autoSave.failed} retryDisabled={autoSave.pendingDelete} onRetry={autoSave.retry} />
       {isNew && saveError ? <InlineError>{nls.t('features.tree.autosaveFailed')}</InlineError> : null}
+      {targetError ? <InlineError>{nls.t('features.tree.autosaveFailed')}</InlineError> : null}
       {deletion.failed ? <InlineError>{nls.t('features.tree.deleteFailed')}</InlineError> : null}
 
       <SectionCard title={nls.t('features.tree.details')}>
@@ -397,12 +399,14 @@ function TaskTabBody({
               (target) =>
                 !targets.some((entry) => entry.targetType === target.targetType && entry.targetId === target.targetId),
             );
-            for (const target of removed) {
-              void removeTarget(target).catch(() => setSaveError(true));
+            if (removed.length === 0 && added.length === 0) {
+              return;
             }
-            for (const target of added) {
-              void addTarget(target).catch(() => setSaveError(true));
-            }
+            setTargetError(false);
+            void Promise.all([
+              ...removed.map((target) => removeTarget(target)),
+              ...added.map((target) => addTarget(target)),
+            ]).catch(() => setTargetError(true));
           }}
           targetTypes={VISIBLE_TARGET_TYPES}
           autoFocusText={isNew}

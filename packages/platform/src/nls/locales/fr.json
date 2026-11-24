@@ -71,6 +71,7 @@
   "features.tasks.priorityLow": "Basse",
   "features.tasks.priorityMedium": "Moyenne",
   "features.tasks.reminder": "Rappel",
+  "features.tasks.remove": "Retirer la tâche de cet enregistrement",
   "features.tasks.scheduled": "Planifiée",
   "features.tasks.status": "Statut",
   "features.tasks.statusClosed": "Fermée",

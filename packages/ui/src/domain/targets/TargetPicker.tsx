@@ -2,7 +2,12 @@ import { useEffect, useId, useMemo, useRef, useState } from 'react';
 import { X } from 'lucide-react';
 import { foldCase, type TargetRef, type TargetType } from '@doru/core/model';
 import { nls } from '../../nls';
-import { taskTargetLabel, targetOptionsForTypes, type TargetData, type TargetOption } from '../task/taskTargets';
+import {
+  createTaskTargetLabeler,
+  targetOptionsForTypes,
+  type TargetData,
+  type TargetOption,
+} from '../task/taskTargets';
 import { useTargetDirectory } from './TargetDirectory';
 import styles from './TargetPicker.module.css';
 
@@ -37,10 +42,11 @@ export function TargetPicker({
   const [query, setQuery] = useState('');
 
   const options = useMemo(
-    () => (data === undefined ? [] : targetOptionsForTypes(allowedTypes, data)),
-    [allowedTypes, data],
+    () => (data === undefined || !open ? [] : targetOptionsForTypes(allowedTypes, data)),
+    [allowedTypes, data, open],
   );
   const selected = useMemo(() => new Set(value.map(targetKey)), [value]);
+  const labeler = useMemo(() => (data === undefined ? undefined : createTaskTargetLabeler(data)), [data]);
   const matches = useMemo(() => {
     const needle = foldCase(query.trim());
     return options.filter((option) => {
@@ -89,9 +95,7 @@ export function TargetPicker({
   };
 
   const labelFor = (target: TargetRef): string =>
-    data === undefined
-      ? `${target.targetType}:${target.targetId}`
-      : taskTargetLabel(target.targetType, target.targetId, data);
+    labeler === undefined ? `${target.targetType}:${target.targetId}` : labeler(target.targetType, target.targetId);
 
   return (
     <div className={styles['picker']} ref={rootRef}>

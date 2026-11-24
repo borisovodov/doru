@@ -71,6 +71,7 @@
   "features.tasks.priorityLow": "Niedrig",
   "features.tasks.priorityMedium": "Mittel",
   "features.tasks.reminder": "Erinnerung",
+  "features.tasks.remove": "Aufgabe von diesem Datensatz entfernen",
   "features.tasks.scheduled": "Geplant",
   "features.tasks.status": "Status",
   "features.tasks.statusClosed": "Geschlossen",

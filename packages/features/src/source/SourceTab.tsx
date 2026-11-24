@@ -43,6 +43,9 @@ function newSourceDraft(): SourceDraft {
   return { ...emptySourceDraft(), title: nls.t('features.tree.source.newSource') };
 }
 
+/** A source citation may point at any record except a task. */
+const SOURCE_TARGET_TYPES = TARGET_TYPES.filter((type) => type !== 'task');
+
 export function SourceTab({
   entityId,
   sources,
@@ -152,6 +155,7 @@ function SourceTabBody({
   const [repositories, setRepositories] = useState<RepositoryRecord[]>([]);
   const [titles, setTitles] = useState<TitleRecord[]>([]);
   const [linkTargets, setLinkTargets] = useState<TargetRef[]>([]);
+  const [linkError, setLinkError] = useState(false);
   const recordRef = useRef(record);
   const draftRef = useRef(draft);
   const baselineRef = useRef(record);
@@ -166,6 +170,7 @@ function SourceTabBody({
 
   const currentSource = lastSaved ?? record;
   const targetId = currentSource?.id;
+  const attachSourceToTargets = api.attachSourceToTargets;
   const {
     notes: sourceNotes,
     allNotes,
@@ -376,10 +381,10 @@ function SourceTabBody({
             onOpenPerson={onOpenPerson}
             onDetachCitation={(citationId) => void api.detachCitation(citationId)}
           />
-          {api.attachSourceToTargets !== undefined && (
+          {attachSourceToTargets !== undefined && (
             <SectionCard title={nls.t('features.tasks.target')}>
               <TargetPicker
-                allowedTypes={TARGET_TYPES.filter((type) => type !== 'task')}
+                allowedTypes={SOURCE_TARGET_TYPES}
                 value={linkTargets}
                 onChange={setLinkTargets}
                 ariaLabel={nls.t('features.tasks.target')}
@@ -389,14 +394,15 @@ function SourceTabBody({
                 size="sm"
                 disabled={linkTargets.length === 0}
                 onClick={() => {
-                  void api
-                    .attachSourceToTargets?.(currentSource.id, linkTargets)
+                  setLinkError(false);
+                  void attachSourceToTargets(currentSource.id, linkTargets)
                     .then(() => setLinkTargets([]))
-                    .catch(() => undefined);
+                    .catch(() => setLinkError(true));
                 }}
               >
                 {nls.t('features.tree.sources.attach')}
               </Button>
+              {linkError ? <InlineError>{nls.t('features.tree.autosaveFailed')}</InlineError> : null}
             </SectionCard>
           )}
           {targetId !== undefined && (

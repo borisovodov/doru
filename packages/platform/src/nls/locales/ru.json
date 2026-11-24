@@ -71,6 +71,7 @@
   "features.tasks.priorityLow": "Низкий",
   "features.tasks.priorityMedium": "Средний",
   "features.tasks.reminder": "Напоминание",
+  "features.tasks.remove": "Убрать задачу из этой записи",
   "features.tasks.scheduled": "Запланирована",
   "features.tasks.status": "Статус",
   "features.tasks.statusClosed": "Закрыта",

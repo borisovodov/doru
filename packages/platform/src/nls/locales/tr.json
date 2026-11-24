@@ -71,6 +71,7 @@
   "features.tasks.priorityLow": "Düşük",
   "features.tasks.priorityMedium": "Orta",
   "features.tasks.reminder": "Hatırlatma",
+  "features.tasks.remove": "Görevi bu kayıttan kaldır",
   "features.tasks.scheduled": "Planlanmış",
   "features.tasks.status": "Durum",
   "features.tasks.statusClosed": "Kapalı",

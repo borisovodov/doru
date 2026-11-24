@@ -71,6 +71,7 @@
   "features.tasks.priorityLow": "낮음",
   "features.tasks.priorityMedium": "중간",
   "features.tasks.reminder": "알림",
+  "features.tasks.remove": "이 레코드에서 작업 제거",
   "features.tasks.scheduled": "예정됨",
   "features.tasks.status": "상태",
   "features.tasks.statusClosed": "닫힘",

@@ -71,6 +71,7 @@
   "features.tasks.priorityLow": "Alacsony",
   "features.tasks.priorityMedium": "Közepes",
   "features.tasks.reminder": "Emlékeztető",
+  "features.tasks.remove": "Feladat eltávolítása erről a rekordról",
   "features.tasks.scheduled": "Ütemezett",
   "features.tasks.status": "Állapot",
   "features.tasks.statusClosed": "Lezárt",

@@ -71,6 +71,7 @@
   "features.tasks.priorityLow": "低",
   "features.tasks.priorityMedium": "中",
   "features.tasks.reminder": "提醒",
+  "features.tasks.remove": "从这条记录中移除任务",
   "features.tasks.scheduled": "已计划",
   "features.tasks.status": "状态",
   "features.tasks.statusClosed": "已关闭",

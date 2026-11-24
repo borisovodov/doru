@@ -71,6 +71,7 @@
   "features.tasks.priorityLow": "Baixa",
   "features.tasks.priorityMedium": "Média",
   "features.tasks.reminder": "Lembrete",
+  "features.tasks.remove": "Remover a tarefa deste registro",
   "features.tasks.scheduled": "Agendada",
   "features.tasks.status": "Status",
   "features.tasks.statusClosed": "Fechada",

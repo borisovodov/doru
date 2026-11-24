@@ -2,7 +2,7 @@ import { useMemo, type FocusEventHandler, type ReactNode } from 'react';
 import { BookOpenText, X } from 'lucide-react';
 import type { CitationRecord, FactRecord, FamilyRecord, NoteRecord, PersonRecord, SourceRecord } from '@doru/core';
 import { nls } from '../nls';
-import { displayName, familyLabel } from '@doru/ui/domain';
+import { createTaskTargetLabeler, displayName, familyLabel, useTargetDirectory } from '@doru/ui/domain';
 import { EditorPage, EntityCard, IconButton } from '@doru/ui';
 import './sidebar.css';
 
@@ -31,6 +31,11 @@ export function SourceCitationsList({
 }) {
   const personById = useMemo(() => new Map(persons.map((person) => [person.id, person])), [persons]);
   const familyById = useMemo(() => new Map(families.map((family) => [family.id, family])), [families]);
+  const targetDirectory = useTargetDirectory();
+  const targetLabel = useMemo(
+    () => (targetDirectory === undefined ? undefined : createTaskTargetLabeler(targetDirectory)),
+    [targetDirectory],
+  );
 
   const citing = citations.filter((citation) => citation.sourceId === source.id);
   const sourceNotes = notes.filter((note) => note.targetType === 'source' && note.targetId === source.id);
@@ -45,12 +50,13 @@ export function SourceCitationsList({
           <ul className="entity-section-list">
             {citing.map((citation) => {
               const target = citationTarget(citation, personById, familyById, facts, persons);
+              const label = targetLabel?.(citation.targetType, citation.targetId) ?? target.label;
               return (
                 <li key={citation.id}>
                   <div className="entity-section-row">
                     <EntityCard
                       icon={<BookOpenText size={15} aria-hidden="true" />}
-                      title={target.label}
+                      title={label}
                       subtitle={citation.page !== undefined ? citation.page : null}
                       meta={citation.quality !== undefined ? citation.quality : null}
                       {...(target.personId !== undefined ? { onClick: () => onOpenPerson(target.personId ?? '') } : {})}

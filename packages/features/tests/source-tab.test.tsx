@@ -3,8 +3,26 @@ import { fireEvent, screen, waitFor } from '@testing-library/react';
 import type { SourceRecord } from '@doru/core';
 import { SourceTab } from '@doru/features/source';
 import type { MediaTargetApi, SourceEditorApi } from '@doru/features/person';
+import { TargetDirectoryProvider, type TaskTargetData } from '@doru/ui/domain';
 import { nls } from '../src/nls';
 import { renderUi, stubApi } from '../../../test/ui/harness';
+
+const targetDirectory: TaskTargetData = {
+  persons: [],
+  families: [],
+  sources: [{ id: 'S1', title: 'Book' }],
+  places: [{ id: 'PL1', names: [{ id: 'PN1', kind: 'official', position: 0, value: 'Moscow' }] }],
+  repositories: [],
+  titles: [],
+  facts: [],
+  citations: [],
+  notes: [],
+  media: [],
+  submitters: [],
+  addresses: [],
+  associations: [],
+  tasks: [],
+};
 
 function renderTab(overrides: { entityId?: string; onCreated?: (realId: string) => void } = {}) {
   const addSource = vi.fn(async () => {});
@@ -361,6 +379,61 @@ describe('SourceTab', () => {
     view.rerender(renderSource('C'));
     expect(screen.getByDisplayValue('C')).toBeInTheDocument();
     resolveSave();
+  });
+
+  it('keeps the picked targets and reports a failed attach', async () => {
+    const attachSourceToTargets = vi.fn(async () => {
+      throw new Error('disk full');
+    });
+    const api = stubApi<SourceEditorApi>({
+      getRepositories: async () => [],
+      getTitles: async () => [],
+      getNotes: async () => [],
+      getAllNotes: async () => [],
+      getCitations: async () => [],
+      getTags: async () => [],
+      getTagLinks: async () => [],
+      getIdentifiers: async () => [],
+      getContacts: async () => [],
+      getSubmitters: async () => [],
+      getRecordSubmitters: async () => [],
+      getMediaFor: async () => [],
+      getAllMedia: async () => [],
+      getTasksFor: async () => [],
+      attachSourceToTargets,
+    });
+    const mediaApi = stubApi<MediaTargetApi>({ getMediaFor: async () => [], getAllMedia: async () => [] });
+    renderUi(
+      <TargetDirectoryProvider data={targetDirectory}>
+        <SourceTab
+          entityId="S1"
+          sources={[{ id: 'S1', title: 'Book' }]}
+          api={api}
+          persons={[]}
+          families={[]}
+          facts={[]}
+          places={[]}
+          citations={[]}
+          notes={[]}
+          media={[]}
+          mediaApi={mediaApi}
+          onOpenPerson={vi.fn()}
+          onOpenMedia={vi.fn()}
+          onOpenSource={vi.fn()}
+          onClose={vi.fn()}
+          onCreated={vi.fn()}
+        />
+      </TargetDirectoryProvider>,
+    );
+
+    fireEvent.focus(screen.getAllByRole('combobox', { name: nls.t('features.tasks.target') })[0]!);
+    fireEvent.click(screen.getByRole('option', { name: 'MoscowPlace' }));
+    fireEvent.click(screen.getAllByRole('button', { name: nls.t('features.tree.sources.attach') })[0]!);
+
+    await waitFor(() => expect(attachSourceToTargets).toHaveBeenCalledTimes(1));
+    expect(attachSourceToTargets).toHaveBeenCalledWith('S1', [{ targetType: 'place', targetId: 'PL1' }]);
+    expect(await screen.findByText(nls.t('features.tree.autosaveFailed'))).toBeInTheDocument();
+    expect(screen.getAllByRole('button', { name: nls.t('features.tree.sources.attach') })[0]).toBeEnabled();
   });
 
   it('shows a missing-source message for an unknown id', () => {

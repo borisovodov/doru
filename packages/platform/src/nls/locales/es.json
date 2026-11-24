@@ -71,6 +71,7 @@
   "features.tasks.priorityLow": "Baja",
   "features.tasks.priorityMedium": "Media",
   "features.tasks.reminder": "Recordatorio",
+  "features.tasks.remove": "Quitar la tarea de este registro",
   "features.tasks.scheduled": "Programada",
   "features.tasks.status": "Estado",
   "features.tasks.statusClosed": "Cerrada",

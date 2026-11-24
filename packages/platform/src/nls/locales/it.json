@@ -71,6 +71,7 @@
   "features.tasks.priorityLow": "Bassa",
   "features.tasks.priorityMedium": "Media",
   "features.tasks.reminder": "Promemoria",
+  "features.tasks.remove": "Rimuovi l’attività da questo record",
   "features.tasks.scheduled": "Pianificata",
   "features.tasks.status": "Stato",
   "features.tasks.statusClosed": "Chiusa",

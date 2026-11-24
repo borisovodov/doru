@@ -199,4 +199,21 @@ describe('TaskTab', () => {
     fireEvent.change(text, { target: { value: 'Write a new report' } });
     expect(screen.queryByText(nls.t('features.tree.autosaveFailed'))).not.toBeInTheDocument();
   });
+
+  it('shows an error when unlinking an existing task target fails', async () => {
+    const task: TaskRecord = {
+      id: 'T1',
+      text: 'Find the record',
+      targets: [{ id: 'TL1', taskId: 'T1', targetType: 'person', targetId: 'P1' }],
+    };
+    const deleteTaskLink = vi.fn(async () => {
+      throw new Error('disk full');
+    });
+    const api = apiStub({ deleteTaskLink });
+    renderUi(taskElement(task.id, [task], api));
+
+    fireEvent.click(screen.getByRole('button', { name: nls.t('features.targets.remove') }));
+    await waitFor(() => expect(deleteTaskLink).toHaveBeenCalledTimes(1));
+    expect(await screen.findByText(nls.t('features.tree.autosaveFailed'))).toBeInTheDocument();
+  });
 });

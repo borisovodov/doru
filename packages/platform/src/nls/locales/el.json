@@ -71,6 +71,7 @@
   "features.tasks.priorityLow": "Χαμηλή",
   "features.tasks.priorityMedium": "Μεσαία",
   "features.tasks.reminder": "Υπενθύμιση",
+  "features.tasks.remove": "Αφαίρεση εργασίας από αυτή την εγγραφή",
   "features.tasks.scheduled": "Προγραμματισμένη",
   "features.tasks.status": "Κατάσταση",
   "features.tasks.statusClosed": "Κλειστή",

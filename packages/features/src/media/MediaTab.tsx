@@ -201,9 +201,11 @@ function MediaTabBody({
   const [keywords, setKeywords] = useState(record.keywords ?? '');
   const [expandedFileId, setExpandedFileId] = useState<string | null>(null);
   const [linkTargets, setLinkTargets] = useState<TargetRef[]>([]);
+  const [linkError, setLinkError] = useState(false);
   const [fileTitles, setFileTitles] = useState<Record<string, string>>(() => fileTitlesFrom(record.files));
   const fileTitlesRef = useRef(fileTitles);
   const targetLabel = createTaskTargetLabeler(targetData);
+  const attachMediaToTargets = api.attachMediaToTargets;
   const recordRef = useRef(record);
   const baselineRef = useRef<MediaRecord>(record);
   const savedRef = useRef<MediaRecord>(record);
@@ -726,28 +728,31 @@ function MediaTabBody({
             />
           ))}
         </ul>
-        {api.attachMediaToTargets !== undefined && (
-          <div className="media-link-add">
-            <TargetPicker
-              allowedTypes={TARGET_TYPES}
-              value={linkTargets}
-              onChange={setLinkTargets}
-              ariaLabel={nls.t('features.tasks.target')}
-            />
-            <Button
-              variant="primary"
-              size="sm"
-              disabled={linkTargets.length === 0}
-              onClick={() => {
-                void api
-                  .attachMediaToTargets?.(record.id, linkTargets)
-                  .then(() => setLinkTargets([]))
-                  .catch(() => undefined);
-              }}
-            >
-              {nls.t('features.tree.media.attach')}
-            </Button>
-          </div>
+        {attachMediaToTargets !== undefined && (
+          <>
+            <div className="media-link-add">
+              <TargetPicker
+                allowedTypes={TARGET_TYPES}
+                value={linkTargets}
+                onChange={setLinkTargets}
+                ariaLabel={nls.t('features.tasks.target')}
+              />
+              <Button
+                variant="primary"
+                size="sm"
+                disabled={linkTargets.length === 0}
+                onClick={() => {
+                  setLinkError(false);
+                  void attachMediaToTargets(record.id, linkTargets)
+                    .then(() => setLinkTargets([]))
+                    .catch(() => setLinkError(true));
+                }}
+              >
+                {nls.t('features.tree.media.attach')}
+              </Button>
+            </div>
+            {linkError ? <InlineError>{nls.t('features.tree.autosaveFailed')}</InlineError> : null}
+          </>
         )}
       </SectionCard>
 

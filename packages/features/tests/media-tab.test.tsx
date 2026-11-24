@@ -5,7 +5,7 @@ import { MediaTab } from '@doru/features/media';
 import type { MediaAdminApi } from '@doru/features/person';
 import type { AttachmentsPanelApi } from '../src/attachments';
 import type { MediaRecord } from '@doru/core';
-import type { MediaWithPath } from '@doru/ui/domain';
+import { TargetDirectoryProvider, type MediaWithPath } from '@doru/ui/domain';
 import { nls } from '../src/nls';
 import { renderUi, stubApi } from '../../../test/ui/harness';
 
@@ -340,5 +340,43 @@ describe('MediaTab', () => {
     await waitFor(() => expect(screen.getByRole('button', { name: 'Register' })).toBeInTheDocument());
     fireEvent.click(screen.getByRole('button', { name: 'Register' }));
     expect(openSource).toHaveBeenCalledWith('S1');
+  });
+
+  it('keeps the picked targets and reports a failed attach', async () => {
+    const attachMediaToTargets = vi.fn(async () => {
+      throw new Error('disk full');
+    });
+    const api = stubApi<MediaAdminApi>({
+      getMediaFor: async () => [],
+      getAllMedia: async () => [],
+      attachMediaToTargets,
+    });
+    renderUi(
+      <TargetDirectoryProvider
+        data={{
+          ...targetData,
+          places: [{ id: 'PL1', names: [{ id: 'PN1', kind: 'official', position: 0, value: 'Moscow' }] }],
+        }}
+      >
+        <MediaTab
+          entityId="M1"
+          media={[{ id: 'M1', title: 'Photo', absolutePath: '', files: [] }]}
+          api={api}
+          attachmentsApi={attachmentsStub()}
+          sources={[]}
+          targetData={targetData}
+          onClose={vi.fn()}
+        />
+      </TargetDirectoryProvider>,
+    );
+
+    fireEvent.focus(screen.getAllByRole('combobox', { name: nls.t('features.tasks.target') })[0]!);
+    fireEvent.click(screen.getByRole('option', { name: 'MoscowPlace' }));
+    fireEvent.click(screen.getAllByRole('button', { name: nls.t('features.tree.media.attach') })[0]!);
+
+    await waitFor(() => expect(attachMediaToTargets).toHaveBeenCalledTimes(1));
+    expect(attachMediaToTargets).toHaveBeenCalledWith('M1', [{ targetType: 'place', targetId: 'PL1' }]);
+    expect(await screen.findByText(nls.t('features.tree.autosaveFailed'))).toBeInTheDocument();
+    expect(screen.getAllByRole('button', { name: nls.t('features.tree.media.attach') })[0]).toBeEnabled();
   });
 });

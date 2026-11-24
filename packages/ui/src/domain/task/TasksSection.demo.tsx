@@ -23,7 +23,7 @@ const tasks: TaskRecord[] = [
 const api = {
   getTasksFor: async () => tasks,
   addTask: async () => undefined,
-  deleteTask: async () => undefined,
+  deleteTaskLink: async () => undefined,
   openTask: () => undefined,
 };
 
