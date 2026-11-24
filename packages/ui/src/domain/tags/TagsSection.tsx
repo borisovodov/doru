@@ -62,14 +62,15 @@ export function TagsSection({
         tag = { id: crypto.randomUUID(), name };
         await onAddTag(tag);
       }
-      const targets = [{ targetType, targetId }, ...extraTargets];
+      const submitted = extraTargets;
+      const targets = [{ targetType, targetId }, ...submitted];
       if (onAttachTagToTargets !== undefined) {
         await onAttachTagToTargets(tag.id, targets);
       } else {
         await onAttachTag({ id: crypto.randomUUID(), tagId: tag.id, targetType, targetId });
       }
       setInput('');
-      setExtraTargets([]);
+      setExtraTargets((current) => current.filter((target) => !containsTarget(submitted, target)));
     } catch {
       setAttachError(true);
     }
@@ -185,4 +186,8 @@ export function TagsSection({
       {attachError ? <InlineError>{nls.t('features.tree.autosaveFailed')}</InlineError> : null}
     </SectionCard>
   );
+}
+
+function containsTarget(targets: readonly TargetRef[], target: TargetRef): boolean {
+  return targets.some((entry) => entry.targetType === target.targetType && entry.targetId === target.targetId);
 }
