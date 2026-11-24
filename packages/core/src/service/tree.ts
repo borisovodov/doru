@@ -982,7 +982,8 @@ export class TreeService {
     for (const link of note.links ?? []) {
       assertNoteIsNotTarget(link.targetType);
     }
-    return this.apply(addNoteOp(note));
+    const now = Date.now();
+    return this.apply(addNoteOp({ ...note, createdAt: note.createdAt ?? now, updatedAt: now }));
   }
 
   /**
@@ -991,17 +992,25 @@ export class TreeService {
    * takes the context's link, the shared text stays untouched.
    */
   updateNote(before: NoteRecord, after: NoteRecord, context?: NoteLinkRecord): UndoRedoState {
-    const links = before.links ?? [];
+    const current = this.repo.getNote(before.id) ?? before;
+    const links = current.links ?? [];
+    const now = Date.now();
     if (context && links.length > 1) {
       const matching = links.find(
         (link) => link.targetType === context.targetType && link.targetId === context.targetId,
       );
       if (matching) {
-        const copy: NoteRecord = { ...after, id: crypto.randomUUID(), links: [matching] };
-        return this.apply(splitNoteOp(before.id, copy, matching));
+        const copy: NoteRecord = {
+          ...after,
+          id: crypto.randomUUID(),
+          createdAt: now,
+          updatedAt: now,
+          links: [matching],
+        };
+        return this.apply(splitNoteOp(current.id, copy, matching));
       }
     }
-    return this.apply(updateNoteOp(before, after));
+    return this.apply(updateNoteOp(current, { ...after, createdAt: current.createdAt, updatedAt: now }));
   }
 
   /** Attaches an existing note to another target (makes it shared). */
@@ -1461,6 +1470,7 @@ export class TreeService {
         priority: normalizeTaskPriority(task.priority),
         status,
         createdAt: task.createdAt ?? now,
+        updatedAt: now,
         closedAt: status === 'closed' ? (task.closedAt ?? now) : undefined,
       }),
     );
@@ -1520,6 +1530,7 @@ export class TreeService {
         priority: normalizeTaskPriority(after.priority),
         status,
         createdAt: current.createdAt,
+        updatedAt: Date.now(),
         closedAt,
       });
     });

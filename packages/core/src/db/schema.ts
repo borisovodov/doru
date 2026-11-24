@@ -46,10 +46,10 @@ export const DORU_APPLICATION_ID = 0x444f5255;
  * Bumped whenever the schema changes. There are no migrations before 1.0.0:
  * a newer version may simply not understand files written by older ones
  * (the store refuses to open them with a loud error). This schema uses
- * version 21, above every version written by an earlier build (the old model
+ * version 22, above every version written by an earlier build (the old model
  * reached 18), so the open guard cannot mistake an old file for this one.
  */
-export const SCHEMA_VERSION = 21;
+export const SCHEMA_VERSION = 22;
 
 export const SCHEMA_SQL = `
 CREATE TABLE IF NOT EXISTS person (
@@ -263,7 +263,9 @@ CREATE TABLE IF NOT EXISTS place_postal_code (
 
 CREATE TABLE IF NOT EXISTS note (
   id TEXT PRIMARY KEY,
-  text TEXT NOT NULL
+  text TEXT NOT NULL,
+  created_at INTEGER,
+  updated_at INTEGER
 );
 
 CREATE TABLE IF NOT EXISTS note_link (
@@ -557,6 +559,7 @@ CREATE TABLE IF NOT EXISTS task (
   text TEXT NOT NULL,
   priority TEXT, status TEXT,
   created_at INTEGER,
+  updated_at INTEGER,
   scheduled_at INTEGER,
   reminder_at INTEGER,
   closed_at INTEGER

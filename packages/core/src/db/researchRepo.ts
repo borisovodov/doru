@@ -15,8 +15,8 @@ export class ResearchRepo {
     this.transactions.run(() => {
       this.db
         .prepare(
-          `INSERT INTO task (id, text, priority, status, created_at, scheduled_at, reminder_at, closed_at)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+          `INSERT INTO task (id, text, priority, status, created_at, updated_at, scheduled_at, reminder_at, closed_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         )
         .run(...taskParams(task));
       for (const link of task.targets) {
@@ -32,8 +32,8 @@ export class ResearchRepo {
     this.transactions.run(() => {
       const changed = this.db
         .prepare(
-          `UPDATE task SET text = ?, priority = ?, status = ?, created_at = ?, scheduled_at = ?,
-             reminder_at = ?, closed_at = ? WHERE id = ?`,
+          `UPDATE task SET text = ?, priority = ?, status = ?, created_at = ?, updated_at = ?,
+             scheduled_at = ?, reminder_at = ?, closed_at = ? WHERE id = ?`,
         )
         .run(...taskParams(task).slice(1), task.id).changes;
       if (changed === 0) {
@@ -108,6 +108,7 @@ export class ResearchRepo {
       priority: row.priority ?? undefined,
       status: row.status ?? undefined,
       createdAt: row.created_at ?? undefined,
+      updatedAt: row.updated_at ?? undefined,
       scheduledAt: row.scheduled_at ?? undefined,
       reminderAt: row.reminder_at ?? undefined,
       closedAt: row.closed_at ?? undefined,
@@ -192,6 +193,7 @@ interface TaskRow {
   priority: string | null;
   status: string | null;
   created_at: number | null;
+  updated_at: number | null;
   scheduled_at: number | null;
   reminder_at: number | null;
   closed_at: number | null;
@@ -218,7 +220,7 @@ interface TitleRow {
 }
 
 const taskSelect = `SELECT task.id, task.text, task.priority, task.status,
-  task.created_at, task.scheduled_at, task.reminder_at, task.closed_at
+  task.created_at, task.updated_at, task.scheduled_at, task.reminder_at, task.closed_at
   FROM task`;
 
 function taskParams(task: TaskRecord): Array<string | number | null> {
@@ -228,6 +230,7 @@ function taskParams(task: TaskRecord): Array<string | number | null> {
     task.priority ?? null,
     task.status ?? null,
     task.createdAt ?? null,
+    task.updatedAt ?? null,
     task.scheduledAt ?? null,
     task.reminderAt ?? null,
     task.closedAt ?? null,

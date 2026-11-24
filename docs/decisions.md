@@ -142,8 +142,9 @@ for both inline and shared notes.
 
 ## Notes store text only
 
-A note stores its text only; it has no MIME type, language or translations.
-GEDCOM `NOTE.LANG`/`SNOTE.LANG`, `NOTE.MIME`/`SNOTE.MIME` and
+A note's content is its text; it has no MIME type, language or translations.
+The row also keeps `created_at` and `updated_at` epoch-millisecond instants for
+provenance. GEDCOM `NOTE.LANG`/`SNOTE.LANG`, `NOTE.MIME`/`SNOTE.MIME` and
 `NOTE.TRAN`/`SNOTE.TRAN` are parsed by `@doru/gedcom` but dropped by the core
 mapping: Dóru has one note text and no translation editor.
 
@@ -197,12 +198,14 @@ that no date rows are left orphaned.
 ## Task times are Unix instants
 
 Task lifecycle times are operational instants, not genealogical assertions.
-They are stored as epoch-millisecond integers: `created_at`, `scheduled_at`,
-`reminder_at`, and `closed_at`. They do not use the `date` table.
+They are stored as epoch-millisecond integers: `created_at`, `updated_at`,
+`scheduled_at`, `reminder_at`, and `closed_at`. They do not use the `date`
+table.
 
-`created_at` is set once when the app creates a task. `closed_at` is set when
-the status becomes `closed` and cleared when the task is reopened. The UI uses
-a date-and-time control, not the GEDCOM date editor.
+`created_at` is set once when the app creates a task, `updated_at` changes on
+every task edit, `closed_at` is set when the status becomes `closed` and
+cleared when the task is reopened. Link changes do not count as edits. The UI
+uses a date-and-time control, not the GEDCOM date editor.
 
 GEDCOM task dates are imported only when they are complete exact dates:
 My Family Tree's encoded `DDMMYYYY` text in the record form, and exact GEDCOM
@@ -213,7 +216,9 @@ rather than inventing an instant.
 ## No persistent change log
 
 There is no `change_log` table and no `CHAN`/`CREA` mapping. Undo/redo is an
-in-memory op queue; the database does not persist who changed what or when.
+in-memory op queue; the database does not persist who changed what. Per-record
+`created_at`/`updated_at` instants on notes and tasks are not a change log:
+they only record the first and last write of that row.
 This keeps the document model minimal and avoids duplicating GEDCOM's weakly
 typed change stamps. Revisit only when the product needs a real audit or
 history feature.

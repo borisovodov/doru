@@ -638,6 +638,10 @@ export interface NoteLinkRecord {
 export interface NoteRecord {
   id: string;
   text: string;
+  /** Creation instant, epoch milliseconds. */
+  createdAt?: number | undefined;
+  /** Last text edit instant, epoch milliseconds. */
+  updatedAt?: number | undefined;
   targetType?: string | undefined;
   targetId?: string | undefined;
   links?: NoteLinkRecord[] | undefined;
@@ -997,6 +1001,8 @@ export interface TaskRecord {
   status?: string | undefined;
   /** Creation instant, epoch milliseconds. Set once when the task is created. */
   createdAt?: number | undefined;
+  /** Last content edit instant, epoch milliseconds. */
+  updatedAt?: number | undefined;
   /** Scheduled instant, epoch milliseconds. */
   scheduledAt?: number | undefined;
   /** Reminder instant, epoch milliseconds. */

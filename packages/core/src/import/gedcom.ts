@@ -425,9 +425,12 @@ function importSharedNotes(records: GedcomRecord[], ctx: ImportContext): void {
     }
     const id = crypto.randomUUID();
     ctx.noteIds.set(note.xref, id);
+    const now = Date.now();
     ctx.repo.insertNote({
       id,
       text: note.payload,
+      createdAt: now,
+      updatedAt: now,
     });
     importCitations(note.citations, 'note', id, ctx);
   }
@@ -1383,6 +1386,7 @@ function importGedcomTodoRecord(record: GedcomTodoRecord, ctx: ImportContext): v
     priority: normalizeTaskPriority(record.priority),
     status,
     createdAt: parseTaskTextDate(record.createdDate),
+    updatedAt: Date.now(),
     scheduledAt: parseTaskTextDate(record.scheduledDate),
     reminderAt: parseTaskTextDate(record.reminderDate),
     closedAt: status === 'closed' ? parseTaskTextDate(record.closedDate) : undefined,
@@ -1561,6 +1565,7 @@ function importGedcomTodoStructure(
     priority: normalizeTaskPriority(structure.priority),
     status,
     createdAt: parseTaskTextDate(structure.createdDate),
+    updatedAt: Date.now(),
     scheduledAt: taskDateValueToTimestamp(mapDate(structure.date), structure.date?.interpreted),
     reminderAt: taskDateValueToTimestamp(mapDate(structure.reminderDate), structure.reminderDate?.interpreted),
     closedAt:
@@ -1702,9 +1707,12 @@ function importNotes(
     }
     const note = structure;
     const id = crypto.randomUUID();
+    const now = Date.now();
     ctx.repo.insertNote({
       id,
       text: note.payload,
+      createdAt: now,
+      updatedAt: now,
       links: [{ id: crypto.randomUUID(), targetType, targetId }],
     });
     importCitations(note.citations, 'note', id, ctx);

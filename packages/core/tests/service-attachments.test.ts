@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import type {
   AddressRecord,
   ContactRecord,
@@ -95,6 +95,50 @@ describe('TreeService attachments', () => {
       service.undo();
       expect(fixture.repo.getNote('N1')?.text).toBe('Edited text');
     } finally {
+      cleanupRepo(fixture);
+    }
+  });
+
+  it('stamps note creation, edits and split copies, but not link changes', () => {
+    const { fixture, service } = makeService();
+    try {
+      vi.useFakeTimers();
+      vi.setSystemTime(1_700_000_000_000);
+      service.addNote(note());
+      expect(fixture.repo.getNote('N1')).toMatchObject({
+        createdAt: 1_700_000_000_000,
+        updatedAt: 1_700_000_000_000,
+      });
+
+      vi.setSystemTime(1_700_000_100_000);
+      const stored = fixture.repo.getNote('N1')!;
+      service.updateNote(stored, { ...stored, text: 'Edited note' });
+      expect(fixture.repo.getNote('N1')).toMatchObject({
+        createdAt: 1_700_000_000_000,
+        updatedAt: 1_700_000_100_000,
+      });
+
+      vi.setSystemTime(1_700_000_200_000);
+      service.attachNote('N1', { id: 'L2', targetType: 'family', targetId: 'F1' });
+      expect(fixture.repo.getNote('N1')?.updatedAt).toBe(1_700_000_100_000);
+
+      vi.setSystemTime(1_700_000_300_000);
+      const shared = fixture.repo.getNote('N1')!;
+      const personLink = shared.links!.find((link) => link.targetType === 'person')!;
+      service.updateNote(shared, { ...shared, text: 'Split edit' }, personLink);
+
+      const split = fixture.repo.listNotes().find((entry) => entry.text === 'Split edit')!;
+      expect(split).toMatchObject({
+        createdAt: 1_700_000_300_000,
+        updatedAt: 1_700_000_300_000,
+      });
+      expect(fixture.repo.getNote('N1')).toMatchObject({
+        text: 'Edited note',
+        createdAt: 1_700_000_000_000,
+        updatedAt: 1_700_000_100_000,
+      });
+    } finally {
+      vi.useRealTimers();
       cleanupRepo(fixture);
     }
   });
