@@ -7,14 +7,10 @@ import { SectionCard } from '../../patterns/section-card/SectionCard';
 import { SourceLink } from './SourceLink';
 import { useState, type ReactNode } from 'react';
 import { Pencil, X } from 'lucide-react';
-import type { CitationRecord, SourceRecord, TargetRef } from '@doru/core';
-import { TARGET_TYPES } from '@doru/core/model';
+import type { CitationRecord, SourceRecord } from '@doru/core';
 import { nls } from '../../nls';
 import { CitationEditor } from '../citation/CitationEditor';
-import { TargetPicker } from '../targets';
 import './SourcesSection.css';
-
-const CITATION_TARGET_TYPES = TARGET_TYPES.filter((type) => type !== 'task');
 
 interface SourcesSectionProps {
   sectionTitle?: string | undefined;
@@ -24,9 +20,7 @@ interface SourcesSectionProps {
   citations: CitationRecord[];
   refresh: () => Promise<void>;
   onAddSource: (source: SourceRecord, targetType: string, targetId: string) => Promise<void>;
-  onAddSourceToTargets?: ((source: SourceRecord, targets: TargetRef[]) => Promise<void>) | undefined;
   onAttachSource: (sourceId: string, targetType: string, targetId: string) => Promise<void>;
-  onAttachSourceToTargets?: ((sourceId: string, targets: TargetRef[]) => Promise<void>) | undefined;
   onDetachCitation: (citationId: string) => Promise<void>;
   onUpdateCitation: (before: CitationRecord, after: CitationRecord) => Promise<void>;
   onOpenSource: (sourceId: string) => void;
@@ -41,9 +35,7 @@ export function SourcesSection({
   citations,
   refresh,
   onAddSource,
-  onAddSourceToTargets,
   onAttachSource,
-  onAttachSourceToTargets,
   onDetachCitation,
   onUpdateCitation,
   onOpenSource,
@@ -51,7 +43,6 @@ export function SourcesSection({
 }: SourcesSectionProps) {
   const [title, setTitle] = useState('');
   const [author, setAuthor] = useState('');
-  const [extraTargets, setExtraTargets] = useState<TargetRef[]>([]);
   const [sourceError, setSourceError] = useState(false);
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
@@ -60,19 +51,10 @@ export function SourcesSection({
     if (!trimmed) {
       return;
     }
-    const submitted = extraTargets;
-    if (submitted.length > 0 && onAddSourceToTargets === undefined) {
-      return;
-    }
     const source = { id: crypto.randomUUID(), title: trimmed, author: author.trim() || undefined };
     setSourceError(false);
     try {
-      if (onAddSourceToTargets !== undefined) {
-        await onAddSourceToTargets(source, [{ targetType, targetId }, ...submitted]);
-        setExtraTargets((current) => current.filter((target) => !containsTarget(submitted, target)));
-      } else {
-        await onAddSource(source, targetType, targetId);
-      }
+      await onAddSource(source, targetType, targetId);
       setTitle('');
       setAuthor('');
       await refresh();
@@ -90,18 +72,9 @@ export function SourcesSection({
   };
 
   const attach = async (sourceId: string) => {
-    const submitted = extraTargets;
-    if (submitted.length > 0 && onAttachSourceToTargets === undefined) {
-      return;
-    }
     setSourceError(false);
     try {
-      if (onAttachSourceToTargets !== undefined) {
-        await onAttachSourceToTargets(sourceId, [{ targetType, targetId }, ...submitted]);
-        setExtraTargets((current) => current.filter((target) => !containsTarget(submitted, target)));
-      } else {
-        await onAttachSource(sourceId, targetType, targetId);
-      }
+      await onAttachSource(sourceId, targetType, targetId);
       await refresh();
     } catch {
       setSourceError(true);
@@ -157,17 +130,6 @@ export function SourcesSection({
           </li>
         ))}
       </ul>
-      {(onAddSourceToTargets !== undefined || onAttachSourceToTargets !== undefined) && (
-        <TargetPicker
-          allowedTypes={CITATION_TARGET_TYPES}
-          value={extraTargets}
-          onChange={(targets) => {
-            setSourceError(false);
-            setExtraTargets(targets);
-          }}
-          ariaLabel={nls.t('features.tasks.target')}
-        />
-      )}
       <div className="sources-new">
         <Input
           placeholder={nls.t('features.tree.sources.titleField')}
@@ -185,11 +147,7 @@ export function SourcesSection({
             setAuthor(event.target.value);
           }}
         />
-        <Button
-          variant="primary"
-          disabled={extraTargets.length > 0 && onAddSourceToTargets === undefined}
-          onClick={() => void addNew()}
-        >
+        <Button variant="primary" onClick={() => void addNew()}>
           {nls.t('features.tree.sources.add')}
         </Button>
       </div>
@@ -202,7 +160,6 @@ export function SourcesSection({
               size="sm"
               variant="secondary"
               title={source.title}
-              disabled={extraTargets.length > 0 && onAttachSourceToTargets === undefined}
               onClick={() => void attach(source.id)}
             >
               {nls.t('features.tree.sources.attach')}: {source.title}
@@ -212,8 +169,4 @@ export function SourcesSection({
       )}
     </SectionCard>
   );
-}
-
-function containsTarget(targets: readonly TargetRef[], target: TargetRef): boolean {
-  return targets.some((entry) => entry.targetType === target.targetType && entry.targetId === target.targetId);
 }

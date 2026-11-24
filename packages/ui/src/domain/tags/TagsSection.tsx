@@ -6,10 +6,9 @@ import { Input } from '../../atoms/form/Input';
 import { SectionCard } from '../../patterns/section-card/SectionCard';
 import { useRef, useState } from 'react';
 import { Trash2, X } from 'lucide-react';
-import type { TagLinkRecord, TagRecord, TargetRef } from '@doru/core';
-import { foldCase, TARGET_TYPES } from '@doru/core/model';
+import type { TagLinkRecord, TagRecord } from '@doru/core';
+import { foldCase } from '@doru/core/model';
 import { nls } from '../../nls';
-import { TargetPicker } from '../targets';
 import '../attachments/AttachmentsSection.css';
 
 /**
@@ -26,7 +25,6 @@ export function TagsSection({
   onUpdateTag,
   onDeleteTag,
   onAttachTag,
-  onAttachTagToTargets,
   onDetachTag,
 }: {
   targetType: string;
@@ -37,11 +35,9 @@ export function TagsSection({
   onUpdateTag: (before: TagRecord, after: TagRecord) => Promise<void>;
   onDeleteTag: (tag: TagRecord) => Promise<void>;
   onAttachTag: (link: TagLinkRecord) => Promise<void>;
-  onAttachTagToTargets?: ((tagId: string, targets: TargetRef[]) => Promise<void>) | undefined;
   onDetachTag: (link: TagLinkRecord) => Promise<void>;
 }) {
   const [input, setInput] = useState('');
-  const [extraTargets, setExtraTargets] = useState<TargetRef[]>([]);
   const [attachError, setAttachError] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editValue, setEditValue] = useState('');
@@ -62,15 +58,8 @@ export function TagsSection({
         tag = { id: crypto.randomUUID(), name };
         await onAddTag(tag);
       }
-      const submitted = extraTargets;
-      const targets = [{ targetType, targetId }, ...submitted];
-      if (onAttachTagToTargets !== undefined) {
-        await onAttachTagToTargets(tag.id, targets);
-      } else {
-        await onAttachTag({ id: crypto.randomUUID(), tagId: tag.id, targetType, targetId });
-      }
+      await onAttachTag({ id: crypto.randomUUID(), tagId: tag.id, targetType, targetId });
       setInput('');
-      setExtraTargets((current) => current.filter((target) => !containsTarget(submitted, target)));
     } catch {
       setAttachError(true);
     }
@@ -153,17 +142,6 @@ export function TagsSection({
           </span>
         ))}
       </div>
-      {onAttachTagToTargets !== undefined && (
-        <TargetPicker
-          allowedTypes={TARGET_TYPES}
-          value={extraTargets}
-          onChange={(targets) => {
-            setAttachError(false);
-            setExtraTargets(targets);
-          }}
-          ariaLabel={nls.t('features.tasks.target')}
-        />
-      )}
       <div className="attachment-add">
         <Input
           list="doru-tag-names"
@@ -186,8 +164,4 @@ export function TagsSection({
       {attachError ? <InlineError>{nls.t('features.tree.autosaveFailed')}</InlineError> : null}
     </SectionCard>
   );
-}
-
-function containsTarget(targets: readonly TargetRef[], target: TargetRef): boolean {
-  return targets.some((entry) => entry.targetType === target.targetType && entry.targetId === target.targetId);
 }

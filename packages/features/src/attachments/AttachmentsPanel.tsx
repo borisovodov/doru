@@ -14,7 +14,7 @@ import {
 } from '@doru/ui/domain';
 import { MediaSection } from '../media/MediaSection';
 import type { AttachmentsApi } from '../person/types';
-import { refreshAfterTagAttach, useAttachments, type ContributorApi } from './useAttachments';
+import { useAttachments, type ContributorApi } from './useAttachments';
 
 export type AttachmentSection =
   | 'notes'
@@ -135,9 +135,7 @@ export function AttachmentsPanel({
           citations={citations}
           refresh={refresh}
           onAddSource={api.addSource}
-          onAddSourceToTargets={api.addSourceToTargets}
           onAttachSource={api.attachSource}
-          onAttachSourceToTargets={api.attachSourceToTargets}
           onDetachCitation={api.detachCitation}
           onUpdateCitation={api.updateCitation}
           onOpenSource={onOpenSource ?? (() => undefined)}
@@ -162,7 +160,6 @@ export function AttachmentsPanel({
             await api.deleteTag(tag);
             await refresh();
           }}
-          onAttachTagToTargets={refreshAfterTagAttach(api.attachTagToTargets, refresh)}
           onAttachTag={async (link) => {
             await api.attachTag(link);
             await refresh();

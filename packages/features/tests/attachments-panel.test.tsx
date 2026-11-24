@@ -18,6 +18,11 @@ function apiStub(): AttachmentsPanelApi {
     getMediaFor: async () => [],
     getAllMedia: async () => [],
     getTasksFor: async () => [],
+    addSourceToTargets: async () => undefined,
+    attachSourceToTargets: async () => undefined,
+    attachTagToTargets: async () => undefined,
+    addMediaToTargets: async () => undefined,
+    attachMediaToTargets: async () => undefined,
   });
 }
 
@@ -36,5 +41,11 @@ describe('AttachmentsPanel contacts', () => {
     renderUi(panel('place'));
 
     expect(screen.queryByText(nls.t('features.tree.contacts.title'))).not.toBeInTheDocument();
+  });
+
+  it('keeps attachment forms scoped to the current target', () => {
+    renderUi(panel('person'));
+
+    expect(screen.queryByRole('combobox', { name: nls.t('features.tasks.target') })).not.toBeInTheDocument();
   });
 });

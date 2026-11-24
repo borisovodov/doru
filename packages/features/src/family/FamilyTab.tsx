@@ -1,12 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { AssociationRecord, FamilyRecord, PersonRecord, SourceRecord } from '@doru/core';
-import {
-  AttachmentsPanel,
-  CitationAttachments,
-  NoteAttachments,
-  refreshAfterTagAttach,
-  useAttachments,
-} from '../attachments';
+import { AttachmentsPanel, CitationAttachments, NoteAttachments, useAttachments } from '../attachments';
 import { MediaSection } from '../media/MediaSection';
 import { EntityTab } from '../sidebar';
 import type { FamilyEditorApi, MediaTargetApi } from '../person/types';
@@ -423,9 +417,7 @@ function FamilyTabBody({
         citations={familyCitations}
         refresh={refreshAttachments}
         onAddSource={api.addSource}
-        onAddSourceToTargets={api.addSourceToTargets}
         onAttachSource={api.attachSource}
-        onAttachSourceToTargets={api.attachSourceToTargets}
         onDetachCitation={api.detachCitation}
         onUpdateCitation={api.updateCitation}
         onOpenSource={onOpenSource}
@@ -487,7 +479,6 @@ function FamilyTabBody({
         onAddTag={api.addTag}
         onUpdateTag={api.updateTag}
         onDeleteTag={api.deleteTag}
-        onAttachTagToTargets={refreshAfterTagAttach(api.attachTagToTargets, refreshAttachments)}
         onAttachTag={async (link) => {
           await api.attachTag(link);
           await refreshAttachments();

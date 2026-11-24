@@ -12,7 +12,7 @@ import type {
   TitleRecord,
 } from '@doru/core';
 import { TARGET_TYPES } from '@doru/core/model';
-import { CitationAttachments, NoteAttachments, refreshAfterTagAttach, useAttachments } from '../attachments';
+import { CitationAttachments, NoteAttachments, useAttachments } from '../attachments';
 import { AutoSaveError } from '../autoSaveFeedback';
 import { useEntityDelete } from '../entityDelete';
 import { Button, DangerZone, InlineError, SectionCard, useAutoSaveOnBlur } from '@doru/ui';
@@ -395,9 +395,7 @@ function SourceTabBody({
                 citations={sourceCitations}
                 refresh={refreshAttachments}
                 onAddSource={api.addSource}
-                onAddSourceToTargets={api.addSourceToTargets}
                 onAttachSource={api.attachSource}
-                onAttachSourceToTargets={api.attachSourceToTargets}
                 onDetachCitation={api.detachCitation}
                 onUpdateCitation={api.updateCitation}
                 onOpenSource={onOpenSource}
@@ -459,7 +457,6 @@ function SourceTabBody({
                 onAddTag={api.addTag}
                 onUpdateTag={api.updateTag}
                 onDeleteTag={api.deleteTag}
-                onAttachTagToTargets={refreshAfterTagAttach(api.attachTagToTargets, refreshAttachments)}
                 onAttachTag={async (link) => {
                   await api.attachTag(link);
                   await refreshAttachments();

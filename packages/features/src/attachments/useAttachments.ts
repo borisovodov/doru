@@ -8,7 +8,6 @@ import type {
   SubmitterRecord,
   TagLinkRecord,
   TagRecord,
-  TargetRef,
 } from '@doru/core';
 
 /** The read methods every entity editor needs for its attachment sections. */
@@ -67,23 +66,6 @@ const emptyAttachments = (): AttachmentData => ({
   submitters: [],
   contributors: [],
 });
-
-/**
- * Wraps a bulk tag attach so the current attachment panel reloads after the
- * write. A failed write still rejects and leaves the panel untouched.
- */
-export function refreshAfterTagAttach(
-  attach: ((tagId: string, targets: TargetRef[]) => Promise<void>) | undefined,
-  refresh: () => Promise<void>,
-): ((tagId: string, targets: TargetRef[]) => Promise<void>) | undefined {
-  if (attach === undefined) {
-    return undefined;
-  }
-  return async (tagId, targets) => {
-    await attach(tagId, targets);
-    await refresh();
-  };
-}
 
 /**
  * Loads the attachment lists of one entity. The loader itself is pure (it

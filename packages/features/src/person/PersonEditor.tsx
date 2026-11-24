@@ -33,7 +33,6 @@ import { FactsSection } from '@doru/ui/domain';
 import { FamilySection } from '@doru/ui/domain';
 import { NotesSection } from '@doru/ui/domain';
 import { AttachmentsPanel } from '../attachments/AttachmentsPanel';
-import { refreshAfterTagAttach } from '../attachments/useAttachments';
 import { CitationAttachments, NoteAttachments } from '../attachments/TargetAttachments';
 import { MediaSection } from '../media/MediaSection';
 import { NamesSection } from '@doru/ui/domain';
@@ -476,11 +475,9 @@ export function PersonEditor({
             onAddSource={async (source, _targetType, targetId) => {
               await api.addSource(source, 'person', targetId);
             }}
-            onAddSourceToTargets={api.addSourceToTargets}
             onAttachSource={async (sourceId, _targetType, targetId) => {
               await api.attachSource(sourceId, 'person', targetId);
             }}
-            onAttachSourceToTargets={api.attachSourceToTargets}
             onDetachCitation={api.detachCitation}
             onUpdateCitation={api.updateCitation}
             onOpenSource={(sourceId) => api.openSource?.(sourceId)}
@@ -593,7 +590,6 @@ export function PersonEditor({
               await api.deleteTag(tag);
               await refreshAttachments();
             }}
-            onAttachTagToTargets={refreshAfterTagAttach(api.attachTagToTargets, refreshAttachments)}
             onAttachTag={async (link) => {
               try {
                 await api.attachTag(link);
