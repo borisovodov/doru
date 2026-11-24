@@ -115,6 +115,38 @@ describe('TasksSection', () => {
     expect(select).toHaveValue('T2');
   });
 
+  it('clears a failed attach error after a successful detach', async () => {
+    const linked: TaskRecord = {
+      id: 'T1',
+      text: 'Find the parish register',
+      targets: [{ id: 'TL1', taskId: 'T1', targetType: 'person', targetId: 'P1' }],
+    };
+    const candidate: TaskRecord = { id: 'T2', text: 'Translate the 1890 census', targets: [] };
+    let hasLinked = true;
+    const sectionApi = {
+      getTasksFor: async () => (hasLinked ? [linked] : []),
+      getAllTasks: async () => [linked, candidate],
+      addTask: async () => undefined,
+      addTaskLink: async () => {
+        throw new Error('disk full');
+      },
+      deleteTaskLink: async () => {
+        hasLinked = false;
+      },
+    };
+
+    renderUi(<TasksSection targetType="person" targetId="P1" api={sectionApi} />);
+    await screen.findByText(linked.text);
+
+    const select = screen.getByRole('combobox', { name: nls.t('features.tasks.attachExisting') });
+    fireEvent.change(select, { target: { value: 'T2' } });
+    fireEvent.click(screen.getByRole('button', { name: nls.t('features.tasks.attach') }));
+    await screen.findByText(nls.t('features.tree.autosaveFailed'));
+
+    fireEvent.click(screen.getByRole('button', { name: nls.t('features.tasks.remove') }));
+    await waitFor(() => expect(screen.queryByText(nls.t('features.tree.autosaveFailed'))).not.toBeInTheDocument());
+  });
+
   it('does not offer an existing task on a source', async () => {
     renderUi(
       <TasksSection

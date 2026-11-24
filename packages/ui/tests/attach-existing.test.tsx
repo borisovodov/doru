@@ -23,6 +23,29 @@ describe('AttachExisting', () => {
     expect(select).toHaveValue('');
   });
 
+  it('reports a failed attach and keeps the record selected', async () => {
+    const onAttach = vi.fn(async () => {
+      throw new Error('disk full');
+    });
+    const onError = vi.fn();
+    renderUi(
+      <AttachExisting
+        label="Attach an existing note"
+        actionLabel="Attach"
+        options={options}
+        onAttach={onAttach}
+        onError={onError}
+      />,
+    );
+
+    const select = screen.getByRole('combobox', { name: 'Attach an existing note' });
+    fireEvent.change(select, { target: { value: 'N2' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Attach' }));
+
+    await waitFor(() => expect(onError).toHaveBeenCalledTimes(1));
+    expect(select).toHaveValue('N2');
+  });
+
   it('keeps the button disabled until a record is selected', () => {
     renderUi(
       <AttachExisting label="Attach an existing note" actionLabel="Attach" options={options} onAttach={vi.fn()} />,

@@ -1,5 +1,6 @@
 import { Button } from '../../atoms/button/Button';
 import { EmptyText } from '../../atoms/feedback/EmptyText';
+import { InlineError } from '../../atoms/feedback/InlineError';
 import { IconButton } from '../../atoms/icon-button/IconButton';
 import { Input } from '../../atoms/form/Input';
 import { Select } from '../../atoms/form/Select';
@@ -47,6 +48,7 @@ export function NotesSection({
   onDelete: (note: NoteRecord) => Promise<void>;
 }) {
   const [draft, setDraft] = useState('');
+  const [attachError, setAttachError] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [expandedAttachmentsId, setExpandedAttachmentsId] = useState<string | null>(null);
   const [editText, setEditText] = useState('');
@@ -62,6 +64,11 @@ export function NotesSection({
     }
     await onAdd(text);
     setDraft('');
+  };
+
+  const attach = async (noteId: string) => {
+    setAttachError(false);
+    await onAttach?.(noteId);
   };
 
   const startEdit = (note: NoteRecord) => {
@@ -264,6 +271,7 @@ export function NotesSection({
           ))}
         </ul>
       )}
+      {attachError ? <InlineError>{nls.t('features.tree.autosaveFailed')}</InlineError> : null}
       {onAttach !== undefined && (
         <AttachExisting
           label={nls.t('features.tree.notes.attachExisting')}
@@ -272,7 +280,8 @@ export function NotesSection({
             id: note.id,
             label: note.text.length > 60 ? `${note.text.slice(0, 60)}…` : note.text,
           }))}
-          onAttach={onAttach}
+          onAttach={attach}
+          onError={() => setAttachError(true)}
         />
       )}
       <div className="notes-add">

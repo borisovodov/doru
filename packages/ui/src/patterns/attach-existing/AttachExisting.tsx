@@ -16,6 +16,8 @@ export interface AttachExistingProps {
   actionLabel: string;
   options: readonly AttachExistingOption[];
   onAttach: (id: string) => Promise<void>;
+  /** Reports a failed attach; the owner is responsible for the message. */
+  onError?: ((error: unknown) => void) | undefined;
   className?: string | undefined;
 }
 
@@ -23,7 +25,7 @@ export interface AttachExistingProps {
  * A record list and its attach action. The parent owns the candidates and the
  * write; the control only clears its selection after a successful attach.
  */
-export function AttachExisting({ label, actionLabel, options, onAttach, className }: AttachExistingProps) {
+export function AttachExisting({ label, actionLabel, options, onAttach, onError, className }: AttachExistingProps) {
   const [selected, setSelected] = useState('');
   const [pending, setPending] = useState(false);
 
@@ -39,8 +41,10 @@ export function AttachExisting({ label, actionLabel, options, onAttach, classNam
     try {
       await onAttach(selected);
       setSelected('');
-    } catch {
-      // The owner reports the failure and keeps the record for a retry.
+    } catch (error) {
+      // Keep the record selected for a retry and let the owner surface the
+      // failure in its own feedback area.
+      onError?.(error);
     } finally {
       setPending(false);
     }

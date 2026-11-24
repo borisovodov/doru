@@ -43,8 +43,7 @@ export function TasksSection({
   const [tasks, setTasks] = useState<TaskRecord[]>([]);
   const [allTasks, setAllTasks] = useState<TaskRecord[]>([]);
   const [draft, setDraft] = useState('');
-  const [removeError, setRemoveError] = useState(false);
-  const [attachError, setAttachError] = useState(false);
+  const [actionError, setActionError] = useState(false);
 
   const load = useCallback(async () => {
     const [loadedTasks, loadedAllTasks] = await Promise.all([
@@ -78,25 +77,30 @@ export function TasksSection({
     if (text === '') {
       return;
     }
+    setActionError(false);
     const id = crypto.randomUUID();
-    await api.addTask({
-      id,
-      text,
-      targets: [{ id: crypto.randomUUID(), taskId: id, targetType, targetId }],
-      status: 'open',
-      priority: 'medium',
-    });
-    setDraft('');
-    await reload();
+    try {
+      await api.addTask({
+        id,
+        text,
+        targets: [{ id: crypto.randomUUID(), taskId: id, targetType, targetId }],
+        status: 'open',
+        priority: 'medium',
+      });
+      setDraft('');
+      await reload();
+    } catch {
+      setActionError(true);
+    }
   };
 
   const attach = async (taskId: string) => {
-    setAttachError(false);
+    setActionError(false);
     try {
       await api.addTaskLink({ id: crypto.randomUUID(), taskId, targetType, targetId });
       await reload();
     } catch (error) {
-      setAttachError(true);
+      setActionError(true);
       throw error;
     }
   };
@@ -106,12 +110,12 @@ export function TasksSection({
     if (link === undefined) {
       return;
     }
-    setRemoveError(false);
+    setActionError(false);
     try {
       await api.deleteTaskLink(link);
       await reload();
     } catch {
-      setRemoveError(true);
+      setActionError(true);
     }
   };
 
@@ -132,7 +136,7 @@ export function TasksSection({
   return (
     <SectionCard title={nls.t('features.tasks.title')}>
       {sorted.length === 0 && <EmptyText>{nls.t('features.tasks.empty')}</EmptyText>}
-      {removeError || attachError ? <InlineError>{nls.t('features.tree.autosaveFailed')}</InlineError> : null}
+      {actionError ? <InlineError>{nls.t('features.tree.autosaveFailed')}</InlineError> : null}
       <ul className="tasks-section-list">
         {sorted.map((task) => (
           <li key={task.id} className="tasks-section-item">
