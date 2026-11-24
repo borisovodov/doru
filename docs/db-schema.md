@@ -1059,6 +1059,11 @@ whose `user_version` differs from its `SCHEMA_VERSION`; the error is loud
 rather than a half-understood upgrade. Existing test projects must be
 recreated or re-imported after a schema bump.
 
+Keep a copy of the original file and the build that wrote it before opening
+it with a newer schema. Re-importing does not preserve data the current
+schema does not model, including tags and other unsupported vendor records;
+older builds cannot read files written by newer ones.
+
 When adding a table or column, keep the following checklist:
 
 1. Bump `SCHEMA_VERSION` in `packages/core/src/db/schema.ts`.
