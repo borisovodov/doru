@@ -46,6 +46,28 @@ describe('AttachExisting', () => {
     expect(select).toHaveValue('N2');
   });
 
+  it('clears a selection that is no longer a candidate', () => {
+    const onAttach = vi.fn(async () => undefined);
+    const { rerender } = renderUi(
+      <AttachExisting label="Attach an existing note" actionLabel="Attach" options={options} onAttach={onAttach} />,
+    );
+
+    fireEvent.change(screen.getByRole('combobox', { name: 'Attach an existing note' }), {
+      target: { value: 'N2' },
+    });
+    rerender(
+      <AttachExisting
+        label="Attach an existing note"
+        actionLabel="Attach"
+        options={options.slice(0, 1)}
+        onAttach={onAttach}
+      />,
+    );
+
+    expect(screen.getByRole('combobox', { name: 'Attach an existing note' })).toHaveValue('');
+    expect(screen.getByRole('button', { name: 'Attach' })).toBeDisabled();
+  });
+
   it('keeps the button disabled until a record is selected', () => {
     renderUi(
       <AttachExisting label="Attach an existing note" actionLabel="Attach" options={options} onAttach={vi.fn()} />,

@@ -24,22 +24,45 @@ export interface AttachExistingProps {
 /**
  * A record list and its attach action. The parent owns the candidates and the
  * write; the control only clears its selection after a successful attach.
+ * Changing the candidate set remounts the selection so a removed record can
+ * never be attached, while a failed attach keeps the current selection.
  */
-export function AttachExisting({ label, actionLabel, options, onAttach, onError, className }: AttachExistingProps) {
-  const [selected, setSelected] = useState('');
+export function AttachExisting(props: AttachExistingProps) {
   const [pending, setPending] = useState(false);
+  const optionsKey = props.options
+    .map((option) => option.id)
+    .sort()
+    .join('\u0000');
+  return <AttachExistingSelection key={optionsKey} pending={pending} setPending={setPending} {...props} />;
+}
+
+function AttachExistingSelection({
+  label,
+  actionLabel,
+  options,
+  onAttach,
+  onError,
+  className,
+  pending,
+  setPending,
+}: AttachExistingProps & {
+  pending: boolean;
+  setPending: (pending: boolean) => void;
+}) {
+  const [selected, setSelected] = useState('');
+  const selectedOption = options.find((option) => option.id === selected);
 
   if (options.length === 0) {
     return null;
   }
 
   const attach = async () => {
-    if (selected === '' || pending) {
+    if (selectedOption === undefined || pending) {
       return;
     }
     setPending(true);
     try {
-      await onAttach(selected);
+      await onAttach(selectedOption.id);
       setSelected('');
     } catch (error) {
       // Keep the record selected for a retry and let the owner surface the
@@ -54,7 +77,7 @@ export function AttachExisting({ label, actionLabel, options, onAttach, onError,
     <div className={cx(styles['row'], className)}>
       <Select
         aria-label={label}
-        value={selected}
+        value={selectedOption === undefined ? '' : selected}
         disabled={pending}
         onChange={(event) => setSelected(event.target.value)}
       >
@@ -65,7 +88,12 @@ export function AttachExisting({ label, actionLabel, options, onAttach, onError,
           </option>
         ))}
       </Select>
-      <Button variant="secondary" loading={pending} disabled={selected === ''} onClick={() => void attach()}>
+      <Button
+        variant="secondary"
+        loading={pending}
+        disabled={selectedOption === undefined}
+        onClick={() => void attach()}
+      >
         {actionLabel}
       </Button>
     </div>

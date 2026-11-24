@@ -89,7 +89,8 @@ describe('TasksSection', () => {
         expect.objectContaining({ taskId: 'T2', targetType: 'person', targetId: 'P1' }),
       ),
     );
-    await screen.findByText(candidate.text);
+    const taskList = screen.getByRole('list');
+    await waitFor(() => expect(within(taskList).getByText(candidate.text)).toBeInTheDocument());
   });
 
   it('reports a failed attach and keeps the candidate selected', async () => {
