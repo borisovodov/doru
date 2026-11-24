@@ -2,7 +2,7 @@ import { BrowserWindow, dialog, type OpenDialogOptions } from 'electron';
 import { randomUUID } from 'node:crypto';
 import { rename, stat, unlink } from 'node:fs/promises';
 import { dirname, extname, join, resolve } from 'node:path';
-import { IMAGE_EXTENSIONS, MEDIA_DIR_NAME, type MediaFile, type MediaRecord, type TargetRef } from '@doru/core';
+import { IMAGE_EXTENSIONS, MEDIA_DIR_NAME, type MediaFile, type MediaRecord } from '@doru/core';
 import { NodeFileSystem } from './filesystem';
 import { log } from './log';
 import { readMediaFileFacts, type MediaFileFacts } from './mediaFacts';
@@ -133,40 +133,6 @@ export async function addMediaToTarget(
       targetType,
       targetId,
     };
-    runtime.service.addMedia(media);
-    added.push(await withPaths(projectPath, media));
-  }
-  return added;
-}
-
-/** Picks files and creates one media record linked to several targets. */
-export async function addMediaToTargets(projectPath: string, targets: TargetRef[]): Promise<MediaWithPath[]> {
-  const sources = await pickMediaFiles();
-  if (sources.length === 0) {
-    return [];
-  }
-  const { runtime } = await ensureRuntime(projectPath);
-  const mediaDir = join(dirname(runtimeFilePath(projectPath)), MEDIA_DIR_NAME);
-  await fs.mkdir(mediaDir);
-  const added: MediaWithPath[] = [];
-  for (const source of sources) {
-    const name = `${randomUUID()}${extname(source)}`;
-    const destination = join(mediaDir, name);
-    await fs.copyFile(source, destination);
-    const media: MediaRecord = {
-      id: randomUUID(),
-      path: join(MEDIA_DIR_NAME, name),
-      ...(targets[0] !== undefined ? { targetType: targets[0].targetType, targetId: targets[0].targetId } : {}),
-      links: targets.map((target, position) => ({
-        id: randomUUID(),
-        mediaId: '',
-        targetType: target.targetType,
-        targetId: target.targetId,
-        sequence: position,
-      })),
-    };
-    // The link media id must match the freshly generated record id.
-    media.links = media.links?.map((link) => ({ ...link, mediaId: media.id }));
     runtime.service.addMedia(media);
     added.push(await withPaths(projectPath, media));
   }

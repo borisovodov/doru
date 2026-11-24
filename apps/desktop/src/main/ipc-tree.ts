@@ -26,7 +26,6 @@ import type {
 import {
   addFilesToMedia,
   addMediaToTarget,
-  addMediaToTargets,
   addStandaloneMedia,
   listAllMedia,
   listMediaForTarget,
@@ -316,14 +315,6 @@ export function registerTreeIpc(): void {
     async (_event, options: { projectPath: string; source: SourceRecord; targetType?: string; targetId?: string }) => {
       const { runtime } = await ensureRuntime(options.projectPath);
       return runtime.service.addSource(options.source, options.targetType, options.targetId);
-    },
-  );
-
-  ipcMain.handle(
-    'tree:addSourceToTargets',
-    async (_event, options: { projectPath: string; source: SourceRecord; targets: TargetRef[] }) => {
-      const { runtime } = await ensureRuntime(options.projectPath);
-      return runtime.service.addSourceToTargets(options.source, options.targets);
     },
   );
 
@@ -619,10 +610,6 @@ export function registerTreeIpc(): void {
     'tree:addMedia',
     async (_event, options: { projectPath: string; targetType: string; targetId: string }) =>
       addMediaToTarget(options.projectPath, options.targetType, options.targetId),
-  );
-
-  ipcMain.handle('tree:addMediaToTargets', async (_event, options: { projectPath: string; targets: TargetRef[] }) =>
-    addMediaToTargets(options.projectPath, options.targets),
   );
 
   ipcMain.handle('tree:addStandaloneMedia', async (_event, options: { projectPath: string }) =>

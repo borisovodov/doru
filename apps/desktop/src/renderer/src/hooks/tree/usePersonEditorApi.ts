@@ -151,13 +151,6 @@ export function usePersonEditorApi(
         await window.doru.addSource(projectPath, source, targetType, targetId);
         await refreshTree().catch(() => undefined);
       },
-      addSourceToTargets: async (source, targets: TargetRef[]) => {
-        if (!projectPath) {
-          return;
-        }
-        await window.doru.addSourceToTargets(projectPath, source, targets);
-        await refreshTree().catch(() => undefined);
-      },
       attachSource: async (sourceId, targetType, targetId) => {
         if (!projectPath) {
           return;

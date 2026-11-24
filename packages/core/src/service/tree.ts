@@ -52,7 +52,6 @@ import {
   addRelativeOp,
   addRepositoryOp,
   addSourceOp,
-  addSourceWithCitationsOp,
   addSubmitterOp,
   addRecordSubmitterOp,
   addTaskLinkOp,
@@ -857,12 +856,6 @@ export class TreeService {
     }
     const citation = targetType && targetId ? { targetType, targetId } : undefined;
     return this.apply(addSourceOp(source, citation));
-  }
-
-  /** Creates one source and one citation per target in a single undo step. */
-  addSourceToTargets(source: SourceRecord, targets: readonly TargetRef[]): UndoRedoState {
-    const citations = this.citationsForTargets(source.id, targets);
-    return this.apply(addSourceWithCitationsOp(source, citations));
   }
 
   updateSource(before: SourceRecord, after: SourceRecord): UndoRedoState {

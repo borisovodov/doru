@@ -174,8 +174,6 @@ const api = {
   getSources: (projectPath: string): Promise<unknown> => ipcRenderer.invoke('tree:sources', { projectPath }),
   addSource: (projectPath: string, source: unknown, targetType?: string, targetId?: string): Promise<unknown> =>
     ipcRenderer.invoke('tree:addSource', { projectPath, source, targetType, targetId }),
-  addSourceToTargets: (projectPath: string, source: unknown, targets: unknown): Promise<unknown> =>
-    ipcRenderer.invoke('tree:addSourceToTargets', { projectPath, source, targets }),
   updateSource: (projectPath: string, before: unknown, after: unknown): Promise<unknown> =>
     ipcRenderer.invoke('tree:updateSource', { projectPath, before, after }),
   deleteSource: (projectPath: string, source: unknown): Promise<unknown> =>
@@ -272,8 +270,6 @@ const api = {
   getAllMedia: (projectPath: string): Promise<unknown> => ipcRenderer.invoke('tree:allMedia', { projectPath }),
   addMedia: (projectPath: string, targetType: string, targetId: string): Promise<unknown> =>
     ipcRenderer.invoke('tree:addMedia', { projectPath, targetType, targetId }),
-  addMediaToTargets: (projectPath: string, targets: unknown): Promise<unknown> =>
-    ipcRenderer.invoke('tree:addMediaToTargets', { projectPath, targets }),
   addStandaloneMedia: (projectPath: string): Promise<unknown> =>
     ipcRenderer.invoke('tree:addStandaloneMedia', { projectPath }),
   updateMedia: (projectPath: string, before: unknown, after: unknown): Promise<unknown> =>

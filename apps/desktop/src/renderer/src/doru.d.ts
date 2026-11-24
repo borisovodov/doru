@@ -160,7 +160,6 @@ declare global {
         targetType?: string,
         targetId?: string,
       ): Promise<UndoRedoState>;
-      addSourceToTargets(projectPath: string, source: SourceRecord, targets: TargetRef[]): Promise<UndoRedoState>;
       updateSource(projectPath: string, before: SourceRecord, after: SourceRecord): Promise<UndoRedoState>;
       deleteSource(projectPath: string, source: SourceRecord): Promise<UndoRedoState>;
       updateCitation(projectPath: string, before: CitationRecord, after: CitationRecord): Promise<UndoRedoState>;
@@ -216,7 +215,6 @@ declare global {
       getMedia(projectPath: string, targetType: string, targetId: string): Promise<MediaWithPath[]>;
       getAllMedia(projectPath: string): Promise<MediaWithPath[]>;
       addMedia(projectPath: string, targetType: string, targetId: string): Promise<MediaWithPath[]>;
-      addMediaToTargets(projectPath: string, targets: TargetRef[]): Promise<MediaWithPath[]>;
       addStandaloneMedia(projectPath: string): Promise<MediaWithPath[]>;
       updateMedia(projectPath: string, before: MediaRecord, after: MediaRecord): Promise<UndoRedoState>;
       addMediaFile(projectPath: string, mediaId: string): Promise<MediaWithPath | undefined>;

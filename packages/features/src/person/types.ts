@@ -31,7 +31,6 @@ export interface MediaTargetApi {
   getMediaFor(targetType: string, targetId: string): Promise<MediaWithPath[]>;
   getAllMedia(): Promise<MediaWithPath[]>;
   addMediaToTarget(targetType: string, targetId: string): Promise<void>;
-  addMediaToTargets?(targets: TargetRef[]): Promise<void>;
   attachMedia(link: MediaLinkRecord): Promise<void>;
   attachMediaToTargets?(mediaId: string, targets: TargetRef[]): Promise<void>;
   detachMedia(link: MediaLinkRecord): Promise<void>;
@@ -58,7 +57,6 @@ export interface AttachmentsApi extends AttachmentApi, MediaTargetApi {
   updateCitation(before: CitationRecord, after: CitationRecord): Promise<void>;
   getSources(): Promise<SourceRecord[]>;
   addSource(source: SourceRecord, targetType?: string, targetId?: string): Promise<void>;
-  addSourceToTargets?(source: SourceRecord, targets: TargetRef[]): Promise<void>;
   attachSource(sourceId: string, targetType: string, targetId: string): Promise<void>;
   attachSourceToTargets?(sourceId: string, targets: TargetRef[]): Promise<void>;
   detachCitation(citationId: string): Promise<void>;

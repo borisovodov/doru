@@ -195,7 +195,7 @@ export function addSourceOp(source: SourceRecord, citation?: { targetType: strin
   );
 }
 
-export function addSourceWithCitationsOp(source: SourceRecord, citations: CitationRecord[]): Op {
+function addSourceWithCitationsOp(source: SourceRecord, citations: CitationRecord[]): Op {
   return {
     ...op(
       crypto.randomUUID(),

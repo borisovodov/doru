@@ -88,11 +88,6 @@ export function useAttachmentMethods(
         await window.doru.addSource(projectPath, source, targetType, targetId);
         await refreshTree();
       },
-      addSourceToTargets: async (source: SourceRecord, targets: TargetRef[]) => {
-        if (!projectPath) return;
-        await window.doru.addSourceToTargets(projectPath, source, targets);
-        await refreshTree();
-      },
       attachSource: async (sourceId: string, targetType: string, targetId: string) => {
         if (!projectPath) return;
         await window.doru.attachSource(projectPath, sourceId, targetType, targetId);

@@ -32,13 +32,6 @@ export function useMediaApis(projectPath: string | null | undefined, refreshTree
         await window.doru.addMedia(projectPath, targetType, targetId);
         await refreshAfterWrite(refreshTree);
       },
-      addMediaToTargets: async (targets: TargetRef[]) => {
-        if (!projectPath) {
-          return;
-        }
-        await window.doru.addMediaToTargets(projectPath, targets);
-        await refreshAfterWrite(refreshTree);
-      },
       attachMedia: async (link) => {
         if (!projectPath) {
           return;

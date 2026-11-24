@@ -12,7 +12,6 @@ export {
   attachNoteOp,
   addRepositoryOp,
   addSourceOp,
-  addSourceWithCitationsOp,
   addSubmitterOp,
   attachCitationOp,
   attachCitationsOp,
