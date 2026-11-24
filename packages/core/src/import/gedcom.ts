@@ -67,10 +67,10 @@ import type {
  *   unresolved paths stay external references.
  * - the evidence/research records (`_EVID`, `_RDOC`, `_RACT`), the
  *   MagiKey census record (`_CENR`), the Legacy custom event definitions
- *   (`_EVENT_DEFN`) and the LDS ordinance structures (BAPL/CONL/ENDL/
- *   INIL/SLGC/SLGS): the parser keeps them, but the tree has no such
- *   layers — they are counted as dropped. Census data from real files
- *   arrives as CENS facts on persons.
+ *   (`_EVENT_DEFN`), the organisational tag records (`_TAG`) and the LDS
+ *   ordinance structures (BAPL/CONL/ENDL/INIL/SLGC/SLGS): the parser keeps
+ *   them, but the tree has no such layers — they are counted as dropped.
+ *   Census data from real files arrives as CENS facts on persons.
  * - vendor-only structures (§3.2 of the schema plan): GenoPro entity
  *   records, MyHeritage tree tags, published sites, groups, USM types,
  *   vendor IDs (FamilySearch/MyHeritage/Ancestry), raw extension records,
@@ -1341,11 +1341,12 @@ function importResearchRecords(records: GedcomRecord[], ctx: ImportContext): voi
       case '_RDOC':
       case '_RACT':
       case '_CENR':
+      case '_TAG':
         // The evidence/research records (the glamberson gedcom-evidence
-        // extension) and the MagiKey census record stay in the
-        // @doru/gedcom model but are deliberately not carried into the
-        // tree. Census data imported from real files arrives as CENS
-        // facts on persons.
+        // extension), the MagiKey census record and the organisational tag
+        // records stay in the @doru/gedcom model but are deliberately not
+        // carried into the tree. Census data imported from real files
+        // arrives as CENS facts on persons.
         ctx.dropped += 1;
         break;
       case '_TODO':

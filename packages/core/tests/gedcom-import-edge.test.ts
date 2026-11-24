@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { parse } from '@doru/gedcom';
+import { parse, serializeGedcom70 } from '@doru/gedcom';
+import { buildGedcomDataset } from '../src/export/gedcom';
 import { importGedcomDataset } from '../src/import/gedcom';
 import { cleanupRepo, makeRepo } from './helpers';
 
@@ -258,6 +259,41 @@ describe('importGedcomDataset edge coverage', () => {
       // The attached task imported.
       const family = repo.listFamilies()[0]!;
       expect(repo.listTasksFor('family', family.id)).toHaveLength(1);
+    } finally {
+      cleanupRepo(fixture);
+    }
+  });
+
+  it('ignores organisational tag records and never exports them', () => {
+    const gedcom = [
+      '0 HEAD',
+      '1 GEDC',
+      '2 VERS 7.0',
+      '0 @I1@ INDI',
+      '1 NAME Ivan /Petrov/',
+      '1 _TAG @T1@',
+      '0 @T1@ _TAG',
+      '1 NAME favorites',
+      '1 _COLOR #00FF00',
+      '0 TRLR',
+    ].join('\n');
+    const parsed = parse(new TextEncoder().encode(gedcom));
+    if (!parsed.ok || parsed.value.kind !== 'dataset') {
+      throw new Error('fixture failed to parse');
+    }
+    const fixture = makeRepo();
+    try {
+      const summary = importGedcomDataset(parsed.value.dataset, fixture.repo);
+      expect(summary.droppedStructures).toBe(1);
+      expect(fixture.repo.listAllPersons()).toHaveLength(1);
+
+      const exported = buildGedcomDataset(fixture.repo);
+      expect(exported.records.some((record) => record.tag === '_TAG')).toBe(false);
+      const serialized = serializeGedcom70(exported);
+      expect(serialized.ok).toBe(true);
+      if (serialized.ok) {
+        expect(serialized.value).not.toMatch(/^\d+ _TAG\b/m);
+      }
     } finally {
       cleanupRepo(fixture);
     }
