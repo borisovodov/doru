@@ -1,5 +1,5 @@
 import type { DatabaseSync } from 'node:sqlite';
-import type { TitleRecord, TaskRecord } from '../model/types';
+import type { TaskRecord, TaskTargetLink, TitleRecord } from '../model/types';
 import type { TransactionScope } from './transaction';
 
 /** The research layer: tasks and titles. */
@@ -15,11 +15,13 @@ export class ResearchRepo {
     this.transactions.run(() => {
       this.db
         .prepare(
-          `INSERT INTO task (id, text, target_type, target_id, priority, status,
-             created_at, scheduled_at, reminder_at, closed_at)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          `INSERT INTO task (id, text, priority, status, created_at, scheduled_at, reminder_at, closed_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
         )
         .run(...taskParams(task));
+      for (const link of task.targets) {
+        this.insertTaskLink(link);
+      }
     });
   }
 
@@ -27,9 +29,8 @@ export class ResearchRepo {
     this.transactions.run(() => {
       const changed = this.db
         .prepare(
-          `UPDATE task SET text = ?, target_type = ?, target_id = ?, priority = ?, status = ?,
-             created_at = ?, scheduled_at = ?, reminder_at = ?, closed_at = ?
-           WHERE id = ?`,
+          `UPDATE task SET text = ?, priority = ?, status = ?, created_at = ?, scheduled_at = ?,
+             reminder_at = ?, closed_at = ? WHERE id = ?`,
         )
         .run(...taskParams(task).slice(1), task.id).changes;
       if (changed === 0) {
@@ -54,21 +55,53 @@ export class ResearchRepo {
 
   listTasksFor(targetType: string, targetId: string): TaskRecord[] {
     const rows = this.db
-      .prepare(`${taskSelect} WHERE target_type = ? AND target_id = ? ORDER BY id`)
+      .prepare(
+        `${taskSelect}
+         JOIN task_link ON task_link.task_id = task.id
+         WHERE task_link.target_type = ? AND task_link.target_id = ?
+         ORDER BY task.id`,
+      )
       .all(targetType, targetId) as unknown as TaskRow[];
     return this.hydrateTasks(rows);
   }
 
-  deleteTasksFor(targetType: string, targetId: string): void {
-    this.db.prepare('DELETE FROM task WHERE target_type = ? AND target_id = ?').run(targetType, targetId);
+  listTaskLinksFor(targetType: string, targetId: string): TaskTargetLink[] {
+    const rows = this.db
+      .prepare(
+        `SELECT id, task_id, target_type, target_id FROM task_link
+         WHERE target_type = ? AND target_id = ? ORDER BY id`,
+      )
+      .all(targetType, targetId) as unknown as TaskLinkRow[];
+    return rows.map(rowToTaskLink);
+  }
+
+  insertTaskLink(link: TaskTargetLink): void {
+    this.db
+      .prepare('INSERT INTO task_link (id, task_id, target_type, target_id) VALUES (?, ?, ?, ?)')
+      .run(link.id, link.taskId, link.targetType, link.targetId);
+  }
+
+  deleteTaskLink(id: string): boolean {
+    return this.db.prepare('DELETE FROM task_link WHERE id = ?').run(id).changes > 0;
+  }
+
+  getTaskLink(id: string): TaskTargetLink | undefined {
+    const row = this.db.prepare('SELECT id, task_id, target_type, target_id FROM task_link WHERE id = ?').get(id) as
+      | TaskLinkRow
+      | undefined;
+    return row === undefined ? undefined : rowToTaskLink(row);
+  }
+
+  deleteTaskLinksFor(targetType: string, targetId: string): void {
+    this.db.prepare('DELETE FROM task_link WHERE target_type = ? AND target_id = ?').run(targetType, targetId);
   }
 
   private hydrateTasks(rows: TaskRow[]): TaskRecord[] {
+    const links = this.taskLinksFor(rows.map((row) => row.id));
     return rows.map((row) => ({
       id: row.id,
       text: row.text,
-      targetType: row.target_type ?? undefined,
-      targetId: row.target_id ?? undefined,
+      targets: links.get(row.id) ?? [],
       priority: row.priority ?? undefined,
       status: row.status ?? undefined,
       createdAt: row.created_at ?? undefined,
@@ -76,6 +109,26 @@ export class ResearchRepo {
       reminderAt: row.reminder_at ?? undefined,
       closedAt: row.closed_at ?? undefined,
     }));
+  }
+
+  private taskLinksFor(taskIds: string[]): Map<string, TaskTargetLink[]> {
+    const byTask = new Map<string, TaskTargetLink[]>();
+    if (taskIds.length === 0) {
+      return byTask;
+    }
+    const placeholders = taskIds.map(() => '?').join(', ');
+    const rows = this.db
+      .prepare(
+        `SELECT id, task_id, target_type, target_id FROM task_link
+         WHERE task_id IN (${placeholders}) ORDER BY id`,
+      )
+      .all(...taskIds) as unknown as TaskLinkRow[];
+    for (const row of rows) {
+      const links = byTask.get(row.task_id) ?? [];
+      links.push(rowToTaskLink(row));
+      byTask.set(row.task_id, links);
+    }
+    return byTask;
   }
 
   // titles ---------------------------------------------------------------------------
@@ -133,14 +186,19 @@ export class ResearchRepo {
 interface TaskRow {
   id: string;
   text: string;
-  target_type: string | null;
-  target_id: string | null;
   priority: string | null;
   status: string | null;
   created_at: number | null;
   scheduled_at: number | null;
   reminder_at: number | null;
   closed_at: number | null;
+}
+
+interface TaskLinkRow {
+  id: string;
+  task_id: string;
+  target_type: string;
+  target_id: string;
 }
 
 interface TitleRow {
@@ -156,16 +214,14 @@ interface TitleRow {
   sequence: number | null;
 }
 
-const taskSelect = `SELECT id, text, target_type, target_id, priority, status,
-  created_at, scheduled_at, reminder_at, closed_at
+const taskSelect = `SELECT task.id, task.text, task.priority, task.status,
+  task.created_at, task.scheduled_at, task.reminder_at, task.closed_at
   FROM task`;
 
 function taskParams(task: TaskRecord): Array<string | number | null> {
   return [
     task.id,
     task.text,
-    task.targetType ?? null,
-    task.targetId ?? null,
     task.priority ?? null,
     task.status ?? null,
     task.createdAt ?? null,
@@ -173,6 +229,15 @@ function taskParams(task: TaskRecord): Array<string | number | null> {
     task.reminderAt ?? null,
     task.closedAt ?? null,
   ];
+}
+
+function rowToTaskLink(row: TaskLinkRow): TaskTargetLink {
+  return {
+    id: row.id,
+    taskId: row.task_id,
+    targetType: row.target_type,
+    targetId: row.target_id,
+  };
 }
 
 function titleParams(title: TitleRecord): Array<string | number | null> {

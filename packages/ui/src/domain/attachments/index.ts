@@ -1,1 +1,1 @@
-export { ContactsSection, IdentifiersSection, RestrictionsSection } from './AttachmentsSection';
+export { ContactsSection, IdentifiersSection } from './AttachmentsSection';

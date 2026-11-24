@@ -6,12 +6,13 @@ import type {
   NoteLinkRecord,
   NoteRecord,
   RecordSubmitterLink,
-  RestrictionRecord,
   SourceRecord,
   SubmitterRecord,
   TagLinkRecord,
   TagRecord,
+  TargetRef,
   TaskRecord,
+  TaskTargetLink,
 } from '@doru/core';
 import type { MediaTargetApi } from '@doru/features';
 import type { RefreshTree } from './types';
@@ -69,6 +70,16 @@ export function useAttachmentMethods(
         await window.doru.deleteTask(projectPath, task);
         await refreshTree();
       },
+      addTaskLink: async (link: TaskTargetLink) => {
+        if (!projectPath) return;
+        await window.doru.addTaskLink(projectPath, link);
+        await refreshTree();
+      },
+      deleteTaskLink: async (link: TaskTargetLink) => {
+        if (!projectPath) return;
+        await window.doru.deleteTaskLink(projectPath, link);
+        await refreshTree();
+      },
       getCitations: (targetType: string, targetId: string) =>
         projectPath
           ? window.doru.getCitations(projectPath, targetType, targetId)
@@ -79,9 +90,19 @@ export function useAttachmentMethods(
         await window.doru.addSource(projectPath, source, targetType, targetId);
         await refreshTree();
       },
+      addSourceToTargets: async (source: SourceRecord, targets: TargetRef[]) => {
+        if (!projectPath) return;
+        await window.doru.addSourceToTargets(projectPath, source, targets);
+        await refreshTree();
+      },
       attachSource: async (sourceId: string, targetType: string, targetId: string) => {
         if (!projectPath) return;
         await window.doru.attachSource(projectPath, sourceId, targetType, targetId);
+        await refreshTree();
+      },
+      attachSourceToTargets: async (sourceId: string, targets: TargetRef[]) => {
+        if (!projectPath) return;
+        await window.doru.attachSourceToTargets(projectPath, sourceId, targets);
         await refreshTree();
       },
       detachCitation: async (citationId: string) => {
@@ -132,25 +153,6 @@ export function useAttachmentMethods(
         await window.doru.updateContact(projectPath, before, after);
         await refreshTree();
       },
-      getRestrictions: (targetType: string, targetId: string) =>
-        projectPath
-          ? window.doru.getRestrictions(projectPath, targetType, targetId)
-          : Promise.resolve([] as RestrictionRecord[]),
-      addRestriction: async (restriction: RestrictionRecord) => {
-        if (!projectPath) return;
-        await window.doru.addRestriction(projectPath, restriction);
-        await refreshTree();
-      },
-      deleteRestriction: async (restriction: RestrictionRecord) => {
-        if (!projectPath) return;
-        await window.doru.deleteRestriction(projectPath, restriction);
-        await refreshTree();
-      },
-      updateRestriction: async (before: RestrictionRecord, after: RestrictionRecord) => {
-        if (!projectPath) return;
-        await window.doru.updateRestriction(projectPath, before, after);
-        await refreshTree();
-      },
       getTags: () => (projectPath ? window.doru.getTags(projectPath) : Promise.resolve([] as TagRecord[])),
       getTagLinks: (targetType: string, targetId: string) =>
         projectPath
@@ -174,6 +176,11 @@ export function useAttachmentMethods(
       attachTag: async (link: TagLinkRecord) => {
         if (!projectPath) return;
         await window.doru.attachTag(projectPath, link);
+        await refreshTree();
+      },
+      attachTagToTargets: async (tagId: string, targets: TargetRef[]) => {
+        if (!projectPath) return;
+        await window.doru.attachTagToTargets(projectPath, tagId, targets);
         await refreshTree();
       },
       detachTag: async (link: TagLinkRecord) => {

@@ -22,7 +22,6 @@ function apiStub(overrides: Partial<FamilyEditorApi> = {}): FamilyEditorApi {
     getTagLinks: async () => [],
     getIdentifiers: async () => [],
     getContacts: async () => [],
-    getRestrictions: async () => [],
     getMediaFor: async () => [],
     getAllMedia: async () => [],
     getTasksFor: async () => [],

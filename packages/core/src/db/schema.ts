@@ -46,10 +46,10 @@ export const DORU_APPLICATION_ID = 0x444f5255;
  * Bumped whenever the schema changes. There are no migrations before 1.0.0:
  * a newer version may simply not understand files written by older ones
  * (the store refuses to open them with a loud error). This schema uses
- * version 16, above every version written by an earlier build (the old model
- * reached 15), so the open guard cannot mistake an old file for this one.
+ * version 18, above every version written by an earlier build (the old model
+ * reached 17), so the open guard cannot mistake an old file for this one.
  */
-export const SCHEMA_VERSION = 16;
+export const SCHEMA_VERSION = 18;
 
 export const SCHEMA_SQL = `
 CREATE TABLE IF NOT EXISTS person (
@@ -344,7 +344,9 @@ CREATE TABLE IF NOT EXISTS source_template_field (
   position INTEGER NOT NULL
 );
 
--- Citations: a source cited at some target, with its details.
+-- Citations: a source cited at some target, with its details. A task is not
+-- a citation target: sources support genealogical assertions, while a task
+-- is a work item with nothing to cite.
 
 CREATE TABLE IF NOT EXISTS citation (
   id TEXT PRIMARY KEY,
@@ -493,19 +495,15 @@ CREATE TABLE IF NOT EXISTS identifier (
   value TEXT NOT NULL
 );
 
+-- Contacts target only person, fact, address, repository and submitter:
+-- GEDCOM keeps PHON/EMAIL/FAX/WWW on addresses, event details and those
+-- records. The rule lives in TreeService because target_type is polymorphic.
 CREATE TABLE IF NOT EXISTS contact (
   id TEXT PRIMARY KEY,
   target_type TEXT NOT NULL,
   target_id TEXT NOT NULL,
   kind TEXT NOT NULL,        -- email | phone | fax | url | www
   value TEXT NOT NULL
-);
-
-CREATE TABLE IF NOT EXISTS restriction (
-  id TEXT PRIMARY KEY,
-  target_type TEXT NOT NULL,
-  target_id TEXT NOT NULL,
-  level TEXT NOT NULL        -- confidential | locked | privacy
 );
 
 CREATE TABLE IF NOT EXISTS tag (
@@ -579,12 +577,21 @@ CREATE TABLE IF NOT EXISTS person_alias (
 CREATE TABLE IF NOT EXISTS task (
   id TEXT PRIMARY KEY,
   text TEXT NOT NULL,
-  target_type TEXT, target_id TEXT,  -- may be a free-standing task
   priority TEXT, status TEXT,
   created_at INTEGER,
   scheduled_at INTEGER,
   reminder_at INTEGER,
   closed_at INTEGER
+);
+
+-- A task can relate to any number of records. The task row survives when a
+-- target is deleted; only its link rows are removed.
+CREATE TABLE IF NOT EXISTS task_link (
+  id TEXT PRIMARY KEY,
+  task_id TEXT NOT NULL REFERENCES task(id) ON DELETE CASCADE,
+  target_type TEXT NOT NULL,
+  target_id TEXT NOT NULL,
+  UNIQUE (task_id, target_type, target_id)
 );
 
 CREATE TABLE IF NOT EXISTS title (
@@ -643,14 +650,13 @@ CREATE INDEX IF NOT EXISTS idx_record_submitter_target ON record_submitter(targe
 CREATE INDEX IF NOT EXISTS idx_address_line_address ON address_line(address_id);
 CREATE INDEX IF NOT EXISTS idx_identifier_target ON identifier(target_type, target_id);
 CREATE INDEX IF NOT EXISTS idx_contact_target ON contact(target_type, target_id);
-CREATE INDEX IF NOT EXISTS idx_restriction_target ON restriction(target_type, target_id);
 CREATE INDEX IF NOT EXISTS idx_tag_link_tag ON tag_link(tag_id);
 CREATE INDEX IF NOT EXISTS idx_tag_link_target ON tag_link(target_type, target_id);
 CREATE INDEX IF NOT EXISTS idx_association_person ON association(person_id);
 CREATE INDEX IF NOT EXISTS idx_association_other ON association(other_person_id);
 CREATE INDEX IF NOT EXISTS idx_person_alias_person ON person_alias(person_id);
 CREATE INDEX IF NOT EXISTS idx_person_alias_alias ON person_alias(alias_id);
-CREATE INDEX IF NOT EXISTS idx_task_target ON task(target_type, target_id);
+CREATE INDEX IF NOT EXISTS idx_task_link_target ON task_link(target_type, target_id);
 
 -- Date owner columns. Every owner row references its date rows through
 -- these foreign keys; the indexes keep date deletion (and the RESTRICT

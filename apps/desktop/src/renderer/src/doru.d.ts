@@ -17,14 +17,15 @@ import type {
   ProjectSummary,
   RecentProject,
   RecordSubmitterLink,
-  RestrictionRecord,
   RepositoryRecord,
   SourceRecord,
   SubmitterRecord,
   TagLinkRecord,
   TagRecord,
+  TargetRef,
   TitleRecord,
   TaskRecord,
+  TaskTargetLink,
   TreeStats,
   UndoRedoState,
 } from '@doru/core';
@@ -147,14 +148,6 @@ declare global {
       addContact(projectPath: string, contact: ContactRecord): Promise<UndoRedoState>;
       deleteContact(projectPath: string, contact: ContactRecord): Promise<UndoRedoState>;
       updateContact(projectPath: string, before: ContactRecord, after: ContactRecord): Promise<UndoRedoState>;
-      getRestrictions(projectPath: string, targetType: string, targetId: string): Promise<RestrictionRecord[]>;
-      addRestriction(projectPath: string, restriction: RestrictionRecord): Promise<UndoRedoState>;
-      deleteRestriction(projectPath: string, restriction: RestrictionRecord): Promise<UndoRedoState>;
-      updateRestriction(
-        projectPath: string,
-        before: RestrictionRecord,
-        after: RestrictionRecord,
-      ): Promise<UndoRedoState>;
       getTags(projectPath: string): Promise<TagRecord[]>;
       getTagLinks(
         projectPath: string,
@@ -166,6 +159,7 @@ declare global {
       updateTag(projectPath: string, before: TagRecord, after: TagRecord): Promise<UndoRedoState>;
       deleteTag(projectPath: string, tag: TagRecord): Promise<UndoRedoState>;
       attachTag(projectPath: string, link: TagLinkRecord): Promise<UndoRedoState>;
+      attachTagToTargets(projectPath: string, tagId: string, targets: TargetRef[]): Promise<UndoRedoState>;
       detachTag(projectPath: string, link: TagLinkRecord): Promise<UndoRedoState>;
       updateTagLink(projectPath: string, before: TagLinkRecord, after: TagLinkRecord): Promise<UndoRedoState>;
       getTasks(projectPath: string): Promise<TaskRecord[]>;
@@ -173,6 +167,8 @@ declare global {
       addTask(projectPath: string, task: TaskRecord): Promise<UndoRedoState>;
       updateTask(projectPath: string, before: TaskRecord, after: TaskRecord): Promise<UndoRedoState>;
       deleteTask(projectPath: string, task: TaskRecord): Promise<UndoRedoState>;
+      addTaskLink(projectPath: string, link: TaskTargetLink): Promise<UndoRedoState>;
+      deleteTaskLink(projectPath: string, link: TaskTargetLink): Promise<UndoRedoState>;
       getSources(projectPath: string): Promise<SourceRecord[]>;
       addSource(
         projectPath: string,
@@ -180,6 +176,7 @@ declare global {
         targetType?: string,
         targetId?: string,
       ): Promise<UndoRedoState>;
+      addSourceToTargets(projectPath: string, source: SourceRecord, targets: TargetRef[]): Promise<UndoRedoState>;
       updateSource(projectPath: string, before: SourceRecord, after: SourceRecord): Promise<UndoRedoState>;
       deleteSource(projectPath: string, source: SourceRecord): Promise<UndoRedoState>;
       updateCitation(projectPath: string, before: CitationRecord, after: CitationRecord): Promise<UndoRedoState>;
@@ -223,6 +220,7 @@ declare global {
       deletePlace(projectPath: string, place: PlaceRecord): Promise<UndoRedoState>;
       getFactsForPlace(projectPath: string, placeId: string): Promise<FactRecord[]>;
       attachSource(projectPath: string, sourceId: string, targetType: string, targetId: string): Promise<UndoRedoState>;
+      attachSourceToTargets(projectPath: string, sourceId: string, targets: TargetRef[]): Promise<UndoRedoState>;
       detachCitation(projectPath: string, citationId: string): Promise<UndoRedoState>;
       getCitations(projectPath: string, targetType: string, targetId: string): Promise<CitationRecord[]>;
       getAllCitations(projectPath: string): Promise<CitationRecord[]>;
@@ -234,12 +232,14 @@ declare global {
       getMedia(projectPath: string, targetType: string, targetId: string): Promise<MediaWithPath[]>;
       getAllMedia(projectPath: string): Promise<MediaWithPath[]>;
       addMedia(projectPath: string, targetType: string, targetId: string): Promise<MediaWithPath[]>;
+      addMediaToTargets(projectPath: string, targets: TargetRef[]): Promise<MediaWithPath[]>;
       addStandaloneMedia(projectPath: string): Promise<MediaWithPath[]>;
       updateMedia(projectPath: string, before: MediaRecord, after: MediaRecord): Promise<UndoRedoState>;
       addMediaFile(projectPath: string, mediaId: string): Promise<MediaWithPath | undefined>;
       removeMediaFile(projectPath: string, media: MediaRecord, file: MediaFile): Promise<MediaWithPath | undefined>;
       deleteMedia(projectPath: string, media: MediaRecord): Promise<UndoRedoState>;
       attachMedia(projectPath: string, link: MediaLinkRecord): Promise<UndoRedoState>;
+      attachMediaToTargets(projectPath: string, mediaId: string, targets: TargetRef[]): Promise<UndoRedoState>;
       detachMedia(projectPath: string, link: MediaLinkRecord): Promise<UndoRedoState>;
       updateMediaLink(projectPath: string, before: MediaLinkRecord, after: MediaLinkRecord): Promise<UndoRedoState>;
       getAiSettings(): Promise<AiSettingsState>;

@@ -158,14 +158,6 @@ const api = {
     ipcRenderer.invoke('tree:deleteContact', { projectPath, contact }),
   updateContact: (projectPath: string, before: unknown, after: unknown): Promise<unknown> =>
     ipcRenderer.invoke('tree:updateContact', { projectPath, before, after }),
-  getRestrictions: (projectPath: string, targetType: string, targetId: string): Promise<unknown> =>
-    ipcRenderer.invoke('tree:restrictions', { projectPath, targetType, targetId }),
-  addRestriction: (projectPath: string, restriction: unknown): Promise<unknown> =>
-    ipcRenderer.invoke('tree:addRestriction', { projectPath, restriction }),
-  deleteRestriction: (projectPath: string, restriction: unknown): Promise<unknown> =>
-    ipcRenderer.invoke('tree:deleteRestriction', { projectPath, restriction }),
-  updateRestriction: (projectPath: string, before: unknown, after: unknown): Promise<unknown> =>
-    ipcRenderer.invoke('tree:updateRestriction', { projectPath, before, after }),
   getTags: (projectPath: string): Promise<TagRecord[]> => ipcRenderer.invoke('tree:tags', { projectPath }),
   getTagLinks: (
     projectPath: string,
@@ -183,6 +175,8 @@ const api = {
     ipcRenderer.invoke('tree:deleteTag', { projectPath, tag }),
   attachTag: (projectPath: string, link: unknown): Promise<unknown> =>
     ipcRenderer.invoke('tree:attachTag', { projectPath, link }),
+  attachTagToTargets: (projectPath: string, tagId: string, targets: unknown): Promise<unknown> =>
+    ipcRenderer.invoke('tree:attachTagToTargets', { projectPath, tagId, targets }),
   detachTag: (projectPath: string, link: unknown): Promise<unknown> =>
     ipcRenderer.invoke('tree:detachTag', { projectPath, link }),
   updateTagLink: (projectPath: string, before: unknown, after: unknown): Promise<unknown> =>
@@ -196,9 +190,15 @@ const api = {
     ipcRenderer.invoke('tree:updateTask', { projectPath, before, after }),
   deleteTask: (projectPath: string, task: unknown): Promise<unknown> =>
     ipcRenderer.invoke('tree:deleteTask', { projectPath, task }),
+  addTaskLink: (projectPath: string, link: unknown): Promise<unknown> =>
+    ipcRenderer.invoke('tree:addTaskLink', { projectPath, link }),
+  deleteTaskLink: (projectPath: string, link: unknown): Promise<unknown> =>
+    ipcRenderer.invoke('tree:deleteTaskLink', { projectPath, link }),
   getSources: (projectPath: string): Promise<unknown> => ipcRenderer.invoke('tree:sources', { projectPath }),
   addSource: (projectPath: string, source: unknown, targetType?: string, targetId?: string): Promise<unknown> =>
     ipcRenderer.invoke('tree:addSource', { projectPath, source, targetType, targetId }),
+  addSourceToTargets: (projectPath: string, source: unknown, targets: unknown): Promise<unknown> =>
+    ipcRenderer.invoke('tree:addSourceToTargets', { projectPath, source, targets }),
   updateSource: (projectPath: string, before: unknown, after: unknown): Promise<unknown> =>
     ipcRenderer.invoke('tree:updateSource', { projectPath, before, after }),
   deleteSource: (projectPath: string, source: unknown): Promise<unknown> =>
@@ -274,6 +274,8 @@ const api = {
     ipcRenderer.invoke('tree:address', { projectPath, id }),
   attachSource: (projectPath: string, sourceId: string, targetType: string, targetId: string): Promise<unknown> =>
     ipcRenderer.invoke('tree:attachSource', { projectPath, sourceId, targetType, targetId }),
+  attachSourceToTargets: (projectPath: string, sourceId: string, targets: unknown): Promise<unknown> =>
+    ipcRenderer.invoke('tree:attachSourceToTargets', { projectPath, sourceId, targets }),
   detachCitation: (projectPath: string, citationId: string): Promise<unknown> =>
     ipcRenderer.invoke('tree:detachCitation', { projectPath, citationId }),
   getCitations: (projectPath: string, targetType: string, targetId: string): Promise<unknown> =>
@@ -293,6 +295,8 @@ const api = {
   getAllMedia: (projectPath: string): Promise<unknown> => ipcRenderer.invoke('tree:allMedia', { projectPath }),
   addMedia: (projectPath: string, targetType: string, targetId: string): Promise<unknown> =>
     ipcRenderer.invoke('tree:addMedia', { projectPath, targetType, targetId }),
+  addMediaToTargets: (projectPath: string, targets: unknown): Promise<unknown> =>
+    ipcRenderer.invoke('tree:addMediaToTargets', { projectPath, targets }),
   addStandaloneMedia: (projectPath: string): Promise<unknown> =>
     ipcRenderer.invoke('tree:addStandaloneMedia', { projectPath }),
   updateMedia: (projectPath: string, before: unknown, after: unknown): Promise<unknown> =>
@@ -305,6 +309,8 @@ const api = {
     ipcRenderer.invoke('tree:deleteMedia', { projectPath, media }),
   attachMedia: (projectPath: string, link: unknown): Promise<unknown> =>
     ipcRenderer.invoke('tree:attachMedia', { projectPath, link }),
+  attachMediaToTargets: (projectPath: string, mediaId: string, targets: unknown): Promise<unknown> =>
+    ipcRenderer.invoke('tree:attachMediaToTargets', { projectPath, mediaId, targets }),
   detachMedia: (projectPath: string, link: unknown): Promise<unknown> =>
     ipcRenderer.invoke('tree:detachMedia', { projectPath, link }),
   updateMediaLink: (projectPath: string, before: unknown, after: unknown): Promise<unknown> =>

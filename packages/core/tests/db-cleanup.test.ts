@@ -171,7 +171,8 @@ describe('db cleanup paths', () => {
 
       repo.deleteAttachmentsFor('person', 'P1');
       repo.deleteAttachmentsFor('person', 'P2');
-      expect(repo.getMedia('M1')).toBeUndefined();
+      // The shared media record survives losing every link.
+      expect(repo.getMedia('M1')?.links).toEqual([]);
 
       repo.restoreAttachments(snapshot);
       expect(repo.getMedia('M1')).toBeDefined();
@@ -214,10 +215,12 @@ describe('db cleanup paths', () => {
     const fixture = makeRepo();
     try {
       const { repo } = fixture;
-      repo.insertTask({ id: 'T1', text: 'Task' });
+      repo.insertTask({ id: 'T1', text: 'Task', targets: [] });
       repo.deleteTask('T1');
 
-      expect(() => repo.updateTask({ id: 'T1', text: 'Edited', createdAt: 1 })).toThrow(/no longer exists/);
+      expect(() => repo.updateTask({ id: 'T1', text: 'Edited', targets: [], createdAt: 1 })).toThrow(
+        /no longer exists/,
+      );
       expect(repo.listTasks()).toEqual([]);
     } finally {
       cleanupRepo(fixture);

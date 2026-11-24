@@ -104,10 +104,52 @@ UI cannot interpret consistently.
 
 The `_TODO` `_CAT` category and `_LOCL` locality are dropped for the same
 reason: they have no shared vocabulary, no dictionary table, and no UI contract
-beyond free-text fields. A task is classified by its target, priority, and
+beyond free-text fields. A task is classified by its targets, priority, and
 status instead. The record-form `_TTIL` title and the GEDCOM-L `TYPE` task kind and `DATA`
 solution text are dropped too: Dóru has one task text, no task-type taxonomy,
 and no separate task-result field.
+
+## Tasks are shared across targets
+
+A task is one record with any number of `task_link` rows, not a copy per
+target. Deleting a target removes only its link; the task survives as a
+free-standing record (and remains visible in the global Tasks view). GEDCOM
+cannot express this: `_TODO` is embedded in a record, so a multi-target task is
+written under every person/family target on export and a round trip produces
+separate tasks. Tasks linked only to other target types (places, sources, …)
+are dropped on export.
+
+## Tasks are not citation targets
+
+A task is a research work item, not an assertion about a person, family or
+fact, so a source has nothing to cite on it. The task tab does not render the
+sources section, and `TreeService` rejects a citation whose target type is
+`task`; agents and IPC callers therefore cannot create one either. This also
+keeps the task model from forming a task → citation → task cycle. GEDCOM has
+no citation slot on `_TODO`, so import and export are unaffected.
+
+## Contacts are limited to their GEDCOM positions
+
+`PHON`, `EMAIL`, `FAX` and `WWW` are not universal record fields. GEDCOM
+5.5.x keeps them inside `ADDRESS_STRUCTURE`; 7.0 moves them to event details
+and to the `REPO` and `SUBM` records. A direct `INDI` contact is a vendor
+extension, which Dóru keeps on a person. Dóru therefore accepts contact rows
+only for `person`, `fact`, `address`, `repository` and `submitter`; every other
+target has no import or export path, and a contact there would be dead data.
+The kind list (`email`, `phone`, `fax`, `url`, `www`) is deliberately not
+restricted per target: the storage layer keeps unknown and future spellings,
+and the same picker stays available on every supported target.
+
+## Privacy restrictions are out of scope
+
+Dóru deliberately has no `restriction` table and no Privacy section. GEDCOM
+`RESN` and the vendor `_PRIV`/`_PRIVATE` flags are privacy annotations whose
+semantics are too ambiguous to store without a designed product feature: the
+standard itself warns that `PRIVACY` admits multiple interpretations, and none
+of the values change what Dóru displays or exports. `@doru/gedcom` keeps
+parsing and serializing the wire structures, but the tree database does not
+store them, so an import/export round trip drops them until privacy is designed
+deliberately.
 
 ## Dates are forward-referenced values
 

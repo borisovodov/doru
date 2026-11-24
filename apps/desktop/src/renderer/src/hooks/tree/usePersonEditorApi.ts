@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import type { RecordSubmitterLink, TaskRecord } from '@doru/core';
+import type { RecordSubmitterLink, TargetRef, TaskRecord, TaskTargetLink } from '@doru/core';
 import type { MediaTargetApi, PersonEditorApi } from '@doru/features';
 import type { RefreshTree } from './types';
 
@@ -88,6 +88,20 @@ export function usePersonEditorApi(
         await window.doru.deleteTask(projectPath, task);
         await refreshTree();
       },
+      addTaskLink: async (link: TaskTargetLink) => {
+        if (!projectPath) {
+          return;
+        }
+        await window.doru.addTaskLink(projectPath, link);
+        await refreshTree();
+      },
+      deleteTaskLink: async (link: TaskTargetLink) => {
+        if (!projectPath) {
+          return;
+        }
+        await window.doru.deleteTaskLink(projectPath, link);
+        await refreshTree();
+      },
       getFamilies: () => (projectPath ? window.doru.getFamilies(projectPath) : Promise.resolve([])),
       addFamily: async (family) => {
         if (!projectPath) {
@@ -137,11 +151,25 @@ export function usePersonEditorApi(
         await window.doru.addSource(projectPath, source, targetType, targetId);
         await refreshTree();
       },
+      addSourceToTargets: async (source, targets: TargetRef[]) => {
+        if (!projectPath) {
+          return;
+        }
+        await window.doru.addSourceToTargets(projectPath, source, targets);
+        await refreshTree();
+      },
       attachSource: async (sourceId, targetType, targetId) => {
         if (!projectPath) {
           return;
         }
         await window.doru.attachSource(projectPath, sourceId, targetType, targetId);
+        await refreshTree();
+      },
+      attachSourceToTargets: async (sourceId: string, targets: TargetRef[]) => {
+        if (!projectPath) {
+          return;
+        }
+        await window.doru.attachSourceToTargets(projectPath, sourceId, targets);
         await refreshTree();
       },
       detachCitation: async (citationId) => {
@@ -235,26 +263,6 @@ export function usePersonEditorApi(
         }
         await window.doru.updateContact(projectPath, before, after);
       },
-      getRestrictions: (targetType, targetId) =>
-        projectPath ? window.doru.getRestrictions(projectPath, targetType, targetId) : Promise.resolve([]),
-      addRestriction: async (restriction) => {
-        if (!projectPath) {
-          return;
-        }
-        await window.doru.addRestriction(projectPath, restriction);
-      },
-      deleteRestriction: async (restriction) => {
-        if (!projectPath) {
-          return;
-        }
-        await window.doru.deleteRestriction(projectPath, restriction);
-      },
-      updateRestriction: async (before, after) => {
-        if (!projectPath) {
-          return;
-        }
-        await window.doru.updateRestriction(projectPath, before, after);
-      },
       getTags: () => (projectPath ? window.doru.getTags(projectPath) : Promise.resolve([])),
       getAliases: (personId) => (projectPath ? window.doru.getAliases(projectPath, personId) : Promise.resolve([])),
       addAlias: async (personId, aliasId) => {
@@ -316,6 +324,13 @@ export function usePersonEditorApi(
         await window.doru.attachTag(projectPath, link);
         // The link is committed; a failed snapshot reload must not make the
         // caller treat the attach as failed.
+        await refreshTree().catch(() => undefined);
+      },
+      attachTagToTargets: async (tagId: string, targets: TargetRef[]) => {
+        if (!projectPath) {
+          return;
+        }
+        await window.doru.attachTagToTargets(projectPath, tagId, targets);
         await refreshTree().catch(() => undefined);
       },
       detachTag: async (link) => {

@@ -51,6 +51,29 @@ export interface TaskTargetOption {
   label: string;
 }
 
+/** The universal target directory shape used by every target picker. */
+export type TargetData = TaskTargetData;
+
+/** One searchable option of the universal picker, carrying its target type. */
+export interface TargetOption extends TaskTargetOption {
+  type: string;
+}
+
+/** Flatten the options of several target types for a grouped picker. */
+export function targetOptionsForTypes(types: readonly string[], data: TaskTargetData): TargetOption[] {
+  return types.flatMap((type) => taskTargetOptions(type, data).map((option) => ({ ...option, type })));
+}
+
+/** The non-empty target-type groups of a picker, in the supplied order. */
+export function targetGroups(
+  types: readonly string[],
+  data: TaskTargetData,
+): Array<{ type: string; options: TaskTargetOption[] }> {
+  return types
+    .map((type) => ({ type, options: taskTargetOptions(type, data) }))
+    .filter((group) => group.options.length > 0);
+}
+
 /** The options of one target type; an unknown/unsupported type has none. */
 export function taskTargetOptions(type: string, data: TaskTargetData): TaskTargetOption[] {
   const personById = new Map(data.persons.map((person) => [person.id, person]));

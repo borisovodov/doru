@@ -239,23 +239,15 @@ export class MediaRepo {
     });
   }
 
-  /** Removes every link to the target, deleting records left with no links. */
+  /** Removes one link without deleting the shared media record. */
+  removeMediaLinkOnly(id: string): boolean {
+    return this.transactions.run(() => this.db.prepare('DELETE FROM media_link WHERE id = ?').run(id).changes > 0);
+  }
+
+  /** Removes every link to the target; the shared media records survive. */
   deleteLinksFor(targetType: string, targetId: string): void {
     this.transactions.run(() => {
-      const links = this.db
-        .prepare('SELECT id, media_id FROM media_link WHERE target_type = ? AND target_id = ?')
-        .all(targetType, targetId) as unknown as { id: string; media_id: string }[];
       this.db.prepare('DELETE FROM media_link WHERE target_type = ? AND target_id = ?').run(targetType, targetId);
-      for (const link of links) {
-        const remaining = this.db
-          .prepare('SELECT COUNT(*) AS n FROM media_link WHERE media_id = ?')
-          .get(link.media_id) as {
-          n: number;
-        };
-        if (remaining.n === 0) {
-          this.deleteMediaRow(link.media_id);
-        }
-      }
     });
   }
 

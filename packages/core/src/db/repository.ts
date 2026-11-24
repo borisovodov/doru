@@ -20,13 +20,13 @@ import type {
   PlaceRecord,
   RecordSubmitterLink,
   RepositoryRecord,
-  RestrictionRecord,
   SourceRecord,
   SubmitterRecord,
   TagLinkRecord,
   TagRecord,
-  TitleRecord,
   TaskRecord,
+  TaskTargetLink,
+  TitleRecord,
   TreeDocument,
 } from '../model/types';
 import { collectNameIds, collectNamePartIds, emptyAttachments } from '../model/types';
@@ -162,6 +162,7 @@ export interface TreeRepository {
   hasMediaFile(id: string): boolean;
   updateMediaLink(link: MediaLinkRecord): void;
   removeMediaLink(id: string): boolean;
+  removeMediaLinkOnly(id: string): boolean;
   listMediaFor(targetType: string, targetId: string): MediaRecord[];
   listAllMedia(): MediaRecord[];
   insertRepository(repository: RepositoryRecord): void;
@@ -206,10 +207,6 @@ export interface TreeRepository {
   deleteContact(id: string): boolean;
   updateContact(contact: ContactRecord): void;
   listContactsFor(targetType: string, targetId: string): ContactRecord[];
-  insertRestriction(restriction: RestrictionRecord): void;
-  deleteRestriction(id: string): boolean;
-  updateRestriction(restriction: RestrictionRecord): void;
-  listRestrictionsFor(targetType: string, targetId: string): RestrictionRecord[];
   insertTag(tag: TagRecord): void;
   deleteTag(id: string): boolean;
   updateTag(tag: TagRecord): void;
@@ -239,6 +236,11 @@ export interface TreeRepository {
   deleteTask(id: string): boolean;
   listTasks(): TaskRecord[];
   listTasksFor(targetType: string, targetId: string): TaskRecord[];
+  listTaskLinksFor(targetType: string, targetId: string): TaskTargetLink[];
+  insertTaskLink(link: TaskTargetLink): void;
+  deleteTaskLink(id: string): boolean;
+  getTaskLink(id: string): TaskTargetLink | undefined;
+  deleteTaskLinksFor(targetType: string, targetId: string): void;
   insertTitle(title: TitleRecord): void;
   updateTitle(title: TitleRecord): void;
   getTitle(id: string): TitleRecord | undefined;
@@ -873,6 +875,10 @@ export class SqliteTreeRepository implements TreeRepository {
     });
   }
 
+  removeMediaLinkOnly(id: string): boolean {
+    return this.media.removeMediaLinkOnly(id);
+  }
+
   listMediaFor(targetType: string, targetId: string): MediaRecord[] {
     return this.media.listMediaFor(targetType, targetId);
   }
@@ -1040,22 +1046,6 @@ export class SqliteTreeRepository implements TreeRepository {
     return this.attachments.listContactsFor(targetType, targetId);
   }
 
-  insertRestriction(restriction: RestrictionRecord): void {
-    this.attachments.insertRestriction(restriction);
-  }
-
-  deleteRestriction(id: string): boolean {
-    return this.attachments.deleteRestriction(id);
-  }
-
-  updateRestriction(restriction: RestrictionRecord): void {
-    this.attachments.updateRestriction(restriction);
-  }
-
-  listRestrictionsFor(targetType: string, targetId: string): RestrictionRecord[] {
-    return this.attachments.listRestrictionsFor(targetType, targetId);
-  }
-
   insertTag(tag: TagRecord): void {
     this.attachments.insertTag(tag);
   }
@@ -1176,6 +1166,26 @@ export class SqliteTreeRepository implements TreeRepository {
     return this.research.listTasksFor(targetType, targetId);
   }
 
+  listTaskLinksFor(targetType: string, targetId: string): TaskTargetLink[] {
+    return this.research.listTaskLinksFor(targetType, targetId);
+  }
+
+  insertTaskLink(link: TaskTargetLink): void {
+    this.research.insertTaskLink(link);
+  }
+
+  deleteTaskLink(id: string): boolean {
+    return this.research.deleteTaskLink(id);
+  }
+
+  getTaskLink(id: string): TaskTargetLink | undefined {
+    return this.research.getTaskLink(id);
+  }
+
+  deleteTaskLinksFor(targetType: string, targetId: string): void {
+    this.research.deleteTaskLinksFor(targetType, targetId);
+  }
+
   insertTitle(title: TitleRecord): void {
     this.research.insertTitle(title);
   }
@@ -1227,7 +1237,7 @@ export class SqliteTreeRepository implements TreeRepository {
     state.visiting.add(key);
     const mediaLinks = this.media.listLinksFor(targetType, targetId);
     const citations = this.sources.listCitations(targetType, targetId);
-    const tasks = this.research.listTasksFor(targetType, targetId);
+    const taskLinks = this.research.listTaskLinksFor(targetType, targetId);
     const noteLinks = this.notes.listLinksFor(targetType, targetId);
     // Capture every linked note: another target removed by the same
     // operation may take the note's last link, and this snapshot is then
@@ -1267,14 +1277,8 @@ export class SqliteTreeRepository implements TreeRepository {
       })),
       identifiers: this.attachments.listIdentifiersFor(targetType, targetId),
       contacts: this.attachments.listContactsFor(targetType, targetId),
-      restrictions: this.attachments.listRestrictionsFor(targetType, targetId),
       tagLinks: this.attachments.listTagLinksFor(targetType, targetId),
-      tasks,
-      taskAttachments: tasks.map((task) => ({
-        targetType: 'task',
-        targetId: task.id,
-        attachments: this.collectAttachments('task', task.id, state),
-      })),
+      taskLinks,
       recordSubmitters: this.submitters.listRecordSubmittersFor(targetType, targetId),
     };
     state.visiting.delete(key);
@@ -1329,10 +1333,9 @@ export class SqliteTreeRepository implements TreeRepository {
       }
     }
     this.attachments.deleteAllFor(targetType, targetId);
-    for (const task of this.research.listTasksFor(targetType, targetId)) {
-      this.deleteAttachmentsForInternal('task', task.id, visited);
-    }
-    this.research.deleteTasksFor(targetType, targetId);
+    // Tasks are shared: drop only their link to this target and keep the task
+    // (and its own attachments) alive as a free-standing record when needed.
+    this.research.deleteTaskLinksFor(targetType, targetId);
     this.submitters.deleteRecordSubmittersFor(targetType, targetId);
   }
 
@@ -1454,18 +1457,6 @@ export class SqliteTreeRepository implements TreeRepository {
         contactIds.add(contact.id);
       }
     }
-    const restrictionIds = new Set(
-      [...new Set(snapshot.restrictions.map((entry) => `${entry.targetType}:${entry.targetId}`))].flatMap((key) => {
-        const [targetType, targetId] = key.split(':');
-        return this.attachments.listRestrictionsFor(targetType as string, targetId as string).map((entry) => entry.id);
-      }),
-    );
-    for (const restriction of snapshot.restrictions) {
-      if (!restrictionIds.has(restriction.id)) {
-        this.attachments.insertRestriction(restriction);
-        restrictionIds.add(restriction.id);
-      }
-    }
     const tags = new Set(this.listTags().map((tag) => tag.id));
     const tagLinkIds = new Set(
       [...new Set(snapshot.tagLinks.map((entry) => `${entry.link.targetType}:${entry.link.targetId}`))].flatMap(
@@ -1483,17 +1474,12 @@ export class SqliteTreeRepository implements TreeRepository {
         tagLinkIds.add(entry.link.id);
       }
     }
-    for (const task of snapshot.tasks) {
-      if (this.research.getTask(task.id) === undefined) {
-        if (removed.size > 0 && !removed.has(`task\u0000${task.id}`)) {
-          continue;
-        }
-        this.research.insertTask(task);
-      }
-    }
-    for (const nested of snapshot.taskAttachments) {
-      if (this.research.getTask(nested.targetId) !== undefined) {
-        this.restoreAttachmentsInternal(nested.attachments, visitedFiles);
+    for (const link of snapshot.taskLinks) {
+      if (
+        this.research.getTask(link.taskId) !== undefined &&
+        !this.research.listTaskLinksFor(link.targetType, link.targetId).some((existing) => existing.id === link.id)
+      ) {
+        this.research.insertTaskLink(link);
       }
     }
     for (const entry of snapshot.recordSubmitters) {
@@ -1552,7 +1538,6 @@ export class SqliteTreeRepository implements TreeRepository {
         ...node.mediaAttachments,
         ...node.mediaFileAttachments,
         ...node.mediaLinkAttachments,
-        ...node.taskAttachments,
       ]) {
         visit(nested.attachments);
       }

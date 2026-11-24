@@ -20,7 +20,6 @@ import type {
   IndividualAttributeStructure,
   IndividualEventStructure,
   IndividualRecord,
-  ListEnum,
   MultimediaLink,
   MultimediaRecord,
   NameTranslation,
@@ -34,7 +33,6 @@ import type {
   PlaceNameStructure,
   PlaceStructure,
   QualityEnum,
-  RestrictionEnum,
   SourceCitation,
   SourceRecord as GedcomSourceRecord,
   SpouseFamilyLink,
@@ -146,7 +144,7 @@ export function buildGedcomDataset(repo: TreeRepository): GedcomDataset {
   const media = repo.listAllMedia().filter((entry) => (entry.files ?? []).length > 0);
   const firstSubmitter = submitters[0];
   const notes = repo.listNotes().filter((note) => note.xref !== undefined || (note.links?.length ?? 0) > 1);
-  const tasks = repo.listTasks().filter((task) => task.targetType === undefined && task.targetId === undefined);
+  const tasks = repo.listTasks().filter((task) => task.targets.length === 0);
   const tags = repo.listTags();
 
   for (const person of persons) {
@@ -241,9 +239,6 @@ function buildPerson(person: PersonRecord, repo: TreeRepository, xrefs: Xrefs): 
   const sosaDAboville = personIdentifiers.find((identifier) => identifier.namespace === 'daboville')?.value;
   const contacts = withContacts(repo, 'person', person.id);
   const addressRecord = person.addressId !== undefined ? repo.getAddress(person.addressId) : undefined;
-  const restriction = repo
-    .listRestrictionsFor('person', person.id)
-    .map((entry) => entry.level.toUpperCase()) as ListEnum<RestrictionEnum>;
   const submitterLinks = repo.listRecordSubmittersFor('person', person.id);
   const ancestorInterests = submitterLinks
     .filter((link) => link.kind === 'ancestor_interest')
@@ -263,7 +258,6 @@ function buildPerson(person: PersonRecord, repo: TreeRepository, xrefs: Xrefs): 
     ...(identifiers.length > 0 ? { identifiers } : {}),
     ...(sosaNumber !== undefined ? { sosaNumber } : {}),
     ...(sosaDAboville !== undefined ? { sosaDAboville } : {}),
-    ...(restriction.length > 0 ? { restriction } : {}),
     ...contacts,
     ...(addressRecord !== undefined ? { address: buildAddress(addressRecord, repo, xrefs) } : {}),
     ...withCitationList(repo, 'person', person.id, xrefs),
@@ -544,9 +538,6 @@ function buildFamily(family: FamilyRecord, repo: TreeRepository, xrefs: Xrefs): 
     }
   }
   const identifiers = withIdentifiers(repo, 'family', family.id);
-  const restriction = repo
-    .listRestrictionsFor('family', family.id)
-    .map((entry) => entry.level.toUpperCase()) as ListEnum<RestrictionEnum>;
   return {
     tag: 'FAM',
     xref: xrefs.of(family.id),
@@ -576,7 +567,6 @@ function buildFamily(family: FamilyRecord, repo: TreeRepository, xrefs: Xrefs): 
     ...(attributes.length > 0 ? { attributes } : {}),
     ...(nonEvents.length > 0 ? { nonEvents } : {}),
     ...(identifiers.length > 0 ? { identifiers } : {}),
-    ...(restriction.length > 0 ? { restriction } : {}),
     ...withCitationList(repo, 'family', family.id, xrefs),
     ...withNoteList(repo, 'family', family.id, xrefs),
     ...withMediaLinks(repo, 'family', family.id, xrefs),
@@ -854,9 +844,6 @@ function buildAssociation(
           },
         }
       : {}),
-    ...(repo.listRestrictionsFor('association', association.id).some((entry) => entry.level === 'privacy')
-      ? { private: true }
-      : {}),
     ...withCitationList(repo, 'association', association.id, xrefs),
     ...withNoteList(repo, 'association', association.id, xrefs),
   };
@@ -967,9 +954,6 @@ function normalizeMediaPath(path: string): string {
 }
 
 function buildMediaRecord(media: MediaRecord, repo: TreeRepository, xrefs: Xrefs): MultimediaRecord {
-  const restriction = repo
-    .listRestrictionsFor('media', media.id)
-    .map((entry) => entry.level.toUpperCase()) as ListEnum<RestrictionEnum>;
   const date = buildDate(media.date);
   const place = mediaPlaceText(media, repo);
   return {
@@ -1002,7 +986,6 @@ function buildMediaRecord(media: MediaRecord, repo: TreeRepository, xrefs: Xrefs
     ...(withIdentifiers(repo, 'media', media.id).length > 0
       ? { identifiers: withIdentifiers(repo, 'media', media.id) }
       : {}),
-    ...(restriction.length > 0 ? { restriction } : {}),
     ...withCitationList(repo, 'media', media.id, xrefs),
     ...withNoteList(repo, 'media', media.id, xrefs),
     ...withSubmitterLinks(repo, 'media', media.id, xrefs),
@@ -1399,9 +1382,6 @@ function buildDetail(fact: FactRecord, repo: TreeRepository, xrefs: Xrefs): Even
   const citations = withCitationList(repo, 'fact', fact.id, xrefs).citations;
   const notes = withNoteList(repo, 'fact', fact.id, xrefs).notes;
   const media = withMediaLinks(repo, 'fact', fact.id, xrefs).media;
-  const restriction = repo
-    .listRestrictionsFor('fact', fact.id)
-    .map((entry) => entry.level.toUpperCase()) as ListEnum<RestrictionEnum>;
   const uniqueIds = repo
     .listIdentifiersFor('fact', fact.id)
     .filter((identifier) => identifier.namespace === 'uid')
@@ -1432,7 +1412,6 @@ function buildDetail(fact: FactRecord, repo: TreeRepository, xrefs: Xrefs): Even
     citations.length === 0 &&
     notes.length === 0 &&
     media === undefined &&
-    restriction.length === 0 &&
     uniqueIds.length === 0 &&
     contacts.email === undefined &&
     contacts.phone === undefined &&
@@ -1491,7 +1470,6 @@ function buildDetail(fact: FactRecord, repo: TreeRepository, xrefs: Xrefs): Even
     ...(citations.length > 0 ? { citations } : {}),
     ...(notes.length > 0 ? { notes } : {}),
     ...(media !== undefined ? { media } : {}),
-    ...(restriction.length > 0 ? { restriction } : {}),
     ...(uniqueIds.length > 0 ? { uniqueIds } : {}),
     ...contacts,
   };
@@ -1530,14 +1508,12 @@ function buildAddress(
   repo: TreeRepository,
   xrefs: Xrefs,
 ): import('@doru/gedcom').AddressStructure {
-  const privateAddress = repo.listRestrictionsFor('address', address.id).some((entry) => entry.level === 'privacy');
   return {
     ...(address.lines.length > 0 ? { payload: address.lines.map((line) => line.value).join('\n') } : {}),
     ...(address.city !== undefined ? { city: address.city } : {}),
     ...(address.state !== undefined ? { state: address.state } : {}),
     ...(address.postalCode !== undefined ? { postalCode: address.postalCode } : {}),
     ...(address.country !== undefined ? { country: address.country } : {}),
-    ...(privateAddress ? { private: true } : {}),
     ...withNoteList(repo, 'address', address.id, xrefs),
     ...withContacts(repo, 'address', address.id),
   };

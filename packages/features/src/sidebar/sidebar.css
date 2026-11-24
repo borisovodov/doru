@@ -49,6 +49,16 @@
   gap: 6px;
 }
 
+.entity-section-row {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.entity-section-row .entity-card {
+  flex: 1;
+}
+
 .entity-empty {
   margin: 0;
   color: var(--doru-fg-muted);

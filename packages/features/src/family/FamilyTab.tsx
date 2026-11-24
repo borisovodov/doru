@@ -10,11 +10,9 @@ import { useEntityDelete } from '../entityDelete';
 import { Button, DangerZone, InlineError, useAutoSaveOnBlur } from '@doru/ui';
 import type { MediaWithPath } from '@doru/ui/domain';
 import {
-  ContactsSection,
   ContributorsSection,
   IdentifiersSection,
   NotesSection,
-  RestrictionsSection,
   SourcesSection,
   TagsSection,
   TasksSection,
@@ -291,8 +289,6 @@ function FamilyTabBody({
     tags,
     tagLinks,
     identifiers,
-    contacts,
-    restrictions,
     submitters,
     contributors,
     refresh: refreshAttachments,
@@ -421,7 +417,9 @@ function FamilyTabBody({
         citations={familyCitations}
         refresh={refreshAttachments}
         onAddSource={api.addSource}
+        onAddSourceToTargets={api.addSourceToTargets}
         onAttachSource={api.attachSource}
+        onAttachSourceToTargets={api.attachSourceToTargets}
         onDetachCitation={api.detachCitation}
         onUpdateCitation={api.updateCitation}
         onOpenSource={onOpenSource}
@@ -475,40 +473,6 @@ function FamilyTabBody({
           await refreshAttachments();
         }}
       />
-      <ContactsSection
-        targetType="family"
-        targetId={record.id}
-        contacts={contacts}
-        onAdd={async (contact) => {
-          await api.addContact(contact);
-          await refreshAttachments();
-        }}
-        onUpdate={async (before, after) => {
-          await api.updateContact(before, after);
-          await refreshAttachments();
-        }}
-        onDelete={async (contact) => {
-          await api.deleteContact(contact);
-          await refreshAttachments();
-        }}
-      />
-      <RestrictionsSection
-        targetType="family"
-        targetId={record.id}
-        restrictions={restrictions}
-        onAdd={async (restriction) => {
-          await api.addRestriction(restriction);
-          await refreshAttachments();
-        }}
-        onUpdate={async (before, after) => {
-          await api.updateRestriction(before, after);
-          await refreshAttachments();
-        }}
-        onDelete={async (restriction) => {
-          await api.deleteRestriction(restriction);
-          await refreshAttachments();
-        }}
-      />
       <TagsSection
         targetType="family"
         targetId={record.id}
@@ -517,6 +481,7 @@ function FamilyTabBody({
         onAddTag={api.addTag}
         onUpdateTag={api.updateTag}
         onDeleteTag={api.deleteTag}
+        onAttachTagToTargets={api.attachTagToTargets}
         onAttachTag={async (link) => {
           await api.attachTag(link);
           await refreshAttachments();

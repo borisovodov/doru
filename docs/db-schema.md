@@ -2,7 +2,7 @@
 
 A Dóru project is a single `.doru` file: a SQLite database branded with
 `application_id = 0x444F5255` ("DORU") and versioned with `user_version`.
-This document is the field-level reference for **schema version 16**. The
+This document is the field-level reference for **schema version 18**. The
 source of truth is [`packages/core/src/db/schema.ts`](../packages/core/src/db/schema.ts);
 the domain shapes that the repositories map onto the rows live in
 [`packages/core/src/model/types.ts`](../packages/core/src/model/types.ts).
@@ -17,16 +17,15 @@ in its README; that guarantee does not extend to the tree database.
 
 ## At a glance
 
-- **50 tables**, **78 indexes**, and no date-delete triggers.
+- **50 tables**, **77 indexes**, and no date-delete triggers.
 - The core genealogy model is `person` → `person_name` / `fact`, with
   `family` joining people through `family_partner` and `family_child`.
 - Dates are normalized into one `date` value table; owner rows reference
   their date slots through explicit `*_date_id` foreign keys.
 - Task lifecycle times are epoch-millisecond integers (`created_at`,
   `scheduled_at`, `reminder_at`, `closed_at`), not `date` rows.
-- Notes, citations, media, tags, identifiers, contacts, restrictions,
-  contributors, and tasks attach through a polymorphic
-  `(target_type, target_id)` pair.
+- Notes, citations, media, tags, identifiers, contacts, contributors, and
+  tasks attach through a polymorphic `(target_type, target_id)` pair.
 - Files are not stored in SQLite. `media_file` rows hold project-relative
   paths; the bytes live in the `media/` folder next to the `.doru` file.
 
@@ -875,13 +874,6 @@ erDiagram
         TEXT value "NOT NULL"
     }
 
-    restriction {
-        TEXT id PK
-        TEXT target_type "NOT NULL, polymorphic target"
-        TEXT target_id "NOT NULL, UUID"
-        TEXT level "NOT NULL: confidential, locked, privacy"
-    }
-
     tag {
         TEXT id PK
         TEXT name "NOT NULL"
@@ -897,8 +889,6 @@ erDiagram
     task {
         TEXT id PK
         TEXT text "NOT NULL"
-        TEXT target_type "nullable; NULL = free-standing task"
-        TEXT target_id "nullable; UUID when attached"
         TEXT priority
         TEXT status
         INTEGER created_at "epoch milliseconds"
@@ -906,12 +896,21 @@ erDiagram
         INTEGER reminder_at "epoch milliseconds"
         INTEGER closed_at "epoch milliseconds; cleared when reopened"
     }
+
+    task_link {
+        TEXT id PK
+        TEXT task_id FK
+        TEXT target_type "NOT NULL, polymorphic target"
+        TEXT target_id "NOT NULL, UUID"
+    }
 ```
 
-`task` is both an entity and an attachment: a task may be free-standing or
-attached to any target. GEDCOM import and export still map the record to the
-`_TODO` record/structure in `@doru/gedcom`, but the Dóru table, model type,
-target type, tab prefix, and UI strings all use the task vocabulary
+`task` is a shared entity: it can be free-standing or linked to any number of
+targets through `task_link`. Deleting a target removes its link rows but keeps
+the task (and its own attachments) alive, so a task shared by a person and a
+place survives removing either one. GEDCOM import and export still map the
+record to the `_TODO` record/structure in `@doru/gedcom`, but the Dóru table,
+model type, tab prefix, and UI strings all use the task vocabulary
 (`TaskRecord`, `TaskTab`, the `task:` tab prefix, `features.tasks.*`).
 
 Task lifecycle times are **epoch milliseconds**, not genealogical dates:
@@ -926,8 +925,8 @@ in the corpus and is not part of Dóru's tag model.
 The GEDCOM `TODO` `REPO`, `_CAT`, `_LOCL`, `_TTIL`, `TYPE`, and `DATA` slots are
 still parsed by `@doru/gedcom` but are deliberately ignored on import and not
 written on export. Dóru stores no direct task-to-repository link, task
-category, task locality, task title, task type, or task-result text; a task
-can still choose a repository as its polymorphic target. Task statuses use the
+category, task locality, task title, task type, or task-result text; a
+repository can still be one of the task's targets. Task statuses use the
 canonical `open`, `waiting`, `in-progress`, and `closed` values. GEDCOM
 spellings are normalized on import (`Open` → open, `Completed` → closed,
 `INPROGRESS`/`InProgress` → in-progress); empty, missing, and unknown statuses
@@ -951,16 +950,16 @@ The following tables use `(target_type, target_id)` without a foreign key:
 | `media_link` | a media record |
 | `identifier` | an external identifier |
 | `contact` | an email, phone, fax, URL, or www contact |
-| `restriction` | a confidentiality/privacy restriction |
 | `tag_link` | a tag |
+| `task_link` | a task |
 | `record_submitter` | a contributor or research-interest link |
 
-`task` also has an optional target pair. Its target picker excludes `source`,
-`task`, and `submitter`: a source is the thing a task researches rather than
-its parent record, task-to-task chains duplicate the research log, and a task
-is not a citation of a submitter's contribution. Existing rows with those
-legacy targets stay readable. Contributors and identifiers are likewise not
-offered on task pages. Every other target type remains available:
+`task_link` stores one task's links to any number of targets. Its target
+picker excludes `source`, `task`, and `submitter`: a source is the thing a task
+researches rather than its parent record, task-to-task chains duplicate the
+research log, and a task is not a citation of a submitter's contribution.
+Contributors and identifiers are likewise not offered on task pages. Every
+other target type remains available:
 
 ```text
 person, family, family_partner, family_child, family_marriage_status,
@@ -971,6 +970,22 @@ address, address_line, association, title
 
 `name` in this list refers to the `person_name` table. `family_witness` is
 deliberately absent: it is free text without stable identity.
+
+A `citation` never targets a task: a source is evidence for a genealogical
+assertion, while a task is a work item that asserts nothing. The task tab
+therefore has no sources section, and `TreeService` rejects a citation whose
+target type is `task`; `task` remains a valid target for notes, media, tags and
+the other non-citation attachments.
+
+A `contact` row exists only on a target GEDCOM can carry contact details for:
+`person`, `fact`, `address`, `repository`, or `submitter`. Addresses carry
+`PHON`/`EMAIL`/`FAX`/`WWW` in 5.5.x; event details and the `REPO`/`SUBM`
+records carry them in 7.0; direct `INDI` contact spellings are a vendor
+extension Dóru keeps on a person. `kind` stays open (`email`, `phone`, `fax`,
+`url`, `www`, or an unknown value), and the same kinds are offered on every
+supported target. `TreeService` rejects a contact on any other target; the
+table itself remains polymorphic and cannot enforce the rule with a foreign
+key.
 
 Because there is no SQL foreign key, `TARGET_TYPES` plus the op layer is the
 integrity boundary. Every op that deletes or detaches a target must clean its
@@ -992,6 +1007,7 @@ Most child rows are removed with their parent:
 - `address` → address lines.
 - `submitter` → languages and record-submitter links.
 - `tag` → tag links.
+- `task` → task links (the task itself survives a target deletion).
 - `fact` → ages, participants, flags, event-family links, additional places.
 
 References that are cleared instead of deleting the child use `SET NULL`:
@@ -1011,7 +1027,7 @@ must add a `*_date_id` column and date cleanup to its repository.
 
 ## Indexes
 
-The schema has 78 regular indexes:
+The schema has 77 regular indexes:
 
 - Parent/child lookups are indexed on the child columns: `person_name`,
   `name_part`, `family_partner`, `family_child`, `fact_*`, `place_*`,
@@ -1022,7 +1038,8 @@ The schema has 78 regular indexes:
 - Every date slot has its own index (`person_name.period_date_id`,
   `fact.date_id`, `association.period_date_id`, …) so the `RESTRICT` check
   does not scan owner tables.
-- `task.scheduled_at` is indexed for scheduled-task lists and ordering.
+- `task.scheduled_at` is indexed for scheduled-task lists and ordering;
+  `task_link.target_type/target_id` is indexed for target lookups.
 - No search index or FTS table exists yet. Person search is an in-memory
   substring scan over the stored name parts.
 
@@ -1040,7 +1057,7 @@ edited inside a parent card or through an attachment section.
 | `repository:` | `repository`, `address`, `source_repository`, `title` |
 | `submitter:` | `submitter`, `submitter_language`, `record_submitter` |
 | `address:` | `address`, `address_line` |
-| `task:` | `task` |
+| `task:` | `task`, `task_link` |
 | `media:` | `media`, `media_file`, `media_file_translation`, `media_link` |
 | `title:` | `title` |
 
@@ -1048,7 +1065,7 @@ The compact list card is `EntityCard`; the shared editor header is
 `EntityViewCard`; the canvas has its own `PersonCardView`. `Note`,
 `citation`, `tag`, `association`, `fact`, `date`, person/place name rows,
 family link rows, source child rows, media files/links, identifiers, contacts,
-restrictions, and contributor links do not have their own tabs.
+and contributor links do not have their own tabs.
 
 ## Schema evolution
 

@@ -17,7 +17,6 @@ import {
   ContributorsSection,
   IdentifiersSection,
   NotesSection,
-  RestrictionsSection,
   SourcesSection,
   TagsSection,
   TasksSection,
@@ -136,7 +135,6 @@ function RepositoryTabBody({
     tagLinks,
     identifiers,
     contacts,
-    restrictions,
     submitters,
     contributors,
     refresh: refreshAttachments,
@@ -325,7 +323,9 @@ function RepositoryTabBody({
             citations={repositoryCitations}
             refresh={refreshAttachments}
             onAddSource={api.addSource}
+            onAddSourceToTargets={api.addSourceToTargets}
             onAttachSource={api.attachSource}
+            onAttachSourceToTargets={api.attachSourceToTargets}
             onDetachCitation={api.detachCitation}
             onUpdateCitation={api.updateCitation}
             onOpenSource={onOpenSource}
@@ -396,23 +396,6 @@ function RepositoryTabBody({
               await refreshAttachments();
             }}
           />
-          <RestrictionsSection
-            targetType="repository"
-            targetId={targetId}
-            restrictions={restrictions}
-            onAdd={async (restriction) => {
-              await api.addRestriction(restriction);
-              await refreshAttachments();
-            }}
-            onUpdate={async (before, after) => {
-              await api.updateRestriction(before, after);
-              await refreshAttachments();
-            }}
-            onDelete={async (restriction) => {
-              await api.deleteRestriction(restriction);
-              await refreshAttachments();
-            }}
-          />
           <TagsSection
             targetType="repository"
             targetId={targetId}
@@ -421,6 +404,7 @@ function RepositoryTabBody({
             onAddTag={api.addTag}
             onUpdateTag={api.updateTag}
             onDeleteTag={api.deleteTag}
+            onAttachTagToTargets={api.attachTagToTargets}
             onAttachTag={async (link) => {
               await api.attachTag(link);
               await refreshAttachments();

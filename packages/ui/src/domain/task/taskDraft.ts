@@ -13,8 +13,6 @@ export interface TaskDraft {
   scheduledAt: string;
   /** Local `datetime-local` value. */
   reminderAt: string;
-  targetType: string;
-  targetId: string;
 }
 
 export function emptyTaskDraft(): TaskDraft {
@@ -24,8 +22,6 @@ export function emptyTaskDraft(): TaskDraft {
     status: 'open',
     scheduledAt: '',
     reminderAt: '',
-    targetType: '',
-    targetId: '',
   };
 }
 
@@ -36,8 +32,6 @@ export function taskToDraft(task: TaskRecord): TaskDraft {
     status: normalizeTaskStatus(task.status),
     scheduledAt: timestampToInput(task.scheduledAt),
     reminderAt: timestampToInput(task.reminderAt),
-    targetType: task.targetType ?? '',
-    targetId: task.targetId ?? '',
   };
 }
 
@@ -55,13 +49,6 @@ export function taskDraftToRecord(task: TaskRecord, draft: TaskDraft): TaskRecor
   next.status = normalizeTaskStatus(draft.status);
   next.scheduledAt = preserveTimestamp(task.scheduledAt, draft.scheduledAt);
   next.reminderAt = preserveTimestamp(task.reminderAt, draft.reminderAt);
-  if (draft.targetType !== '' && draft.targetId !== '') {
-    next.targetType = draft.targetType;
-    next.targetId = draft.targetId;
-  } else {
-    next.targetType = undefined;
-    next.targetId = undefined;
-  }
   return next;
 }
 
@@ -77,11 +64,7 @@ function preserveTimestamp(original: number | undefined, input: string): number 
   return inputToTimestamp(input);
 }
 
-/**
- * Keeps locally edited task fields while adopting refreshed untouched values.
- * The target type and id move together so the merge cannot invent a mixed
- * target that neither writer stored.
- */
+/** Keeps locally edited task fields while adopting refreshed untouched values. */
 export function mergeTaskDraft(current: TaskDraft, base: TaskDraft, refreshed: TaskDraft): TaskDraft {
   const field = <K extends keyof TaskDraft>(key: K): TaskDraft[K] =>
     current[key] === base[key] ? refreshed[key] : current[key];
@@ -91,8 +74,5 @@ export function mergeTaskDraft(current: TaskDraft, base: TaskDraft, refreshed: T
     status: field('status'),
     scheduledAt: field('scheduledAt'),
     reminderAt: field('reminderAt'),
-    ...(current.targetType === base.targetType && current.targetId === base.targetId
-      ? { targetType: refreshed.targetType, targetId: refreshed.targetId }
-      : { targetType: current.targetType, targetId: current.targetId }),
   };
 }

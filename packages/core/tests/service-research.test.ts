@@ -25,6 +25,7 @@ const association = (overrides: Partial<AssociationRecord> = {}): AssociationRec
 const task = (overrides: Partial<TaskRecord> = {}): TaskRecord => ({
   id: 'T1',
   text: 'Order the birth record',
+  targets: [],
   priority: 'medium',
   status: 'open',
   createdAt: 1_700_000_000_000,
@@ -82,8 +83,35 @@ describe('TreeService research layer', () => {
   it('stores explicit open and medium defaults when a new task has neither', () => {
     const { fixture, service } = makeService();
     try {
-      service.addTask({ id: 'T1', text: 'Task' });
+      service.addTask({ id: 'T1', text: 'Task', targets: [] });
       expect(fixture.repo.getTask('T1')).toMatchObject({ status: 'open', priority: 'medium' });
+    } finally {
+      cleanupRepo(fixture);
+    }
+  });
+
+  it('links a task to several targets and detaches one at a time', () => {
+    const { fixture, service } = makeService();
+    try {
+      service.addTask(
+        task({
+          targets: [
+            { id: 'TL1', taskId: 'T1', targetType: 'person', targetId: 'P1' },
+            { id: 'TL2', taskId: 'T1', targetType: 'person', targetId: 'P2' },
+          ],
+        }),
+      );
+      expect(fixture.repo.listTasksFor('person', 'P1')).toHaveLength(1);
+      expect(fixture.repo.listTasksFor('person', 'P2')).toHaveLength(1);
+
+      service.deleteTaskLink(fixture.repo.listTaskLinksFor('person', 'P1')[0]!);
+      expect(fixture.repo.listTasksFor('person', 'P1')).toEqual([]);
+      expect(fixture.repo.getTask('T1')).toMatchObject({
+        targets: [expect.objectContaining({ targetType: 'person', targetId: 'P2' })],
+      });
+
+      service.undo();
+      expect(fixture.repo.listTasksFor('person', 'P1')).toHaveLength(1);
     } finally {
       cleanupRepo(fixture);
     }
@@ -103,11 +131,11 @@ describe('TreeService research layer', () => {
   it('keeps the generated createdAt when a stale draft updates a task', () => {
     const { fixture, service } = makeService();
     try {
-      service.addTask({ id: 'T1', text: 'Task' });
+      service.addTask({ id: 'T1', text: 'Task', targets: [] });
       const stored = fixture.repo.getTask('T1')!;
       expect(stored.createdAt).toBeTypeOf('number');
 
-      service.updateTask({ id: 'T1', text: 'Stale' }, { ...stored, text: 'Edited' });
+      service.updateTask({ id: 'T1', text: 'Stale', targets: [] }, { ...stored, text: 'Edited' });
       expect(fixture.repo.getTask('T1')).toMatchObject({ text: 'Edited', createdAt: stored.createdAt });
 
       service.undo();
@@ -171,9 +199,17 @@ describe('TreeService research layer', () => {
       expect(fixture.repo.listTasks()).toEqual([task()]);
       expect(service.listTasks()).toEqual([task()]);
       expect(fixture.repo.listTasksFor('person', 'P1')).toEqual([]);
-      service.addTask(task({ id: 'T2', targetType: 'person', targetId: 'P1' }));
+      service.addTask(
+        task({
+          id: 'T2',
+          targets: [{ id: 'TL2', taskId: 'T2', targetType: 'person', targetId: 'P1' }],
+        }),
+      );
       expect(fixture.repo.listTasksFor('person', 'P1')).toEqual([
-        task({ id: 'T2', targetType: 'person', targetId: 'P1' }),
+        task({
+          id: 'T2',
+          targets: [{ id: 'TL2', taskId: 'T2', targetType: 'person', targetId: 'P1' }],
+        }),
       ]);
 
       const after = task({ status: 'closed', closedAt: 1_700_000_100_000 });

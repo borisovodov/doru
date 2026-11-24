@@ -60,8 +60,8 @@ Removing a person from a family or deleting a family is one click.
   record's Notes section, then choose whether an edit should update the
   shared text everywhere or only the current record. **Detach from this
   record** removes one link; **Delete everywhere** removes the note.
-- Facts and names carry their own Sources, Notes, Tags, Identifiers,
-  Contacts and Restrictions sections inside the person editor.
+- Facts and names carry their own Sources, Notes, Tags, Identifiers and
+  Contacts sections inside the person editor.
 
 ## Addresses
 
@@ -77,13 +77,14 @@ Tasks have creation and closing dates in addition to the scheduled and
 reminder dates. Every editor has a **Tasks** section: add a task there and it
 is linked to that record automatically. Facts, names, citations and notes
 carry their own Tasks section in their attachment panel. **Related to** links
-a task to any record in the tree — a person, family, event, name, source,
-citation, note, media file, place, repository, submitter, address, title or
-even another task; leave it empty for a free-standing task.
+a task to one or more records in the tree — a person, family, event, name,
+citation, note, media, place, repository, address or title; leave it empty for
+a free-standing task. A task is shared: editing it anywhere updates the same
+record, and deleting one related record leaves the task in place.
 
 Titles, tasks, addresses, associations and family partner/child links have the
-same Notes, Sources, Tags, Identifiers, Contacts, Restrictions, Contributors
-and Tasks sections as the main entity tabs.
+same Notes, Sources, Tags, Identifiers, Contacts, Contributors and Tasks
+sections as the main entity tabs.
 
 ## Media
 

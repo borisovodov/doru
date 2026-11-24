@@ -66,8 +66,7 @@ describe('Phase 3: research layer', () => {
       repo.insertTask({
         id: 'T1',
         text: 'check the archive',
-        targetType: 'person',
-        targetId: 'P1',
+        targets: [{ id: 'TL1', taskId: 'T1', targetType: 'person', targetId: 'P1' }],
         priority: 'high',
         status: 'open',
         createdAt: new Date(2026, 0, 2).getTime(),
@@ -96,7 +95,7 @@ describe('Phase 3: research layer', () => {
     }
   });
 
-  it('cascades tasks and record submitters with the person and restores them on undo', () => {
+  it('detaches tasks and record submitters from a deleted person and restores them on undo', () => {
     const fixture = makeRepo();
     try {
       const svc = service(fixture);
@@ -104,12 +103,17 @@ describe('Phase 3: research layer', () => {
       const p = person('P1');
       repo.insertPerson(p);
 
-      svc.addTask({ id: 'T1', text: 'task', targetType: 'person', targetId: 'P1' });
+      svc.addTask({
+        id: 'T1',
+        text: 'task',
+        targets: [{ id: 'TL1', taskId: 'T1', targetType: 'person', targetId: 'P1' }],
+      });
       repo.insertSubmitter({ id: 'S1', name: 'Sub' });
       repo.insertRecordSubmitter('RS1', 'S1', 'person', 'P1');
 
       svc.deletePerson(p);
       expect(repo.listTasksFor('person', 'P1')).toEqual([]);
+      expect(repo.getTask('T1')?.targets).toEqual([]);
       expect(repo.listSubmittersFor('person', 'P1')).toEqual([]);
       // The submitter survives; only the record link goes.
       expect(repo.getSubmitter('S1')).toBeDefined();

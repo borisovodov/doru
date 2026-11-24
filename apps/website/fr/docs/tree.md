@@ -1,5 +1,5 @@
 ---
-source-hash: ea1d373e7c9e
+source-hash: f6a2e6136547
 ---
 
 # Travailler avec l'arbre
@@ -70,7 +70,7 @@ famille se fait en un clic.
   l'enregistrement courant. **Détacher de cet enregistrement** supprime un lien ;
   **Supprimer partout** supprime la note.
 - Les faits et les noms portent leurs propres sections Sources, Notes, Étiquettes,
-  Identifiants, Contacts et Restrictions dans l'éditeur de personne.
+  Identifiants et Contacts dans l'éditeur de personne.
 
 ## Adresses
 
@@ -87,14 +87,15 @@ Les tâches ont des dates de création et de clôture en plus des dates planifi�
 de rappel. Chaque éditeur a une section **Tâches** : ajoutez-y une tâche et elle
 est automatiquement liée à cet enregistrement. Les faits, noms, citations et notes
 portent leur propre section Tâches dans leur panneau de pièces jointes. **Lié à**
-relie une tâche à n'importe quel enregistrement de l'arbre — une personne, une
-famille, un événement, un nom, une source, une citation, une note, un fichier
-multimédia, un lieu, un dépôt, un soumetteur, une adresse, une œuvre ou même une
-autre tâche ; laissez-le vide pour une tâche indépendante.
+relie une tâche à un ou plusieurs enregistrements de l'arbre — une personne, une
+famille, un événement, un nom, une citation, une note, un média, un lieu, un
+dépôt, une adresse ou une œuvre ; laissez-le vide pour une tâche indépendante.
+Une tâche est partagée : la modifier n'importe où met à jour le même
+enregistrement, et supprimer un enregistrement lié laisse la tâche en place.
 
 Les œuvres, tâches, adresses, associations et liens partenaire/enfant d'une
 famille ont les mêmes sections Notes, Sources, Étiquettes, Identifiants, Contacts,
-Restrictions, Contributeurs et Tâches que les onglets de l'entité principale.
+Contributeurs et Tâches que les onglets de l'entité principale.
 
 ## Médias
 

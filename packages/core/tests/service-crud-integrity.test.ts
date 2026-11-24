@@ -188,7 +188,7 @@ describe('TreeService CRUD integrity', () => {
       service.addNote({ id: 'NM2', text: 'file note', targetType: 'media_file', targetId: 'MF1' });
 
       service.deletePlace(repo.getPlace('PL1')!);
-      expect(repo.getMedia('M1')).toBeUndefined();
+      expect(repo.getMedia('M1')?.links).toEqual([]);
 
       service.undo();
       expect(repo.getMedia('M1')?.id).toBe('M1');
@@ -224,7 +224,7 @@ describe('TreeService CRUD integrity', () => {
       service.addNote({ id: 'NM1', text: 'media note', targetType: 'media', targetId: 'M1' });
 
       service.deletePlace(repo.getPlace('PL1')!);
-      expect(repo.getMedia('M1')).toBeUndefined();
+      expect(repo.getMedia('M1')?.links).toEqual([]);
       service.undo();
       expect(repo.listNotesFor('media', 'M1').map((entry) => entry.id)).toEqual(['NM1']);
       expect(repo.listAttachmentsFor('place_name', 'PN1').mediaLinks).toHaveLength(1);

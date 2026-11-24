@@ -17,8 +17,10 @@ import type {
   RepositoryRecord,
   SourceRecord,
   SubmitterRecord,
-  TitleRecord,
   TaskRecord,
+  TaskTargetLink,
+  TitleRecord,
+  TargetRef,
 } from '@doru/core';
 import { AttachmentsPanel } from '../attachments';
 import { EntityTab } from '../sidebar';
@@ -60,7 +62,6 @@ export function TaskTab({
   api,
   onClose,
   onOpenMedia,
-  onOpenSource,
   onCreated,
 }: {
   entityId: string;
@@ -81,7 +82,6 @@ export function TaskTab({
   api: TaskEditorApi;
   onClose: () => void;
   onOpenMedia: (mediaId: string) => void;
-  onOpenSource: (sourceId: string) => void;
   onCreated: (realId: string) => void;
 }) {
   const taskId = entityId;
@@ -111,7 +111,6 @@ export function TaskTab({
       api={api}
       onClose={onClose}
       onOpenMedia={onOpenMedia}
-      onOpenSource={onOpenSource}
       onCreated={onCreated}
     />
   );
@@ -137,7 +136,6 @@ function TaskTabBody({
   api,
   onClose,
   onOpenMedia,
-  onOpenSource,
   onCreated,
 }: {
   record: TaskRecord | undefined;
@@ -159,10 +157,9 @@ function TaskTabBody({
   api: TaskEditorApi;
   onClose: () => void;
   onOpenMedia: (mediaId: string) => void;
-  onOpenSource: (sourceId: string) => void;
   onCreated: (realId: string) => void;
 }) {
-  const base = record ?? { id: crypto.randomUUID(), text: '' };
+  const base = record ?? { id: crypto.randomUUID(), text: '', targets: [] };
   const recordRef = useRef(record);
   const savedRef = useRef<TaskRecord>(record ?? base);
   const submittedRef = useRef<TaskDraft | undefined>(undefined);
@@ -174,6 +171,7 @@ function TaskTabBody({
   const [draft, setDraft] = useState<TaskDraft>(() =>
     isNew ? { ...emptyTaskDraft(), text: nls.t('features.tasks.newTask') } : taskToDraft(base),
   );
+  const [newTargets, setNewTargets] = useState<TaskTargetLink[]>([]);
 
   // Adopt external task changes for fields that are not locally edited.
   useEffect(() => {
@@ -200,12 +198,49 @@ function TaskTabBody({
     setDraft((current) => mergeTaskDraft(current, baseDraft, taskToDraft(record)));
   }, [record]);
   const invalidTimestamp = taskDraftHasInvalidTimestamp(draft);
-  const targetId = lastSaved?.id ?? record?.id;
+  const taskId = lastSaved?.id ?? record?.id;
+  const targets = isNew ? newTargets : ((lastSaved ?? record)?.targets ?? []);
   const displayTitle = draft.text.trim() !== '' ? draft.text.trim() : isNew ? nls.t('features.tasks.newTask') : '—';
 
   const patch = (update: Partial<TaskDraft>) => {
     setSaveError(false);
     setDraft((current) => ({ ...current, ...update }));
+  };
+
+  const addTarget = async (target: TargetRef) => {
+    if (isNew) {
+      setNewTargets((current) => {
+        if (current.some((entry) => entry.targetType === target.targetType && entry.targetId === target.targetId)) {
+          return current;
+        }
+        return [...current, { id: crypto.randomUUID(), taskId: savedRef.current.id, ...target }];
+      });
+      return;
+    }
+    const task = lastSaved ?? record;
+    if (task === undefined) {
+      return;
+    }
+    await api.addTaskLink({ id: crypto.randomUUID(), taskId: task.id, ...target });
+  };
+
+  const removeTarget = async (target: TargetRef) => {
+    if (isNew) {
+      setNewTargets((current) =>
+        current.filter((entry) => entry.targetType !== target.targetType || entry.targetId !== target.targetId),
+      );
+      return;
+    }
+    const task = lastSaved ?? record;
+    if (task === undefined) {
+      return;
+    }
+    const link = task.targets.find(
+      (entry) => entry.targetType === target.targetType && entry.targetId === target.targetId,
+    );
+    if (link !== undefined) {
+      await api.deleteTaskLink(link);
+    }
   };
 
   const targetData = useMemo(
@@ -243,10 +278,7 @@ function TaskTabBody({
     ],
   );
 
-  const subtitleParts: string[] = [];
-  if (draft.targetType !== '' && draft.targetId !== '') {
-    subtitleParts.push(taskTargetLabel(draft.targetType, draft.targetId, targetData));
-  }
+  const subtitleParts = targets.map((target) => taskTargetLabel(target.targetType, target.targetId, targetData));
 
   const save = async () => {
     setSaveError(false);
@@ -255,6 +287,9 @@ function TaskTabBody({
     }
     const before = savedRef.current;
     const after = taskDraftToRecord(before, draft);
+    if (isNew) {
+      after.targets = newTargets.map((link) => ({ ...link, taskId: after.id }));
+    }
     try {
       if (isNew && lastSaved === undefined) {
         if (creatingRef.current) {
@@ -351,20 +386,30 @@ function TaskTabBody({
         <TaskEditorFields
           edit={draft}
           data={targetData}
+          targets={targets}
           onChange={patch}
+          onChangeTargets={(next) => {
+            const removed = targets.filter(
+              (target) =>
+                !next.some((entry) => entry.targetType === target.targetType && entry.targetId === target.targetId),
+            );
+            const added = next.filter(
+              (target) =>
+                !targets.some((entry) => entry.targetType === target.targetType && entry.targetId === target.targetId),
+            );
+            for (const target of removed) {
+              void removeTarget(target).catch(() => setSaveError(true));
+            }
+            for (const target of added) {
+              void addTarget(target).catch(() => setSaveError(true));
+            }
+          }}
           targetTypes={VISIBLE_TARGET_TYPES}
           autoFocusText={isNew}
         />
       </SectionCard>
-      {targetId !== undefined && (
-        <AttachmentsPanel
-          targetType="task"
-          targetId={targetId}
-          api={api}
-          sources={sources}
-          onOpenSource={onOpenSource}
-          onOpenMedia={onOpenMedia}
-        />
+      {taskId !== undefined && (
+        <AttachmentsPanel targetType="task" targetId={taskId} api={api} sources={sources} onOpenMedia={onOpenMedia} />
       )}
       {(!isNew || lastSaved !== undefined) && (
         <DangerZone>

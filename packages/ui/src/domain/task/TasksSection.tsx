@@ -59,11 +59,11 @@ export function TasksSection({
     if (text === '') {
       return;
     }
+    const id = crypto.randomUUID();
     await api.addTask({
-      id: crypto.randomUUID(),
+      id,
       text,
-      targetType,
-      targetId,
+      targets: [{ id: crypto.randomUUID(), taskId: id, targetType, targetId }],
       status: 'open',
       priority: 'medium',
     });

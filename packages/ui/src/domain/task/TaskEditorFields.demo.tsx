@@ -6,12 +6,15 @@ import { emptyTaskDraft } from './taskDraft';
 
 function StatefulTaskEditorFields(args: ComponentProps<typeof TaskEditorFields>) {
   const [edit, setEdit] = useState(args.edit);
+  const [targets, setTargets] = useState(args.targets);
   return (
     <SectionCard title="Details">
       <TaskEditorFields
         {...args}
         edit={edit}
+        targets={targets}
         onChange={(update) => setEdit((current) => ({ ...current, ...update }))}
+        onChangeTargets={setTargets}
       />
     </SectionCard>
   );
@@ -38,7 +41,9 @@ const meta = {
       associations: [],
       tasks: [],
     },
+    targets: [],
     onChange: () => undefined,
+    onChangeTargets: () => undefined,
   },
   decorators: [
     (Story) => (

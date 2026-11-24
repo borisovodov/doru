@@ -53,7 +53,6 @@ import type {
   PersonName,
   PlaceName,
   PlaceRecord,
-  RestrictionRecord,
   Sex,
   TaskRecord,
 } from '../model/types';
@@ -429,7 +428,6 @@ function importAddress(address: AddressStructure, ctx: ImportContext): string {
     ctx,
   );
   importNotes(address.notes, 'address', id, ctx);
-  importRestrictions(address.private === true ? ['privacy'] : undefined, 'address', id, ctx);
   return id;
 }
 
@@ -744,7 +742,6 @@ function importPerson(record: GedcomIndividualRecord, ctx: ImportContext): void 
     ],
     ctx,
   );
-  importRestrictions(record.restriction, 'person', id, ctx);
   importSubmitterLinks(record.submitters, 'person', id, ctx);
   importSubmitterLinks(record.ancestorInterests, 'person', id, ctx, 'ancestor_interest');
   importSubmitterLinks(record.descendantInterests, 'person', id, ctx, 'descendant_interest');
@@ -828,7 +825,6 @@ function mapFact(
 ): FactRecord {
   queueFactFamily(structure, base.id, ctx, detail);
   importMediaLinks(detail?.media, 'fact', base.id, ctx);
-  importRestrictions(detail?.restriction, 'fact', base.id, ctx);
   importIdentifiers(
     detail?.uniqueIds?.map((payload) => ({ tag: 'UID', payload })),
     'fact',
@@ -1261,7 +1257,6 @@ function importFamily(record: GedcomFamilyRecord, ctx: ImportContext): void {
   importCitations(record.citations, 'family', id, ctx);
   importNotes(record.notes, 'family', id, ctx);
   importIdentifiers(record.identifiers, 'family', id, ctx);
-  importRestrictions(record.restriction, 'family', id, ctx);
   importMediaLinks(record.media, 'family', id, ctx);
   importSubmitterLinks(record.submitters, 'family', id, ctx);
   for (const tagLink of record.tagLinks ?? []) {
@@ -1290,9 +1285,6 @@ function importFamily(record: GedcomFamilyRecord, ctx: ImportContext): void {
     });
     importCitations(association.citations, 'association', associationId, ctx);
     importNotes(association.notes, 'association', associationId, ctx);
-    if (association.private === true) {
-      importRestrictions(['privacy'], 'association', associationId, ctx);
-    }
   }
 }
 
@@ -1440,6 +1432,7 @@ function importGedcomTodoRecord(record: GedcomTodoRecord, ctx: ImportContext): v
   ctx.repo.insertTask({
     id,
     text: record.payload || '',
+    targets: [],
     priority: normalizeTaskPriority(record.priority),
     status,
     createdAt: parseTaskTextDate(record.createdDate),
@@ -1613,11 +1606,11 @@ function importGedcomTodoStructure(
   // deliberately ignored: see importGedcomTodoRecord. Dóru has no task-type
   // taxonomy or separate task-result field.
   const status = normalizeTaskStatus(structure.status);
+  const id = crypto.randomUUID();
   const mapped: TaskRecord = {
-    id: crypto.randomUUID(),
+    id,
     text: structure.payload ?? structure.description ?? '',
-    targetType,
-    targetId,
+    targets: [{ id: crypto.randomUUID(), taskId: id, targetType, targetId }],
     priority: normalizeTaskPriority(structure.priority),
     status,
     createdAt: parseTaskTextDate(structure.createdDate),
@@ -1816,23 +1809,6 @@ function importContacts(
       value: contact.value,
     };
     ctx.repo.insertContact(mapped);
-  }
-}
-
-function importRestrictions(
-  restriction: string[] | undefined,
-  targetType: string,
-  targetId: string,
-  ctx: ImportContext,
-): void {
-  for (const level of restriction ?? []) {
-    const mapped: RestrictionRecord = {
-      id: crypto.randomUUID(),
-      targetType,
-      targetId,
-      level: level.toLowerCase(),
-    };
-    ctx.repo.insertRestriction(mapped);
   }
 }
 
@@ -2093,7 +2069,6 @@ function importMediaRecords(records: GedcomRecord[], ctx: ImportContext): void {
     }
     importNotes(record.notes, 'media', id, ctx);
     importIdentifiers(record.identifiers, 'media', id, ctx);
-    importRestrictions(record.restriction, 'media', id, ctx);
     importSubmitterLinks(record.submitters, 'media', id, ctx);
     for (const tagLink of record.tagLinks ?? []) {
       importTagLink(tagLink, 'media', id, ctx);

@@ -587,8 +587,10 @@ export interface SourceRecord {
 
 /**
  * A source attached to some part of the tree (a person, family, fact, name,
- * …). `page` is the location within the source, `quality` the reliability
- * assessment for this claim.
+ * …). A task is never a target: a citation is evidence for a genealogical
+ * assertion, while a task is a work item that asserts nothing. `page` is the
+ * location within the source, `quality` the reliability assessment for this
+ * claim.
  */
 export interface CitationRecord {
   id: string;
@@ -792,19 +794,17 @@ export interface IdentifierRecord {
   value: string;
 }
 
+/**
+ * A contact detail on a target that GEDCOM can carry one for (see
+ * `CONTACT_TARGET_TYPES`). `kind` is deliberately open: every kind is offered
+ * on every supported target, and unknown values survive a round trip.
+ */
 export interface ContactRecord {
   id: string;
   targetType: string;
   targetId: string;
   kind: string;
   value: string;
-}
-
-export interface RestrictionRecord {
-  id: string;
-  targetType: string;
-  targetId: string;
-  level: string;
 }
 
 /** A named label attached to any target (no color — presentation lives in themes). */
@@ -854,11 +854,9 @@ export interface AttachmentsSnapshot {
   mediaLinkAttachments: NestedAttachmentSnapshot[];
   identifiers: IdentifierRecord[];
   contacts: ContactRecord[];
-  restrictions: RestrictionRecord[];
   tagLinks: Array<{ tagId: string; link: TagLinkRecord }>;
-  tasks: TaskRecord[];
-  /** Attachments of tasks that would be deleted with this target. */
-  taskAttachments: NestedAttachmentSnapshot[];
+  /** Task links targeting this record; the tasks themselves survive. */
+  taskLinks: TaskTargetLink[];
   recordSubmitters: RecordSubmitterLink[];
 }
 
@@ -874,10 +872,8 @@ export function emptyAttachments(): AttachmentsSnapshot {
     mediaLinkAttachments: [],
     identifiers: [],
     contacts: [],
-    restrictions: [],
     tagLinks: [],
-    tasks: [],
-    taskAttachments: [],
+    taskLinks: [],
     recordSubmitters: [],
   };
 }
@@ -995,20 +991,32 @@ export function normalizeTaskPriority(priority: string | undefined): TaskPriorit
   return 'medium';
 }
 
+/** A polymorphic reference to one tree row. */
+export interface TargetRef {
+  targetType: string;
+  targetId: string;
+}
+
+/** A link from a task to one related record. */
+export interface TaskTargetLink extends TargetRef {
+  id: string;
+  taskId: string;
+}
+
 /**
- * A task, attached to some entity or free-standing.
+ * A task, linked to any number of entities or free-standing.
  *
  * Dóru deliberately has no direct task-to-repository field, task category,
  * task locality, task title, task type, or task-result text: the GEDCOM
  * `TODO` `REPO`, `_CAT`, `_LOCL`, `_TTIL`, `TYPE`, and `DATA` slots are parsed
  * by `@doru/gedcom` but ignored by the import/export boundary. A repository
- * can still be the task's target.
+ * can still be one of the task's targets.
  */
 export interface TaskRecord {
   id: string;
   text: string;
-  targetType?: string | undefined;
-  targetId?: string | undefined;
+  /** The records this task relates to; empty for a free-standing task. */
+  targets: TaskTargetLink[];
   /** Canonical priorities; unknown, empty, and missing values mean medium. */
   priority?: string | undefined;
   /** Canonical statuses; unknown, empty, and missing values mean open. */
@@ -1075,6 +1083,21 @@ export const TARGET_TYPES = [
 ] as const;
 
 export type TargetType = (typeof TARGET_TYPES)[number];
+
+/**
+ * The targets that can own contact details. GEDCOM keeps PHON, EMAIL, FAX and
+ * WWW inside addresses (5.5.x), on event details and on the REPO and SUBM
+ * records (7.0); direct INDI contacts are a vendor extension Dóru keeps on a
+ * person. Every other attachment target has no contact slot on import or
+ * export, so a contact row there would be dead data.
+ */
+export const CONTACT_TARGET_TYPES = ['person', 'fact', 'address', 'repository', 'submitter'] as const;
+
+export type ContactTargetType = (typeof CONTACT_TARGET_TYPES)[number];
+
+export function isContactTargetType(type: string): type is ContactTargetType {
+  return (CONTACT_TARGET_TYPES as readonly string[]).includes(type);
+}
 
 // ---------------------------------------------------------------------------
 // Whole-tree helpers

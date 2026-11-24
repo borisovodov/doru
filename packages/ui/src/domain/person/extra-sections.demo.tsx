@@ -4,7 +4,7 @@ import { FamilySection } from '../family/FamilySection';
 import { SourcesSection } from '../sources/SourcesSection';
 import { NotesSection } from '../notes/NotesSection';
 import { TagsSection } from '../tags/TagsSection';
-import { ContactsSection, IdentifiersSection, RestrictionsSection } from '../attachments/AttachmentsSection';
+import { ContactsSection, IdentifiersSection } from '../attachments/AttachmentsSection';
 import { FactEditor } from '../fact/FactEditor';
 import { CitationEditor } from '../citation/CitationEditor';
 import { emptyFactDraft, factDraftToRecord } from '../fact/factDraft';
@@ -134,14 +134,6 @@ export const Attachments: DemoCase = {
         targetType="person"
         targetId="P1"
         contacts={[]}
-        onAdd={noop}
-        onUpdate={async () => undefined}
-        onDelete={async () => undefined}
-      />
-      <RestrictionsSection
-        targetType="person"
-        targetId="P1"
-        restrictions={[]}
         onAdd={noop}
         onUpdate={async () => undefined}
         onDelete={async () => undefined}

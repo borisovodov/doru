@@ -1,4 +1,4 @@
-import type { AssociationRecord, AttachmentsSnapshot, TitleRecord, TaskRecord } from '../model/types';
+import type { AssociationRecord, AttachmentsSnapshot, TaskRecord, TaskTargetLink, TitleRecord } from '../model/types';
 import { emptyAttachments } from '../model/types';
 import type { Op } from './op';
 import { attachmentsMatch, restoreAlias, restoreAssociation, restoreTitle, restoreTask, sameRecord } from './restore';
@@ -135,6 +135,35 @@ export function addTaskOp(task: TaskRecord): Op {
     (ctx) => ctx.repo.insertTask(task),
     (ctx) => ctx.repo.deleteTask(task.id),
     { targetType: 'task', targetId: task.id, kind: 'created' },
+  );
+}
+
+export function addTaskLinkOp(link: TaskTargetLink): Op {
+  return op(
+    crypto.randomUUID(),
+    'task_link.add',
+    (ctx) => ctx.repo.insertTaskLink(link),
+    (ctx) => ctx.repo.deleteTaskLink(link.id),
+    { targetType: link.targetType, targetId: link.targetId, kind: 'changed' },
+    (ctx) =>
+      ctx.repo.getTask(link.taskId) !== undefined &&
+      ctx.repo.getTaskLink(link.id) === undefined &&
+      ctx.repo.listTaskLinksFor(link.targetType, link.targetId).every((entry) => entry.taskId !== link.taskId),
+  );
+}
+
+export function deleteTaskLinkOp(link: TaskTargetLink): Op {
+  return op(
+    crypto.randomUUID(),
+    'task_link.delete',
+    (ctx) => ctx.repo.deleteTaskLink(link.id),
+    (ctx) => {
+      if (ctx.repo.getTask(link.taskId) !== undefined) {
+        ctx.repo.insertTaskLink(link);
+      }
+    },
+    { targetType: link.targetType, targetId: link.targetId, kind: 'changed' },
+    (ctx) => ctx.repo.getTask(link.taskId) !== undefined && ctx.repo.getTaskLink(link.id) !== undefined,
   );
 }
 

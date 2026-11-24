@@ -5,7 +5,6 @@ import type {
   IdentifierRecord,
   NoteRecord,
   RecordSubmitterLink,
-  RestrictionRecord,
   SubmitterRecord,
   TagLinkRecord,
   TagRecord,
@@ -20,7 +19,6 @@ export interface AttachmentApi {
   getTagLinks(targetType: string, targetId: string): Promise<Array<{ tagId: string; link: TagLinkRecord }>>;
   getIdentifiers(targetType: string, targetId: string): Promise<IdentifierRecord[]>;
   getContacts(targetType: string, targetId: string): Promise<ContactRecord[]>;
-  getRestrictions(targetType: string, targetId: string): Promise<RestrictionRecord[]>;
 }
 
 /** The read and write contract every editor with contributors shares. */
@@ -53,7 +51,6 @@ export interface AttachmentData {
   tagLinks: Array<{ tagId: string; link: TagLinkRecord }>;
   identifiers: IdentifierRecord[];
   contacts: ContactRecord[];
-  restrictions: RestrictionRecord[];
   submitters: SubmitterRecord[];
   contributors: RecordSubmitterLink[];
 }
@@ -66,7 +63,6 @@ const emptyAttachments = (): AttachmentData => ({
   tagLinks: [],
   identifiers: [],
   contacts: [],
-  restrictions: [],
   submitters: [],
   contributors: [],
 });
@@ -101,7 +97,7 @@ export function useAttachments(
     if (targetId === undefined) {
       return emptyAttachments();
     }
-    const [notes, allNotes, citations, tags, tagLinks, identifiers, contacts, restrictions] = await Promise.all([
+    const [notes, allNotes, citations, tags, tagLinks, identifiers, contacts] = await Promise.all([
       api.getNotes(targetType, targetId),
       api.getAllNotes(),
       api.getCitations(targetType, targetId),
@@ -109,7 +105,6 @@ export function useAttachments(
       api.getTagLinks(targetType, targetId),
       api.getIdentifiers(targetType, targetId),
       api.getContacts(targetType, targetId),
-      api.getRestrictions(targetType, targetId),
     ]);
     if (!withSubmitters) {
       return {
@@ -121,7 +116,6 @@ export function useAttachments(
         tagLinks,
         identifiers,
         contacts,
-        restrictions,
       };
     }
     const submitterApi = api as SubmitterAttachmentApi;
@@ -137,7 +131,6 @@ export function useAttachments(
       tagLinks,
       identifiers,
       contacts,
-      restrictions,
       submitters,
       contributors,
     };

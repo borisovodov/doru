@@ -1,0 +1,133 @@
+.picker {
+  position: relative;
+  width: 100%;
+}
+
+.field {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+  min-height: 30px;
+  padding: 3px 6px;
+  border: 1px solid var(--doru-border);
+  border-radius: var(--doru-radius-md);
+  background: var(--doru-bg-input);
+}
+
+.field:focus-within {
+  border-color: var(--doru-focus);
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  max-width: 100%;
+  padding: 2px 4px 2px 7px;
+  border-radius: 5px;
+  background: var(--doru-bg-raised);
+  font-size: 12px;
+}
+
+.chipType {
+  color: var(--doru-fg-muted);
+}
+
+.chipLabel {
+  max-width: 220px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.chipRemove {
+  display: inline-flex;
+  padding: 0;
+  border: 0;
+  border-radius: 3px;
+  background: transparent;
+  color: var(--doru-fg-muted);
+  cursor: pointer;
+}
+
+.chipRemove:hover {
+  color: var(--doru-fg);
+}
+
+.input {
+  flex: 1;
+  min-width: 140px;
+  padding: 2px 0;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: var(--doru-fg);
+  font: inherit;
+}
+
+.menu {
+  position: absolute;
+  z-index: 20;
+  top: calc(100% + 4px);
+  right: 0;
+  left: 0;
+  max-height: 320px;
+  overflow: auto;
+  padding: 4px;
+  border: 1px solid var(--doru-border);
+  border-radius: var(--doru-radius-lg);
+  background: var(--doru-bg-popover);
+  box-shadow: var(--doru-shadow-popover);
+}
+
+.group + .group {
+  margin-top: 4px;
+}
+
+.groupTitle {
+  margin: 4px 7px;
+  color: var(--doru-fg-muted);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.option {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 6px 7px;
+  border: 0;
+  border-radius: 5px;
+  background: transparent;
+  color: var(--doru-fg);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.option:hover {
+  background: var(--doru-overlay-hover);
+}
+
+.optionLabel {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.optionType {
+  flex: none;
+  color: var(--doru-fg-muted);
+  font-size: 11px;
+}
+
+.empty {
+  margin: 0;
+  padding: 8px;
+  color: var(--doru-fg-muted);
+  font-size: 12px;
+}

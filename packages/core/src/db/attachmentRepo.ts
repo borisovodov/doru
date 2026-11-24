@@ -1,5 +1,5 @@
 import type { DatabaseSync } from 'node:sqlite';
-import type { ContactRecord, IdentifierRecord, RestrictionRecord, TagLinkRecord, TagRecord } from '../model/types';
+import type { ContactRecord, IdentifierRecord, TagLinkRecord, TagRecord } from '../model/types';
 
 interface TagLinkRow {
   id: string;
@@ -9,9 +9,8 @@ interface TagLinkRow {
 }
 
 /**
- * The universal attachment tables: identifiers, contacts, restrictions,
- * tags and tag links — all sharing the polymorphic `(target_type, target_id)`
- * shape.
+ * The universal attachment tables: identifiers, contacts, tags and tag links
+ * — all sharing the polymorphic `(target_type, target_id)` shape.
  */
 export class AttachmentRepo {
   constructor(private readonly db: DatabaseSync) {}
@@ -107,43 +106,6 @@ export class AttachmentRepo {
       targetId: row.target_id,
       kind: row.kind,
       value: row.value,
-    }));
-  }
-
-  // restrictions ------------------------------------------------------------
-
-  insertRestriction(restriction: RestrictionRecord): void {
-    this.db
-      .prepare('INSERT INTO restriction (id, target_type, target_id, level) VALUES (?, ?, ?, ?)')
-      .run(restriction.id, restriction.targetType, restriction.targetId, restriction.level);
-  }
-
-  deleteRestriction(id: string): boolean {
-    return this.db.prepare('DELETE FROM restriction WHERE id = ?').run(id).changes > 0;
-  }
-
-  updateRestriction(restriction: RestrictionRecord): void {
-    this.db
-      .prepare('UPDATE restriction SET target_type = ?, target_id = ?, level = ? WHERE id = ?')
-      .run(restriction.targetType, restriction.targetId, restriction.level, restriction.id);
-  }
-
-  listRestrictionsFor(targetType: string, targetId: string): RestrictionRecord[] {
-    const rows = this.db
-      .prepare(
-        'SELECT id, target_type, target_id, level FROM restriction WHERE target_type = ? AND target_id = ? ORDER BY id',
-      )
-      .all(targetType, targetId) as unknown as {
-      id: string;
-      target_type: string;
-      target_id: string;
-      level: string;
-    }[];
-    return rows.map((row) => ({
-      id: row.id,
-      targetType: row.target_type,
-      targetId: row.target_id,
-      level: row.level,
     }));
   }
 
@@ -249,7 +211,7 @@ export class AttachmentRepo {
 
   /** Deletes every attachment row of the target (except notes/citations/media, which own their links). */
   deleteAllFor(targetType: string, targetId: string): void {
-    for (const table of ['identifier', 'contact', 'restriction', 'tag_link'] as const) {
+    for (const table of ['identifier', 'contact', 'tag_link'] as const) {
       this.db.prepare(`DELETE FROM ${table} WHERE target_type = ? AND target_id = ?`).run(targetType, targetId);
     }
   }

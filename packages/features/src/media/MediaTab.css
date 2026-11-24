@@ -71,3 +71,14 @@
   gap: 8px;
   align-items: center;
 }
+
+.media-link-add {
+  display: flex;
+  gap: 8px;
+  align-items: flex-end;
+  margin-top: 8px;
+}
+
+.media-link-add > :first-child {
+  flex: 1;
+}

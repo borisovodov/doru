@@ -6,15 +6,13 @@ import { Select } from '../../atoms/form/Select';
 import { SectionCard } from '../../patterns/section-card/SectionCard';
 import { useState } from 'react';
 import { Pencil, X } from 'lucide-react';
-import type { ContactRecord, IdentifierRecord, RestrictionRecord } from '@doru/core';
+import type { ContactRecord, IdentifierRecord } from '@doru/core';
 import { nls } from '../../nls';
 import './AttachmentsSection.css';
 
 const ID_NAMESPACES = ['uid', 'exid', 'refn', 'sosa', 'daboville'];
 
 const CONTACT_KINDS = ['email', 'phone', 'fax', 'url', 'www'] as const;
-
-const RESTRICTION_LEVELS = ['confidential', 'locked', 'privacy'] as const;
 
 /** Localized labels for the known contact kinds (unknown kinds show verbatim). */
 function contactKindLabel(kind: string): string {
@@ -26,16 +24,6 @@ function contactKindLabel(kind: string): string {
     www: nls.t('features.tree.contacts.kind.www'),
   };
   return labels[kind] ?? kind;
-}
-
-/** Localized labels for the known restriction levels (unknown levels show verbatim). */
-function restrictionLevelLabel(level: string): string {
-  const labels: Record<string, string> = {
-    confidential: nls.t('features.tree.restrictions.level.confidential'),
-    locked: nls.t('features.tree.restrictions.level.locked'),
-    privacy: nls.t('features.tree.restrictions.level.privacy'),
-  };
-  return labels[level] ?? level;
 }
 
 /** External identifiers of the person (REFN, SOSA, …), with inline editing. */
@@ -319,103 +307,6 @@ export function ContactsSection({
         />
         <Button variant="primary" onClick={() => void add()}>
           {nls.t('features.tree.contacts.add')}
-        </Button>
-      </div>
-    </SectionCard>
-  );
-}
-
-/** Privacy restrictions of the person, with inline editing. */
-export function RestrictionsSection({
-  targetType,
-  targetId,
-  restrictions,
-  onAdd,
-  onUpdate,
-  onDelete,
-}: {
-  targetType: string;
-  targetId: string;
-  restrictions: RestrictionRecord[];
-  onAdd: (restriction: RestrictionRecord) => Promise<void>;
-  onUpdate: (before: RestrictionRecord, after: RestrictionRecord) => Promise<void>;
-  onDelete: (restriction: RestrictionRecord) => Promise<void>;
-}) {
-  const [level, setLevel] = useState('privacy');
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [editLevel, setEditLevel] = useState('privacy');
-
-  const add = async () => {
-    await onAdd({ id: crypto.randomUUID(), targetType, targetId, level });
-  };
-
-  const startEdit = (restriction: RestrictionRecord) => {
-    setEditingId(restriction.id);
-    setEditLevel(restriction.level);
-  };
-
-  const saveEdit = async (restriction: RestrictionRecord) => {
-    if (editLevel !== restriction.level) {
-      await onUpdate(restriction, { ...restriction, level: editLevel });
-    }
-    setEditingId(null);
-  };
-
-  return (
-    <SectionCard title={nls.t('features.tree.restrictions.title')}>
-      {restrictions.length === 0 && <EmptyText>{nls.t('features.tree.restrictions.empty')}</EmptyText>}
-      <ul className="attachment-list">
-        {restrictions.map((restriction) => (
-          <li key={restriction.id}>
-            {editingId === restriction.id ? (
-              <div className="attachment-edit">
-                <Select value={editLevel} onChange={(event) => setEditLevel(event.target.value)}>
-                  {RESTRICTION_LEVELS.map((entry) => (
-                    <option key={entry} value={entry}>
-                      {nls.t(`features.tree.restrictions.level.${entry}`)}
-                    </option>
-                  ))}
-                  {!(RESTRICTION_LEVELS as readonly string[]).includes(restriction.level) && (
-                    <option value={restriction.level}>{restriction.level}</option>
-                  )}
-                </Select>
-                <Button variant="primary" size="sm" onClick={() => void saveEdit(restriction)}>
-                  {nls.t('features.tree.save')}
-                </Button>
-                <Button variant="secondary" size="sm" onClick={() => setEditingId(null)}>
-                  {nls.t('features.tree.fact.cancel')}
-                </Button>
-              </div>
-            ) : (
-              <>
-                <span className="attachment-value">{restrictionLevelLabel(restriction.level)}</span>
-                <IconButton
-                  size="sm"
-                  label={nls.t('features.tree.restrictions.edit')}
-                  icon={<Pencil size={13} aria-hidden="true" />}
-                  onClick={() => startEdit(restriction)}
-                />
-                <IconButton
-                  size="sm"
-                  label={nls.t('features.tree.restrictions.remove')}
-                  icon={<X size={13} aria-hidden="true" />}
-                  onClick={() => void onDelete(restriction)}
-                />
-              </>
-            )}
-          </li>
-        ))}
-      </ul>
-      <div className="attachment-add">
-        <Select value={level} onChange={(event) => setLevel(event.target.value)}>
-          {RESTRICTION_LEVELS.map((entry) => (
-            <option key={entry} value={entry}>
-              {nls.t(`features.tree.restrictions.level.${entry}`)}
-            </option>
-          ))}
-        </Select>
-        <Button variant="primary" onClick={() => void add()}>
-          {nls.t('features.tree.restrictions.add')}
         </Button>
       </div>
     </SectionCard>

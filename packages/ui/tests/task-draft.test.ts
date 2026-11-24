@@ -13,6 +13,7 @@ import {
 const task = (overrides: Partial<TaskRecord> = {}): TaskRecord => ({
   id: 'T1',
   text: 'Order the birth record',
+  targets: [],
   ...overrides,
 });
 
@@ -21,8 +22,7 @@ describe('taskDraft', () => {
     const source: TaskRecord = {
       id: 'T1',
       text: 'Order the birth record',
-      targetType: 'person',
-      targetId: 'P1',
+      targets: [{ id: 'TL1', taskId: 'T1', targetType: 'person', targetId: 'P1' }],
       priority: 'high',
       status: 'in-progress',
       scheduledAt: new Date(2026, 2, 12, 9, 0).getTime(),
@@ -34,8 +34,6 @@ describe('taskDraft', () => {
       text: 'Order the birth record',
       priority: 'high',
       status: 'in-progress',
-      targetType: 'person',
-      targetId: 'P1',
       scheduledAt: '2026-03-12T09:00',
       reminderAt: '2026-03-01T08:30',
     });
@@ -67,40 +65,28 @@ describe('taskDraft', () => {
     expect(taskToDraft(task({ status: 'waiting' })).status).toBe('waiting');
   });
 
-  it('merges the task target as one atomic pair', () => {
-    const base = { ...emptyTaskDraft(), targetType: 'person', targetId: 'P1' };
-    const current = { ...base, targetId: 'P2' };
-    const refreshed = { ...base, targetType: 'place', targetId: 'L1' };
+  it('keeps locally edited fields while adopting refreshed untouched ones', () => {
+    const base = { ...emptyTaskDraft(), text: 'Old', priority: 'medium' as const };
+    const current = { ...base, text: 'Edited' };
+    const refreshed = { ...base, text: 'Refreshed', priority: 'high' as const };
 
     const merged = mergeTaskDraft(current, base, refreshed);
-    expect(merged.targetType).toBe('person');
-    expect(merged.targetId).toBe('P2');
+    expect(merged.text).toBe('Edited');
+    expect(merged.priority).toBe('high');
   });
 
-  it('adopts both refreshed target fields when neither was edited', () => {
-    const base = { ...emptyTaskDraft(), targetType: 'person', targetId: 'P1' };
-    const refreshed = { ...base, targetType: 'place', targetId: 'L1' };
-
-    const merged = mergeTaskDraft(base, base, refreshed);
-    expect(merged.targetType).toBe('place');
-    expect(merged.targetId).toBe('L1');
-  });
-
-  it('writes the edited fields and clears emptied ones', () => {
+  it('writes the edited fields', () => {
     const after = taskDraftToRecord(task(), {
       ...emptyTaskDraft(),
       text: ' Visit the cemetery ',
       priority: 'low',
       status: 'closed',
-      targetType: 'person',
-      targetId: 'P2',
       scheduledAt: '2027-01-01T00:00',
     });
     expect(after).toEqual({
       id: 'T1',
       text: 'Visit the cemetery',
-      targetType: 'person',
-      targetId: 'P2',
+      targets: [],
       priority: 'low',
       status: 'closed',
       scheduledAt: new Date(2027, 0, 1, 0, 0).getTime(),
@@ -187,15 +173,5 @@ describe('taskDraft', () => {
     expandedYear.setFullYear(10_000, 0, 1);
     expandedYear.setHours(0, 0, 0, 0);
     expect(timestampToInput(expandedYear.getTime())).toBe('');
-  });
-
-  it('detaches a task when the person is cleared', () => {
-    const after = taskDraftToRecord(task({ targetType: 'person', targetId: 'P1' }), {
-      ...taskToDraft(task({ targetType: 'person', targetId: 'P1' })),
-      targetType: '',
-      targetId: '',
-    });
-    expect(after.targetType).toBeUndefined();
-    expect(after.targetId).toBeUndefined();
   });
 });

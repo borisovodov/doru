@@ -9,7 +9,6 @@ import type {
   NoteLinkRecord,
   NoteRecord,
   RepositoryRecord,
-  RestrictionRecord,
   RecordSubmitterLink,
   SourceRecord,
   SubmitterRecord,
@@ -193,6 +192,13 @@ export function detachNoteOp(note: NoteRecord, link: NoteLinkRecord, attachments
 // --- sources -----------------------------------------------------------------
 
 export function addSourceOp(source: SourceRecord, citation?: { targetType: string; targetId: string }): Op {
+  return addSourceWithCitationsOp(
+    source,
+    citation === undefined ? [] : [{ id: crypto.randomUUID(), sourceId: source.id, ...citation }],
+  );
+}
+
+export function addSourceWithCitationsOp(source: SourceRecord, citations: CitationRecord[]): Op {
   return {
     ...op(
       crypto.randomUUID(),
@@ -200,8 +206,8 @@ export function addSourceOp(source: SourceRecord, citation?: { targetType: strin
       (ctx) => {
         ctx.repo.transaction(() => {
           ctx.repo.insertSource(source);
-          if (citation) {
-            ctx.repo.addSourceCitation(source.id, citation.targetType, citation.targetId);
+          for (const citation of citations) {
+            ctx.repo.insertCitation(citation);
           }
         });
       },
@@ -295,12 +301,26 @@ export function deleteSourceOp(
 // --- citations ---------------------------------------------------------------
 
 export function attachCitationOp(citation: CitationRecord): Op {
+  return attachCitationsOp([citation]);
+}
+
+export function attachCitationsOp(citations: CitationRecord[]): Op {
   return op(
     crypto.randomUUID(),
     'citation.attach',
-    (ctx) => ctx.repo.insertCitation(citation),
-    (ctx) => ctx.repo.deleteCitation(citation.id),
-    { targetType: 'citation', targetId: citation.id, kind: 'created' },
+    (ctx) => {
+      for (const citation of citations) {
+        ctx.repo.insertCitation(citation);
+      }
+    },
+    (ctx) => {
+      for (const citation of citations) {
+        ctx.repo.deleteCitation(citation.id);
+      }
+    },
+    citations[0] === undefined
+      ? undefined
+      : { targetType: citations[0].targetType, targetId: citations[0].targetId, kind: 'created' },
   );
 }
 
@@ -384,6 +404,24 @@ export function updateMediaLinkOp(before: MediaLinkRecord, after: MediaLinkRecor
       return current !== undefined && sameRecord(current, before);
     },
   };
+}
+
+export function attachMediaLinksOp(links: MediaLinkRecord[]): Op {
+  return op(
+    crypto.randomUUID(),
+    'media.attach',
+    (ctx) => {
+      for (const link of links) {
+        ctx.repo.addMediaLink(link.mediaId, link);
+      }
+    },
+    (ctx) => {
+      for (const link of links) {
+        ctx.repo.removeMediaLinkOnly(link.id);
+      }
+    },
+    links[0] === undefined ? undefined : { targetType: 'media', targetId: links[0].mediaId, kind: 'changed' },
+  );
 }
 
 export function detachMediaOp(
@@ -526,39 +564,6 @@ export function updateContactOp(before: ContactRecord, after: ContactRecord): Op
   };
 }
 
-export function addRestrictionOp(restriction: RestrictionRecord): Op {
-  return op(
-    crypto.randomUUID(),
-    'restriction.add',
-    (ctx) => ctx.repo.insertRestriction(restriction),
-    (ctx) => ctx.repo.deleteRestriction(restriction.id),
-    { targetType: restriction.targetType, targetId: restriction.targetId, kind: 'changed' },
-  );
-}
-
-export function deleteRestrictionOp(restriction: RestrictionRecord): Op {
-  return op(
-    crypto.randomUUID(),
-    'restriction.delete',
-    (ctx) => ctx.repo.deleteRestriction(restriction.id),
-    (ctx) => ctx.repo.insertRestriction(restriction),
-    { targetType: restriction.targetType, targetId: restriction.targetId, kind: 'changed' },
-  );
-}
-
-/** Changes a restriction's level. */
-export function updateRestrictionOp(before: RestrictionRecord, after: RestrictionRecord): Op {
-  return {
-    ...op(
-      crypto.randomUUID(),
-      'restriction.update',
-      (ctx) => ctx.repo.updateRestriction(after),
-      (ctx) => ctx.repo.updateRestriction(before),
-    ),
-    change: { targetType: after.targetType, targetId: after.targetId, kind: 'changed' },
-  };
-}
-
 export function addTagOp(tag: TagRecord): Op {
   return op(
     crypto.randomUUID(),
@@ -636,6 +641,26 @@ export function attachTagOp(link: TagLinkRecord): Op {
     (ctx) => ctx.repo.insertTagLink(link),
     (ctx) => ctx.repo.deleteTagLink(link.id),
     { targetType: link.targetType, targetId: link.targetId, kind: 'changed' },
+  );
+}
+
+export function attachTagLinksOp(links: TagLinkRecord[]): Op {
+  return op(
+    crypto.randomUUID(),
+    'tag_link.attach',
+    (ctx) => {
+      for (const link of links) {
+        ctx.repo.insertTagLink(link);
+      }
+    },
+    (ctx) => {
+      for (const link of links) {
+        ctx.repo.deleteTagLink(link.id);
+      }
+    },
+    links[0] === undefined
+      ? undefined
+      : { targetType: links[0].targetType, targetId: links[0].targetId, kind: 'changed' },
   );
 }
 

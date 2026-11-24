@@ -16,17 +16,19 @@ import type {
   PlaceRecord,
   RecordSubmitterLink,
   RepositoryRecord,
-  RestrictionRecord,
   SourceRecord,
   SubmitterRecord,
   TagLinkRecord,
   TagRecord,
-  TitleRecord,
+  TargetRef,
   TaskRecord,
+  TaskTargetLink,
+  TitleRecord,
 } from '@doru/core';
 import {
   addFilesToMedia,
   addMediaToTarget,
+  addMediaToTargets,
   addStandaloneMedia,
   listAllMedia,
   listMediaForTarget,
@@ -306,38 +308,6 @@ export function registerTreeIpc(): void {
     },
   );
 
-  ipcMain.handle(
-    'tree:restrictions',
-    async (_event, options: { projectPath: string; targetType: string; targetId: string }) => {
-      const { runtime } = await ensureRuntime(options.projectPath);
-      return runtime.service.listRestrictionsFor(options.targetType, options.targetId);
-    },
-  );
-
-  ipcMain.handle(
-    'tree:addRestriction',
-    async (_event, options: { projectPath: string; restriction: RestrictionRecord }) => {
-      const { runtime } = await ensureRuntime(options.projectPath);
-      return runtime.service.addRestriction(options.restriction);
-    },
-  );
-
-  ipcMain.handle(
-    'tree:deleteRestriction',
-    async (_event, options: { projectPath: string; restriction: RestrictionRecord }) => {
-      const { runtime } = await ensureRuntime(options.projectPath);
-      return runtime.service.deleteRestriction(options.restriction);
-    },
-  );
-
-  ipcMain.handle(
-    'tree:updateRestriction',
-    async (_event, options: { projectPath: string; before: RestrictionRecord; after: RestrictionRecord }) => {
-      const { runtime } = await ensureRuntime(options.projectPath);
-      return runtime.service.updateRestriction(options.before, options.after);
-    },
-  );
-
   ipcMain.handle('tree:tags', async (_event, options: { projectPath: string }) => {
     const { runtime } = await ensureRuntime(options.projectPath);
     return runtime.service.listTags();
@@ -379,6 +349,14 @@ export function registerTreeIpc(): void {
     return runtime.service.attachTag(options.link);
   });
 
+  ipcMain.handle(
+    'tree:attachTagToTargets',
+    async (_event, options: { projectPath: string; tagId: string; targets: TargetRef[] }) => {
+      const { runtime } = await ensureRuntime(options.projectPath);
+      return runtime.service.attachTagToTargets(options.tagId, options.targets);
+    },
+  );
+
   ipcMain.handle('tree:detachTag', async (_event, options: { projectPath: string; link: TagLinkRecord }) => {
     const { runtime } = await ensureRuntime(options.projectPath);
     return runtime.service.detachTag(options.link);
@@ -402,6 +380,14 @@ export function registerTreeIpc(): void {
     async (_event, options: { projectPath: string; source: SourceRecord; targetType?: string; targetId?: string }) => {
       const { runtime } = await ensureRuntime(options.projectPath);
       return runtime.service.addSource(options.source, options.targetType, options.targetId);
+    },
+  );
+
+  ipcMain.handle(
+    'tree:addSourceToTargets',
+    async (_event, options: { projectPath: string; source: SourceRecord; targets: TargetRef[] }) => {
+      const { runtime } = await ensureRuntime(options.projectPath);
+      return runtime.service.addSourceToTargets(options.source, options.targets);
     },
   );
 
@@ -626,6 +612,14 @@ export function registerTreeIpc(): void {
     },
   );
 
+  ipcMain.handle(
+    'tree:attachSourceToTargets',
+    async (_event, options: { projectPath: string; sourceId: string; targets: TargetRef[] }) => {
+      const { runtime } = await ensureRuntime(options.projectPath);
+      return runtime.service.attachSourceToTargets(options.sourceId, options.targets);
+    },
+  );
+
   ipcMain.handle('tree:detachCitation', async (_event, options: { projectPath: string; citationId: string }) => {
     const { runtime } = await ensureRuntime(options.projectPath);
     return runtime.service.detachCitation(options.citationId);
@@ -691,6 +685,10 @@ export function registerTreeIpc(): void {
       addMediaToTarget(options.projectPath, options.targetType, options.targetId),
   );
 
+  ipcMain.handle('tree:addMediaToTargets', async (_event, options: { projectPath: string; targets: TargetRef[] }) =>
+    addMediaToTargets(options.projectPath, options.targets),
+  );
+
   ipcMain.handle('tree:addStandaloneMedia', async (_event, options: { projectPath: string }) =>
     addStandaloneMedia(options.projectPath),
   );
@@ -726,6 +724,14 @@ export function registerTreeIpc(): void {
     return runtime.service.attachMedia(options.link);
   });
 
+  ipcMain.handle(
+    'tree:attachMediaToTargets',
+    async (_event, options: { projectPath: string; mediaId: string; targets: TargetRef[] }) => {
+      const { runtime } = await ensureRuntime(options.projectPath);
+      return runtime.service.attachMediaToTargets(options.mediaId, options.targets);
+    },
+  );
+
   ipcMain.handle('tree:detachMedia', async (_event, options: { projectPath: string; link: MediaLinkRecord }) => {
     const { runtime } = await ensureRuntime(options.projectPath);
     return runtime.service.detachMedia(options.link);
@@ -755,6 +761,16 @@ export function registerTreeIpc(): void {
   ipcMain.handle('tree:addTask', async (_event, options: { projectPath: string; task: TaskRecord }) => {
     const { runtime } = await ensureRuntime(options.projectPath);
     return runtime.service.addTask(options.task);
+  });
+
+  ipcMain.handle('tree:addTaskLink', async (_event, options: { projectPath: string; link: TaskTargetLink }) => {
+    const { runtime } = await ensureRuntime(options.projectPath);
+    return runtime.service.addTaskLink(options.link);
+  });
+
+  ipcMain.handle('tree:deleteTaskLink', async (_event, options: { projectPath: string; link: TaskTargetLink }) => {
+    const { runtime } = await ensureRuntime(options.projectPath);
+    return runtime.service.deleteTaskLink(options.link);
   });
 
   ipcMain.handle(

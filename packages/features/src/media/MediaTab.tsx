@@ -7,6 +7,8 @@ import {
   type MediaLinkRecord,
   type MediaRecord,
   type SourceRecord,
+  type TargetRef,
+  TARGET_TYPES,
 } from '@doru/core/model';
 import {
   Button,
@@ -25,7 +27,7 @@ import {
   Textarea,
   useAutoSaveOnBlur,
 } from '@doru/ui';
-import { DateEditor, dateDraftsEqual, fromDateDraft, toDateDraft } from '@doru/ui/domain';
+import { DateEditor, TargetPicker, dateDraftsEqual, fromDateDraft, toDateDraft } from '@doru/ui/domain';
 import { AttachmentsPanel } from '../attachments';
 import { AutoSaveError } from '../autoSaveFeedback';
 import { useEntityDelete } from '../entityDelete';
@@ -198,6 +200,7 @@ function MediaTabBody({
   const [description, setDescription] = useState(record.description ?? '');
   const [keywords, setKeywords] = useState(record.keywords ?? '');
   const [expandedFileId, setExpandedFileId] = useState<string | null>(null);
+  const [linkTargets, setLinkTargets] = useState<TargetRef[]>([]);
   const [fileTitles, setFileTitles] = useState<Record<string, string>>(() => fileTitlesFrom(record.files));
   const fileTitlesRef = useRef(fileTitles);
   const targetLabel = createTaskTargetLabeler(targetData);
@@ -723,6 +726,29 @@ function MediaTabBody({
             />
           ))}
         </ul>
+        {api.attachMediaToTargets !== undefined && (
+          <div className="media-link-add">
+            <TargetPicker
+              allowedTypes={TARGET_TYPES}
+              value={linkTargets}
+              onChange={setLinkTargets}
+              ariaLabel={nls.t('features.tasks.target')}
+            />
+            <Button
+              variant="primary"
+              size="sm"
+              disabled={linkTargets.length === 0}
+              onClick={() => {
+                void api
+                  .attachMediaToTargets?.(record.id, linkTargets)
+                  .then(() => setLinkTargets([]))
+                  .catch(() => undefined);
+              }}
+            >
+              {nls.t('features.tree.media.attach')}
+            </Button>
+          </div>
+        )}
       </SectionCard>
 
       <AttachmentsPanel
