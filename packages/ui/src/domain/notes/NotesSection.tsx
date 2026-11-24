@@ -16,9 +16,9 @@ import './NotesSection.css';
 /**
  * The person's notes with inline editing. Editing a shared note from this
  * context splits it (copy-on-write) — the service handles that when the
- * context link is passed through. The edit form covers the note text and its
- * MIME type. The sources button opens the citations of a note; a note has no
- * other attachments.
+ * context link is passed through. The edit form covers the note text. The
+ * sources button opens the citations of a note; a note has no other
+ * attachments.
  */
 export function NotesSection({
   targetType,
@@ -53,7 +53,6 @@ export function NotesSection({
   const [editingId, setEditingId] = useState<string | null>(null);
   const [expandedSourcesId, setExpandedSourcesId] = useState<string | null>(null);
   const [editText, setEditText] = useState('');
-  const [editMime, setEditMime] = useState('');
   const [editShared, setEditShared] = useState(false);
 
   const add = async () => {
@@ -73,7 +72,6 @@ export function NotesSection({
   const startEdit = (note: NoteRecord) => {
     setEditingId(note.id);
     setEditText(note.text);
-    setEditMime(note.mime ?? '');
     setEditShared(false);
   };
 
@@ -83,8 +81,7 @@ export function NotesSection({
 
   const saveEdit = async (note: NoteRecord) => {
     const text = editText.trim();
-    const mime = editMime.trim() || undefined;
-    const changed = text !== note.text || mime !== note.mime;
+    const changed = text !== note.text;
     if (text !== '' && changed) {
       const link = note.links?.find((entry) => entry.targetType === targetType && entry.targetId === targetId) ?? {
         id: crypto.randomUUID(),
@@ -94,7 +91,7 @@ export function NotesSection({
       const shared = (note.links?.length ?? 0) > 1;
       await onUpdate(
         note,
-        { ...note, text, mime },
+        { ...note, text },
         shared && editShared ? undefined : link,
         shared && editShared ? 'shared' : 'split',
       );
@@ -113,11 +110,6 @@ export function NotesSection({
               {editingId === note.id ? (
                 <div className="notes-edit">
                   <Textarea value={editText} onChange={(event) => setEditText(event.target.value)} autoFocus />
-                  <Input
-                    placeholder={nls.t('features.tree.notes.mime')}
-                    value={editMime}
-                    onChange={(event) => setEditMime(event.target.value)}
-                  />
                   {(note.links?.length ?? 0) > 1 && (
                     <Select
                       aria-label={nls.t('features.tree.notes.editMode')}

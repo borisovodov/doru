@@ -2,7 +2,7 @@
 
 A Dóru project is a single `.doru` file: a SQLite database branded with
 `application_id = 0x444F5255` ("DORU") and versioned with `user_version`.
-This document is the field-level reference for **schema version 20**. The
+This document is the field-level reference for **schema version 21**. The
 source of truth is [`packages/core/src/db/schema.ts`](../packages/core/src/db/schema.ts);
 the domain shapes that the repositories map onto the rows live in
 [`packages/core/src/model/types.ts`](../packages/core/src/model/types.ts).
@@ -755,8 +755,7 @@ citation in addition to its crop and sequence metadata.
 ## Notes
 
 A note is one text row. An inline note has one link; a shared note has
-several. `xref` is `NULL` for an inline note and non-`NULL` for a shared
-`NOTE`/`SNOTE` record. A note is linked to a given target at most once:
+several. A note is linked to a given target at most once:
 `(note_id, target_type, target_id)` is unique, and re-attaching a note that
 is already linked is a no-op, so repeated `NOTE`/`SNOTE` references in a
 GEDCOM file cannot produce duplicate links.
@@ -764,14 +763,10 @@ GEDCOM file cannot produce duplicate links.
 ```mermaid
 erDiagram
     note ||--o{ note_link : "links"
-    note ||--o{ note_translation : "translations"
 
     note {
         TEXT id PK
-        TEXT xref "NULL = inline note; non-NULL = shared record"
         TEXT text "NOT NULL"
-        TEXT mime
-        TEXT language
     }
 
     note_link {
@@ -779,14 +774,6 @@ erDiagram
         TEXT note_id FK "UNIQUE with target_type and target_id"
         TEXT target_type "NOT NULL, polymorphic target"
         TEXT target_id "NOT NULL, UUID"
-    }
-
-    note_translation {
-        TEXT id PK
-        TEXT note_id FK
-        TEXT text "NOT NULL"
-        TEXT mime
-        TEXT language
     }
 ```
 
@@ -992,7 +979,7 @@ Most child rows are removed with their parent:
   citations.
 - `citation` → citation texts and template fields.
 - `media` → media files and media links; `media_file` → translations.
-- `note` → note links and translations.
+- `note` → note links.
 - `address` → address lines.
 - `submitter` → languages and record-submitter links.
 - `task` → task links (the task itself survives a target deletion).

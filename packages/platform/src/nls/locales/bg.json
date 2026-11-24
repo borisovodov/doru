@@ -459,7 +459,6 @@
   "features.tree.notes.editShared": "Edit the shared note for all records",
   "features.tree.notes.editSplit": "Edit only this record (split)",
   "features.tree.notes.empty": "Все още няма бележки.",
-  "features.tree.notes.mime": "MIME тип",
   "features.tree.notes.placeholder": "Напишете изследователска бележка…",
   "features.tree.notes.remove": "Изтриване на бележка",
   "features.tree.notes.shared": "Shared note",

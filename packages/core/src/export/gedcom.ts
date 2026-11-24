@@ -142,7 +142,7 @@ export function buildGedcomDataset(repo: TreeRepository): GedcomDataset {
   const places = repo.listPlaces();
   const media = repo.listAllMedia().filter((entry) => (entry.files ?? []).length > 0);
   const firstSubmitter = submitters[0];
-  const notes = repo.listNotes().filter((note) => note.xref !== undefined || (note.links?.length ?? 0) > 1);
+  const notes = repo.listNotes().filter((note) => (note.links?.length ?? 0) > 1);
   const tasks = repo.listTasks().filter((task) => task.targets.length === 0);
 
   for (const person of persons) {
@@ -164,7 +164,7 @@ export function buildGedcomDataset(repo: TreeRepository): GedcomDataset {
     xrefs.assign('T', title.id, title.xref);
   }
   for (const note of notes) {
-    xrefs.assign('N', note.id, note.xref);
+    xrefs.assign('N', note.id, undefined);
   }
   for (const place of places) {
     xrefs.assign('P', place.id, place.xref);
@@ -683,23 +683,7 @@ function buildSharedNote(note: NoteRecord, repo: TreeRepository, xrefs: Xrefs): 
     tag: 'SNOTE',
     xref: xrefs.of(note.id),
     payload: note.text,
-    ...(note.mime !== undefined ? { mediaType: note.mime } : {}),
-    ...(note.language !== undefined ? { language: note.language } : {}),
-    ...(note.translations !== undefined && note.translations.length > 0
-      ? {
-          translations: note.translations.map((translation) => ({
-            tag: 'TRAN',
-            payload: translation.text,
-            ...(translation.mime !== undefined ? { mediaType: translation.mime } : {}),
-            ...(translation.language !== undefined ? { language: translation.language } : {}),
-          })),
-        }
-      : {}),
-    ...(withIdentifiers(repo, 'note', note.id).length > 0
-      ? { identifiers: withIdentifiers(repo, 'note', note.id) }
-      : {}),
     ...withCitationList(repo, 'note', note.id, xrefs),
-    ...withSubmitterLinks(repo, 'note', note.id, xrefs),
   };
 }
 
@@ -1158,18 +1142,6 @@ function withNoteList(
       : {
           tag: 'NOTE',
           payload: note.text,
-          ...(note.mime !== undefined ? { mediaType: note.mime } : {}),
-          ...(note.language !== undefined ? { language: note.language } : {}),
-          ...(note.translations !== undefined && note.translations.length > 0
-            ? {
-                translations: note.translations.map((translation) => ({
-                  tag: 'TRAN' as const,
-                  payload: translation.text,
-                  ...(translation.mime !== undefined ? { mediaType: translation.mime } : {}),
-                  ...(translation.language !== undefined ? { language: translation.language } : {}),
-                })),
-              }
-            : {}),
           ...withCitationList(repo, 'note', note.id, xrefs),
         },
   );

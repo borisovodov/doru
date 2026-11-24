@@ -37,8 +37,7 @@
   border-left: 2px solid var(--doru-border);
 }
 
-.notes-edit textarea,
-.notes-edit input {
+.notes-edit textarea {
   width: 100%;
 }
 

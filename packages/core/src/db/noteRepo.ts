@@ -3,10 +3,7 @@ import type { NoteLinkRecord, NoteRecord } from '../model/types';
 
 interface NoteRow {
   id: string;
-  xref: string | null;
   text: string;
-  mime: string | null;
-  language: string | null;
 }
 
 interface LinkRow {
@@ -28,18 +25,14 @@ export class NoteRepo {
   insertNote(note: NoteRecord): void {
     this.insertRow(note);
     this.replaceLinks(note);
-    this.replaceTranslations(note);
   }
 
-  /** Updates the note text and translations; links are managed separately. */
+  /** Updates the note text; links are managed separately. */
   updateNote(note: NoteRecord): void {
     if (this.db.prepare('SELECT 1 FROM note WHERE id = ?').get(note.id) === undefined) {
       throw new Error(`note ${note.id} no longer exists`);
     }
-    this.db
-      .prepare('UPDATE note SET xref = ?, text = ?, mime = ?, language = ? WHERE id = ?')
-      .run(note.xref ?? null, note.text, note.mime ?? null, note.language ?? null, note.id);
-    this.replaceTranslations(note);
+    this.db.prepare('UPDATE note SET text = ? WHERE id = ?').run(note.text, note.id);
   }
 
   deleteNote(id: string): boolean {
@@ -73,17 +66,13 @@ export class NoteRepo {
   }
 
   getNote(id: string): NoteRecord | undefined {
-    const row = this.db.prepare('SELECT id, xref, text, mime, language FROM note WHERE id = ?').get(id) as
-      | NoteRow
-      | undefined;
+    const row = this.db.prepare('SELECT id, text FROM note WHERE id = ?').get(id) as NoteRow | undefined;
     return row ? this.hydrate(row) : undefined;
   }
 
   /** Every note, projected to its first link. */
   listNotes(): NoteRecord[] {
-    const rows = this.db
-      .prepare('SELECT id, xref, text, mime, language FROM note ORDER BY id')
-      .all() as unknown as NoteRow[];
+    const rows = this.db.prepare('SELECT id, text FROM note ORDER BY id').all() as unknown as NoteRow[];
     return rows.map((row) => this.hydrate(row));
   }
 
@@ -96,9 +85,7 @@ export class NoteRepo {
       .all(targetType, targetId) as unknown as LinkRow[];
     const notes: NoteRecord[] = [];
     for (const link of links) {
-      const row = this.db.prepare('SELECT id, xref, text, mime, language FROM note WHERE id = ?').get(link.note_id) as
-        | NoteRow
-        | undefined;
+      const row = this.db.prepare('SELECT id, text FROM note WHERE id = ?').get(link.note_id) as NoteRow | undefined;
       if (row) {
         notes.push({ ...this.hydrate(row), targetType, targetId });
       }
@@ -113,9 +100,7 @@ export class NoteRepo {
       .all(targetType, targetId) as unknown as LinkRow[];
     const result: Array<{ note: NoteRecord; link: NoteLinkRecord }> = [];
     for (const link of links) {
-      const row = this.db.prepare('SELECT id, xref, text, mime, language FROM note WHERE id = ?').get(link.note_id) as
-        | NoteRow
-        | undefined;
+      const row = this.db.prepare('SELECT id, text FROM note WHERE id = ?').get(link.note_id) as NoteRow | undefined;
       if (row) {
         result.push({
           note: this.hydrate(row),
@@ -154,9 +139,7 @@ export class NoteRepo {
   }
 
   private insertRow(note: NoteRecord): void {
-    this.db
-      .prepare('INSERT INTO note (id, xref, text, mime, language) VALUES (?, ?, ?, ?, ?)')
-      .run(note.id, note.xref ?? null, note.text, note.mime ?? null, note.language ?? null);
+    this.db.prepare('INSERT INTO note (id, text) VALUES (?, ?)').run(note.id, note.text);
   }
 
   private replaceLinks(note: NoteRecord): void {
@@ -169,42 +152,17 @@ export class NoteRepo {
     }
   }
 
-  private replaceTranslations(note: NoteRecord): void {
-    this.db.prepare('DELETE FROM note_translation WHERE note_id = ?').run(note.id);
-    const insert = this.db.prepare(
-      'INSERT INTO note_translation (id, note_id, text, mime, language) VALUES (?, ?, ?, ?, ?)',
-    );
-    for (const translation of note.translations ?? []) {
-      insert.run(translation.id, note.id, translation.text, translation.mime ?? null, translation.language ?? null);
-    }
-  }
-
   private hydrate(row: NoteRow): NoteRecord {
     const links = this.db
       .prepare('SELECT id, note_id, target_type, target_id FROM note_link WHERE note_id = ? ORDER BY id')
       .all(row.id) as unknown as LinkRow[];
-    const translations = this.db
-      .prepare('SELECT id, text, mime, language FROM note_translation WHERE note_id = ? ORDER BY id')
-      .all(row.id) as unknown as { id: string; text: string; mime: string | null; language: string | null }[];
     const first = links[0];
-    const note: NoteRecord = {
+    return {
       id: row.id,
-      xref: row.xref ?? undefined,
       text: row.text,
-      mime: row.mime ?? undefined,
-      language: row.language ?? undefined,
       targetType: first?.target_type,
       targetId: first?.target_id,
       links: links.map((link) => ({ id: link.id, targetType: link.target_type, targetId: link.target_id })),
     };
-    if (translations.length > 0) {
-      note.translations = translations.map((translation) => ({
-        id: translation.id,
-        text: translation.text,
-        mime: translation.mime ?? undefined,
-        language: translation.language ?? undefined,
-      }));
-    }
-    return note;
   }
 }

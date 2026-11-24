@@ -459,7 +459,6 @@
   "features.tree.notes.editShared": "Edit the shared note for all records",
   "features.tree.notes.editSplit": "Edit only this record (split)",
   "features.tree.notes.empty": "아직 메모가 없습니다.",
-  "features.tree.notes.mime": "MIME 유형",
   "features.tree.notes.placeholder": "연구 메모 작성…",
   "features.tree.notes.remove": "메모 삭제",
   "features.tree.notes.shared": "Shared note",

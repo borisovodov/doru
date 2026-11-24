@@ -459,7 +459,6 @@
   "features.tree.notes.editShared": "Изменить общую заметку для всех записей",
   "features.tree.notes.editSplit": "Изменить только эту запись (разделить)",
   "features.tree.notes.empty": "Заметок пока нет.",
-  "features.tree.notes.mime": "Тип MIME",
   "features.tree.notes.placeholder": "Напишите заметку для исследования…",
   "features.tree.notes.remove": "Удалить заметку",
   "features.tree.notes.shared": "Общая заметка",

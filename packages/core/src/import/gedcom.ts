@@ -418,12 +418,7 @@ function importSharedNotes(records: GedcomRecord[], ctx: ImportContext): void {
     const note = record as unknown as {
       xref?: string;
       payload: string;
-      mediaType?: string;
-      language?: string;
-      translations?: Array<{ payload: string; mediaType?: string; language?: string }>;
       citations?: import('@doru/gedcom').SourceCitation[];
-      identifiers?: IdentifierStructure[];
-      submitters?: string[];
     };
     if (note.xref === undefined) {
       continue;
@@ -432,20 +427,9 @@ function importSharedNotes(records: GedcomRecord[], ctx: ImportContext): void {
     ctx.noteIds.set(note.xref, id);
     ctx.repo.insertNote({
       id,
-      xref: note.xref,
       text: note.payload,
-      mime: note.mediaType,
-      language: note.language,
-      translations: note.translations?.map((translation) => ({
-        id: crypto.randomUUID(),
-        text: translation.payload,
-        mime: translation.mediaType,
-        language: translation.language,
-      })),
     });
     importCitations(note.citations, 'note', id, ctx);
-    importIdentifiers(note.identifiers, 'note', id, ctx);
-    importSubmitterLinks(note.submitters, 'note', id, ctx);
   }
 }
 
@@ -1721,15 +1705,7 @@ function importNotes(
     ctx.repo.insertNote({
       id,
       text: note.payload,
-      mime: note.mediaType,
-      language: note.language,
       links: [{ id: crypto.randomUUID(), targetType, targetId }],
-      translations: note.translations?.map((translation) => ({
-        id: crypto.randomUUID(),
-        text: translation.payload,
-        mime: translation.mediaType,
-        language: translation.language,
-      })),
     });
     importCitations(note.citations, 'note', id, ctx);
   }

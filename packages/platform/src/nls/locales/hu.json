@@ -459,7 +459,6 @@
   "features.tree.notes.editShared": "Edit the shared note for all records",
   "features.tree.notes.editSplit": "Edit only this record (split)",
   "features.tree.notes.empty": "Még nincsenek jegyzetek.",
-  "features.tree.notes.mime": "MIME-típus",
   "features.tree.notes.placeholder": "Írjon kutatási jegyzetet…",
   "features.tree.notes.remove": "Jegyzet törlése",
   "features.tree.notes.shared": "Shared note",

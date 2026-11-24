@@ -459,7 +459,6 @@
   "features.tree.notes.editShared": "Edit the shared note for all records",
   "features.tree.notes.editSplit": "Edit only this record (split)",
   "features.tree.notes.empty": "メモはまだありません。",
-  "features.tree.notes.mime": "MIMEタイプ",
   "features.tree.notes.placeholder": "調査メモを書く…",
   "features.tree.notes.remove": "メモを削除",
   "features.tree.notes.shared": "Shared note",

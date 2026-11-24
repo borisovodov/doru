@@ -997,7 +997,7 @@ export class TreeService {
         (link) => link.targetType === context.targetType && link.targetId === context.targetId,
       );
       if (matching) {
-        const copy: NoteRecord = { ...after, id: crypto.randomUUID(), xref: undefined, links: [matching] };
+        const copy: NoteRecord = { ...after, id: crypto.randomUUID(), links: [matching] };
         return this.apply(splitNoteOp(before.id, copy, matching));
       }
     }

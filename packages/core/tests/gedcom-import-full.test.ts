@@ -191,8 +191,6 @@ describe('importGedcomDataset (phase 4)', () => {
       const notes = repo.listNotesFor('person', ivan.id).map((note) => note.text);
       expect(notes).toContain('inline note about Ivan');
       expect(notes).toContain('shared note text');
-      // The shared note keeps its record identity.
-      expect(repo.listNotes().find((note) => note.text === 'shared note text')?.xref).toBe('@N1@');
 
       // Associations and tasks.
       const maria = persons.find((person) => person.xref === '@I2@')!;
@@ -283,7 +281,7 @@ describe('importGedcomDataset (phase 4)', () => {
       expect(birth.place).toBe('Moscow, Russia');
       expect(birth.participants).toEqual([expect.objectContaining({ value: 'Witness Name', role: 'WITN' })]);
 
-      // Shared notes keep their xref and link again.
+      // Shared notes keep their link again.
       expect(second.repo.listNotesFor('person', ivan.id).map((note) => note.text)).toContain('shared note text');
 
       // Sources, citations and the family survive.

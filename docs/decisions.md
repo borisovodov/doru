@@ -128,6 +128,25 @@ sources section, and `TreeService` rejects a citation whose target type is
 keeps the task model from forming a task → citation → task cycle. GEDCOM has
 no citation slot on `_TODO`, so import and export are unaffected.
 
+## Notes are citation targets only
+
+A source may cite a note: GEDCOM 7 allows `SOUR` inside both `NOTE` and
+`SNOTE`, so a note keeps its sources. Every other attachment is refused: a
+note cannot own media, identifiers, contacts, contributors, tasks or another
+note. `TreeService` rejects note targets for tasks, media, identifiers,
+contributors and note links; the task and media pickers omit notes, and the
+note row only opens its sources panel. GEDCOM `UID`/`EXID`/`REFN` identifiers
+and vendor `_SUBM` links on notes are dropped on import and not written on
+export; `@doru/gedcom` still parses them. The citation target remains valid
+for both inline and shared notes.
+
+## Notes store text only
+
+A note stores its text only; it has no MIME type, language or translations.
+GEDCOM `NOTE.LANG`/`SNOTE.LANG`, `NOTE.MIME`/`SNOTE.MIME` and
+`NOTE.TRAN`/`SNOTE.TRAN` are parsed by `@doru/gedcom` but dropped by the core
+mapping: Dóru has one note text and no translation editor.
+
 ## Contacts are limited to their GEDCOM positions
 
 `PHON`, `EMAIL`, `FAX` and `WWW` are not universal record fields. GEDCOM

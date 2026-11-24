@@ -459,7 +459,6 @@
   "features.tree.notes.editShared": "Edit the shared note for all records",
   "features.tree.notes.editSplit": "Edit only this record (split)",
   "features.tree.notes.empty": "Aucune note pour l'instant.",
-  "features.tree.notes.mime": "Type MIME",
   "features.tree.notes.placeholder": "Rédigez une note de recherche…",
   "features.tree.notes.remove": "Supprimer la note",
   "features.tree.notes.shared": "Shared note",

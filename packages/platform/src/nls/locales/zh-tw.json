@@ -459,7 +459,6 @@
   "features.tree.notes.editShared": "Edit the shared note for all records",
   "features.tree.notes.editSplit": "Edit only this record (split)",
   "features.tree.notes.empty": "尚無備註。",
-  "features.tree.notes.mime": "MIME 類型",
   "features.tree.notes.placeholder": "撰寫研究備註…",
   "features.tree.notes.remove": "刪除筆記",
   "features.tree.notes.shared": "Shared note",

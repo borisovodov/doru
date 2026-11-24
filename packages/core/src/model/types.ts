@@ -629,29 +629,18 @@ export interface NoteLinkRecord {
   targetId: string;
 }
 
-export interface NoteTranslation {
-  id: string;
-  text: string;
-  mime?: string | undefined;
-  language?: string | undefined;
-}
-
 /**
- * A note: inline (one link) or shared (several links). `targetType`/
- * `targetId` are projections of the first link, kept for the renderer; the
- * full attachment set lives in `links`.
+ * A note: inline (one link) or shared (several links). The text is the whole
+ * note content; MIME type, languages, translations and a GEDCOM xref are
+ * deliberately not stored. `targetType`/`targetId` are projections of the
+ * first link, kept for the renderer; the full attachment set lives in `links`.
  */
 export interface NoteRecord {
   id: string;
-  /** Set when the note is a shared NOTE/SNOTE record. */
-  xref?: string | undefined;
   text: string;
-  mime?: string | undefined;
-  language?: string | undefined;
   targetType?: string | undefined;
   targetId?: string | undefined;
   links?: NoteLinkRecord[] | undefined;
-  translations?: NoteTranslation[] | undefined;
 }
 
 /** One file of a media record; the bytes live in the media/ folder, never in the DB. */
