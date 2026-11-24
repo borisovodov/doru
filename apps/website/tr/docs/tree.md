@@ -51,7 +51,7 @@ Eserler, adresler, ilişkilendirmeler ve aile partner/çocuk bağlantıları, an
 
 ## Medya
 
-Fotoğraflar, projenin yanındaki `media/` klasöründeki sıradan dosyalardır. Bunları bir kişi, aile, kaynak, yer, depo, gönderen, eser, görev veya adresten ekleyin; medya sekmesindeki **Related to** bölümünde mevcut bir kaydı ek hedeflere bağlayabilirsiniz. Medya sekmesini açmak için bir önizlemeye tıklayın; burada başlığı düzenleyebilir, dosyaları yönetebilir ve altyazı, sıra, birincil bayrağı ve dışlama bayrağı gibi bağlantı meta verilerini düzenleyebilirsiniz.
+Fotoğraflar, projenin yanındaki `media/` klasöründeki sıradan dosyalardır. Bunları bir kişi, aile, kaynak, yer, depo, gönderen, eser, görev veya adresten ekleyin; medya sekmesindeki **İlgili** bölümünde mevcut bir kaydı ek hedeflere bağlayabilirsiniz. Medya sekmesini açmak için bir önizlemeye tıklayın; burada başlığı düzenleyebilir, dosyaları yönetebilir ve altyazı, sıra, birincil bayrağı ve dışlama bayrağı gibi bağlantı meta verilerini düzenleyebilirsiniz.
 
 Bir medya kaydı birkaç hedefe bağlanabilir. **Bu kayıttan ayır** bir bağlantıyı kaldırır ve son bağlantıysa kaydı siler; **Medyayı sil** kaydı ve dosya kopyalarını kaldırır. Bir hedef kaydı silmek yalnızca bağlantılarını kaldırır, bu nedenle paylaşılan bir medya kaydı bağlantısız kalabilir.
 

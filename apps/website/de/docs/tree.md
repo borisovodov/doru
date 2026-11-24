@@ -94,7 +94,7 @@ Werke, Adressen, Assoziationen und Partner-/Kind-Verknüpfungen von Familien hab
 
 Fotos sind gewöhnliche Dateien im Ordner `media/` neben dem Projekt. Fügen Sie sie
 von einer Person, Familie, Quelle, einem Ort, einem Archiv, einem Einsender, einem Werk,
-einer Aufgabe oder Adresse hinzu; im Abschnitt **Related to** des Medien-Tabs
+einer Aufgabe oder Adresse hinzu; im Abschnitt **Verknüpft mit** des Medien-Tabs
 können Sie einen vorhandenen Datensatz an weitere Ziele anhängen. Klicken Sie auf eine
 Vorschau, um den Medien-Tab zu öffnen, in dem Sie den Titel bearbeiten, Dateien
 verwalten und Link-Metadaten wie Bildunterschrift, Reihenfolge, Primärmarkierung

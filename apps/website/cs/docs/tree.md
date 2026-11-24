@@ -86,7 +86,7 @@ Díla, adresy, spojení a vazby partnera/dítěte v rodinách mají stejné sekc
 
 Fotografie jsou obyčejné soubory ve složce `media/` vedle projektu. Přidejte je
 z osoby, rodiny, pramene, místa, archivu, odesílatele, díla, úkolu nebo adresy;
-v sekci **Related to** na kartě médií můžete připojit existující záznam k dalším cílům. Kliknutím
+v sekci **Související s** na kartě médií můžete připojit existující záznam k dalším cílům. Kliknutím
 na náhled otevřete kartu médií, kde můžete upravit název, spravovat soubory a
 upravit metadata propojení, jako je popisek, pořadí, označení hlavní a
 označení vyloučení.

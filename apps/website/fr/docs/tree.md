@@ -102,7 +102,7 @@ Contributeurs et l'ancienne section Tâches, mais n'ont ni Sources ni Contacts.
 
 Les photos sont des fichiers ordinaires dans le dossier `media/` à côté du projet.
 Ajoutez-les depuis une personne, une famille, une source, un lieu, un dépôt, un
-soumetteur, une œuvre, une tâche ou une adresse ; la section **Related to** de l'onglet média permet d'attacher un enregistrement existant à d'autres cibles. Cliquez sur un aperçu
+soumetteur, une œuvre, une tâche ou une adresse ; la section **Lié à** de l'onglet média permet d'attacher un enregistrement existant à d'autres cibles. Cliquez sur un aperçu
 pour ouvrir l'onglet média, où vous pouvez modifier le titre, gérer les fichiers
 et modifier les métadonnées de lien comme la légende, la séquence, l'indicateur
 principal et l'indicateur d'exclusion.

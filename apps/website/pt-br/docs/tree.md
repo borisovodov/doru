@@ -90,7 +90,7 @@ Obras, endereços, associações e vínculos de parceiro/filho das famílias tê
 
 As fotos são arquivos comuns na pasta `media/` ao lado do projeto. Adicione-as
 a partir de uma pessoa, família, fonte, lugar, repositório, submetedor, obra,
-tarefa ou endereço; a seção **Related to** da aba de mídia permite anexar um registro existente a outros destinos. Clique em uma prévia para abrir a aba de mídia, onde
+tarefa ou endereço; a seção **Relacionado a** da aba de mídia permite anexar um registro existente a outros destinos. Clique em uma prévia para abrir a aba de mídia, onde
 você pode editar o título, gerenciar os arquivos e editar metadados do vínculo,
 como a legenda, a sequência, o sinalizador principal e o de exclusão.
 

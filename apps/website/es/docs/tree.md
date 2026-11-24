@@ -92,7 +92,7 @@ Las obras, direcciones, asociaciones y enlaces de pareja/hijo de una familia tie
 
 Las fotos son archivos normales en la carpeta `media/` junto al proyecto. Añádelas
 desde una persona, familia, fuente, lugar, repositorio, remitente, obra, tarea o
-dirección; en la sección **Related to** de la pestaña multimedia puedes adjuntar
+dirección; en la sección **Relacionado con** de la pestaña multimedia puedes adjuntar
 un registro existente a destinos adicionales. Haz clic en una vista previa para abrir la pestaña multimedia, donde
 puedes editar el título, gestionar archivos y editar metadatos del enlace como la
 leyenda, la secuencia, la marca de principal y la marca de exclusión.

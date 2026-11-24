@@ -88,7 +88,7 @@ Dzieła, adresy, powiązania i relacje partner/dziecko w rodzinach mają te same
 
 Zdjęcia to zwykłe pliki w folderze `media/` obok projektu. Dodawaj je z osoby,
 rodziny, źródła, miejsca, repozytorium, nadawcy, dzieła, zadania lub adresu;
-w sekcji **Related to** na karcie multimediów możesz dołączyć istniejący rekord do innych celów.
+w sekcji **Powiązane z** na karcie multimediów możesz dołączyć istniejący rekord do innych celów.
 Kliknij podgląd, aby otworzyć kartę multimediów, gdzie możesz edytować tytuł,
 zarządzać plikami i edytować metadane powiązania, takie jak podpis, kolejność,
 znacznik główny i znacznik wykluczenia.

@@ -91,7 +91,7 @@ Opere, indirizzi, associazioni e collegamenti partner/figlio delle famiglie hann
 
 Le foto sono normali file nella cartella `media/` accanto al progetto.
 Aggiungile da una persona, famiglia, fonte, luogo, archivio, mittente, opera,
-attività o indirizzo; la sezione **Related to** della scheda media consente di collegare un record esistente ad altre destinazioni. Fai clic su un'anteprima per aprire la scheda
+attività o indirizzo; la sezione **Collegato a** della scheda media consente di collegare un record esistente ad altre destinazioni. Fai clic su un'anteprima per aprire la scheda
 media, dove puoi modificare il titolo, gestire i file e modificare i metadati
 del collegamento come la didascalia, la sequenza, il contrassegno principale e
 quello di esclusione.

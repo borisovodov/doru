@@ -51,7 +51,7 @@ A művek, címek, társítások és családi partner/gyermek kapcsolatok ugyanaz
 
 ## Média
 
-A fényképek közönséges fájlok a projekt melletti `media/` mappában. Adja hozzá őket egy személytől, családtól, forrástól, helytől, levéltártól, beküldőtől, műtől, feladattól vagy címtől; a médialapon a **Related to** szakaszban egy meglévő rekordot további célokhoz csatolhat. Kattintson egy előnézetre a média lap megnyitásához, ahol szerkesztheti a címet, kezelheti a fájlokat és szerkesztheti a hivatkozás metaadatait, például a feliratot, a sorrendet, az elsődleges jelzőt és a kizárási jelzőt.
+A fényképek közönséges fájlok a projekt melletti `media/` mappában. Adja hozzá őket egy személytől, családtól, forrástól, helytől, levéltártól, beküldőtől, műtől, feladattól vagy címtől; a médialapon a **Kapcsolódó** szakaszban egy meglévő rekordot további célokhoz csatolhat. Kattintson egy előnézetre a média lap megnyitásához, ahol szerkesztheti a címet, kezelheti a fájlokat és szerkesztheti a hivatkozás metaadatait, például a feliratot, a sorrendet, az elsődleges jelzőt és a kizárási jelzőt.
 
 Egy médiarekord több célhoz is kapcsolható. A **Leválasztás erről a rekordról** eltávolít egy hivatkozást, és törli a rekordot, ha az volt az utolsó; a **Média törlése** eltávolítja a rekordot és fájlmásolatait. Egy célrekord törlése csak a hivatkozásait távolítja el, így egy megosztott médiarekord hivatkozások nélkül is megmaradhat.
 
