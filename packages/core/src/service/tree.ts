@@ -884,6 +884,9 @@ export class TreeService {
 
   attachSource(sourceId: string, targetType: string, targetId: string): UndoRedoState {
     assertCitationTarget(targetType);
+    if (this.repo.listCitationRecordsFor(targetType, targetId).some((citation) => citation.sourceId === sourceId)) {
+      return this.historyState();
+    }
     const citation: CitationRecord = { id: crypto.randomUUID(), sourceId, targetType, targetId };
     return this.apply(attachCitationOp(citation));
   }
@@ -1115,6 +1118,11 @@ export class TreeService {
   attachMedia(link: MediaLinkRecord): UndoRedoState {
     return this.applyAfterCommit(() => {
       const media = this.repo.getMedia(link.mediaId);
+      if (
+        media?.links?.some((existing) => existing.targetType === link.targetType && existing.targetId === link.targetId)
+      ) {
+        return undefined;
+      }
       const attachments = this.repo.listAttachmentsFor('media', link.mediaId);
       const fileAttachments = (media?.files ?? []).map((file) => ({
         targetType: 'media_file',
