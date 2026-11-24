@@ -142,7 +142,7 @@ export function buildGedcomDataset(repo: TreeRepository): GedcomDataset {
   const places = repo.listPlaces();
   const media = repo.listAllMedia().filter((entry) => (entry.files ?? []).length > 0);
   const firstSubmitter = submitters[0];
-  const notes = repo.listNotes().filter((note) => (note.links?.length ?? 0) > 1);
+  const notes = repo.listNotes().filter((note) => (note.links?.length ?? 0) !== 1);
   const tasks = repo.listTasks().filter((task) => task.targets.length === 0);
 
   for (const person of persons) {
@@ -163,14 +163,16 @@ export function buildGedcomDataset(repo: TreeRepository): GedcomDataset {
   for (const title of titles) {
     xrefs.assign('T', title.id, title.xref);
   }
-  for (const note of notes) {
-    xrefs.assign('N', note.id, undefined);
-  }
   for (const place of places) {
     xrefs.assign('P', place.id, place.xref);
   }
   for (const entry of media) {
     xrefs.assign('O', entry.id, entry.xref);
+  }
+  // Notes are always allocated fresh; assign them last so every retained
+  // xref is already reserved and a generated @N…@ cannot collide with it.
+  for (const note of notes) {
+    xrefs.assign('N', note.id, undefined);
   }
 
   const records: GedcomRecord[] = [

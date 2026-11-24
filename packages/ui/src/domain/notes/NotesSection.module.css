@@ -1,6 +1,6 @@
 /* ── Notes section ─────────────────────────────────────────────────── */
 
-.notes-list {
+.notesList {
   list-style: none;
   margin: 0;
   padding: 0;
@@ -8,27 +8,27 @@
   flex-direction: column;
 }
 
-.notes-row {
+.notesRow {
   display: flex;
   align-items: center;
   gap: 6px;
   padding: 2px 0;
 }
 
-.notes-text {
+.notesText {
   flex: 1;
   min-width: 0;
   white-space: pre-wrap;
   overflow-wrap: anywhere;
 }
 
-.notes-edit {
+.notesEdit {
   display: flex;
   flex-direction: column;
   gap: 6px;
 }
 
-.notes-sources {
+.notesSources {
   display: flex;
   flex-direction: column;
   gap: 8px;
@@ -37,28 +37,28 @@
   border-left: 2px solid var(--doru-border);
 }
 
-.notes-edit textarea {
+.notesEdit textarea {
   width: 100%;
 }
 
-.notes-meta {
+.notesMeta {
   flex: none;
   font-size: 11px;
   color: var(--doru-fg-muted);
 }
 
-.notes-edit-actions {
+.notesEditActions {
   display: flex;
   gap: 6px;
   align-items: center;
 }
 
-.notes-add {
+.notesAdd {
   display: flex;
   gap: 8px;
 }
 
-.notes-add input {
+.notesAdd input {
   flex: 1;
   min-width: 0;
 }

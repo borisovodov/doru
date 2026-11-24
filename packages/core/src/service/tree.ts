@@ -995,11 +995,16 @@ export class TreeService {
     const current = this.repo.getNote(before.id) ?? before;
     const links = current.links ?? [];
     const now = Date.now();
-    if (context && links.length > 1) {
+    if (context !== undefined) {
       const matching = links.find(
         (link) => link.targetType === context.targetType && link.targetId === context.targetId,
       );
-      if (matching) {
+      // A stale editor must not silently rewrite the shared note for the
+      // links that still exist after the context link was detached.
+      if (matching === undefined) {
+        return this.historyState();
+      }
+      if (links.length > 1) {
         const copy: NoteRecord = {
           ...after,
           id: crypto.randomUUID(),

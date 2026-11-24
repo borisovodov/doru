@@ -278,8 +278,10 @@ describe('TreeService research layer', () => {
       });
 
       const link = { id: 'TL1', taskId: 'T1', targetType: 'person', targetId: 'P1' };
+      vi.setSystemTime(1_700_000_200_000);
       service.addTaskLink(link);
       expect(fixture.repo.getTask('T1')?.updatedAt).toBe(1_700_000_100_000);
+      vi.setSystemTime(1_700_000_300_000);
       service.deleteTaskLink(link);
       expect(fixture.repo.getTask('T1')?.updatedAt).toBe(1_700_000_100_000);
     } finally {

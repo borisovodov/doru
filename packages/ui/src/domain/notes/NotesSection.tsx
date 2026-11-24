@@ -11,7 +11,7 @@ import { useState, type ReactNode } from 'react';
 import { BookOpenText, Pencil, Trash2, X } from 'lucide-react';
 import type { NoteLinkRecord, NoteRecord } from '@doru/core';
 import { nls } from '../../nls';
-import './NotesSection.css';
+import styles from './NotesSection.module.css';
 
 /**
  * The person's notes with inline editing. Editing a shared note from this
@@ -104,11 +104,11 @@ export function NotesSection({
       {notes.length === 0 ? (
         <EmptyText>{nls.t('features.tree.notes.empty')}</EmptyText>
       ) : (
-        <ul className="notes-list">
+        <ul className={styles['notesList']}>
           {notes.map((note) => (
             <li key={note.id}>
               {editingId === note.id ? (
-                <div className="notes-edit">
+                <div className={styles['notesEdit']}>
                   <Textarea value={editText} onChange={(event) => setEditText(event.target.value)} autoFocus />
                   {(note.links?.length ?? 0) > 1 && (
                     <Select
@@ -120,7 +120,7 @@ export function NotesSection({
                       <option value="shared">{nls.t('features.tree.notes.editShared')}</option>
                     </Select>
                   )}
-                  <div className="notes-edit-actions">
+                  <div className={styles['notesEditActions']}>
                     <Button variant="primary" size="sm" onClick={() => void saveEdit(note)}>
                       {nls.t('features.tree.save')}
                     </Button>
@@ -130,10 +130,10 @@ export function NotesSection({
                   </div>
                 </div>
               ) : (
-                <div className="notes-row">
-                  <span className="notes-text">{note.text}</span>
+                <div className={styles['notesRow']}>
+                  <span className={styles['notesText']}>{note.text}</span>
                   {(note.links?.length ?? 0) > 1 && (
-                    <span className="notes-meta">{nls.t('features.tree.notes.shared')}</span>
+                    <span className={styles['notesMeta']}>{nls.t('features.tree.notes.shared')}</span>
                   )}
                   {renderSources !== undefined && (
                     <IconButton
@@ -183,7 +183,7 @@ export function NotesSection({
                 </div>
               )}
               {renderSources !== undefined && expandedSourcesId === note.id && (
-                <div className="notes-sources">{renderSources(note)}</div>
+                <div className={styles['notesSources']}>{renderSources(note)}</div>
               )}
             </li>
           ))}
@@ -202,7 +202,7 @@ export function NotesSection({
           onError={() => setAttachError(true)}
         />
       )}
-      <div className="notes-add">
+      <div className={styles['notesAdd']}>
         <Input
           value={draft}
           placeholder={nls.t('features.tree.notes.placeholder')}

@@ -79,6 +79,62 @@ describe('buildGedcomDataset', () => {
     }
   });
 
+  it('exports an unlinked note as a standalone SNOTE with its citations', () => {
+    const fixture = makeRepo();
+    try {
+      const { repo } = fixture;
+      repo.insertSource({ id: 'S1', title: 'Parish register' });
+      repo.insertNote({ id: 'SN1', text: 'orphan note', links: [] });
+      repo.addSourceCitation('S1', 'note', 'SN1');
+
+      const dataset = buildGedcomDataset(repo);
+      const note = dataset.records.find((record) => record.tag === 'SNOTE');
+      expect(note).toEqual(
+        expect.objectContaining({
+          payload: 'orphan note',
+          citations: [expect.objectContaining({ tag: 'SOUR' })],
+        }),
+      );
+
+      const target = makeRepo();
+      try {
+        importGedcomDataset(dataset, target.repo);
+        const imported = target.repo.listNotes().find((entry) => entry.text === 'orphan note');
+        expect(imported).toBeDefined();
+        expect(target.repo.listCitationRecordsFor('note', imported!.id)).toHaveLength(1);
+      } finally {
+        cleanupRepo(target);
+      }
+    } finally {
+      cleanupRepo(fixture);
+    }
+  });
+
+  it('keeps generated note xrefs distinct from retained media xrefs', () => {
+    const fixture = makeRepo();
+    try {
+      const { repo } = fixture;
+      repo.insertPerson({ id: 'P1', names: [], sex: 'U', facts: [] });
+      repo.insertPerson({ id: 'P2', names: [], sex: 'U', facts: [] });
+      repo.insertMedia({ id: 'M1', xref: '@N1@', files: [{ id: 'MF1', path: 'media/a.jpg' }] });
+      repo.insertNote({
+        id: 'SN1',
+        text: 'shared note',
+        links: [
+          { id: 'L1', targetType: 'person', targetId: 'P1' },
+          { id: 'L2', targetType: 'person', targetId: 'P2' },
+        ],
+      });
+
+      const dataset = buildGedcomDataset(repo);
+      const xrefs = dataset.records.flatMap((record) => (record.xref !== undefined ? [record.xref] : []));
+      expect(new Set(xrefs).size).toBe(xrefs.length);
+      expect(dataset.records.find((record) => record.tag === 'SNOTE')?.xref).not.toBe('@N1@');
+    } finally {
+      cleanupRepo(fixture);
+    }
+  });
+
   it('round-trips persons, facts, dates, families, sources, citations and notes', () => {
     const fixture = makeRepo();
     try {
