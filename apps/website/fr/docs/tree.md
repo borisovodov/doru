@@ -1,5 +1,5 @@
 ---
-source-hash: 3cd0833d604b
+source-hash: 13cfab1dc709
 ---
 
 # Travailler avec l'arbre
@@ -69,8 +69,7 @@ famille se fait en un clic.
   modification doit mettre à jour le texte partagé partout ou seulement
   l'enregistrement courant. **Détacher de cet enregistrement** supprime un lien ;
   **Supprimer partout** supprime la note.
-- Les faits et les noms portent leurs propres sections Sources, Notes, Étiquettes
-  et Identifiants dans l'éditeur de personne ; les faits ont aussi des Contacts.
+- Les faits et les noms portent leurs propres sections Sources, Notes et Identifiants dans l'éditeur de personne ; les faits ont aussi des Contacts.
 
 ## Adresses
 
@@ -94,17 +93,16 @@ Une tâche est partagée : la modifier n'importe où met à jour le même
 enregistrement, et supprimer un enregistrement lié laisse la tâche en place.
 
 Les œuvres, adresses, associations et liens partenaire/enfant d'une famille ont
-les mêmes sections Notes, Sources, Étiquettes, Identifiants, Contributeurs et
+les mêmes sections Notes, Sources, Identifiants, Contributeurs et
 Tâches que les onglets de l'entité principale. Les adresses ont aussi des
-Contacts. Les tâches conservent les sections Notes, Étiquettes, Identifiants,
+Contacts. Les tâches conservent les sections Notes, Identifiants,
 Contributeurs et l'ancienne section Tâches, mais n'ont ni Sources ni Contacts.
 
 ## Médias
 
 Les photos sont des fichiers ordinaires dans le dossier `media/` à côté du projet.
 Ajoutez-les depuis une personne, une famille, une source, un lieu, un dépôt, un
-soumetteur, une œuvre, une tâche ou une adresse ; la section média permet aussi
-d'attacher un enregistrement existant à une autre cible. Cliquez sur un aperçu
+soumetteur, une œuvre, une tâche ou une adresse ; la section **Related to** de l'onglet média permet d'attacher un enregistrement existant à d'autres cibles. Cliquez sur un aperçu
 pour ouvrir l'onglet média, où vous pouvez modifier le titre, gérer les fichiers
 et modifier les métadonnées de lien comme la légende, la séquence, l'indicateur
 principal et l'indicateur d'exclusion.

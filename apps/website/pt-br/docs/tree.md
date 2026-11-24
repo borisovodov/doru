@@ -1,5 +1,5 @@
 ---
-source-hash: 3cd0833d604b
+source-hash: 13cfab1dc709
 ---
 
 # Trabalhando com a árvore
@@ -67,7 +67,7 @@ clique.
   compartilhado em todos os lugares ou apenas o registro atual. **Desvincular
   deste registro** remove um vínculo; **Excluir em todos os lugares** remove a
   nota.
-- Eventos e nomes têm suas próprias seções Fontes, Notas, Etiquetas e Identificadores dentro do editor da pessoa; eventos também têm Contatos.
+- Eventos e nomes têm suas próprias seções Fontes, Notas e Identificadores dentro do editor da pessoa; eventos também têm Contatos.
 
 ## Endereços
 
@@ -84,14 +84,13 @@ lembrete. Todo editor tem uma seção **Tarefas**: adicione uma tarefa ali e ela
 é vinculada automaticamente àquele registro. Eventos, nomes, citações e notas
 têm sua própria seção Tarefas no painel de anexos. **Relacionado a** vincula uma tarefa a um ou mais registros da árvore — uma pessoa, família, evento, nome, fonte, citação, nota, mídia, lugar, repositório, endereço ou obra; deixe vazio para uma tarefa independente. Uma tarefa é compartilhada: editá-la em qualquer lugar atualiza o mesmo registro, e excluir um registro relacionado mantém a tarefa.
 
-Obras, endereços, associações e vínculos de parceiro/filho das famílias têm as mesmas seções Notas, Fontes, Etiquetas, Identificadores, Colaboradores e Tarefas das abas das entidades principais. Endereços também têm Contatos. As tarefas mantêm Notas, Etiquetas, Identificadores, Colaboradores e a seção Tarefas existente, mas não têm Fontes nem Contatos.
+Obras, endereços, associações e vínculos de parceiro/filho das famílias têm as mesmas seções Notas, Fontes, Identificadores, Colaboradores e Tarefas das abas das entidades principais. Endereços também têm Contatos. As tarefas mantêm Notas, Identificadores, Colaboradores e a seção Tarefas existente, mas não têm Fontes nem Contatos.
 
 ## Mídia
 
 As fotos são arquivos comuns na pasta `media/` ao lado do projeto. Adicione-as
 a partir de uma pessoa, família, fonte, lugar, repositório, submetedor, obra,
-tarefa ou endereço; a seção de mídia também permite anexar um registro
-existente a outro destino. Clique em uma prévia para abrir a aba de mídia, onde
+tarefa ou endereço; a seção **Related to** da aba de mídia permite anexar um registro existente a outros destinos. Clique em uma prévia para abrir a aba de mídia, onde
 você pode editar o título, gerenciar os arquivos e editar metadados do vínculo,
 como a legenda, a sequência, o sinalizador principal e o de exclusão.
 

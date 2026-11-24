@@ -1,5 +1,5 @@
 ---
-source-hash: 3cd0833d604b
+source-hash: 13cfab1dc709
 ---
 
 # A családfa használata
@@ -37,7 +37,7 @@ A teljes személyszerkesztőben adjon hozzá szülőket, partnert vagy gyermekek
 
 - **Források**: csatoljon forrásokat egy személyhez (címmel és szerzővel), vagy használjon újra egy meglévő forrást. Minden csatolás egy hivatkozás, és eltávolítható.
 - **Jegyzetek**: egy személyhez csatolt szabad formájú kutatási jegyzetek. Egy jegyzet több rekordhoz is csatolható: használja a **Meglévő jegyzet csatolása** lehetőséget egy másik rekord Jegyzetek szakaszában, majd válassza ki, hogy a szerkesztés mindenhol frissítse-e a megosztott szöveget, vagy csak az aktuális rekordban. A **Leválasztás erről a rekordról** eltávolít egy hivatkozást; a **Törlés mindenhol** eltávolítja a jegyzetet.
-- A tények és nevek saját Források, Jegyzetek, Címkék és Azonosítók szakaszokkal rendelkeznek a személyszerkesztőn belül; a tényeknek Elérhetőségeik is vannak.
+- A tények és nevek saját Források, Jegyzetek és Azonosítók szakaszokkal rendelkeznek a személyszerkesztőn belül; a tényeknek Elérhetőségeik is vannak.
 
 ## Címek
 
@@ -47,11 +47,11 @@ A **Források** nézetben van egy **Címek** szakasz. Itt önálló címeket hoz
 
 A feladatoknak a tervezett és emlékeztető dátumok mellett létrehozási és lezárási dátumuk is van. Minden szerkesztőnek van **Feladatok** szakasza: adjon hozzá ott egy feladatot, és az automatikusan ahhoz a rekordhoz kapcsolódik. A tények, nevek, hivatkozások és jegyzetek saját Feladatok szakasszal rendelkeznek a csatolási panelükön. A **Kapcsolódó** egy feladatot egy vagy több rekordhoz kapcsol a fában — személyhez, családhoz, eseményhez, névhez, hivatkozáshoz, jegyzethez, médiához, helyhez, levéltárhoz, címhez vagy műhöz; hagyja üresen egy szabadon álló feladathoz. A feladat megosztott: bárhol szerkesztve ugyanazt a rekordot frissíti, és egy kapcsolódó rekord törlése helyben hagyja a feladatot.
 
-A művek, címek, társítások és családi partner/gyermek kapcsolatok ugyanazokkal a Jegyzetek, Források, Címkék, Azonosítók, Közreműködők és Feladatok szakaszokkal rendelkeznek, mint a fő entitáslapok. A címeknek Elérhetőségeik is vannak. A feladatok megtartják a Jegyzetek, Címkék, Azonosítók, Közreműködők és a régi Feladatok szakaszt, de nincs Forrásuk vagy Elérhetőségük.
+A művek, címek, társítások és családi partner/gyermek kapcsolatok ugyanazokkal a Jegyzetek, Források, Azonosítók, Közreműködők és Feladatok szakaszokkal rendelkeznek, mint a fő entitáslapok. A címeknek Elérhetőségeik is vannak. A feladatok megtartják a Jegyzetek, Azonosítók, Közreműködők és a régi Feladatok szakaszt, de nincs Forrásuk vagy Elérhetőségük.
 
 ## Média
 
-A fényképek közönséges fájlok a projekt melletti `media/` mappában. Adja hozzá őket egy személytől, családtól, forrástól, helytől, levéltártól, beküldőtől, műtől, feladattól vagy címtől; a média szakasz lehetővé teszi egy meglévő rekord másik célhoz csatolását is. Kattintson egy előnézetre a média lap megnyitásához, ahol szerkesztheti a címet, kezelheti a fájlokat és szerkesztheti a hivatkozás metaadatait, például a feliratot, a sorrendet, az elsődleges jelzőt és a kizárási jelzőt.
+A fényképek közönséges fájlok a projekt melletti `media/` mappában. Adja hozzá őket egy személytől, családtól, forrástól, helytől, levéltártól, beküldőtől, műtől, feladattól vagy címtől; a médialapon a **Related to** szakaszban egy meglévő rekordot további célokhoz csatolhat. Kattintson egy előnézetre a média lap megnyitásához, ahol szerkesztheti a címet, kezelheti a fájlokat és szerkesztheti a hivatkozás metaadatait, például a feliratot, a sorrendet, az elsődleges jelzőt és a kizárási jelzőt.
 
 Egy médiarekord több célhoz is kapcsolható. A **Leválasztás erről a rekordról** eltávolít egy hivatkozást, és törli a rekordot, ha az volt az utolsó; a **Média törlése** eltávolítja a rekordot és fájlmásolatait. Egy célrekord törlése csak a hivatkozásait távolítja el, így egy megosztott médiarekord hivatkozások nélkül is megmaradhat.
 

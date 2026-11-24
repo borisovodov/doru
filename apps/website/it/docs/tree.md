@@ -1,5 +1,5 @@
 ---
-source-hash: 3cd0833d604b
+source-hash: 13cfab1dc709
 ---
 
 # Lavorare con l'albero
@@ -67,7 +67,7 @@ famiglia è un clic.
   di un altro record, poi scegli se una modifica deve aggiornare il testo
   condiviso ovunque o solo il record corrente. **Scollega da questo record**
   rimuove un collegamento; **Elimina ovunque** rimuove la nota.
-- Eventi e nomi hanno le proprie sezioni Fonti, Note, Etichette e Identificativi all'interno dell'editor della persona; gli eventi hanno anche Contatti.
+- Eventi e nomi hanno le proprie sezioni Fonti, Note e Identificativi all'interno dell'editor della persona; gli eventi hanno anche Contatti.
 
 ## Indirizzi
 
@@ -85,14 +85,13 @@ viene collegata automaticamente a quel record. Eventi, nomi, citazioni e note
 hanno la propria sezione Attività nel loro pannello degli allegati.
 **Collegato a** collega un'attività a uno o più record dell'albero — una persona, famiglia, evento, nome, fonte, citazione, nota, media, luogo, archivio, indirizzo o opera; lascialo vuoto per un'attività indipendente. Un'attività è condivisa: modificarla ovunque aggiorna lo stesso record e l'eliminazione di un record collegato lascia l'attività al suo posto.
 
-Opere, indirizzi, associazioni e collegamenti partner/figlio delle famiglie hanno le stesse sezioni Note, Fonti, Etichette, Identificativi, Contributori e Attività delle schede delle entità principali. Gli indirizzi hanno anche Contatti. Le attività mantengono Note, Etichette, Identificativi, Contributori e la sezione Attività esistente, ma non hanno Fonti o Contatti.
+Opere, indirizzi, associazioni e collegamenti partner/figlio delle famiglie hanno le stesse sezioni Note, Fonti, Identificativi, Contributori e Attività delle schede delle entità principali. Gli indirizzi hanno anche Contatti. Le attività mantengono Note, Identificativi, Contributori e la sezione Attività esistente, ma non hanno Fonti o Contatti.
 
 ## Media
 
 Le foto sono normali file nella cartella `media/` accanto al progetto.
 Aggiungile da una persona, famiglia, fonte, luogo, archivio, mittente, opera,
-attività o indirizzo; la sezione media consente anche di collegare un record
-esistente a un'altra destinazione. Fai clic su un'anteprima per aprire la scheda
+attività o indirizzo; la sezione **Related to** della scheda media consente di collegare un record esistente ad altre destinazioni. Fai clic su un'anteprima per aprire la scheda
 media, dove puoi modificare il titolo, gestire i file e modificare i metadati
 del collegamento come la didascalia, la sequenza, il contrassegno principale e
 quello di esclusione.

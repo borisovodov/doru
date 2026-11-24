@@ -1,5 +1,5 @@
 ---
-source-hash: 3cd0833d604b
+source-hash: 13cfab1dc709
 ---
 
 # Práce se stromem
@@ -63,7 +63,7 @@ rodiny nebo smazání rodiny je jeden klik.
   sekci Poznámky jiného záznamu a poté zvolte, zda má úprava aktualizovat
   sdílený text všude, nebo jen aktuální záznam. **Odpojit od tohoto záznamu**
   odebere jedno propojení; **Smazat všude** poznámku odstraní.
-- Události a jména mají v editoru osoby vlastní sekce Prameny, Poznámky, Štítky a Identifikátory; události mají také Kontakty.
+- Události a jména mají v editoru osoby vlastní sekce Prameny, Poznámky a Identifikátory; události mají také Kontakty.
 
 ## Adresy
 
@@ -80,13 +80,13 @@ uzavření. Každý editor má sekci **Úkoly**: přidejte tam úkol a automatic
 propojí s daným záznamem. Události, jména, citace a poznámky mají vlastní sekci
 Úkoly ve svém panelu příloh. **Související s** propojí úkol s jedním nebo několika záznamy ve stromu — osobou, rodinou, událostí, jménem, citací, poznámkou, médiem, místem, archivem, adresou nebo dílem; ponechte prázdné pro samostatný úkol. Úkol je sdílený: úprava kdekoli aktualizuje stejný záznam a smazání souvisejícího záznamu úkol ponechá na místě.
 
-Díla, adresy, spojení a vazby partnera/dítěte v rodinách mají stejné sekce Poznámky, Prameny, Štítky, Identifikátory, Přispěvatelé a Úkoly jako karty hlavních entit. Adresy mají také Kontakty. Úkoly si zachovávají sekce Poznámky, Štítky, Identifikátory, Přispěvatelé a starší sekci Úkoly, ale nemají Prameny ani Kontakty.
+Díla, adresy, spojení a vazby partnera/dítěte v rodinách mají stejné sekce Poznámky, Prameny, Identifikátory, Přispěvatelé a Úkoly jako karty hlavních entit. Adresy mají také Kontakty. Úkoly si zachovávají sekce Poznámky, Identifikátory, Přispěvatelé a starší sekci Úkoly, ale nemají Prameny ani Kontakty.
 
 ## Média
 
 Fotografie jsou obyčejné soubory ve složce `media/` vedle projektu. Přidejte je
 z osoby, rodiny, pramene, místa, archivu, odesílatele, díla, úkolu nebo adresy;
-sekce médií také umožňuje připojit existující záznam k jinému cíli. Kliknutím
+v sekci **Related to** na kartě médií můžete připojit existující záznam k dalším cílům. Kliknutím
 na náhled otevřete kartu médií, kde můžete upravit název, spravovat soubory a
 upravit metadata propojení, jako je popisek, pořadí, označení hlavní a
 označení vyloučení.
