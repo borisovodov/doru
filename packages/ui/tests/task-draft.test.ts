@@ -25,8 +25,7 @@ describe('taskDraft', () => {
       targets: [{ id: 'TL1', taskId: 'T1', targetType: 'person', targetId: 'P1' }],
       priority: 'high',
       status: 'in-progress',
-      scheduledAt: new Date(2026, 2, 12, 9, 0).getTime(),
-      reminderAt: new Date(2026, 2, 1, 8, 30).getTime(),
+      remindAt: new Date(2026, 2, 12, 9, 0).getTime(),
       createdAt: new Date(2026, 0, 1, 10, 0).getTime(),
     };
     const draft = taskToDraft(source);
@@ -34,8 +33,7 @@ describe('taskDraft', () => {
       text: 'Order the birth record',
       priority: 'high',
       status: 'in-progress',
-      scheduledAt: '2026-03-12T09:00',
-      reminderAt: '2026-03-01T08:30',
+      remindAt: '2026-03-12T09:00',
     });
     expect(taskDraftToRecord(source, draft)).toEqual(source);
   });
@@ -81,7 +79,7 @@ describe('taskDraft', () => {
       text: ' Visit the cemetery ',
       priority: 'low',
       status: 'closed',
-      scheduledAt: '2027-01-01T00:00',
+      remindAt: '2027-01-01T00:00',
     });
     expect(after).toEqual({
       id: 'T1',
@@ -89,20 +87,18 @@ describe('taskDraft', () => {
       targets: [],
       priority: 'low',
       status: 'closed',
-      scheduledAt: new Date(2027, 0, 1, 0, 0).getTime(),
+      remindAt: new Date(2027, 0, 1, 0, 0).getTime(),
     });
   });
 
   it('preserves sub-minute instants when the visible draft is unchanged', () => {
-    const scheduledAt = new Date(2026, 2, 12, 9, 0, 31, 456).getTime();
-    const reminderAt = new Date(2026, 2, 11, 8, 15, 59, 999).getTime();
-    const source = task({ scheduledAt, reminderAt });
+    const remindAt = new Date(2026, 2, 11, 8, 15, 59, 999).getTime();
+    const source = task({ remindAt });
     const draft = taskToDraft(source);
     draft.text = 'Edited elsewhere';
 
     const after = taskDraftToRecord(source, draft);
-    expect(after.scheduledAt).toBe(scheduledAt);
-    expect(after.reminderAt).toBe(reminderAt);
+    expect(after.remindAt).toBe(remindAt);
   });
 
   it('preserves the second occurrence of a repeated local time', () => {
@@ -111,11 +107,11 @@ describe('taskDraft', () => {
     try {
       const first = Date.parse('2024-11-03T05:30:00Z');
       const second = Date.parse('2024-11-03T06:30:00Z');
-      expect(taskToDraft(task({ scheduledAt: first })).scheduledAt).toBe('2024-11-03T01:30');
-      expect(taskToDraft(task({ scheduledAt: second })).scheduledAt).toBe('2024-11-03T01:30');
+      expect(taskToDraft(task({ remindAt: first })).remindAt).toBe('2024-11-03T01:30');
+      expect(taskToDraft(task({ remindAt: second })).remindAt).toBe('2024-11-03T01:30');
 
-      const source = task({ scheduledAt: second });
-      expect(taskDraftToRecord(source, taskToDraft(source)).scheduledAt).toBe(second);
+      const source = task({ remindAt: second });
+      expect(taskDraftToRecord(source, taskToDraft(source)).remindAt).toBe(second);
     } finally {
       if (previous === undefined) {
         delete process.env['TZ'];
@@ -133,19 +129,13 @@ describe('taskDraft', () => {
       expect(
         taskDraftHasInvalidTimestamp({
           ...emptyTaskDraft(),
-          scheduledAt: '2024-03-10T02:30',
+          remindAt: '2024-03-10T02:30',
         }),
       ).toBe(true);
       expect(
         taskDraftHasInvalidTimestamp({
           ...emptyTaskDraft(),
-          reminderAt: '2024-03-10T02:30',
-        }),
-      ).toBe(true);
-      expect(
-        taskDraftHasInvalidTimestamp({
-          ...emptyTaskDraft(),
-          scheduledAt: '2024-03-10T03:30',
+          remindAt: '2024-03-10T03:30',
         }),
       ).toBe(false);
       expect(taskDraftHasInvalidTimestamp(emptyTaskDraft())).toBe(false);

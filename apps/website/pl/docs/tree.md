@@ -1,5 +1,5 @@
 ---
-source-hash: 499ca7ec2e9b
+source-hash: d6792c4fa89a
 ---
 
 # Praca z drzewem
@@ -77,8 +77,7 @@ adres** do edycji adresu na miejscu.
 
 ## Zadania
 
-Zadania mają daty utworzenia i zamknięcia oprócz dat zaplanowanych i
-przypomnień. Każdy edytor ma sekcję **Zadania**: dodaj tam zadanie, a zostanie
+Zadania mają datę utworzenia i datę przypomnienia. Zamknięcie zadania zmienia tylko jego status; osobna data ukończenia nie jest zapisywana. Każdy edytor ma sekcję **Zadania**: dodaj tam zadanie, a zostanie
 automatycznie powiązane z tym rekordem. Wydarzenia, imiona i cytaty
 mają własną sekcję Zadania w swoim panelu załączników. **Powiązane z** łączy zadanie z jednym lub kilkoma rekordami w drzewie — osobą, rodziną, wydarzeniem, imieniem, źródłem, cytatem, multimediami, miejscem, repozytorium, adresem lub dziełem; pozostaw puste dla samodzielnego zadania. Zadanie jest współdzielone: edycja w dowolnym miejscu aktualizuje ten sam rekord, a usunięcie powiązanego rekordu pozostawia zadanie na miejscu. Użyj **Dołącz istniejące zadanie**, aby ponownie wykorzystać współdzielone zadanie zamiast tworzyć nowe.
 

@@ -1,5 +1,5 @@
 ---
-source-hash: 499ca7ec2e9b
+source-hash: d6792c4fa89a
 ---
 
 # Trabajar con el árbol
@@ -81,8 +81,7 @@ de esos registros. El selector de dirección de un hecho también tiene las acci
 
 ## Tareas
 
-Las tareas tienen fechas de creación y de cierre además de las fechas programada y
-de recordatorio. Cada editor tiene una sección **Tareas**: añade allí una tarea y
+Las tareas tienen una fecha de creación y una fecha de recordatorio. Cerrar una tarea solo cambia su estado; no se guarda una fecha de finalización aparte. Cada editor tiene una sección **Tareas**: añade allí una tarea y
 se vincula automáticamente a ese registro. Los hechos, nombres y citas
 llevan su propia sección Tareas en su panel de elementos adjuntos. **Relacionado con** vincula una tarea con uno o varios registros del árbol — una persona, familia, evento, nombre, fuente, cita, multimedia, lugar, repositorio, dirección u obra; déjalo vacío para una tarea independiente. Una tarea es compartida: editarla en cualquier lugar actualiza el mismo registro y eliminar un registro relacionado deja la tarea en su sitio. Usa **Adjuntar una tarea existente** para reutilizar una tarea compartida en lugar de crear una nueva.
 

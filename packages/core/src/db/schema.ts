@@ -46,10 +46,10 @@ export const DORU_APPLICATION_ID = 0x444f5255;
  * Bumped whenever the schema changes. There are no migrations before 1.0.0:
  * a newer version may simply not understand files written by older ones
  * (the store refuses to open them with a loud error). This schema uses
- * version 22, above every version written by an earlier build (the old model
+ * version 23, above every version written by an earlier build (the old model
  * reached 18), so the open guard cannot mistake an old file for this one.
  */
-export const SCHEMA_VERSION = 22;
+export const SCHEMA_VERSION = 23;
 
 export const SCHEMA_SQL = `
 CREATE TABLE IF NOT EXISTS person (
@@ -560,9 +560,7 @@ CREATE TABLE IF NOT EXISTS task (
   priority TEXT, status TEXT,
   created_at INTEGER,
   updated_at INTEGER,
-  scheduled_at INTEGER,
-  reminder_at INTEGER,
-  closed_at INTEGER
+  remind_at INTEGER
 );
 
 -- A task can relate to any number of records. The task row survives when a
@@ -652,7 +650,7 @@ CREATE INDEX IF NOT EXISTS idx_source_publication_date ON source(publication_dat
 CREATE INDEX IF NOT EXISTS idx_source_data_event_date ON source_data_event(date_id);
 CREATE INDEX IF NOT EXISTS idx_citation_date ON citation(date_id);
 CREATE INDEX IF NOT EXISTS idx_media_date ON media(date_id);
-CREATE INDEX IF NOT EXISTS idx_task_scheduled_at ON task(scheduled_at);
+CREATE INDEX IF NOT EXISTS idx_task_remind_at ON task(remind_at);
 CREATE INDEX IF NOT EXISTS idx_association_period_date ON association(period_date_id);
 
 -- Foreign-key child columns. SQLite does not index these automatically, so

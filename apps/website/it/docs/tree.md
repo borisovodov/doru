@@ -1,5 +1,5 @@
 ---
-source-hash: 499ca7ec2e9b
+source-hash: d6792c4fa89a
 ---
 
 # Lavorare con l'albero
@@ -79,8 +79,7 @@ indirizzo** e **Modifica indirizzo** per modificare un indirizzo sul posto.
 
 ## Attività
 
-Le attività hanno date di creazione e chiusura oltre alle date pianificate e di
-promemoria. Ogni editor ha una sezione **Attività**: aggiungi un'attività lì e
+Le attività hanno una data di creazione e una data di promemoria. Chiudere un'attività cambia solo il suo stato; non viene salvata una data di completamento separata. Ogni editor ha una sezione **Attività**: aggiungi un'attività lì e
 viene collegata automaticamente a quel record. Eventi, nomi e citazioni
 hanno la propria sezione Attività nel loro pannello degli allegati.
 **Collegato a** collega un'attività a uno o più record dell'albero — una persona, famiglia, evento, nome, fonte, citazione, media, luogo, archivio, indirizzo o opera; lascialo vuoto per un'attività indipendente. Un'attività è condivisa: modificarla ovunque aggiorna lo stesso record e l'eliminazione di un record collegato lascia l'attività al suo posto. Usa **Allega un'attività esistente** per riutilizzare un'attività condivisa invece di crearne una nuova.

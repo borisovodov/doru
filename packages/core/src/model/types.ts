@@ -1003,12 +1003,8 @@ export interface TaskRecord {
   createdAt?: number | undefined;
   /** Last content edit instant, epoch milliseconds. */
   updatedAt?: number | undefined;
-  /** Scheduled instant, epoch milliseconds. */
-  scheduledAt?: number | undefined;
-  /** Reminder instant, epoch milliseconds. */
-  reminderAt?: number | undefined;
-  /** Closing instant, epoch milliseconds; cleared when the task is reopened. */
-  closedAt?: number | undefined;
+  /** The user-chosen reminder instant, epoch milliseconds. */
+  remindAt?: number | undefined;
 }
 
 /** A bibliographic work (GEDCOM 7.0 TITL record), cited by sources. */

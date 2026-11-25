@@ -10,9 +10,9 @@ import { inputToTimestamp, type TaskDraft } from './taskDraft';
 
 /**
  * The editable fields of a task, shared by the task tab editor: the text,
- * the classification fields (priority, status), and the scheduled/reminder
- * instants. Creation and closing timestamps are managed by the service, and
- * the related records are picked in their own final card block.
+ * the classification fields (priority, status), and the reminder instant.
+ * Creation and update timestamps are managed by the service, and the related
+ * records are picked in their own final card block.
  */
 export function TaskEditorFields({
   edit,
@@ -33,8 +33,7 @@ export function TaskEditorFields({
     clear: nls.t('features.tasks.clear'),
   };
   const invalidTimestamp = nls.t('features.tasks.invalidTimestamp');
-  const scheduledInvalid = edit.scheduledAt.trim() !== '' && inputToTimestamp(edit.scheduledAt) === undefined;
-  const reminderInvalid = edit.reminderAt.trim() !== '' && inputToTimestamp(edit.reminderAt) === undefined;
+  const reminderInvalid = edit.remindAt.trim() !== '' && inputToTimestamp(edit.remindAt) === undefined;
 
   return (
     <>
@@ -69,24 +68,14 @@ export function TaskEditorFields({
           </Select>
         </Field>
       </FieldGrid>
-      <FieldGrid columns={2}>
-        <Field label={nls.t('features.tasks.scheduled')} {...(scheduledInvalid ? { error: invalidTimestamp } : {})}>
-          <DateTimePicker
-            value={edit.scheduledAt}
-            onChange={(value) => onChange({ scheduledAt: value })}
-            locale={nls.locale}
-            labels={dateTimeLabels}
-          />
-        </Field>
-        <Field label={nls.t('features.tasks.reminder')} {...(reminderInvalid ? { error: invalidTimestamp } : {})}>
-          <DateTimePicker
-            value={edit.reminderAt}
-            onChange={(value) => onChange({ reminderAt: value })}
-            locale={nls.locale}
-            labels={dateTimeLabels}
-          />
-        </Field>
-      </FieldGrid>
+      <Field label={nls.t('features.tasks.reminder')} {...(reminderInvalid ? { error: invalidTimestamp } : {})}>
+        <DateTimePicker
+          value={edit.remindAt}
+          onChange={(value) => onChange({ remindAt: value })}
+          locale={nls.locale}
+          labels={dateTimeLabels}
+        />
+      </Field>
     </>
   );
 }

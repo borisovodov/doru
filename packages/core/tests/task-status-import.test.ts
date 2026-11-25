@@ -10,6 +10,7 @@ const GEDCOM = [
   '0 @T1@ _TODO Record task',
   '1 _TSTS Completed',
   '1 _TPTY HIGH',
+  '1 _RDATE 2026-04-05',
   '0 @T2@ _TODO Second record task',
   '1 _TSTS INPROGRESS',
   '1 _TPTY 8',
@@ -31,6 +32,7 @@ const GEDCOM = [
   '2 PRTY 1',
   '2 TYPE 0',
   '2 DATA Solution details',
+  '2 _RDATE 2026-04-06',
   '0 TRLR',
 ].join('\n');
 
@@ -52,6 +54,7 @@ describe('GEDCOM task status and priority import', () => {
       expect(tasks.find((task) => task.text === 'Record task')).toMatchObject({
         status: 'closed',
         priority: 'high',
+        remindAt: new Date(2026, 3, 5).getTime(),
       });
       expect(tasks.find((task) => task.text === 'Second record task')).toMatchObject({
         status: 'in-progress',
@@ -68,13 +71,13 @@ describe('GEDCOM task status and priority import', () => {
       expect(tasks.find((task) => task.text === 'Attached task')).toMatchObject({
         status: 'in-progress',
         priority: 'high',
+        remindAt: new Date(2026, 3, 6).getTime(),
       });
       const titled = tasks.find((task) => task.text === 'Payload only')!;
-      expect(titled).toMatchObject({
-        scheduledAt: new Date(2026, 0, 2).getTime(),
-        reminderAt: new Date(2026, 1, 3).getTime(),
-        closedAt: new Date(2026, 2, 4).getTime(),
-      });
+      expect(titled.remindAt).toBe(new Date(2026, 1, 3).getTime());
+      expect(titled).not.toHaveProperty('scheduledAt');
+      expect(titled).not.toHaveProperty('reminderAt');
+      expect(titled).not.toHaveProperty('closedAt');
       expect(titled).not.toHaveProperty('title');
       expect(titled).not.toHaveProperty('type');
       expect(tasks.find((task) => task.text === 'Attached task')).not.toHaveProperty('type');

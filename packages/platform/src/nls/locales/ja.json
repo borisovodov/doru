@@ -74,7 +74,6 @@
   "features.tasks.priorityMedium": "中",
   "features.tasks.reminder": "リマインダー",
   "features.tasks.remove": "このレコードからタスクを削除",
-  "features.tasks.scheduled": "予定",
   "features.tasks.status": "ステータス",
   "features.tasks.statusClosed": "完了",
   "features.tasks.statusInProgress": "進行中",

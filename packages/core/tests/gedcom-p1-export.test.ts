@@ -182,14 +182,13 @@ describe('P1 GEDCOM export gaps', () => {
       expandedYear.setUTCFullYear(10_000, 0, 1);
       expandedYear.setUTCHours(0, 0, 0, 0);
       repo.insertPerson({ id: 'P1', names: [], sex: 'U', facts: [] });
-      repo.insertTask({ id: 'T1', text: 'Free task', targets: [], createdAt: outside, reminderAt: outside });
+      repo.insertTask({ id: 'T1', text: 'Free task', targets: [], createdAt: outside, remindAt: outside });
       repo.insertTask({
         id: 'T2',
         text: 'Attached task',
         targets: [{ id: 'TL2', taskId: 'T2', targetType: 'person', targetId: 'P1' }],
         createdAt: expandedYear.getTime(),
-        scheduledAt: outside,
-        closedAt: outside,
+        remindAt: outside,
       });
 
       for (const serialize of [serializeGedcom70, serializeGedcom551]) {
@@ -200,6 +199,8 @@ describe('P1 GEDCOM export gaps', () => {
         }
         expect(serialized.value).not.toContain('_TCDT');
         expect(serialized.value).not.toContain('_TSDT');
+        expect(serialized.value).not.toContain('_RDATE');
+        expect(serialized.value).not.toContain('_CDATE');
         expect(serialized.value).not.toContain('+010000');
       }
     } finally {
@@ -212,9 +213,7 @@ describe('P1 GEDCOM export gaps', () => {
     try {
       const { repo } = fixture;
       const createdAt = Date.UTC(2026, 0, 1, 8, 0);
-      const scheduledAt = Date.UTC(2026, 0, 2, 9, 0);
-      const reminderAt = Date.UTC(2026, 1, 3, 10, 0);
-      const closedAt = Date.UTC(2026, 2, 4, 11, 0);
+      const remindAt = Date.UTC(2026, 1, 3, 10, 0);
       repo.insertPerson({ id: 'P1', names: [], sex: 'U', facts: [] });
       repo.insertTask({
         id: 'T1',
@@ -222,9 +221,7 @@ describe('P1 GEDCOM export gaps', () => {
         targets: [{ id: 'TL1', taskId: 'T1', targetType: 'person', targetId: 'P1' }],
         status: 'closed',
         createdAt,
-        scheduledAt,
-        reminderAt,
-        closedAt,
+        remindAt,
       });
 
       const dataset = buildGedcomDataset(repo);
@@ -237,9 +234,8 @@ describe('P1 GEDCOM export gaps', () => {
         (record): record is IndividualRecord => record.tag === 'INDI',
       );
       expect(individual70?.todos?.[0]).toMatchObject({
-        date: { time: { utc: true } },
+        createdDate: expect.any(String),
         reminderDate: { time: { utc: true } },
-        closedDate: { time: { utc: true } },
       });
 
       const serialized551 = serializeGedcom551(dataset);

@@ -74,7 +74,6 @@
   "features.tasks.priorityMedium": "Medium",
   "features.tasks.reminder": "Reminder",
   "features.tasks.remove": "Remove task from this record",
-  "features.tasks.scheduled": "Scheduled",
   "features.tasks.status": "Status",
   "features.tasks.statusClosed": "Closed",
   "features.tasks.statusInProgress": "In progress",

@@ -94,11 +94,10 @@ describe('buildGedcomDataset kitchen sink', () => {
         const tasks = target.repo.listTasks();
         expect(tasks.find((task) => task.text === 'Order the birth record')).toMatchObject({
           status: 'closed',
-          scheduledAt: new Date(2026, 0, 2).getTime(),
-          reminderAt: new Date(2026, 1, 3).getTime(),
-          closedAt: new Date(2026, 2, 4).getTime(),
+          createdAt: new Date(2026, 0, 1).getTime(),
+          remindAt: new Date(2026, 1, 3).getTime(),
         });
-        expect(tasks.find((task) => task.text === 'Visit the cemetery')?.closedAt).toBeUndefined();
+        expect(tasks.find((task) => task.text === 'Visit the cemetery')?.remindAt).toBeUndefined();
 
         expect(target.repo.listSources()).toHaveLength(1);
         expect(target.repo.listSources()[0]?.texts).toHaveLength(2);
