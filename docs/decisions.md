@@ -197,21 +197,23 @@ that no date rows are left orphaned.
 
 ## Task times are Unix instants
 
-Task lifecycle times are operational instants, not genealogical assertions.
-They are stored as epoch-millisecond integers: `created_at`, `updated_at`,
-`scheduled_at`, `reminder_at`, and `closed_at`. They do not use the `date`
-table.
+Task times are operational instants, not genealogical assertions. They are
+stored as epoch-millisecond integers: `created_at`, `updated_at`, and
+`remind_at`. They do not use the `date` table.
 
 `created_at` is set once when the app creates a task, `updated_at` changes on
-every task edit, `closed_at` is set when the status becomes `closed` and
-cleared when the task is reopened. Link changes do not count as edits. The UI
-uses a date-and-time control, not the GEDCOM date editor.
+every task edit, and `remind_at` is the single user-chosen reminder instant.
+Closing a task only changes its status; there is no separate completion
+timestamp. Link changes do not count as edits. The UI uses a date-and-time
+control, not the GEDCOM date editor.
 
 GEDCOM task dates are imported only when they are complete exact dates:
 My Family Tree's encoded `DDMMYYYY` text in the record form, and exact GEDCOM
 dates in the `_TODO` structure form. Date-only values become local midnight.
-Partial, approximate, range, or otherwise unparseable task dates are dropped
-rather than inventing an instant.
+`_TODO.DATE` is the creation date and maps to `created_at`; `_RDATE`/`_TRDT`
+map to `remind_at`, with `_TSDT` as a fallback. `_CDATE` is dropped together
+with the completion timestamp. Partial, approximate, range, or otherwise
+unparseable task dates are dropped rather than inventing an instant.
 
 ## No persistent change log
 

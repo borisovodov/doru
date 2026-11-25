@@ -166,53 +166,6 @@ describe('TreeService research layer', () => {
     }
   });
 
-  it('keeps the latest closing timestamp on a stale text save', () => {
-    const { fixture, service } = makeService();
-    try {
-      const t1 = 1_700_000_100_000;
-      const t2 = 1_700_000_200_000;
-      const t3 = 1_700_000_300_000;
-      service.addTask(task());
-      service.updateTask(task(), task({ status: 'closed', closedAt: t1 }));
-      const firstClosed = fixture.repo.getTask('T1')!;
-      service.updateTask(firstClosed, task({ status: 'open' }));
-      const reopened = fixture.repo.getTask('T1')!;
-      service.updateTask(reopened, task({ status: 'closed', closedAt: t2 }));
-      const secondClosed = fixture.repo.getTask('T1')!;
-      expect(secondClosed.closedAt).toBe(t2);
-
-      service.updateTask(firstClosed, { ...secondClosed, text: 'Stale text save', closedAt: t1 });
-      expect(fixture.repo.getTask('T1')).toMatchObject({ closedAt: t2, text: 'Stale text save' });
-
-      service.updateTask(secondClosed, { ...secondClosed, closedAt: t3 });
-      expect(fixture.repo.getTask('T1')?.closedAt).toBe(t3);
-    } finally {
-      cleanupRepo(fixture);
-    }
-  });
-
-  it('uses a fresh closing time when a retained draft re-closes a reopened task', () => {
-    const { fixture, service } = makeService();
-    try {
-      const t1 = 1_700_000_100_000;
-      service.addTask(task());
-      service.updateTask(task(), task({ status: 'closed', closedAt: t1 }));
-      const closedDraft = fixture.repo.getTask('T1')!;
-      service.updateTask(closedDraft, task({ status: 'open' }));
-      const reopened = fixture.repo.getTask('T1')!;
-
-      const before = Date.now();
-      service.updateTask(closedDraft, { ...closedDraft, text: 'Re-closed from a stale draft' });
-      const stored = fixture.repo.getTask('T1')!;
-      expect(stored.status).toBe('closed');
-      expect(stored.closedAt).not.toBe(t1);
-      expect(stored.closedAt).toBeGreaterThanOrEqual(before);
-      expect(reopened.closedAt).toBeUndefined();
-    } finally {
-      cleanupRepo(fixture);
-    }
-  });
-
   it('adds, updates, deletes and restores a task with its attachments', () => {
     const { fixture, service } = makeService();
     try {
@@ -236,14 +189,14 @@ describe('TreeService research layer', () => {
         }),
       ]);
 
-      const after = task({ status: 'closed', closedAt: 1_700_000_100_000 });
+      const after = task({ status: 'closed' });
       service.updateTask(task(), after);
       expect(fixture.repo.listTasks().find((entry) => entry.id === 'T1')).toMatchObject(after);
 
       service.updateTask(after, task({ status: 'open' }));
-      expect(fixture.repo.getTask('T1')?.closedAt).toBeUndefined();
+      expect(fixture.repo.getTask('T1')?.status).toBe('open');
       service.undo();
-      expect(fixture.repo.getTask('T1')?.closedAt).toBe(after.closedAt);
+      expect(fixture.repo.getTask('T1')?.status).toBe('closed');
 
       service.deleteTask(after);
       expect(fixture.repo.listTasks().find((entry) => entry.id === 'T1')).toBeUndefined();

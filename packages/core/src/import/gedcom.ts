@@ -1377,18 +1377,15 @@ function importGedcomTodoRecord(record: GedcomTodoRecord, ctx: ImportContext): v
   // unknown values become open and medium rather than lingering in the
   // database.
   const id = crypto.randomUUID();
-  const status = normalizeTaskStatus(record.status);
   ctx.repo.insertTask({
     id,
     text: record.payload || '',
     targets: [],
     priority: normalizeTaskPriority(record.priority),
-    status,
+    status: normalizeTaskStatus(record.status),
     createdAt: parseTaskTextDate(record.createdDate),
     updatedAt: Date.now(),
-    scheduledAt: parseTaskTextDate(record.scheduledDate),
-    reminderAt: parseTaskTextDate(record.reminderDate),
-    closedAt: status === 'closed' ? parseTaskTextDate(record.closedDate) : undefined,
+    remindAt: parseTaskTextDate(record.reminderDate) ?? parseTaskTextDate(record.scheduledDate),
   });
   for (const uid of record.uids ?? []) {
     ctx.repo.insertIdentifier({
@@ -1554,23 +1551,20 @@ function importGedcomTodoStructure(
 ): void {
   // _TODO.REPO, _TODO._CAT, _TODO._LOCL, _TODO.TYPE, and _TODO.DATA are
   // deliberately ignored: see importGedcomTodoRecord. Dóru has no task-type
-  // taxonomy or separate task-result field.
-  const status = normalizeTaskStatus(structure.status);
+  // taxonomy or separate task-result field. GEDCOM-L DATE is the creation
+  // date; the reminder date is the only future date a task carries.
   const id = crypto.randomUUID();
   const mapped: TaskRecord = {
     id,
     text: structure.payload ?? structure.description ?? '',
     targets: [{ id: crypto.randomUUID(), taskId: id, targetType, targetId }],
     priority: normalizeTaskPriority(structure.priority),
-    status,
-    createdAt: parseTaskTextDate(structure.createdDate),
+    status: normalizeTaskStatus(structure.status),
+    createdAt:
+      parseTaskTextDate(structure.createdDate) ??
+      taskDateValueToTimestamp(mapDate(structure.date), structure.date?.interpreted),
     updatedAt: Date.now(),
-    scheduledAt: taskDateValueToTimestamp(mapDate(structure.date), structure.date?.interpreted),
-    reminderAt: taskDateValueToTimestamp(mapDate(structure.reminderDate), structure.reminderDate?.interpreted),
-    closedAt:
-      status === 'closed'
-        ? taskDateValueToTimestamp(mapDate(structure.closedDate), structure.closedDate?.interpreted)
-        : undefined,
+    remindAt: taskDateValueToTimestamp(mapDate(structure.reminderDate), structure.reminderDate?.interpreted),
   };
   ctx.repo.insertTask(mapped);
   importNotes(structure.notes, 'task', mapped.id, ctx);

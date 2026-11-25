@@ -1,5 +1,5 @@
 ---
-source-hash: 499ca7ec2e9b
+source-hash: d6792c4fa89a
 ---
 
 # Práce se stromem
@@ -75,8 +75,7 @@ adresy přímo na místě.
 
 ## Úkoly
 
-Úkoly mají kromě naplánovaných dat a dat připomenutí také data vytvoření a
-uzavření. Každý editor má sekci **Úkoly**: přidejte tam úkol a automaticky se
+Úkoly mají datum vytvoření a datum připomenutí. Uzavření úkolu mění pouze jeho stav; samostatné datum dokončení se neukládá. Každý editor má sekci **Úkoly**: přidejte tam úkol a automaticky se
 propojí s daným záznamem. Události, jména a citace mají vlastní sekci
 Úkoly ve svém panelu příloh. **Související s** propojí úkol s jedním nebo několika záznamy ve stromu — osobou, rodinou, událostí, jménem, zdrojem, citací, médiem, místem, archivem, adresou nebo dílem; ponechte prázdné pro samostatný úkol. Úkol je sdílený: úprava kdekoli aktualizuje stejný záznam a smazání souvisejícího záznamu úkol ponechá na místě. Pomocí **Připojit existující úkol** můžete znovu použít sdílený úkol místo vytvoření nového.
 

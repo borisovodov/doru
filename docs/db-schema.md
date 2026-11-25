@@ -2,7 +2,7 @@
 
 A Dóru project is a single `.doru` file: a SQLite database branded with
 `application_id = 0x444F5255` ("DORU") and versioned with `user_version`.
-This document is the field-level reference for **schema version 22**. The
+This document is the field-level reference for **schema version 23**. The
 source of truth is [`packages/core/src/db/schema.ts`](../packages/core/src/db/schema.ts);
 the domain shapes that the repositories map onto the rows live in
 [`packages/core/src/model/types.ts`](../packages/core/src/model/types.ts).
@@ -22,8 +22,8 @@ in its README; that guarantee does not extend to the tree database.
   `family` joining people through `family_partner` and `family_child`.
 - Dates are normalized into one `date` value table; owner rows reference
   their date slots through explicit `*_date_id` foreign keys.
-- Task lifecycle times are epoch-millisecond integers (`created_at`,
-  `updated_at`, `scheduled_at`, `reminder_at`, `closed_at`), not `date` rows.
+- Task times are epoch-millisecond integers (`created_at`, `updated_at`,
+  `remind_at`), not `date` rows.
 - Notes, citations, media, identifiers, contacts, contributors, and tasks
   attach through a polymorphic `(target_type, target_id)` pair.
 - Files are not stored in SQLite. `media_file` rows hold project-relative
@@ -881,9 +881,7 @@ erDiagram
         TEXT status
         INTEGER created_at "epoch milliseconds"
         INTEGER updated_at "epoch milliseconds"
-        INTEGER scheduled_at "epoch milliseconds"
-        INTEGER reminder_at "epoch milliseconds"
-        INTEGER closed_at "epoch milliseconds; cleared when reopened"
+        INTEGER remind_at "epoch milliseconds"
     }
 
     task_link {
@@ -902,13 +900,13 @@ record to the `_TODO` record/structure in `@doru/gedcom`, but the Dóru table,
 model type, tab prefix, and UI strings all use the task vocabulary
 (`TaskRecord`, `TaskTab`, the `task:` tab prefix, `features.tasks.*`).
 
-Task lifecycle times are **epoch milliseconds**, not genealogical dates:
-`created_at` is set once by the application, `updated_at` changes on every
-task edit, `scheduled_at` and `reminder_at` are user-chosen instants, and
-`closed_at` is set when the status becomes `closed` and cleared when the task
-is reopened. Import accepts complete exact dates only (including My Family
-Tree's encoded `DDMMYYYY` record slots); partial, approximate, range, or
-otherwise unparseable task dates are dropped.
+Task times are **epoch milliseconds**, not genealogical dates: `created_at`
+is set once by the application, `updated_at` changes on every task edit, and
+`remind_at` is the single user-chosen reminder instant. Closing a task only
+changes its status; the schema has no completion timestamp. Import accepts
+complete exact dates only (including My Family Tree's encoded `DDMMYYYY`
+record slots); partial, approximate, range, or otherwise unparseable task
+dates are dropped.
 
 The GEDCOM `TODO` `REPO`, `_CAT`, `_LOCL`, `_TTIL`, `TYPE`, and `DATA` slots are
 still parsed by `@doru/gedcom` but are deliberately ignored on import and not
@@ -1022,7 +1020,7 @@ The schema has 75 regular indexes:
 - Every date slot has its own index (`person_name.period_date_id`,
   `fact.date_id`, `association.period_date_id`, …) so the `RESTRICT` check
   does not scan owner tables.
-- `task.scheduled_at` is indexed for scheduled-task lists and ordering;
+- `task.remind_at` is indexed for reminder lists and ordering;
   `task_link.target_type/target_id` is indexed for target lookups.
 - No search index or FTS table exists yet. Person search is an in-memory
   substring scan over the stored name parts.

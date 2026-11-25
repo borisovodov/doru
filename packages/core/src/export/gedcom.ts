@@ -703,18 +703,14 @@ function buildGedcomTodoRecord(task: TaskRecord, repo: TreeRepository, xrefs: Xr
     .filter((identifier) => identifier.namespace === 'uid')
     .map((identifier) => identifier.value);
   const createdDate = formatTaskTimestamp(task.createdAt);
-  const scheduledDate = formatTaskTimestamp(task.scheduledAt);
-  const reminderDate = formatTaskTimestamp(task.reminderAt);
-  const closedDate = formatTaskTimestamp(task.closedAt);
+  const reminderDate = formatTaskTimestamp(task.remindAt);
   return {
     tag: '_TODO',
     payload: task.text,
     priority: normalizeTaskPriority(task.priority),
     status: gedcomTaskStatus(task.status),
     ...(createdDate !== undefined ? { createdDate } : {}),
-    ...(scheduledDate !== undefined ? { scheduledDate } : {}),
     ...(reminderDate !== undefined ? { reminderDate } : {}),
-    ...(closedDate !== undefined ? { closedDate } : {}),
     ...(uids.length > 0 ? { uids } : {}),
     ...withNoteList(repo, 'task', task.id, xrefs),
   };
@@ -1168,18 +1164,14 @@ function withGedcomTodoStructures(
   // see buildGedcomTodoRecord.
   const structures = repo.listTasksFor(targetType, targetId).map((task) => {
     const createdDate = formatTaskTimestamp(task.createdAt);
-    const scheduledDate = taskTimestampToDateValue(task.scheduledAt);
-    const reminderDate = taskTimestampToDateValue(task.reminderAt);
-    const closedDate = taskTimestampToDateValue(task.closedAt);
+    const reminderDate = taskTimestampToDateValue(task.remindAt);
     return {
       tag: '_TODO' as const,
       payload: task.text,
       priority: normalizeTaskPriority(task.priority),
       status: gedcomTaskStatus(task.status),
-      ...(scheduledDate !== undefined ? { date: buildDate(scheduledDate) } : {}),
       ...(createdDate !== undefined ? { createdDate } : {}),
       ...(reminderDate !== undefined ? { reminderDate: buildDate(reminderDate) } : {}),
-      ...(closedDate !== undefined ? { closedDate: buildDate(closedDate) } : {}),
     } as import('@doru/gedcom').TodoStructure;
   });
   return structures.length > 0 ? { todos: structures } : {};

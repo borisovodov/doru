@@ -301,9 +301,8 @@ export function buildKitchenSinkTree(fixture: RepoFixture): void {
     targets: [],
     priority: 'high',
     status: 'closed',
-    scheduledAt: new Date(2026, 0, 2).getTime(),
-    reminderAt: new Date(2026, 1, 3).getTime(),
-    closedAt: new Date(2026, 2, 4).getTime(),
+    createdAt: new Date(2026, 0, 1).getTime(),
+    remindAt: new Date(2026, 1, 3).getTime(),
   });
   repo.insertTask({
     id: 'TD2',

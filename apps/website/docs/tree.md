@@ -73,8 +73,7 @@ actions for editing an address in place.
 
 ## Tasks
 
-Tasks have creation and closing dates in addition to the scheduled and
-reminder dates. Every editor has a **Tasks** section: add a task there and it
+Tasks have a creation date and a reminder date. Closing a task only changes its status; no separate completion date is stored. Every editor has a **Tasks** section: add a task there and it
 is linked to that record automatically. Facts, names and citations
 carry their own Tasks section in their attachment panel. **Related to** links
 a task to one or more records in the tree — a person, family, event, name,

@@ -206,10 +206,7 @@ export function TasksView({
                     <span className={cx(styles['taskRowText'], isClosed(task) && styles['closed'])}>{task.text}</span>
                     <span className={styles['taskRowMeta']}>
                       <Chip variant="neutral">{priorityLabel(task.priority)}</Chip>
-                      {task.scheduledAt !== undefined && (
-                        <Chip variant="neutral">{formatTimestamp(task.scheduledAt)}</Chip>
-                      )}
-                      {task.closedAt !== undefined && <Chip variant="neutral">{formatTimestamp(task.closedAt)}</Chip>}
+                      {task.remindAt !== undefined && <Chip variant="neutral">{formatTimestamp(task.remindAt)}</Chip>}
                     </span>
                   </button>
                   {related.map((entry) =>

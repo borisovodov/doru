@@ -1,5 +1,5 @@
 ---
-source-hash: 499ca7ec2e9b
+source-hash: d6792c4fa89a
 ---
 
 # A családfa használata
@@ -45,7 +45,7 @@ A **Források** nézetben van egy **Címek** szakasz. Itt önálló címeket hoz
 
 ## Feladatok
 
-A feladatoknak a tervezett és emlékeztető dátumok mellett létrehozási és lezárási dátumuk is van. Minden szerkesztőnek van **Feladatok** szakasza: adjon hozzá ott egy feladatot, és az automatikusan ahhoz a rekordhoz kapcsolódik. A tények, nevek és hivatkozások saját Feladatok szakasszal rendelkeznek a csatolási panelükön. A **Kapcsolódó** egy feladatot egy vagy több rekordhoz kapcsol a fában — személyhez, családhoz, eseményhez, névhez, forráshoz, hivatkozáshoz, médiához, helyhez, levéltárhoz, címhez vagy műhöz; hagyja üresen egy szabadon álló feladathoz. A feladat megosztott: bárhol szerkesztve ugyanazt a rekordot frissíti, és egy kapcsolódó rekord törlése helyben hagyja a feladatot. A **Meglévő feladat csatolása** lehetőséggel új feladat létrehozása helyett újra felhasználhat egy megosztott feladatot.
+A feladatoknak létrehozási dátumuk és egy emlékeztető dátumuk van. A feladat lezárása csak az állapotát változtatja meg; külön befejezési dátum nem kerül mentésre. Minden szerkesztőnek van **Feladatok** szakasza: adjon hozzá ott egy feladatot, és az automatikusan ahhoz a rekordhoz kapcsolódik. A tények, nevek és hivatkozások saját Feladatok szakasszal rendelkeznek a csatolási panelükön. A **Kapcsolódó** egy feladatot egy vagy több rekordhoz kapcsol a fában — személyhez, családhoz, eseményhez, névhez, forráshoz, hivatkozáshoz, médiához, helyhez, levéltárhoz, címhez vagy műhöz; hagyja üresen egy szabadon álló feladathoz. A feladat megosztott: bárhol szerkesztve ugyanazt a rekordot frissíti, és egy kapcsolódó rekord törlése helyben hagyja a feladatot. A **Meglévő feladat csatolása** lehetőséggel új feladat létrehozása helyett újra felhasználhat egy megosztott feladatot.
 
 A művek, címek, társítások és családi partner/gyermek kapcsolatok ugyanazokkal a Jegyzetek, Források, Azonosítók, Közreműködők és Feladatok szakaszokkal rendelkeznek, mint a fő entitáslapok. A címeknek Elérhetőségeik is vannak. A feladatok megtartják a Jegyzetek, Azonosítók, Közreműködők és a régi Feladatok szakaszt, de nincs Forrásuk vagy Elérhetőségük.
 

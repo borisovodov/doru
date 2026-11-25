@@ -1473,16 +1473,14 @@ export class TreeService {
     for (const link of task.targets) {
       assertNoteIsNotTarget(link.targetType);
     }
-    const status = normalizeTaskStatus(task.status);
     const now = Date.now();
     return this.apply(
       addTaskOp({
         ...task,
         priority: normalizeTaskPriority(task.priority),
-        status,
+        status: normalizeTaskStatus(task.status),
         createdAt: task.createdAt ?? now,
         updatedAt: now,
-        closedAt: status === 'closed' ? (task.closedAt ?? now) : undefined,
       }),
     );
   }
@@ -1524,25 +1522,12 @@ export class TreeService {
       if (current === undefined) {
         return undefined;
       }
-      const status = normalizeTaskStatus(after.status);
-      const draftClosedAtUnchanged = after.closedAt === before.closedAt;
-      const closedAt =
-        status === 'closed'
-          ? current.status === 'closed'
-            ? draftClosedAtUnchanged
-              ? current.closedAt
-              : (after.closedAt ?? current.closedAt)
-            : draftClosedAtUnchanged
-              ? Date.now()
-              : (after.closedAt ?? Date.now())
-          : undefined;
       return updateTaskOp(current, {
         ...after,
         priority: normalizeTaskPriority(after.priority),
-        status,
+        status: normalizeTaskStatus(after.status),
         createdAt: current.createdAt,
         updatedAt: Date.now(),
-        closedAt,
       });
     });
   }

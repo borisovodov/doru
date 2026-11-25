@@ -154,7 +154,7 @@ export function TasksSection({
                 <span className="tasks-section-meta">
                   <Chip variant="neutral">{statusLabel(task.status)}</Chip>
                   <Chip variant="neutral">{priorityLabel(task.priority)}</Chip>
-                  {task.scheduledAt !== undefined && <Chip variant="neutral">{formatTimestamp(task.scheduledAt)}</Chip>}
+                  {task.remindAt !== undefined && <Chip variant="neutral">{formatTimestamp(task.remindAt)}</Chip>}
                 </span>
               </button>
               <IconButton

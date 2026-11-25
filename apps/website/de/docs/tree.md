@@ -1,5 +1,5 @@
 ---
-source-hash: 499ca7ec2e9b
+source-hash: d6792c4fa89a
 ---
 
 # Arbeiten mit dem Stammbaum
@@ -82,8 +82,7 @@ Adressauswahl eines Fakts bietet außerdem die Aktionen **Neue Adresse** und
 
 ## Aufgaben
 
-Aufgaben haben zusätzlich zu den geplanten und Erinnerungsdaten ein Erstellungs-
-und ein Abschlussdatum. Jeder Editor hat einen Abschnitt **Aufgaben**: Fügen Sie
+Aufgaben haben ein Erstellungsdatum und ein Erinnerungsdatum. Das Schließen einer Aufgabe ändert nur ihren Status; ein separates Abschlussdatum wird nicht gespeichert. Jeder Editor hat einen Abschnitt **Aufgaben**: Fügen Sie
 dort eine Aufgabe hinzu, wird sie automatisch mit diesem Datensatz verknüpft.
 Fakten, Namen und Zitate tragen ihren eigenen Abschnitt Aufgaben
 in ihrem Anhängebereich. **Verknüpft mit** verbindet eine Aufgabe mit einem oder mehreren Datensätzen im Stammbaum — einer Person, Familie, einem Ereignis, Namen, einer Quelle, einem Zitat, einem Medium, einem Ort, einem Archiv, einer Adresse oder einem Werk; lassen Sie es leer für eine freistehende Aufgabe. Eine Aufgabe ist geteilt: Eine Bearbeitung an beliebiger Stelle aktualisiert denselben Datensatz, und das Löschen eines verknüpften Datensatzes lässt die Aufgabe bestehen. Verwenden Sie **Bestehende Aufgabe anhängen**, um eine geteilte Aufgabe wiederzuverwenden, statt eine neue zu erstellen.

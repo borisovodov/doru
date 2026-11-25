@@ -1,5 +1,5 @@
 ---
-source-hash: 499ca7ec2e9b
+source-hash: d6792c4fa89a
 ---
 
 # Travailler avec l'arbre
@@ -82,8 +82,7 @@ modifier une adresse sur place.
 
 ## Tâches
 
-Les tâches ont des dates de création et de clôture en plus des dates planifiées et
-de rappel. Chaque éditeur a une section **Tâches** : ajoutez-y une tâche et elle
+Les tâches ont une date de création et une date de rappel. Fermer une tâche ne change que son statut ; aucune date d'achèvement distincte n'est enregistrée. Chaque éditeur a une section **Tâches** : ajoutez-y une tâche et elle
 est automatiquement liée à cet enregistrement. Les faits, noms et citations
 portent leur propre section Tâches dans leur panneau de pièces jointes. **Lié à**
 relie une tâche à un ou plusieurs enregistrements de l'arbre — une personne, une

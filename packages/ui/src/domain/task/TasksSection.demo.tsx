@@ -16,7 +16,7 @@ const tasks: TaskRecord[] = [
     targets: [{ id: 'TL2', taskId: 'T2', targetType: 'person', targetId: 'I1' }],
     priority: 'medium',
     status: 'closed',
-    scheduledAt: new Date(2026, 4, 12, 9, 0).getTime(),
+    remindAt: new Date(2026, 4, 12, 9, 0).getTime(),
   },
 ];
 

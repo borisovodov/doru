@@ -83,14 +83,14 @@ test('attachments, addresses and task fields round-trip through the desktop IPC'
       }
 
       const createdStamp = new Date(2026, 0, 1).getTime();
-      const closedStamp = new Date(2026, 11, 1).getTime();
+      const remindStamp = new Date(2026, 11, 1).getTime();
       await window.doru.addTask(project, {
         id: 'AT1',
         text: 'Check the register',
         targets: [{ id: 'ATL1', taskId: 'AT1', targetType: 'family', targetId: 'F1' }],
         status: 'closed',
         createdAt: createdStamp,
-        closedAt: closedStamp,
+        remindAt: remindStamp,
       });
       const tasks = await window.doru.getTasks(project);
       const task = tasks.find((entry) => entry.id === 'AT1');
@@ -98,7 +98,7 @@ test('attachments, addresses and task fields round-trip through the desktop IPC'
         task === undefined ||
         !task.targets.some((link) => link.targetType === 'family' && link.targetId === 'F1') ||
         task.createdAt !== createdStamp ||
-        task.closedAt !== closedStamp
+        task.remindAt !== remindStamp
       ) {
         throw new Error('task fields missing');
       }
