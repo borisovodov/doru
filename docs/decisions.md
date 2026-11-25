@@ -95,17 +95,22 @@ exported as `NOTE`, not as the vendor `TEXT` tag.
 
 ## GEDCOM task repositories, categories, localities, titles, and types
 
-The GEDCOM-L `_TODO` `REPO` slot is parsed by `@doru/gedcom` but deliberately
-not imported into the tree and not written on export. A task has no direct
-repository field: an archive is chosen either as the task's polymorphic
-target or through the source it concerns. Keeping a second, narrower
-task-to-repository link would duplicate those paths and produce data that the
-UI cannot interpret consistently.
+The GEDCOM-L `_TODO` `REPO` slot is parsed by `@doru/gedcom` and imported as
+an ordinary polymorphic task target: a `task_link` row with `target_type =
+'repository'`. A task still has no direct repository field: an archive is
+chosen either as the task's target or through the source it concerns, and a
+second, narrower task-to-repository column would duplicate those paths.
 
-The `_TODO` `_CAT` category and `_LOCL` locality are dropped for the same
-reason: they have no shared vocabulary, no dictionary table, and no UI contract
-beyond free-text fields. A task is classified by its targets, priority, and
-status instead. The record-form `_TTIL` title and the GEDCOM-L `TYPE` task kind and `DATA`
+Export does not write `_TODO.REPO`. A task whose only target is a repository
+is therefore omitted from the exported file: unlike a person or family, a
+repository has no GEDCOM slot for an embedded `_TODO` structure. This is a
+deliberate loss; the task remains in the tree after import but does not
+round-trip through GEDCOM.
+
+The `_TODO` `_CAT` category and `_LOCL` locality are dropped: they have no
+shared vocabulary, no dictionary table, and no UI contract beyond free-text
+fields. A task is classified by its targets, priority, and status instead.
+The record-form `_TTIL` title and the GEDCOM-L `TYPE` task kind and `DATA`
 solution text are dropped too: Dóru has one task text, no task-type taxonomy,
 and no separate task-result field.
 
@@ -123,7 +128,7 @@ cannot express this: `_TODO` is embedded in a record, so a multi-target task is
 written under every person/family target on export and a round trip produces
 separate tasks. Sources are valid targets (a task can be about checking or
 acquiring one), but tasks linked only to targets without a GEDCOM embedding
-slot (places, sources, …) are dropped on export.
+slot (places, sources, repositories, …) are dropped on export.
 
 ## Attachment target policy
 

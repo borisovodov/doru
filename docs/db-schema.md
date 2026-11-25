@@ -911,13 +911,19 @@ complete exact dates only (including My Family Tree's encoded `DDMMYYYY`
 record slots); partial, approximate, range, or otherwise unparseable task
 dates are dropped.
 
-The GEDCOM `TODO` `REPO`, `_CAT`, `_LOCL`, `_TTIL`, `TYPE`, and `DATA` slots are
-still parsed by `@doru/gedcom` but are deliberately ignored on import and not
-written on export. Dóru stores no direct task-to-repository link, task
-category, task locality, task title, task type, or task-result text; a
-repository can still be one of the task's targets. Task statuses use the
-canonical `open`, `waiting`, `in-progress`, and `closed` values. GEDCOM
-spellings are normalized on import (`Open` → open, `Completed` → closed,
+The GEDCOM `TODO` `REPO` slot is parsed by `@doru/gedcom` and imported as a
+repository target (`task_link`), not as a direct column. The `_CAT`, `_LOCL`,
+`_TTIL`, `TYPE`, and `DATA` slots are still parsed but deliberately ignored on
+import and not written on export. Dóru stores no direct task-to-repository
+column, task category, task locality, task title, task type, or task-result
+text.
+
+`REPO` is not written on export. Because a repository has no GEDCOM slot for an
+embedded `_TODO` structure, a task whose only target is a repository is dropped
+from the exported file; tasks linked to a person or family are still written
+under those records. Task statuses use the canonical `open`, `waiting`,
+`in-progress`, and `closed` values. GEDCOM spellings are normalized on import
+(`Open` → open, `Completed` → closed,
 `INPROGRESS`/`InProgress` → in-progress); empty, missing, and unknown statuses
 become `open` immediately. Priorities use `low`, `medium`, and `high`; empty,
 missing, and unknown values become `medium`, and numeric 1–9 priorities are

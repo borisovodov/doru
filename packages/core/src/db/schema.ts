@@ -550,8 +550,9 @@ CREATE TABLE IF NOT EXISTS person_alias (
 );
 
 -- No repository_id, category, locality, title, type, or result text on
--- purpose: GEDCOM TODO REPO, _CAT, _LOCL, _TTIL, TYPE, and DATA are not
--- imported.
+-- purpose: GEDCOM TODO REPO becomes a repository link in task_link, while
+-- _CAT, _LOCL, _TTIL, TYPE, and DATA are not imported. A task whose only
+-- target is a repository is not exported (see docs/decisions.md).
 -- Task lifecycle times are epoch-millisecond instants, not genealogical
 -- dates; they do not use the date table.
 CREATE TABLE IF NOT EXISTS task (

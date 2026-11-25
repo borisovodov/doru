@@ -987,11 +987,12 @@ export interface TaskTargetLink extends TargetRef {
 /**
  * A task, linked to any number of entities or free-standing.
  *
- * Dóru deliberately has no direct task-to-repository field, task category,
- * task locality, task title, task type, or task-result text: the GEDCOM
- * `TODO` `REPO`, `_CAT`, `_LOCL`, `_TTIL`, `TYPE`, and `DATA` slots are parsed
- * by `@doru/gedcom` but ignored by the import/export boundary. A repository
- * can still be one of the task's targets.
+ * Dóru deliberately has no direct task-to-repository field: the GEDCOM `TODO`
+ * `REPO` slot is imported as an ordinary repository target in `targets` and is
+ * not written back on export. A task whose only target is a repository is
+ * therefore omitted from GEDCOM export. Task category, locality, title, type,
+ * and result text (`_CAT`, `_LOCL`, `_TTIL`, `TYPE`, and `DATA`) are parsed by
+ * `@doru/gedcom` but ignored by the import/export boundary.
  */
 export interface TaskRecord {
   id: string;
