@@ -992,10 +992,16 @@ export class TreeService {
    * takes the context's link, the shared text stays untouched.
    */
   updateNote(before: NoteRecord, after: NoteRecord, context?: NoteLinkRecord): UndoRedoState {
-    const current = this.repo.getNote(before.id) ?? before;
+    const stored = this.repo.getNote(before.id);
+    const current = stored ?? before;
     const links = current.links ?? [];
     const now = Date.now();
     if (context !== undefined) {
+      // A note whose last link was detached no longer exists; a stale editor
+      // must not recreate it from its old snapshot.
+      if (stored === undefined) {
+        return this.historyState();
+      }
       const matching = links.find(
         (link) => link.targetType === context.targetType && link.targetId === context.targetId,
       );

@@ -168,6 +168,36 @@ describe('TreeService attachments', () => {
     }
   });
 
+  it('does not recreate a deleted shared note from a stale context edit', () => {
+    const { fixture, service } = makeService();
+    try {
+      const shared: NoteRecord = {
+        id: 'N1',
+        text: 'shared',
+        links: [
+          { id: 'L1', targetType: 'person', targetId: 'P1' },
+          { id: 'L2', targetType: 'person', targetId: 'P2' },
+        ],
+      };
+      fixture.repo.insertNote(shared);
+      const stored = fixture.repo.getNote('N1')!;
+      service.detachNote(
+        stored,
+        stored.links!.find((link) => link.targetId === 'P1')!,
+      );
+      const remaining = fixture.repo.getNote('N1')!;
+      service.detachNote(remaining, remaining.links![0]!);
+      expect(fixture.repo.getNote('N1')).toBeUndefined();
+
+      service.updateNote(stored, { ...stored, text: 'stale edit' }, stored.links![0]);
+
+      expect(fixture.repo.getNote('N1')).toBeUndefined();
+      expect(fixture.repo.listNotes()).toEqual([]);
+    } finally {
+      cleanupRepo(fixture);
+    }
+  });
+
   it('splits a shared note edited from one of its contexts', () => {
     const { fixture, service } = makeService();
     try {
