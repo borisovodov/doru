@@ -847,7 +847,8 @@ erDiagram
 `record_submitter.kind` is `contributor`, `ancestor_interest`, or
 `descendant_interest`. The target is any type in
 `RECORD_SUBMITTER_TARGET_TYPES`; `task` and `media_link` are absent, so a
-contributor link cannot point at a task or another link row.
+contributor link cannot point at a task or a media link. `family_partner` and
+`family_child` link rows remain valid contributor targets.
 
 ## Attachments and research
 
