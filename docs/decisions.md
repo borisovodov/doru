@@ -116,8 +116,9 @@ target. Deleting a target removes only its link; the task survives as a
 free-standing record (and remains visible in the global Tasks view). GEDCOM
 cannot express this: `_TODO` is embedded in a record, so a multi-target task is
 written under every person/family target on export and a round trip produces
-separate tasks. Tasks linked only to other target types (places, sources, …)
-are dropped on export.
+separate tasks. Sources are valid targets (a task can be about checking or
+acquiring one), but tasks linked only to targets without a GEDCOM embedding
+slot (places, sources, …) are dropped on export.
 
 ## Tasks are not citation targets
 

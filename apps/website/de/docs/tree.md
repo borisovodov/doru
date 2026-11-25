@@ -1,5 +1,5 @@
 ---
-source-hash: e652812a38c3
+source-hash: 499ca7ec2e9b
 ---
 
 # Arbeiten mit dem Stammbaum
@@ -85,8 +85,8 @@ Adressauswahl eines Fakts bietet außerdem die Aktionen **Neue Adresse** und
 Aufgaben haben zusätzlich zu den geplanten und Erinnerungsdaten ein Erstellungs-
 und ein Abschlussdatum. Jeder Editor hat einen Abschnitt **Aufgaben**: Fügen Sie
 dort eine Aufgabe hinzu, wird sie automatisch mit diesem Datensatz verknüpft.
-Fakten, Namen, Zitate und Notizen tragen ihren eigenen Abschnitt Aufgaben
-in ihrem Anhängebereich. **Verknüpft mit** verbindet eine Aufgabe mit einem oder mehreren Datensätzen im Stammbaum — einer Person, Familie, einem Ereignis, Namen, einer Quelle, einem Zitat, einer Notiz, einem Medium, einem Ort, einem Archiv, einer Adresse oder einem Werk; lassen Sie es leer für eine freistehende Aufgabe. Eine Aufgabe ist geteilt: Eine Bearbeitung an beliebiger Stelle aktualisiert denselben Datensatz, und das Löschen eines verknüpften Datensatzes lässt die Aufgabe bestehen. Verwenden Sie **Bestehende Aufgabe anhängen**, um eine geteilte Aufgabe wiederzuverwenden, statt eine neue zu erstellen.
+Fakten, Namen und Zitate tragen ihren eigenen Abschnitt Aufgaben
+in ihrem Anhängebereich. **Verknüpft mit** verbindet eine Aufgabe mit einem oder mehreren Datensätzen im Stammbaum — einer Person, Familie, einem Ereignis, Namen, einer Quelle, einem Zitat, einem Medium, einem Ort, einem Archiv, einer Adresse oder einem Werk; lassen Sie es leer für eine freistehende Aufgabe. Eine Aufgabe ist geteilt: Eine Bearbeitung an beliebiger Stelle aktualisiert denselben Datensatz, und das Löschen eines verknüpften Datensatzes lässt die Aufgabe bestehen. Verwenden Sie **Bestehende Aufgabe anhängen**, um eine geteilte Aufgabe wiederzuverwenden, statt eine neue zu erstellen.
 
 Werke, Adressen, Assoziationen und Partner-/Kind-Verknüpfungen von Familien haben dieselben Abschnitte Notizen, Quellen, Kennungen, Beiträger und Aufgaben wie die Tabs der Hauptentität. Adressen haben außerdem Kontakte. Aufgaben behalten Notizen, Kennungen, Beiträger und den bisherigen Aufgaben-Abschnitt, haben aber keine Quellen oder Kontakte.
 

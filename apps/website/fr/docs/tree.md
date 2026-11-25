@@ -1,5 +1,5 @@
 ---
-source-hash: e652812a38c3
+source-hash: 499ca7ec2e9b
 ---
 
 # Travailler avec l'arbre
@@ -84,10 +84,10 @@ modifier une adresse sur place.
 
 Les tâches ont des dates de création et de clôture en plus des dates planifiées et
 de rappel. Chaque éditeur a une section **Tâches** : ajoutez-y une tâche et elle
-est automatiquement liée à cet enregistrement. Les faits, noms, citations et notes
+est automatiquement liée à cet enregistrement. Les faits, noms et citations
 portent leur propre section Tâches dans leur panneau de pièces jointes. **Lié à**
 relie une tâche à un ou plusieurs enregistrements de l'arbre — une personne, une
-famille, un événement, un nom, une citation, une note, un média, un lieu, un
+famille, un événement, un nom, une source, une citation, un média, un lieu, un
 dépôt, une adresse ou une œuvre ; laissez-le vide pour une tâche indépendante.
 Une tâche est partagée : la modifier n'importe où met à jour le même
 enregistrement, et supprimer un enregistrement lié laisse la tâche en place. Utilisez **Joindre une tâche existante** pour réutiliser une tâche partagée au lieu d'en créer une nouvelle.
