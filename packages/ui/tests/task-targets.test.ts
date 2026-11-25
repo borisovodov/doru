@@ -26,8 +26,8 @@ const data: TaskTargetData = {
 };
 
 describe('TASK_TARGET_TYPES', () => {
-  it('does not offer sources, other tasks, submitters, or notes as task targets', () => {
-    expect(TASK_TARGET_TYPES).not.toContain('source');
+  it('offers sources but not other tasks, submitters, or notes', () => {
+    expect(TASK_TARGET_TYPES).toContain('source');
     expect(TASK_TARGET_TYPES).not.toContain('task');
     expect(TASK_TARGET_TYPES).not.toContain('submitter');
     expect(TASK_TARGET_TYPES).not.toContain('note');

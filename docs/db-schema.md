@@ -939,15 +939,16 @@ The following tables use `(target_type, target_id)` without a foreign key:
 | `record_submitter` | a contributor or research-interest link |
 
 `task_link` stores one task's links to any number of targets. Its target
-picker excludes `source`, `task`, and `submitter`: a source is the thing a task
-researches rather than its parent record, task-to-task chains duplicate the
+picker excludes `task` and `submitter`: task-to-task chains duplicate the
 research log, and a task is not a citation of a submitter's contribution.
-Contributors and identifiers are likewise not offered on task pages. Every
-other target type remains available:
+Contributors and identifiers are likewise not offered on task pages. A source
+is a valid target (for example, "check this source"), though a task without a
+person or family target has no GEDCOM embedding slot and is dropped on export.
+Every other target type remains available:
 
 ```text
 person, family, family_partner, family_child, family_marriage_status,
-fact, name, name_part, citation, media, media_file,
+fact, name, name_part, citation, source, media, media_file,
 media_link, place, place_name, place_hierarchy, repository,
 address, address_line, association, title
 ```

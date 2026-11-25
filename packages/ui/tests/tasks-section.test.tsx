@@ -14,9 +14,14 @@ const api = {
 };
 
 describe('TasksSection', () => {
-  it('does not offer inline task creation on a source or another task', () => {
-    renderUi(<TasksSection targetType="source" targetId="S1" api={api} />);
+  it('does not offer inline task creation on another task', () => {
+    renderUi(<TasksSection targetType="task" targetId="T2" api={api} />);
     expect(screen.queryByRole('button', { name: nls.t('features.tasks.add') })).not.toBeInTheDocument();
+  });
+
+  it('offers inline task creation on a source', () => {
+    renderUi(<TasksSection targetType="source" targetId="S1" api={api} />);
+    expect(screen.getByRole('button', { name: nls.t('features.tasks.add') })).toBeInTheDocument();
   });
 
   it('still offers inline task creation on a person', () => {
@@ -148,16 +153,18 @@ describe('TasksSection', () => {
     await waitFor(() => expect(screen.queryByText(nls.t('features.tree.autosaveFailed'))).not.toBeInTheDocument());
   });
 
-  it('does not offer an existing task on a source', async () => {
+  it('does not offer an existing task on a submitter', async () => {
     renderUi(
       <TasksSection
-        targetType="source"
-        targetId="S1"
+        targetType="submitter"
+        targetId="SU1"
         api={{ ...api, getAllTasks: async () => [{ id: 'T2', text: 'Translate the 1890 census', targets: [] }] }}
       />,
     );
 
-    expect(screen.queryByRole('combobox', { name: nls.t('features.tasks.attachExisting') })).not.toBeInTheDocument();
+    await waitFor(() =>
+      expect(screen.queryByRole('combobox', { name: nls.t('features.tasks.attachExisting') })).not.toBeInTheDocument(),
+    );
     expect(screen.queryByRole('region', { name: nls.t('features.tasks.title') })).not.toBeInTheDocument();
   });
 
