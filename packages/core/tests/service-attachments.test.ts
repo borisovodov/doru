@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import type {
   AddressRecord,
   ContactRecord,
@@ -94,6 +94,105 @@ describe('TreeService attachments', () => {
       expect(fixture.repo.getNote('N1')).toBeUndefined();
       service.undo();
       expect(fixture.repo.getNote('N1')?.text).toBe('Edited text');
+    } finally {
+      cleanupRepo(fixture);
+    }
+  });
+
+  it('stamps note creation, edits and split copies, but not link changes', () => {
+    const { fixture, service } = makeService();
+    try {
+      vi.useFakeTimers();
+      vi.setSystemTime(1_700_000_000_000);
+      service.addNote(note());
+      expect(fixture.repo.getNote('N1')).toMatchObject({
+        createdAt: 1_700_000_000_000,
+        updatedAt: 1_700_000_000_000,
+      });
+
+      vi.setSystemTime(1_700_000_100_000);
+      const stored = fixture.repo.getNote('N1')!;
+      service.updateNote(stored, { ...stored, text: 'Edited note' });
+      expect(fixture.repo.getNote('N1')).toMatchObject({
+        createdAt: 1_700_000_000_000,
+        updatedAt: 1_700_000_100_000,
+      });
+
+      vi.setSystemTime(1_700_000_200_000);
+      service.attachNote('N1', { id: 'L2', targetType: 'family', targetId: 'F1' });
+      expect(fixture.repo.getNote('N1')?.updatedAt).toBe(1_700_000_100_000);
+
+      vi.setSystemTime(1_700_000_300_000);
+      const shared = fixture.repo.getNote('N1')!;
+      const personLink = shared.links!.find((link) => link.targetType === 'person')!;
+      service.updateNote(shared, { ...shared, text: 'Split edit' }, personLink);
+
+      const split = fixture.repo.listNotes().find((entry) => entry.text === 'Split edit')!;
+      expect(split).toMatchObject({
+        createdAt: 1_700_000_300_000,
+        updatedAt: 1_700_000_300_000,
+      });
+      expect(fixture.repo.getNote('N1')).toMatchObject({
+        text: 'Edited note',
+        createdAt: 1_700_000_000_000,
+        updatedAt: 1_700_000_100_000,
+      });
+    } finally {
+      vi.useRealTimers();
+      cleanupRepo(fixture);
+    }
+  });
+
+  it('ignores a stale context edit after its link is detached', () => {
+    const { fixture, service } = makeService();
+    try {
+      const shared: NoteRecord = {
+        id: 'N1',
+        text: 'shared',
+        links: [
+          { id: 'L1', targetType: 'person', targetId: 'P1' },
+          { id: 'L2', targetType: 'person', targetId: 'P2' },
+        ],
+      };
+      fixture.repo.insertNote(shared);
+      const stored = fixture.repo.getNote('N1')!;
+      const p1 = stored.links!.find((link) => link.targetId === 'P1')!;
+      service.detachNote(stored, p1);
+
+      service.updateNote(stored, { ...stored, text: 'stale edit' }, p1);
+
+      expect(fixture.repo.getNote('N1')?.text).toBe('shared');
+      expect(fixture.repo.listNotes().map((note) => note.text)).toEqual(['shared']);
+    } finally {
+      cleanupRepo(fixture);
+    }
+  });
+
+  it('does not recreate a deleted shared note from a stale context edit', () => {
+    const { fixture, service } = makeService();
+    try {
+      const shared: NoteRecord = {
+        id: 'N1',
+        text: 'shared',
+        links: [
+          { id: 'L1', targetType: 'person', targetId: 'P1' },
+          { id: 'L2', targetType: 'person', targetId: 'P2' },
+        ],
+      };
+      fixture.repo.insertNote(shared);
+      const stored = fixture.repo.getNote('N1')!;
+      service.detachNote(
+        stored,
+        stored.links!.find((link) => link.targetId === 'P1')!,
+      );
+      const remaining = fixture.repo.getNote('N1')!;
+      service.detachNote(remaining, remaining.links![0]!);
+      expect(fixture.repo.getNote('N1')).toBeUndefined();
+
+      service.updateNote(stored, { ...stored, text: 'stale edit' }, stored.links![0]);
+
+      expect(fixture.repo.getNote('N1')).toBeUndefined();
+      expect(fixture.repo.listNotes()).toEqual([]);
     } finally {
       cleanupRepo(fixture);
     }
@@ -228,6 +327,57 @@ describe('TreeService attachments', () => {
       );
       expect(fixture.repo.listCitationRecordsFor('person', 'P1')).toEqual([citation]);
       expect(fixture.repo.listCitationsFor('task', 'T1')).toEqual([]);
+    } finally {
+      cleanupRepo(fixture);
+    }
+  });
+
+  it('allows citations on a note but refuses every other target link', () => {
+    const { fixture, service } = makeService();
+    try {
+      service.addNote(note());
+      service.addSource(source());
+      service.attachSource('S1', 'note', 'N1');
+      expect(fixture.repo.listCitationRecordsFor('note', 'N1')).toHaveLength(1);
+
+      service.addTask({ id: 'T1', text: 'Find the record', targets: [] });
+      expect(() => service.addTaskLink({ id: 'TL1', taskId: 'T1', targetType: 'note', targetId: 'N1' })).toThrow(
+        'Only source citations may target a note.',
+      );
+      expect(() =>
+        service.addTask({
+          id: 'T2',
+          text: 'Another task',
+          targets: [{ id: 'TL2', taskId: 'T2', targetType: 'note', targetId: 'N1' }],
+        }),
+      ).toThrow('Only source citations may target a note.');
+
+      expect(() => service.attachNote('N1', { id: 'L2', targetType: 'note', targetId: 'N2' })).toThrow(
+        'Only source citations may target a note.',
+      );
+      expect(() => service.addNote(note({ id: 'N2', targetType: 'note', targetId: 'N1' }))).toThrow(
+        'Only source citations may target a note.',
+      );
+
+      service.addMedia({ id: 'M1', links: [] });
+      expect(() => service.attachMedia({ id: 'ML1', mediaId: 'M1', targetType: 'note', targetId: 'N1' })).toThrow(
+        'Only source citations may target a note.',
+      );
+      expect(() => service.attachMediaToTargets('M1', [{ targetType: 'note', targetId: 'N1' }])).toThrow(
+        'Only source citations may target a note.',
+      );
+
+      expect(() => service.addIdentifier(identifier({ targetType: 'note', targetId: 'N1' }))).toThrow(
+        'Only source citations may target a note.',
+      );
+      expect(() => service.addRecordSubmitter('SU1', 'note', 'N1')).toThrow('Only source citations may target a note.');
+
+      // The failed attempts left no rows behind.
+      expect(fixture.repo.listTaskLinksFor('note', 'N1')).toEqual([]);
+      expect(fixture.repo.listMediaLinksFor('note', 'N1')).toEqual([]);
+      expect(fixture.repo.listIdentifiersFor('note', 'N1')).toEqual([]);
+      expect(fixture.repo.listRecordSubmittersFor('note', 'N1')).toEqual([]);
+      expect(fixture.repo.listNotesFor('note', 'N1')).toEqual([]);
     } finally {
       cleanupRepo(fixture);
     }

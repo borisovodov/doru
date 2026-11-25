@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { AssociationRecord, FamilyRecord, PersonRecord, SourceRecord } from '@doru/core';
-import { AttachmentsPanel, CitationAttachments, NoteAttachments, useAttachments } from '../attachments';
+import { AttachmentsPanel, CitationAttachments, NoteSources, useAttachments } from '../attachments';
 import { MediaSection } from '../media/MediaSection';
 import { EntityTab } from '../sidebar';
 import type { FamilyEditorApi, MediaTargetApi } from '../person/types';
@@ -447,9 +447,7 @@ function FamilyTabBody({
           await api.deleteNote(note);
           await refreshAttachments();
         }}
-        renderAttachments={(note) => (
-          <NoteAttachments note={note} api={api} sources={sources} onOpenSource={onOpenSource} />
-        )}
+        renderSources={(note) => <NoteSources note={note} api={api} sources={sources} onOpenSource={onOpenSource} />}
       />
       <IdentifiersSection
         targetType="family"

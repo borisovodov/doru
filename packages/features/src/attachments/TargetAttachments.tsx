@@ -1,4 +1,4 @@
-import type { CitationRecord, NoteRecord, SourceRecord } from '@doru/core';
+import type { CitationRecord, SourceRecord } from '@doru/core';
 import { AttachmentsPanel, type AttachmentsPanelApi } from './AttachmentsPanel';
 
 /** Notes and identifiers attached to a citation. No sources here:
@@ -22,31 +22,6 @@ export function CitationAttachments({
       sources={sources}
       onOpenSource={onOpenSource}
       sections={['notes', 'media', 'identifiers', 'contacts', 'contributors', 'tasks']}
-    />
-  );
-}
-
-/** Sources and other attachments of a note. No nested notes: a note cannot
- * own another note in the UI. */
-export function NoteAttachments({
-  note,
-  api,
-  sources,
-  onOpenSource,
-}: {
-  note: NoteRecord;
-  api: AttachmentsPanelApi;
-  sources: SourceRecord[];
-  onOpenSource?: ((sourceId: string) => void) | undefined;
-}) {
-  return (
-    <AttachmentsPanel
-      targetType="note"
-      targetId={note.id}
-      api={api}
-      sources={sources}
-      onOpenSource={onOpenSource}
-      sections={['sources', 'media', 'identifiers', 'contacts', 'contributors', 'tasks']}
     />
   );
 }

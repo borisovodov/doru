@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import type { AssociationRecord, TitleRecord, TaskRecord } from '../src/model/types';
 import { OpQueue } from '../src/ops/op';
 import { TreeService } from '../src/service/tree';
@@ -217,8 +217,8 @@ describe('TreeService research layer', () => {
     const { fixture, service } = makeService();
     try {
       service.addTask(task());
-      expect(fixture.repo.listTasks()).toEqual([task()]);
-      expect(service.listTasks()).toEqual([task()]);
+      expect(fixture.repo.listTasks()).toEqual([expect.objectContaining({ ...task(), updatedAt: expect.any(Number) })]);
+      expect(service.listTasks()).toEqual([expect.objectContaining({ ...task(), updatedAt: expect.any(Number) })]);
       expect(fixture.repo.listTasksFor('person', 'P1')).toEqual([]);
       service.addTask(
         task({
@@ -227,9 +227,12 @@ describe('TreeService research layer', () => {
         }),
       );
       expect(fixture.repo.listTasksFor('person', 'P1')).toEqual([
-        task({
-          id: 'T2',
-          targets: [{ id: 'TL2', taskId: 'T2', targetType: 'person', targetId: 'P1' }],
+        expect.objectContaining({
+          ...task({
+            id: 'T2',
+            targets: [{ id: 'TL2', taskId: 'T2', targetType: 'person', targetId: 'P1' }],
+          }),
+          updatedAt: expect.any(Number),
         }),
       ]);
 
@@ -251,6 +254,38 @@ describe('TreeService research layer', () => {
       fixture.repo.deleteAttachmentsFor('person', 'P1');
       expect(fixture.repo.listTasksFor('person', 'P1')).toEqual([]);
     } finally {
+      cleanupRepo(fixture);
+    }
+  });
+
+  it('stamps task creation and edits, but not link changes', () => {
+    const { fixture, service } = makeService();
+    try {
+      vi.useFakeTimers();
+      vi.setSystemTime(1_700_000_000_000);
+      service.addTask(task({ createdAt: undefined }));
+      expect(fixture.repo.getTask('T1')).toMatchObject({
+        createdAt: 1_700_000_000_000,
+        updatedAt: 1_700_000_000_000,
+      });
+
+      vi.setSystemTime(1_700_000_100_000);
+      const before = fixture.repo.getTask('T1')!;
+      service.updateTask(before, { ...before, text: 'Edited task' });
+      expect(fixture.repo.getTask('T1')).toMatchObject({
+        createdAt: 1_700_000_000_000,
+        updatedAt: 1_700_000_100_000,
+      });
+
+      const link = { id: 'TL1', taskId: 'T1', targetType: 'person', targetId: 'P1' };
+      vi.setSystemTime(1_700_000_200_000);
+      service.addTaskLink(link);
+      expect(fixture.repo.getTask('T1')?.updatedAt).toBe(1_700_000_100_000);
+      vi.setSystemTime(1_700_000_300_000);
+      service.deleteTaskLink(link);
+      expect(fixture.repo.getTask('T1')?.updatedAt).toBe(1_700_000_100_000);
+    } finally {
+      vi.useRealTimers();
       cleanupRepo(fixture);
     }
   });

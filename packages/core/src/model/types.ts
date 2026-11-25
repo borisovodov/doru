@@ -629,29 +629,22 @@ export interface NoteLinkRecord {
   targetId: string;
 }
 
-export interface NoteTranslation {
-  id: string;
-  text: string;
-  mime?: string | undefined;
-  language?: string | undefined;
-}
-
 /**
- * A note: inline (one link) or shared (several links). `targetType`/
- * `targetId` are projections of the first link, kept for the renderer; the
- * full attachment set lives in `links`.
+ * A note: inline (one link) or shared (several links). The text is the whole
+ * note content; MIME type, languages, translations and a GEDCOM xref are
+ * deliberately not stored. `targetType`/`targetId` are projections of the
+ * first link, kept for the renderer; the full attachment set lives in `links`.
  */
 export interface NoteRecord {
   id: string;
-  /** Set when the note is a shared NOTE/SNOTE record. */
-  xref?: string | undefined;
   text: string;
-  mime?: string | undefined;
-  language?: string | undefined;
+  /** Creation instant, epoch milliseconds. */
+  createdAt?: number | undefined;
+  /** Last text edit instant, epoch milliseconds. */
+  updatedAt?: number | undefined;
   targetType?: string | undefined;
   targetId?: string | undefined;
   links?: NoteLinkRecord[] | undefined;
-  translations?: NoteTranslation[] | undefined;
 }
 
 /** One file of a media record; the bytes live in the media/ folder, never in the DB. */
@@ -1008,6 +1001,8 @@ export interface TaskRecord {
   status?: string | undefined;
   /** Creation instant, epoch milliseconds. Set once when the task is created. */
   createdAt?: number | undefined;
+  /** Last content edit instant, epoch milliseconds. */
+  updatedAt?: number | undefined;
   /** Scheduled instant, epoch milliseconds. */
   scheduledAt?: number | undefined;
   /** Reminder instant, epoch milliseconds. */
@@ -1037,8 +1032,10 @@ export interface TitleRecord {
 /**
  * The machine-readable list of attachment target types. The polymorphic
  * attachment tables pair `target_type` with the target row's UUID.
- * Free-text `family_witness` rows are deliberately absent: they are names
- * without stable identity and are not attachment targets.
+ * `note` is included because a source citation may point at a note (GEDCOM
+ * `NOTE.SOUR`/`SNOTE.SOUR`); every other attachment kind rejects it in
+ * `TreeService`. Free-text `family_witness` rows are deliberately absent:
+ * they are names without stable identity and are not attachment targets.
  */
 export const TARGET_TYPES = [
   'person',

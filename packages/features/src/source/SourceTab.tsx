@@ -12,7 +12,7 @@ import type {
   TitleRecord,
 } from '@doru/core';
 import { TARGET_TYPES } from '@doru/core/model';
-import { CitationAttachments, NoteAttachments, useAttachments } from '../attachments';
+import { CitationAttachments, NoteSources, useAttachments } from '../attachments';
 import { AutoSaveError } from '../autoSaveFeedback';
 import { useEntityDelete } from '../entityDelete';
 import { Button, DangerZone, InlineError, SectionCard, useAutoSaveOnBlur } from '@doru/ui';
@@ -425,8 +425,8 @@ function SourceTabBody({
                   await api.deleteNote(note);
                   await refreshAttachments();
                 }}
-                renderAttachments={(note) => (
-                  <NoteAttachments note={note} api={api} sources={sources} onOpenSource={onOpenSource} />
+                renderSources={(note) => (
+                  <NoteSources note={note} api={api} sources={sources} onOpenSource={onOpenSource} />
                 )}
               />
               <IdentifiersSection

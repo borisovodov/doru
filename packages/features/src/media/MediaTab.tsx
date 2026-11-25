@@ -45,6 +45,9 @@ import {
 import styles from './MediaTab.module.css';
 import './MediaTab.css';
 
+/** Notes are citation targets only; a media link cannot point at a note. */
+const MEDIA_TARGET_TYPES = TARGET_TYPES.filter((type) => type !== 'note');
+
 type MediaDraftSnapshot = {
   title: string;
   date: ReturnType<typeof toDateDraft>;
@@ -741,7 +744,7 @@ function MediaTabBody({
         <SectionCard title={nls.t('features.tasks.target')}>
           <div className="media-link-add">
             <TargetPicker
-              allowedTypes={TARGET_TYPES}
+              allowedTypes={MEDIA_TARGET_TYPES}
               value={linkTargets}
               onChange={setLinkTargets}
               ariaLabel={nls.t('features.tasks.target')}

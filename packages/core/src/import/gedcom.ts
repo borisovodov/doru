@@ -418,34 +418,21 @@ function importSharedNotes(records: GedcomRecord[], ctx: ImportContext): void {
     const note = record as unknown as {
       xref?: string;
       payload: string;
-      mediaType?: string;
-      language?: string;
-      translations?: Array<{ payload: string; mediaType?: string; language?: string }>;
       citations?: import('@doru/gedcom').SourceCitation[];
-      identifiers?: IdentifierStructure[];
-      submitters?: string[];
     };
     if (note.xref === undefined) {
       continue;
     }
     const id = crypto.randomUUID();
     ctx.noteIds.set(note.xref, id);
+    const now = Date.now();
     ctx.repo.insertNote({
       id,
-      xref: note.xref,
       text: note.payload,
-      mime: note.mediaType,
-      language: note.language,
-      translations: note.translations?.map((translation) => ({
-        id: crypto.randomUUID(),
-        text: translation.payload,
-        mime: translation.mediaType,
-        language: translation.language,
-      })),
+      createdAt: now,
+      updatedAt: now,
     });
     importCitations(note.citations, 'note', id, ctx);
-    importIdentifiers(note.identifiers, 'note', id, ctx);
-    importSubmitterLinks(note.submitters, 'note', id, ctx);
   }
 }
 
@@ -1399,6 +1386,7 @@ function importGedcomTodoRecord(record: GedcomTodoRecord, ctx: ImportContext): v
     priority: normalizeTaskPriority(record.priority),
     status,
     createdAt: parseTaskTextDate(record.createdDate),
+    updatedAt: Date.now(),
     scheduledAt: parseTaskTextDate(record.scheduledDate),
     reminderAt: parseTaskTextDate(record.reminderDate),
     closedAt: status === 'closed' ? parseTaskTextDate(record.closedDate) : undefined,
@@ -1577,6 +1565,7 @@ function importGedcomTodoStructure(
     priority: normalizeTaskPriority(structure.priority),
     status,
     createdAt: parseTaskTextDate(structure.createdDate),
+    updatedAt: Date.now(),
     scheduledAt: taskDateValueToTimestamp(mapDate(structure.date), structure.date?.interpreted),
     reminderAt: taskDateValueToTimestamp(mapDate(structure.reminderDate), structure.reminderDate?.interpreted),
     closedAt:
@@ -1718,18 +1707,13 @@ function importNotes(
     }
     const note = structure;
     const id = crypto.randomUUID();
+    const now = Date.now();
     ctx.repo.insertNote({
       id,
       text: note.payload,
-      mime: note.mediaType,
-      language: note.language,
+      createdAt: now,
+      updatedAt: now,
       links: [{ id: crypto.randomUUID(), targetType, targetId }],
-      translations: note.translations?.map((translation) => ({
-        id: crypto.randomUUID(),
-        text: translation.payload,
-        mime: translation.mediaType,
-        language: translation.language,
-      })),
     });
     importCitations(note.citations, 'note', id, ctx);
   }

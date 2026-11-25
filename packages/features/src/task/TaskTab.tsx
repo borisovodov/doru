@@ -63,6 +63,7 @@ export function TaskTab({
   api,
   onClose,
   onOpenMedia,
+  onOpenSource,
   onCreated,
 }: {
   entityId: string;
@@ -83,6 +84,7 @@ export function TaskTab({
   api: TaskEditorApi;
   onClose: () => void;
   onOpenMedia: (mediaId: string) => void;
+  onOpenSource?: ((sourceId: string) => void) | undefined;
   onCreated: (realId: string) => void;
 }) {
   const taskId = entityId;
@@ -112,6 +114,7 @@ export function TaskTab({
       api={api}
       onClose={onClose}
       onOpenMedia={onOpenMedia}
+      onOpenSource={onOpenSource}
       onCreated={onCreated}
     />
   );
@@ -137,6 +140,7 @@ function TaskTabBody({
   api,
   onClose,
   onOpenMedia,
+  onOpenSource,
   onCreated,
 }: {
   record: TaskRecord | undefined;
@@ -158,6 +162,7 @@ function TaskTabBody({
   api: TaskEditorApi;
   onClose: () => void;
   onOpenMedia: (mediaId: string) => void;
+  onOpenSource?: ((sourceId: string) => void) | undefined;
   onCreated: (realId: string) => void;
 }) {
   const base = record ?? { id: crypto.randomUUID(), text: '', targets: [] };
@@ -408,7 +413,14 @@ function TaskTabBody({
         <TaskEditorFields edit={draft} onChange={patch} autoFocusText={isNew} />
       </SectionCard>
       {taskId !== undefined && (
-        <AttachmentsPanel targetType="task" targetId={taskId} api={api} sources={sources} onOpenMedia={onOpenMedia} />
+        <AttachmentsPanel
+          targetType="task"
+          targetId={taskId}
+          api={api}
+          sources={sources}
+          onOpenMedia={onOpenMedia}
+          onOpenSource={onOpenSource}
+        />
       )}
       <SectionCard title={nls.t('features.tasks.target')}>
         <TargetPicker

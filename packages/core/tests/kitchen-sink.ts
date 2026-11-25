@@ -239,20 +239,16 @@ export function buildKitchenSinkTree(fixture: RepoFixture): void {
     templateFields: [{ id: 'CF1', name: 'entry', value: '12' }],
   });
 
-  // Notes: inline and shared with translations.
+  // Notes: inline and shared.
   repo.insertNote({
     id: 'NN1',
     text: 'inline note',
-    mime: 'text/plain',
-    language: 'en',
     targetType: 'person',
     targetId: 'P1',
   });
   repo.insertNote({
     id: 'NN2',
-    xref: '@N2@',
     text: 'shared note',
-    translations: [{ id: 'NT1', text: 'заметка', language: 'ru' }],
     links: [
       { id: 'NL1', targetType: 'person', targetId: 'P1' },
       { id: 'NL2', targetType: 'person', targetId: 'P2' },

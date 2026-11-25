@@ -2,7 +2,7 @@
 
 A Dóru project is a single `.doru` file: a SQLite database branded with
 `application_id = 0x444F5255` ("DORU") and versioned with `user_version`.
-This document is the field-level reference for **schema version 20**. The
+This document is the field-level reference for **schema version 22**. The
 source of truth is [`packages/core/src/db/schema.ts`](../packages/core/src/db/schema.ts);
 the domain shapes that the repositories map onto the rows live in
 [`packages/core/src/model/types.ts`](../packages/core/src/model/types.ts).
@@ -17,13 +17,13 @@ in its README; that guarantee does not extend to the tree database.
 
 ## At a glance
 
-- **48 tables**, **75 indexes**, and no date-delete triggers.
+- **47 tables**, **74 indexes**, and no date-delete triggers.
 - The core genealogy model is `person` → `person_name` / `fact`, with
   `family` joining people through `family_partner` and `family_child`.
 - Dates are normalized into one `date` value table; owner rows reference
   their date slots through explicit `*_date_id` foreign keys.
 - Task lifecycle times are epoch-millisecond integers (`created_at`,
-  `scheduled_at`, `reminder_at`, `closed_at`), not `date` rows.
+  `updated_at`, `scheduled_at`, `reminder_at`, `closed_at`), not `date` rows.
 - Notes, citations, media, identifiers, contacts, contributors, and tasks
   attach through a polymorphic `(target_type, target_id)` pair.
 - Files are not stored in SQLite. `media_file` rows hold project-relative
@@ -754,24 +754,22 @@ citation in addition to its crop and sequence metadata.
 
 ## Notes
 
-A note is one text row. An inline note has one link; a shared note has
-several. `xref` is `NULL` for an inline note and non-`NULL` for a shared
-`NOTE`/`SNOTE` record. A note is linked to a given target at most once:
-`(note_id, target_type, target_id)` is unique, and re-attaching a note that
-is already linked is a no-op, so repeated `NOTE`/`SNOTE` references in a
-GEDCOM file cannot produce duplicate links.
+A note is one text row with creation and last-update instants (epoch
+milliseconds). An inline note has one link; a shared note has several. A note
+is linked to a given target at most once: `(note_id, target_type, target_id)`
+is unique, and re-attaching a note that is already linked is a no-op, so
+repeated `NOTE`/`SNOTE` references in a GEDCOM file cannot produce duplicate
+links.
 
 ```mermaid
 erDiagram
     note ||--o{ note_link : "links"
-    note ||--o{ note_translation : "translations"
 
     note {
         TEXT id PK
-        TEXT xref "NULL = inline note; non-NULL = shared record"
         TEXT text "NOT NULL"
-        TEXT mime
-        TEXT language
+        INTEGER created_at "epoch milliseconds"
+        INTEGER updated_at "epoch milliseconds"
     }
 
     note_link {
@@ -779,14 +777,6 @@ erDiagram
         TEXT note_id FK "UNIQUE with target_type and target_id"
         TEXT target_type "NOT NULL, polymorphic target"
         TEXT target_id "NOT NULL, UUID"
-    }
-
-    note_translation {
-        TEXT id PK
-        TEXT note_id FK
-        TEXT text "NOT NULL"
-        TEXT mime
-        TEXT language
     }
 ```
 
@@ -887,6 +877,7 @@ erDiagram
         TEXT priority
         TEXT status
         INTEGER created_at "epoch milliseconds"
+        INTEGER updated_at "epoch milliseconds"
         INTEGER scheduled_at "epoch milliseconds"
         INTEGER reminder_at "epoch milliseconds"
         INTEGER closed_at "epoch milliseconds; cleared when reopened"
@@ -909,11 +900,12 @@ model type, tab prefix, and UI strings all use the task vocabulary
 (`TaskRecord`, `TaskTab`, the `task:` tab prefix, `features.tasks.*`).
 
 Task lifecycle times are **epoch milliseconds**, not genealogical dates:
-`created_at` is set once by the application, `scheduled_at` and `reminder_at`
-are user-chosen instants, and `closed_at` is set when the status becomes
-`closed` and cleared when the task is reopened. Import accepts complete exact
-dates only (including My Family Tree's encoded `DDMMYYYY` record slots);
-partial, approximate, range, or otherwise unparseable task dates are dropped.
+`created_at` is set once by the application, `updated_at` changes on every
+task edit, `scheduled_at` and `reminder_at` are user-chosen instants, and
+`closed_at` is set when the status becomes `closed` and cleared when the task
+is reopened. Import accepts complete exact dates only (including My Family
+Tree's encoded `DDMMYYYY` record slots); partial, approximate, range, or
+otherwise unparseable task dates are dropped.
 
 The GEDCOM `TODO` `REPO`, `_CAT`, `_LOCL`, `_TTIL`, `TYPE`, and `DATA` slots are
 still parsed by `@doru/gedcom` but are deliberately ignored on import and not
@@ -992,7 +984,7 @@ Most child rows are removed with their parent:
   citations.
 - `citation` → citation texts and template fields.
 - `media` → media files and media links; `media_file` → translations.
-- `note` → note links and translations.
+- `note` → note links.
 - `address` → address lines.
 - `submitter` → languages and record-submitter links.
 - `task` → task links (the task itself survives a target deletion).

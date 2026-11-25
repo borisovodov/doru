@@ -46,10 +46,10 @@ export const DORU_APPLICATION_ID = 0x444f5255;
  * Bumped whenever the schema changes. There are no migrations before 1.0.0:
  * a newer version may simply not understand files written by older ones
  * (the store refuses to open them with a loud error). This schema uses
- * version 20, above every version written by an earlier build (the old model
+ * version 22, above every version written by an earlier build (the old model
  * reached 18), so the open guard cannot mistake an old file for this one.
  */
-export const SCHEMA_VERSION = 20;
+export const SCHEMA_VERSION = 22;
 
 export const SCHEMA_SQL = `
 CREATE TABLE IF NOT EXISTS person (
@@ -263,10 +263,9 @@ CREATE TABLE IF NOT EXISTS place_postal_code (
 
 CREATE TABLE IF NOT EXISTS note (
   id TEXT PRIMARY KEY,
-  xref TEXT,             -- NULL = inline note; non-NULL = shared NOTE/SNOTE record
   text TEXT NOT NULL,
-  mime TEXT,
-  language TEXT
+  created_at INTEGER,
+  updated_at INTEGER
 );
 
 CREATE TABLE IF NOT EXISTS note_link (
@@ -275,13 +274,6 @@ CREATE TABLE IF NOT EXISTS note_link (
   target_type TEXT NOT NULL,
   target_id TEXT NOT NULL,
   UNIQUE (note_id, target_type, target_id)
-);
-
-CREATE TABLE IF NOT EXISTS note_translation (
-  id TEXT PRIMARY KEY,
-  note_id TEXT NOT NULL REFERENCES note(id) ON DELETE CASCADE,
-  text TEXT NOT NULL,
-  mime TEXT, language TEXT
 );
 
 -- Sources: the full source model plus its sub-rows.
@@ -567,6 +559,7 @@ CREATE TABLE IF NOT EXISTS task (
   text TEXT NOT NULL,
   priority TEXT, status TEXT,
   created_at INTEGER,
+  updated_at INTEGER,
   scheduled_at INTEGER,
   reminder_at INTEGER,
   closed_at INTEGER
@@ -617,7 +610,6 @@ CREATE INDEX IF NOT EXISTS idx_fact_age_fact ON fact_age(fact_id);
 CREATE INDEX IF NOT EXISTS idx_fact_participant_fact ON fact_participant(fact_id, position);
 CREATE INDEX IF NOT EXISTS idx_note_link_note ON note_link(note_id);
 CREATE INDEX IF NOT EXISTS idx_note_link_target ON note_link(target_type, target_id);
-CREATE INDEX IF NOT EXISTS idx_note_translation_note ON note_translation(note_id);
 CREATE INDEX IF NOT EXISTS idx_source_text_source ON source_text(source_id);
 CREATE INDEX IF NOT EXISTS idx_source_data_event_source ON source_data_event(source_id);
 CREATE INDEX IF NOT EXISTS idx_source_repository_source ON source_repository(source_id);

@@ -371,6 +371,41 @@ describe('importGedcomDataset', () => {
     }
   });
 
+  it('keeps citations on shared notes but drops their identifiers and submitters', () => {
+    const gedcom = [
+      '0 HEAD',
+      '1 GEDC',
+      '2 VERS 7.0',
+      '0 @N1@ SNOTE Shared note text',
+      '1 SOUR @S1@',
+      '1 UID 4b4f6e2e-0000-4000-8000-000000000001',
+      '1 REFN note-ref',
+      '1 _SUBM @U1@',
+      '0 @S1@ SOUR',
+      '1 TITL Parish register',
+      '0 @U1@ SUBM',
+      '1 NAME Ivan Petrov',
+      '0 TRLR',
+    ].join('\n');
+    const result = parse(new TextEncoder().encode(gedcom));
+    if (!result.ok || result.value.kind !== 'dataset') {
+      throw new Error('fixture failed to parse');
+    }
+    const fixture = makeRepo();
+    try {
+      importGedcomDataset(result.value.dataset, fixture.repo);
+      const note = fixture.repo.listNotes().find((entry) => entry.text === 'Shared note text')!;
+      const source = fixture.repo.listSources().find((entry) => entry.title === 'Parish register')!;
+      expect(fixture.repo.listCitationRecordsFor('note', note.id).map((citation) => citation.sourceId)).toEqual([
+        source.id,
+      ]);
+      expect(fixture.repo.listIdentifiersFor('note', note.id)).toEqual([]);
+      expect(fixture.repo.listRecordSubmittersFor('note', note.id)).toEqual([]);
+    } finally {
+      cleanupRepo(fixture);
+    }
+  });
+
   it('keeps place-card and repository-note citations that point at a later source', () => {
     const gedcom = [
       '0 HEAD',

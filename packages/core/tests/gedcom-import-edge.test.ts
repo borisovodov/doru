@@ -252,9 +252,12 @@ describe('importGedcomDataset edge coverage', () => {
         expect.arrayContaining(['official', 'translation', 'phonetic', 'romanized']),
       );
 
-      // The note kept its translation.
+      // @doru/gedcom parses NOTE.LANG/MIME/TRAN and the SNOTE xref, but the tree keeps text only.
       const note = repo.listNotesFor('person', ivan.id)[0]!;
-      expect(note.translations?.[0]).toMatchObject({ text: 'переведено', language: 'ru' });
+      expect(note).not.toHaveProperty('language');
+      expect(note).not.toHaveProperty('translations');
+      expect(note).not.toHaveProperty('mime');
+      expect(note).not.toHaveProperty('xref');
 
       // The attached task imported.
       const family = repo.listFamilies()[0]!;
