@@ -1058,15 +1058,8 @@ export class TreeService {
   }
 
   updateMedia(before: MediaRecord, after: MediaRecord): UndoRedoState {
-    if (after.targetType !== undefined && after.targetType !== before.targetType) {
-      assertTargetAllowed('mediaLink', after.targetType);
-    }
-    const existingLinks = new Set((before.links ?? []).map((link) => link.id));
-    for (const link of after.links ?? []) {
-      if (!existingLinks.has(link.id)) {
-        assertTargetAllowed('mediaLink', link.targetType);
-      }
-    }
+    // Links are not persisted by this update path: attach, detach and relink
+    // operations own the media_link rows and enforce the target policy there.
     return this.applyAfterCommit(() => {
       const current = this.repo.getMedia(before.id) ?? before;
       const merged: MediaRecord = { ...current };

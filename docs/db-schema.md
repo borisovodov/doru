@@ -972,7 +972,8 @@ key.
 
 `media_link` is a source-only attachment host: only citations may target it.
 It cannot own notes, media, identifiers, contacts, contributors, or tasks, and
-tasks cannot target it in either direction.
+a task cannot target it. A media link may still target a task as a media
+attachment.
 
 Because there is no SQL foreign key, the target-policy sets plus the op layer
 are the integrity boundary. Every op that deletes or detaches a target must
