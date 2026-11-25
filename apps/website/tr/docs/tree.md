@@ -1,5 +1,5 @@
 ---
-source-hash: cd22edc93741
+source-hash: 499ca7ec2e9b
 ---
 
 # Ağaçla çalışma
@@ -45,7 +45,7 @@ Tam kişi düzenleyicisinde ebeveyn, partner veya çocuk ekleyin. Mevcut bir ki�
 
 ## Görevler
 
-Görevlerin planlanan ve hatırlatma tarihlerine ek olarak oluşturma ve kapatma tarihleri vardır. Her düzenleyicide bir **Görevler** bölümü vardır: oraya bir görev ekleyin, otomatik olarak o kayda bağlanır. Olgular, adlar, atıflar ve notlar, ekleme panellerinde kendi Görevler bölümlerine sahiptir. **İlgili** bir görevi ağaçtaki bir veya daha fazla kayda bağlar — bir kişi, aile, olay, ad, kaynak, atıf, medya, yer, depo, adres veya eser; bağımsız bir görev için boş bırakın. Görev paylaşılır: herhangi bir yerde düzenlemek aynı kaydı günceller ve ilişkili bir kaydı silmek görevi yerinde bırakır. Yeni bir görev oluşturmak yerine paylaşılan bir görevi yeniden kullanmak için **Mevcut bir görevi ekle**'yi kullanın.
+Görevlerin planlanan ve hatırlatma tarihlerine ek olarak oluşturma ve kapatma tarihleri vardır. Her düzenleyicide bir **Görevler** bölümü vardır: oraya bir görev ekleyin, otomatik olarak o kayda bağlanır. Olgular, adlar ve atıflar, ekleme panellerinde kendi Görevler bölümlerine sahiptir. **İlgili** bir görevi ağaçtaki bir veya daha fazla kayda bağlar — bir kişi, aile, olay, ad, kaynak, atıf, medya, yer, depo, adres veya eser; bağımsız bir görev için boş bırakın. Görev paylaşılır: herhangi bir yerde düzenlemek aynı kaydı günceller ve ilişkili bir kaydı silmek görevi yerinde bırakır. Yeni bir görev oluşturmak yerine paylaşılan bir görevi yeniden kullanmak için **Mevcut bir görevi ekle**'yi kullanın.
 
 Eserler, adresler, ilişkilendirmeler ve aile partner/çocuk bağlantıları, ana varlık sekmeleriyle aynı Notlar, Kaynaklar, Tanımlayıcılar, Katkıda bulunanlar ve Görevler bölümlerine sahiptir. Adreslerin ayrıca İletişim bilgileri vardır. Görevler Notlar, Tanımlayıcılar, Katkıda bulunanlar ve eski Görevler bölümünü korur, ancak Kaynaklar ve İletişim bölümleri yoktur.
 

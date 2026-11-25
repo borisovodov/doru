@@ -75,7 +75,7 @@ actions for editing an address in place.
 
 Tasks have creation and closing dates in addition to the scheduled and
 reminder dates. Every editor has a **Tasks** section: add a task there and it
-is linked to that record automatically. Facts, names, citations and notes
+is linked to that record automatically. Facts, names and citations
 carry their own Tasks section in their attachment panel. **Related to** links
 a task to one or more records in the tree — a person, family, event, name,
 citation, source, media, place, repository, address or title; leave it empty for
