@@ -7,6 +7,7 @@ import { DateEditor } from '../date/DateEditor';
 import { Button } from '../../atoms/button/Button';
 import { IconButton } from '../../atoms/icon-button/IconButton';
 import { Input } from '../../atoms/form/Input';
+import { Textarea } from '../../atoms/form/Textarea';
 import { SectionCard } from '../../patterns/section-card/SectionCard';
 import { emptyDate, fromDateDraft, type DateDraft } from '../person/draft';
 import { EVENT_TYPES } from './factDraft';
@@ -153,7 +154,8 @@ export function FactsSection({
           ))}
         </datalist>
         <DateEditor label={nls.t('features.tree.events.dateField')} value={date} onChange={setDate} />
-        <Input
+        <Textarea
+          rows={2}
           placeholder={nls.t('features.tree.events.descriptionField')}
           value={description}
           onChange={(event) => setDescription(event.target.value)}

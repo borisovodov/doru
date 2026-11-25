@@ -94,12 +94,8 @@ export function AttachmentsPanel({
             });
             await refresh();
           }}
-          onUpdate={async (before, after, context, mode) => {
-            if (mode === 'shared') {
-              await api.updateNote(before, after);
-            } else {
-              await api.updateNote(before, after, context);
-            }
+          onUpdate={async (before, after) => {
+            await api.updateNote(before, after);
             await refresh();
           }}
           onAttach={async (noteId) => {

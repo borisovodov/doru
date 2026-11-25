@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { X } from 'lucide-react';
+import { Trash2, X } from 'lucide-react';
 import type { TaskRecord, TaskTargetLink } from '@doru/core';
 import { isAttachmentTargetAllowed, normalizeTaskPriority, normalizeTaskStatus } from '@doru/core/model';
 import { Button } from '../../atoms/button/Button';
@@ -7,7 +7,7 @@ import { Chip } from '../../atoms/display/Chip';
 import { EmptyText } from '../../atoms/feedback/EmptyText';
 import { InlineError } from '../../atoms/feedback/InlineError';
 import { IconButton } from '../../atoms/icon-button/IconButton';
-import { Input } from '../../atoms/form/Input';
+import { Textarea } from '../../atoms/form/Textarea';
 import { AttachExisting } from '../../patterns/attach-existing/AttachExisting';
 import { SectionCard } from '../../patterns/section-card/SectionCard';
 import { nls } from '../../nls';
@@ -20,6 +20,7 @@ export interface TasksSectionApi {
   getAllTasks(): Promise<TaskRecord[]>;
   addTask(task: TaskRecord): Promise<void>;
   addTaskLink(link: TaskTargetLink): Promise<void>;
+  deleteTask(task: TaskRecord): Promise<void>;
   deleteTaskLink(link: TaskTargetLink): Promise<void>;
   openTask?: ((taskId: string) => void) | undefined;
 }
@@ -120,6 +121,16 @@ export function TasksSection({
     }
   };
 
+  const deleteTask = async (task: TaskRecord) => {
+    setActionError(false);
+    try {
+      await api.deleteTask(task);
+      await reload();
+    } catch {
+      setActionError(true);
+    }
+  };
+
   const sorted = [...tasks].sort(
     (a, b) => Number(normalizeTaskStatus(a.status) === 'closed') - Number(normalizeTaskStatus(b.status) === 'closed'),
   );
@@ -165,21 +176,23 @@ export function TasksSection({
                 icon={<X size={13} aria-hidden="true" />}
                 onClick={() => void remove(task)}
               />
+              <IconButton
+                size="sm"
+                label={nls.t('features.tasks.delete')}
+                icon={<Trash2 size={13} aria-hidden="true" />}
+                onClick={() => void deleteTask(task)}
+              />
             </div>
           </li>
         ))}
       </ul>
       {canAdd && (
         <div className="tasks-section-add">
-          <Input
+          <Textarea
+            rows={2}
             value={draft}
             placeholder={nls.t('features.tasks.newTask')}
             onChange={(event) => setDraft(event.target.value)}
-            onKeyDown={(event) => {
-              if (event.key === 'Enter') {
-                void add();
-              }
-            }}
           />
           <Button variant="secondary" onClick={() => void add()}>
             {nls.t('features.tasks.add')}

@@ -489,8 +489,8 @@ export function PersonEditor({
               });
               await refreshNotes();
             }}
-            onUpdate={async (before, after, context) => {
-              await api.updateNote(before, after, context);
+            onUpdate={async (before, after) => {
+              await api.updateNote(before, after);
               await refreshNotes();
             }}
             onAttach={async (noteId) => {

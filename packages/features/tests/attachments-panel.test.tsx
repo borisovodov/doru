@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import { fireEvent, screen, waitFor, within } from '@testing-library/react';
-import { MediaSection } from '@doru/ui/domain';
+import { MediaSection, type MediaWithPath } from '@doru/ui/domain';
+import type { MediaLinkRecord } from '@doru/core';
 import { AttachmentsPanel, type AttachmentsPanelApi } from '../src/attachments';
 import { nls } from '../src/nls';
 import { renderUi, stubApi } from '../../../test/ui/harness';
@@ -173,5 +174,80 @@ describe('AttachmentsPanel contacts', () => {
         expect.objectContaining({ mediaId: 'M2', targetType: 'person', targetId: 'P1' }),
       ),
     );
+  });
+
+  it('detaches shared media and deletes it only from an explicit action', async () => {
+    const ownerLink: MediaLinkRecord = { id: 'ML1', mediaId: 'M1', targetType: 'person', targetId: 'P1' };
+    const otherLink: MediaLinkRecord = { id: 'ML2', mediaId: 'M1', targetType: 'place', targetId: 'PL1' };
+    const item: MediaWithPath = {
+      id: 'M1',
+      title: 'Portrait of Anna',
+      absolutePath: '/demo/anna.jpg',
+      files: [{ id: 'MF1', path: 'media/anna.jpg', absolutePath: '/demo/anna.jpg' }],
+      links: [ownerLink, otherLink],
+    };
+    const detachMedia = vi.fn(async () => undefined);
+    const deleteMedia = vi.fn(async () => undefined);
+    const refresh = vi.fn(async () => undefined);
+    const confirm = vi.spyOn(window, 'confirm').mockReturnValue(true);
+
+    try {
+      renderUi(
+        <MediaSection
+          targetType="person"
+          targetId="P1"
+          media={[item]}
+          api={{
+            getMediaFor: async () => [item],
+            getAllMedia: async () => [item],
+            addMediaToTarget: async () => undefined,
+            attachMedia: async () => undefined,
+            detachMedia,
+            deleteMedia,
+          }}
+          refresh={refresh}
+        />,
+      );
+
+      fireEvent.click(await screen.findByRole('button', { name: nls.t('features.tree.media.detach') }));
+      await waitFor(() => expect(detachMedia).toHaveBeenCalledWith(ownerLink));
+      expect(deleteMedia).not.toHaveBeenCalled();
+
+      fireEvent.click(screen.getByRole('button', { name: nls.t('features.tree.media.delete') }));
+      await waitFor(() => expect(deleteMedia).toHaveBeenCalledWith(item));
+      expect(confirm).toHaveBeenCalledWith(nls.t('features.tree.media.deleteConfirm'));
+    } finally {
+      confirm.mockRestore();
+    }
+  });
+
+  it('offers only deletion for media linked to one record', async () => {
+    const ownerLink: MediaLinkRecord = { id: 'ML1', mediaId: 'M1', targetType: 'person', targetId: 'P1' };
+    const item: MediaWithPath = {
+      id: 'M1',
+      title: 'Portrait of Anna',
+      absolutePath: '/demo/anna.jpg',
+      files: [{ id: 'MF1', path: 'media/anna.jpg', absolutePath: '/demo/anna.jpg' }],
+      links: [ownerLink],
+    };
+    renderUi(
+      <MediaSection
+        targetType="person"
+        targetId="P1"
+        media={[item]}
+        api={{
+          getMediaFor: async () => [item],
+          getAllMedia: async () => [item],
+          addMediaToTarget: async () => undefined,
+          attachMedia: async () => undefined,
+          detachMedia: async () => undefined,
+          deleteMedia: async () => undefined,
+        }}
+        refresh={async () => undefined}
+      />,
+    );
+
+    await screen.findByRole('button', { name: nls.t('features.tree.media.delete') });
+    expect(screen.queryByRole('button', { name: nls.t('features.tree.media.detach') })).not.toBeInTheDocument();
   });
 });

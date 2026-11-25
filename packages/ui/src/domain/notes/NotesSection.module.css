@@ -46,10 +46,11 @@
 
 .notesAdd {
   display: flex;
+  align-items: flex-end;
   gap: 8px;
 }
 
-.notesAdd input {
+.notesAdd textarea {
   flex: 1;
   min-width: 0;
 }

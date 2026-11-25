@@ -349,8 +349,8 @@ function PlaceTabBody({
                   await api.addNote({ id: crypto.randomUUID(), text, targetType: 'place', targetId });
                   await refreshAttachments();
                 }}
-                onUpdate={async (before, after, context) => {
-                  await api.updateNote(before, after, context);
+                onUpdate={async (before, after) => {
+                  await api.updateNote(before, after);
                   await refreshAttachments();
                 }}
                 onAttach={async (noteId) => {

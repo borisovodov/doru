@@ -10,6 +10,7 @@ const api = {
   getAllTasks: async () => [],
   addTask: async () => undefined,
   addTaskLink: async () => undefined,
+  deleteTask: async () => undefined,
   deleteTaskLink: async () => undefined,
 };
 
@@ -54,10 +55,9 @@ describe('TasksSection', () => {
     const deleteTaskLink = vi.fn(async () => undefined);
     const deleteTask = vi.fn(async () => undefined);
     const sectionApi = {
+      ...api,
       getTasksFor: async () => [task],
       getAllTasks: async () => [task],
-      addTask: async () => undefined,
-      addTaskLink: async () => undefined,
       deleteTaskLink,
       deleteTask,
     };
@@ -69,6 +69,33 @@ describe('TasksSection', () => {
     await waitFor(() => expect(deleteTaskLink).toHaveBeenCalledWith(task.targets[0]));
     expect(deleteTaskLink).toHaveBeenCalledTimes(1);
     expect(deleteTask).not.toHaveBeenCalled();
+  });
+
+  it('deletes the task itself from the section', async () => {
+    const task: TaskRecord = {
+      id: 'T1',
+      text: 'Find the parish register',
+      targets: [
+        { id: 'TL1', taskId: 'T1', targetType: 'person', targetId: 'P1' },
+        { id: 'TL2', taskId: 'T1', targetType: 'place', targetId: 'PL1' },
+      ],
+    };
+    const deleteTask = vi.fn(async () => undefined);
+    const deleteTaskLink = vi.fn(async () => undefined);
+    const sectionApi = {
+      ...api,
+      getTasksFor: async () => [task],
+      getAllTasks: async () => [task],
+      deleteTask,
+      deleteTaskLink,
+    };
+
+    renderUi(<TasksSection targetType="person" targetId="P1" api={sectionApi} />);
+    await screen.findByText(task.text);
+    screen.getByRole('button', { name: nls.t('features.tasks.delete') }).click();
+
+    await waitFor(() => expect(deleteTask).toHaveBeenCalledWith(task));
+    expect(deleteTaskLink).not.toHaveBeenCalled();
   });
 
   it('attaches an existing task that is not linked to the record yet', async () => {
@@ -87,11 +114,10 @@ describe('TasksSection', () => {
       attached = true;
     });
     const sectionApi = {
+      ...api,
       getTasksFor: async () => (attached ? [linked, candidate] : [linked]),
       getAllTasks: async () => [linked, candidate],
-      addTask: async () => undefined,
       addTaskLink,
-      deleteTaskLink: async () => undefined,
     };
 
     renderUi(<TasksSection targetType="person" targetId="P1" api={sectionApi} />);
@@ -117,11 +143,10 @@ describe('TasksSection', () => {
       throw new Error('disk full');
     });
     const sectionApi = {
+      ...api,
       getTasksFor: async () => [],
       getAllTasks: async () => [candidate],
-      addTask: async () => undefined,
       addTaskLink,
-      deleteTaskLink: async () => undefined,
     };
 
     renderUi(<TasksSection targetType="person" targetId="P1" api={sectionApi} />);
@@ -143,9 +168,9 @@ describe('TasksSection', () => {
     const candidate: TaskRecord = { id: 'T2', text: 'Translate the 1890 census', targets: [] };
     let hasLinked = true;
     const sectionApi = {
+      ...api,
       getTasksFor: async () => (hasLinked ? [linked] : []),
       getAllTasks: async () => [linked, candidate],
-      addTask: async () => undefined,
       addTaskLink: async () => {
         throw new Error('disk full');
       },
@@ -164,6 +189,23 @@ describe('TasksSection', () => {
 
     fireEvent.click(screen.getByRole('button', { name: nls.t('features.tasks.remove') }));
     await waitFor(() => expect(screen.queryByText(nls.t('features.tree.autosaveFailed'))).not.toBeInTheDocument());
+  });
+
+  it('adds a task from the button, not on Enter', async () => {
+    const addTask = vi.fn(async () => undefined);
+    renderUi(<TasksSection targetType="person" targetId="P1" api={{ ...api, addTask }} />);
+
+    const field = screen.getByPlaceholderText(nls.t('features.tasks.newTask'));
+    expect(field.tagName).toBe('TEXTAREA');
+    fireEvent.change(field, { target: { value: 'Find the parish register' } });
+    fireEvent.keyDown(field, { key: 'Enter' });
+    expect(addTask).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getByRole('button', { name: nls.t('features.tasks.add') }));
+
+    await waitFor(() =>
+      expect(addTask).toHaveBeenCalledWith(expect.objectContaining({ text: 'Find the parish register' })),
+    );
   });
 
   it('does not offer an existing task on a submitter', async () => {
@@ -191,10 +233,9 @@ describe('TasksSection', () => {
       throw new Error('disk full');
     });
     const sectionApi = {
+      ...api,
       getTasksFor: async () => [task],
       getAllTasks: async () => [task],
-      addTask: async () => undefined,
-      addTaskLink: async () => undefined,
       deleteTaskLink,
     };
 

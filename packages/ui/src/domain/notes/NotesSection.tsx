@@ -2,8 +2,6 @@ import { Button } from '../../atoms/button/Button';
 import { EmptyText } from '../../atoms/feedback/EmptyText';
 import { InlineError } from '../../atoms/feedback/InlineError';
 import { IconButton } from '../../atoms/icon-button/IconButton';
-import { Input } from '../../atoms/form/Input';
-import { Select } from '../../atoms/form/Select';
 import { Textarea } from '../../atoms/form/Textarea';
 import { AttachExisting } from '../../patterns/attach-existing/AttachExisting';
 import { SectionCard } from '../../patterns/section-card/SectionCard';
@@ -14,9 +12,8 @@ import { nls } from '../../nls';
 import styles from './NotesSection.module.css';
 
 /**
- * The person's notes with inline editing. Editing a shared note from this
- * context splits it (copy-on-write) — the service handles that when the
- * context link is passed through. The edit form covers the note text.
+ * The person's notes with inline editing. Editing a shared note updates the
+ * text for every record it is attached to. The edit form covers the note text.
  */
 export function NotesSection({
   targetType,
@@ -34,12 +31,7 @@ export function NotesSection({
   notes: NoteRecord[];
   availableNotes?: NoteRecord[];
   onAdd: (text: string) => Promise<void>;
-  onUpdate: (
-    before: NoteRecord,
-    after: NoteRecord,
-    context: NoteLinkRecord | undefined,
-    mode?: 'split' | 'shared',
-  ) => Promise<void>;
+  onUpdate: (before: NoteRecord, after: NoteRecord) => Promise<void>;
   onAttach?: ((noteId: string) => Promise<void>) | undefined;
   onDetach?: ((note: NoteRecord, link: NoteLinkRecord) => Promise<void>) | undefined;
   onDelete: (note: NoteRecord) => Promise<void>;
@@ -48,7 +40,6 @@ export function NotesSection({
   const [attachError, setAttachError] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editText, setEditText] = useState('');
-  const [editShared, setEditShared] = useState(false);
 
   const add = async () => {
     const text = draft.trim();
@@ -67,7 +58,6 @@ export function NotesSection({
   const startEdit = (note: NoteRecord) => {
     setEditingId(note.id);
     setEditText(note.text);
-    setEditShared(false);
   };
 
   const attachableNotes = availableNotes.filter(
@@ -78,18 +68,7 @@ export function NotesSection({
     const text = editText.trim();
     const changed = text !== note.text;
     if (text !== '' && changed) {
-      const link = note.links?.find((entry) => entry.targetType === targetType && entry.targetId === targetId) ?? {
-        id: crypto.randomUUID(),
-        targetType,
-        targetId,
-      };
-      const shared = (note.links?.length ?? 0) > 1;
-      await onUpdate(
-        note,
-        { ...note, text },
-        shared && editShared ? undefined : link,
-        shared && editShared ? 'shared' : 'split',
-      );
+      await onUpdate(note, { ...note, text });
     }
     setEditingId(null);
   };
@@ -105,16 +84,6 @@ export function NotesSection({
               {editingId === note.id ? (
                 <div className={styles['notesEdit']}>
                   <Textarea value={editText} onChange={(event) => setEditText(event.target.value)} autoFocus />
-                  {(note.links?.length ?? 0) > 1 && (
-                    <Select
-                      aria-label={nls.t('features.tree.notes.editMode')}
-                      value={editShared ? 'shared' : 'split'}
-                      onChange={(event) => setEditShared(event.target.value === 'shared')}
-                    >
-                      <option value="split">{nls.t('features.tree.notes.editSplit')}</option>
-                      <option value="shared">{nls.t('features.tree.notes.editShared')}</option>
-                    </Select>
-                  )}
                   <div className={styles['notesEditActions']}>
                     <Button variant="primary" size="sm" onClick={() => void saveEdit(note)}>
                       {nls.t('features.tree.save')}
@@ -187,15 +156,11 @@ export function NotesSection({
         />
       )}
       <div className={styles['notesAdd']}>
-        <Input
+        <Textarea
+          rows={2}
           value={draft}
           placeholder={nls.t('features.tree.notes.placeholder')}
           onChange={(event) => setDraft(event.target.value)}
-          onKeyDown={(event) => {
-            if (event.key === 'Enter') {
-              void add();
-            }
-          }}
         />
         <Button variant="secondary" onClick={() => void add()}>
           {nls.t('features.tree.notes.add')}

@@ -1,4 +1,4 @@
-import { X } from 'lucide-react';
+import { Trash2, X } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { IconButton } from '../../atoms/icon-button/IconButton';
 import { cx } from '../../lib/cx';
@@ -11,6 +11,8 @@ export interface MediaTileProps {
   openLabel?: string;
   onRemove?: () => void;
   removeLabel?: string;
+  onDetach?: () => void;
+  detachLabel?: string;
   badge?: string;
   muted?: boolean;
   className?: string;
@@ -26,6 +28,8 @@ export function MediaTile({
   openLabel,
   onRemove,
   removeLabel,
+  onDetach,
+  detachLabel,
   badge,
   muted,
   className,
@@ -50,15 +54,28 @@ export function MediaTile({
         image
       )}
       {badge !== undefined ? <span className={styles['badge']}>{badge}</span> : null}
-      {onRemove ? (
-        <IconButton
-          className={styles['remove']}
-          size="sm"
-          variant="danger"
-          label={removeLabel ?? 'Remove'}
-          icon={<X size={13} aria-hidden="true" />}
-          onClick={onRemove}
-        />
+      {onDetach !== undefined || onRemove !== undefined ? (
+        <span className={styles['actions']}>
+          {onDetach !== undefined ? (
+            <IconButton
+              className={styles['action']}
+              size="sm"
+              label={detachLabel ?? 'Detach'}
+              icon={<X size={13} aria-hidden="true" />}
+              onClick={onDetach}
+            />
+          ) : null}
+          {onRemove !== undefined ? (
+            <IconButton
+              className={styles['action']}
+              size="sm"
+              variant="danger"
+              label={removeLabel ?? 'Remove'}
+              icon={<Trash2 size={13} aria-hidden="true" />}
+              onClick={onRemove}
+            />
+          ) : null}
+        </span>
       ) : null}
     </figure>
   );

@@ -43,6 +43,7 @@
   font-size: 12px;
   color: var(--doru-fg);
   overflow-wrap: anywhere;
+  white-space: pre-wrap;
 }
 
 .tasks-section-text.closed {
@@ -58,11 +59,11 @@
 
 .tasks-section-add {
   display: flex;
-  align-items: center;
+  align-items: flex-end;
   gap: 6px;
 }
 
-.tasks-section-add input {
+.tasks-section-add textarea {
   flex: 1;
   min-width: 0;
 }

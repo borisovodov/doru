@@ -26,3 +26,11 @@ export const EmptySource: DemoCase = {
     onOpen: () => undefined,
   },
 };
+
+export const DetachAndDelete: DemoCase = {
+  args: {
+    onDetach: () => undefined,
+    detachLabel: 'Detach from this record',
+    removeLabel: 'Delete media',
+  },
+};

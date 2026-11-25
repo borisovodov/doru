@@ -34,6 +34,14 @@ describe('SourceEditor', () => {
 
     expect(screen.getByLabelText(nls.t('features.tree.sources.title'))).toBeInTheDocument();
     expect(screen.getByLabelText(nls.t('features.tree.sources.titleField'))).toBeInTheDocument();
+    for (const label of [
+      nls.t('features.tree.source.publication'),
+      nls.t('features.tree.source.bibliography'),
+      nls.t('features.tree.source.dataNote'),
+      nls.t('features.tree.source.subsequentCitationFormat'),
+    ]) {
+      expect(screen.getByLabelText(label).tagName).toBe('TEXTAREA');
+    }
 
     fireEvent.click(screen.getAllByRole('button', { name: nls.t('features.tree.create') })[0]!);
     expect(onSave).toHaveBeenCalledTimes(1);
