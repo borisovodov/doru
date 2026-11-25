@@ -14,16 +14,15 @@ import type {
   TitleRecord,
   TaskRecord,
 } from '@doru/core';
-import { placeName, TARGET_TYPES } from '@doru/core/model';
+import { placeName, TASK_LINK_TARGET_TYPES } from '@doru/core/model';
+import { displayName, factOwnerName, familyLabel, formatAddress, formatDate } from '../format/format';
 
 /**
- * The target types a task can be linked to. Other tasks and submitters are
- * excluded: a task-to-task chain would duplicate the research log, and a task
- * is not a contribution to a submitter's record. A source is a valid target:
- * a task can be about checking or acquiring it.
+ * The target types a task can be linked to. The core policy is the single
+ * source of truth: tasks may point at sources but not at other tasks,
+ * submitters, or media links.
  */
-export const TASK_TARGET_TYPES = TARGET_TYPES.filter((type) => type !== 'task' && type !== 'submitter');
-import { displayName, factOwnerName, familyLabel, formatAddress, formatDate } from '../format/format';
+export const TASK_TARGET_TYPES = TASK_LINK_TARGET_TYPES;
 
 /** Everything the task editor needs to offer a target of every supported type. */
 export interface TaskTargetData {

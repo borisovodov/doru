@@ -1,7 +1,7 @@
 import { useState, type ComponentProps } from 'react';
 import type { Demo, DemoMeta } from '../../../gallery/types';
 import type { TargetRef } from '@doru/core';
-import { TARGET_TYPES } from '@doru/core/model';
+import { CITATION_TARGET_TYPES } from '@doru/core/model';
 import { TASK_TARGET_TYPES, type TargetData } from '../task/taskTargets';
 import { TargetPicker } from './TargetPicker';
 
@@ -93,9 +93,9 @@ type DemoCase = Demo;
 
 export const Default: DemoCase = {};
 
-export const AllAttachmentTypes: DemoCase = {
+export const AllCitationTypes: DemoCase = {
   args: {
-    allowedTypes: TARGET_TYPES,
+    allowedTypes: CITATION_TARGET_TYPES,
     value: [],
   },
 };

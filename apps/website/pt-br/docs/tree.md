@@ -1,5 +1,5 @@
 ---
-source-hash: d6792c4fa89a
+source-hash: 99b1e27e511c
 ---
 
 # Trabalhando com a árvore
@@ -79,11 +79,9 @@ endereço** e **Editar endereço** para editar um endereço no próprio local.
 
 ## Tarefas
 
-As tarefas têm uma data de criação e uma data de lembrete. Concluir uma tarefa apenas altera seu status; nenhuma data de conclusão separada é armazenada. Todo editor tem uma seção **Tarefas**: adicione uma tarefa ali e ela
-é vinculada automaticamente àquele registro. Eventos, nomes e citações
-têm sua própria seção Tarefas no painel de anexos. **Relacionado a** vincula uma tarefa a um ou mais registros da árvore — uma pessoa, família, evento, nome, fonte, citação, mídia, lugar, repositório, endereço ou obra; deixe vazio para uma tarefa independente. Uma tarefa é compartilhada: editá-la em qualquer lugar atualiza o mesmo registro, e excluir um registro relacionado mantém a tarefa. Use **Anexar uma tarefa existente** para reutilizar uma tarefa compartilhada em vez de criar uma nova.
+As tarefas têm uma data de criação e uma data de lembrete. Concluir uma tarefa apenas altera seu status; nenhuma data de conclusão separada é armazenada. A maioria dos editores tem uma seção **Tarefas**: adicione uma tarefa ali e ela é vinculada automaticamente àquele registro. As exceções são o editor de tarefas e o editor de submetedores, e uma linha de vínculo de mídia tem apenas a seção Fontes: o cartão de uma tarefa mantém Notas e Mídia, o de um submetedor não tem seção Tarefas, e um vínculo de mídia não é alvo de tarefas. Eventos, nomes e citações têm sua própria seção Tarefas no painel de anexos. **Relacionado a** vincula uma tarefa a um ou mais registros da árvore — uma pessoa, família, evento, nome, fonte, citação, mídia, lugar, repositório, endereço ou obra, mas não outra tarefa, um submetedor ou um vínculo de mídia; deixe vazio para uma tarefa independente. Uma tarefa é compartilhada: editá-la em qualquer lugar atualiza o mesmo registro, e excluir um registro relacionado mantém a tarefa. Use **Anexar uma tarefa existente** para reutilizar uma tarefa compartilhada em vez de criar uma nova.
 
-Obras, endereços, associações e vínculos de parceiro/filho das famílias têm as mesmas seções Notas, Fontes, Identificadores, Colaboradores e Tarefas das abas das entidades principais. Endereços também têm Contatos. As tarefas mantêm Notas, Identificadores, Colaboradores e a seção Tarefas existente, mas não têm Fontes nem Contatos.
+Obras, endereços, associações e vínculos de parceiro/filho das famílias têm as mesmas seções Notas, Fontes, Identificadores, Colaboradores e Tarefas das abas das entidades principais. Endereços também têm Contatos. As tarefas mantêm Notas e Mídia, mas não têm Fontes, Identificadores, Contatos, Colaboradores nem Tarefas. Um vínculo de mídia tem apenas Fontes.
 
 ## Mídia
 

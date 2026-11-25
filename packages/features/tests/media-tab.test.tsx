@@ -81,6 +81,34 @@ describe('MediaTab', () => {
     expect(regions[regions.length - 1]).toHaveAccessibleName(nls.t('features.tasks.target'));
   });
 
+  it('gives the media record Tasks but a media link only Sources', async () => {
+    const api = stubApi<MediaAdminApi>({
+      getMediaFor: async () => [],
+      getAllMedia: async () => [],
+    });
+    renderUi(
+      <MediaTab
+        entityId="M1"
+        media={[record]}
+        api={api}
+        attachmentsApi={attachmentsStub()}
+        sources={[]}
+        targetData={targetData}
+        onClose={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByRole('region', { name: nls.t('features.tasks.title') })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: nls.t('features.tree.media.linkSources') }));
+
+    await waitFor(() =>
+      expect(screen.getAllByRole('region', { name: nls.t('features.tree.sources.title') })).toHaveLength(2),
+    );
+    expect(screen.getAllByRole('region', { name: nls.t('features.tasks.title') })).toHaveLength(1);
+    expect(screen.getAllByText(nls.t('features.tree.identifiers.title'))).toHaveLength(1);
+    expect(screen.getAllByText(nls.t('features.tree.contributors.title'))).toHaveLength(1);
+  });
+
   it('saves a file title on the registered close flush', async () => {
     const updateMedia = vi.fn(async (_before: MediaRecord, _after: MediaRecord) => undefined);
     const api = stubApi<MediaAdminApi>({

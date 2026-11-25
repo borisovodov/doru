@@ -29,11 +29,11 @@ import { partsFromFlat } from '../db/nameRepo';
 import {
   collectNameIds,
   collectNamePartIds,
-  isContactTargetType,
   isProjectMediaPath,
   normalizeTaskPriority,
   normalizeTaskStatus,
 } from '../model/types';
+import { isAttachmentTargetAllowed, type AttachmentTargetKind } from '../model/targetPolicy';
 import {
   addAddressOp,
   addAliasOp,
@@ -140,37 +140,14 @@ export class ParentCycleError extends Error {
 }
 
 /**
- * A source citation is evidence for a genealogical assertion. A task is a
- * work item, not an assertion, and a note is a leaf annotation, so neither
- * can be a citation target. This guard keeps the IPC and agent paths
- * consistent with the UI.
+ * The attachment target policy is the single source of truth for which link
+ * families may point at which records. This guard keeps the IPC and agent
+ * paths consistent with the UI, which derives section visibility and picker
+ * lists from the same sets.
  */
-function assertCitationTarget(targetType: string): void {
-  if (targetType === 'task') {
-    throw new Error('A source cannot be attached to a task.');
-  }
-  assertNoteIsNotTarget(targetType);
-}
-
-/**
- * A note is a leaf annotation: no attachment may target it. This guard keeps
- * the IPC and agent paths consistent with the UI, which shows no attachment
- * panel on a note.
- */
-function assertNoteIsNotTarget(targetType: string): void {
-  if (targetType === 'note') {
-    throw new Error('A note cannot be an attachment target.');
-  }
-}
-
-/**
- * Contacts only exist on targets GEDCOM can carry them for: addresses, event
- * details, repositories, submitters, and the vendor INDI spellings Dóru keeps
- * on a person. A contact anywhere else has no import or export path.
- */
-function assertContactTarget(targetType: string): void {
-  if (!isContactTargetType(targetType)) {
-    throw new Error(`A contact cannot be attached to a ${targetType}.`);
+function assertTargetAllowed(kind: AttachmentTargetKind, targetType: string): void {
+  if (!isAttachmentTargetAllowed(kind, targetType)) {
+    throw new Error(`A ${kind} cannot target a ${targetType}.`);
   }
 }
 
@@ -864,7 +841,7 @@ export class TreeService {
 
   addSource(source: SourceRecord, targetType?: string, targetId?: string): UndoRedoState {
     if (targetType !== undefined && targetId !== undefined) {
-      assertCitationTarget(targetType);
+      assertTargetAllowed('citation', targetType);
     }
     const citation = targetType && targetId ? { targetType, targetId } : undefined;
     return this.apply(addSourceOp(source, citation));
@@ -895,7 +872,7 @@ export class TreeService {
   }
 
   attachSource(sourceId: string, targetType: string, targetId: string): UndoRedoState {
-    assertCitationTarget(targetType);
+    assertTargetAllowed('citation', targetType);
     return this.applyAfterCommit(() => {
       if (this.repo.listCitationRecordsFor(targetType, targetId).some((citation) => citation.sourceId === sourceId)) {
         return undefined;
@@ -915,7 +892,7 @@ export class TreeService {
     const seen = new Set<string>();
     const citations: CitationRecord[] = [];
     for (const target of targets) {
-      assertCitationTarget(target.targetType);
+      assertTargetAllowed('citation', target.targetType);
       const key = `${target.targetType}\u0000${target.targetId}`;
       if (seen.has(key)) {
         continue;
@@ -939,7 +916,7 @@ export class TreeService {
   }
 
   updateCitation(before: CitationRecord, after: CitationRecord): UndoRedoState {
-    assertCitationTarget(after.targetType);
+    assertTargetAllowed('citation', after.targetType);
     return this.apply(updateCitationOp(before, after));
   }
 
@@ -977,10 +954,10 @@ export class TreeService {
 
   addNote(note: NoteRecord): UndoRedoState {
     if (note.targetType !== undefined) {
-      assertNoteIsNotTarget(note.targetType);
+      assertTargetAllowed('noteLink', note.targetType);
     }
     for (const link of note.links ?? []) {
-      assertNoteIsNotTarget(link.targetType);
+      assertTargetAllowed('noteLink', link.targetType);
     }
     const now = Date.now();
     return this.apply(addNoteOp({ ...note, createdAt: note.createdAt ?? now, updatedAt: now }));
@@ -1026,7 +1003,7 @@ export class TreeService {
 
   /** Attaches an existing note to another target (makes it shared). */
   attachNote(noteId: string, link: NoteLinkRecord): UndoRedoState {
-    assertNoteIsNotTarget(link.targetType);
+    assertTargetAllowed('noteLink', link.targetType);
     return this.applyAfterCommit(() => {
       const current = this.repo.getNote(noteId);
       const alreadyLinked = current?.links?.some(
@@ -1068,10 +1045,10 @@ export class TreeService {
 
   addMedia(media: MediaRecord): UndoRedoState {
     if (media.targetType !== undefined) {
-      assertNoteIsNotTarget(media.targetType);
+      assertTargetAllowed('mediaLink', media.targetType);
     }
     for (const link of media.links ?? []) {
-      assertNoteIsNotTarget(link.targetType);
+      assertTargetAllowed('mediaLink', link.targetType);
     }
     return this.apply(addMediaOp(media));
   }
@@ -1081,17 +1058,8 @@ export class TreeService {
   }
 
   updateMedia(before: MediaRecord, after: MediaRecord): UndoRedoState {
-    if (after.targetType === 'note' && before.targetType !== 'note') {
-      assertNoteIsNotTarget(after.targetType);
-    }
-    const existingNoteLinks = new Set(
-      (before.links ?? []).filter((link) => link.targetType === 'note').map((link) => link.id),
-    );
-    for (const link of after.links ?? []) {
-      if (!existingNoteLinks.has(link.id)) {
-        assertNoteIsNotTarget(link.targetType);
-      }
-    }
+    // Links are not persisted by this update path: attach, detach and relink
+    // operations own the media_link rows and enforce the target policy there.
     return this.applyAfterCommit(() => {
       const current = this.repo.getMedia(before.id) ?? before;
       const merged: MediaRecord = { ...current };
@@ -1183,7 +1151,7 @@ export class TreeService {
   }
 
   attachMedia(link: MediaLinkRecord): UndoRedoState {
-    assertNoteIsNotTarget(link.targetType);
+    assertTargetAllowed('mediaLink', link.targetType);
     return this.applyAfterCommit(() => {
       const media = this.repo.getMedia(link.mediaId);
       if (
@@ -1207,7 +1175,7 @@ export class TreeService {
       throw new Error(`media ${mediaId} no longer exists`);
     }
     for (const target of targets) {
-      assertNoteIsNotTarget(target.targetType);
+      assertTargetAllowed('mediaLink', target.targetType);
     }
     const existing = new Set(
       (this.repo.getMedia(mediaId)?.links ?? []).map((link) => `${link.targetType}\u0000${link.targetId}`),
@@ -1230,7 +1198,7 @@ export class TreeService {
   }
 
   updateMediaLink(before: MediaLinkRecord, after: MediaLinkRecord): UndoRedoState {
-    assertNoteIsNotTarget(after.targetType);
+    assertTargetAllowed('mediaLink', after.targetType);
     return this.apply(updateMediaLinkOp(before, after));
   }
 
@@ -1259,7 +1227,7 @@ export class TreeService {
   }
 
   addIdentifier(identifier: IdentifierRecord): UndoRedoState {
-    assertNoteIsNotTarget(identifier.targetType);
+    assertTargetAllowed('identifier', identifier.targetType);
     return this.apply(addIdentifierOp(identifier));
   }
 
@@ -1268,7 +1236,7 @@ export class TreeService {
   }
 
   updateIdentifier(before: IdentifierRecord, after: IdentifierRecord): UndoRedoState {
-    assertNoteIsNotTarget(after.targetType);
+    assertTargetAllowed('identifier', after.targetType);
     return this.apply(updateIdentifierOp(before, after));
   }
 
@@ -1277,7 +1245,7 @@ export class TreeService {
   }
 
   addContact(contact: ContactRecord): UndoRedoState {
-    assertContactTarget(contact.targetType);
+    assertTargetAllowed('contact', contact.targetType);
     return this.apply(addContactOp(contact));
   }
 
@@ -1286,7 +1254,7 @@ export class TreeService {
   }
 
   updateContact(before: ContactRecord, after: ContactRecord): UndoRedoState {
-    assertContactTarget(after.targetType);
+    assertTargetAllowed('contact', after.targetType);
     return this.apply(updateContactOp(before, after));
   }
 
@@ -1361,7 +1329,7 @@ export class TreeService {
     targetId: string,
     kind: RecordSubmitterLink['kind'] = 'contributor',
   ): UndoRedoState {
-    assertNoteIsNotTarget(targetType);
+    assertTargetAllowed('recordSubmitter', targetType);
     return this.apply(addRecordSubmitterOp(submitterId, targetType, targetId, kind));
   }
 
@@ -1471,7 +1439,7 @@ export class TreeService {
 
   addTask(task: TaskRecord): UndoRedoState {
     for (const link of task.targets) {
-      assertNoteIsNotTarget(link.targetType);
+      assertTargetAllowed('taskLink', link.targetType);
     }
     const now = Date.now();
     return this.apply(
@@ -1498,7 +1466,7 @@ export class TreeService {
   }
 
   addTaskLink(link: TaskTargetLink): UndoRedoState {
-    assertNoteIsNotTarget(link.targetType);
+    assertTargetAllowed('taskLink', link.targetType);
     if (this.repo.getTask(link.taskId) === undefined) {
       throw new Error(`task ${link.taskId} no longer exists`);
     }
@@ -1517,6 +1485,9 @@ export class TreeService {
   }
 
   updateTask(before: TaskRecord, after: TaskRecord): UndoRedoState {
+    for (const link of after.targets) {
+      assertTargetAllowed('taskLink', link.targetType);
+    }
     return this.applyAfterCommit(() => {
       const current = this.repo.getTask(before.id);
       if (current === undefined) {

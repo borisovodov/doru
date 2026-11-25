@@ -59,8 +59,9 @@ in its README; that guarantee does not extend to the tree database.
   lowercase where they have a textual form.
 - Enum-like columns have no `CHECK` constraint. The only structural checks are
   the "exactly one owner" checks on `fact` and `association`.
-- `target_type` values are listed in `TARGET_TYPES`. Date slots are plain
-  `*_date_id` columns on the owner table; the role is the column name.
+- `target_type` values come from the per-family sets in
+  `packages/core/src/model/targetPolicy.ts`. Date slots are plain `*_date_id`
+  columns on the owner table; the role is the column name.
 
 ---
 
@@ -749,8 +750,8 @@ erDiagram
     }
 ```
 
-A media link is itself an attachment target, so it can carry a note or a
-citation in addition to its crop and sequence metadata.
+A media link is a source-only attachment host: citations may target it, while
+notes, media, identifiers, contacts, contributors, and tasks may not.
 
 ## Notes
 
@@ -844,8 +845,10 @@ erDiagram
 ```
 
 `record_submitter.kind` is `contributor`, `ancestor_interest`, or
-`descendant_interest`. The target may be any type in `TARGET_TYPES`, but the
-UI does not offer tasks as contributor targets.
+`descendant_interest`. The target is any type in
+`RECORD_SUBMITTER_TARGET_TYPES`; `task` and `media_link` are absent, so a
+contributor link cannot point at a task or a media link. `family_partner` and
+`family_child` link rows remain valid contributor targets.
 
 ## Attachments and research
 
@@ -924,41 +927,39 @@ mapped with 1 as the highest.
 
 ## Polymorphic targets
 
-The following tables use `(target_type, target_id)` without a foreign key:
+The following tables use `(target_type, target_id)` without a foreign key. Each
+link family has its own explicit set in
+`packages/core/src/model/targetPolicy.ts`; the service guards, attachment
+panel sections, `canAdd` flags, and target pickers all read those sets. There
+is no global runtime target list.
 
-| Table | What is attached |
-|---|---|
-| `note_link` | a note |
-| `citation` | a source citation |
-| `media_link` | a media record |
-| `identifier` | an external identifier |
-| `contact` | an email, phone, fax, URL, or www contact |
-| `task_link` | a task |
-| `record_submitter` | a contributor or research-interest link |
+| Table | Policy set | Allowed targets |
+|---|---|---|
+| `note_link` | `NOTE_LINK_TARGET_TYPES` | person, family, family_partner, family_child, family_marriage_status, fact, name, name_part, source, citation, media, media_file, place, place_name, place_hierarchy, repository, submitter, address, address_line, association, task, title |
+| `citation` | `CITATION_TARGET_TYPES` | person, family, family_partner, family_child, family_marriage_status, fact, name, name_part, source, citation, media, media_file, media_link, place, place_name, place_hierarchy, repository, submitter, address, address_line, association, title |
+| `media_link` | `MEDIA_LINK_TARGET_TYPES` | person, family, family_partner, family_child, family_marriage_status, fact, name, name_part, source, citation, media, media_file, place, place_name, place_hierarchy, repository, submitter, address, address_line, association, task, title |
+| `identifier` | `IDENTIFIER_TARGET_TYPES` | person, family, family_partner, family_child, family_marriage_status, fact, name, name_part, source, citation, media, media_file, place, place_name, place_hierarchy, repository, submitter, address, address_line, association, title |
+| `contact` | `CONTACT_TARGET_TYPES` | person, fact, address, repository, submitter |
+| `task_link` | `TASK_LINK_TARGET_TYPES` | person, family, family_partner, family_child, family_marriage_status, fact, name, name_part, source, citation, media, media_file, place, place_name, place_hierarchy, repository, address, address_line, association, title |
+| `record_submitter` | `RECORD_SUBMITTER_TARGET_TYPES` | person, family, family_partner, family_child, family_marriage_status, fact, name, name_part, source, citation, media, media_file, place, place_name, place_hierarchy, repository, submitter, address, address_line, association, title |
 
-`task_link` stores one task's links to any number of targets. Its target
-picker excludes `task` and `submitter`: task-to-task chains duplicate the
-research log, and a task is not a citation of a submitter's contribution.
-Contributors and identifiers are likewise not offered on task pages. A source
-is a valid target (for example, "check this source"), though a task without a
+`name` refers to the `person_name` table. `family_witness` is deliberately
+absent from every set: it is free text without stable identity. A note is not
+in the target vocabulary at all: it is a leaf annotation and no attachment may
+point at it.
+
+`task_link` stores one task's links to any number of targets. A task may point
+at a source (for example, "check this source"), the records the work concerns,
+and media, but not at another `task`, a `submitter`, or a `media_link`.
+Task-to-task chains duplicate the research log, and a task is not a citation of
+a submitter's contribution or of a link row. Notes and media may still target
+a task, but identifiers, contributors, and citations may not. A task without a
 person or family target has no GEDCOM embedding slot and is dropped on export.
-Every other target type remains available:
-
-```text
-person, family, family_partner, family_child, family_marriage_status,
-fact, name, name_part, citation, source, media, media_file,
-media_link, place, place_name, place_hierarchy, repository,
-address, address_line, association, title
-```
-
-`name` in this list refers to the `person_name` table. `family_witness` is
-deliberately absent: it is free text without stable identity.
 
 A `citation` never targets a task: a source is evidence for a genealogical
 assertion, while a task is a work item that asserts nothing. The task tab
 therefore has no sources section, and `TreeService` rejects a citation whose
-target type is `task`; `task` remains a valid target for notes, media and the
-other non-citation attachments.
+target type is `task`. `media_link` is a valid citation target.
 
 A `contact` row exists only on a target GEDCOM can carry contact details for:
 `person`, `fact`, `address`, `repository`, or `submitter`. Addresses carry
@@ -970,9 +971,15 @@ supported target. `TreeService` rejects a contact on any other target; the
 table itself remains polymorphic and cannot enforce the rule with a foreign
 key.
 
-Because there is no SQL foreign key, `TARGET_TYPES` plus the op layer is the
-integrity boundary. Every op that deletes or detaches a target must clean its
-attachment rows, and the inverse op restores the captured attachment snapshot.
+`media_link` is a source-only attachment host: only citations may target it.
+It cannot own notes, media, identifiers, contacts, contributors, or tasks, and
+a task cannot target it. A media link may still target a task as a media
+attachment.
+
+Because there is no SQL foreign key, the target-policy sets plus the op layer
+are the integrity boundary. Every op that deletes or detaches a target must
+clean its attachment rows, and the inverse op restores the captured attachment
+snapshot.
 
 ## Foreign keys and deletion behavior
 
@@ -1069,8 +1076,10 @@ When adding a table or column, keep the following checklist:
 3. Add `position` when the rows are user-ordered.
 4. Use `ON DELETE CASCADE` for owned child rows and `SET NULL` for optional
    shared references.
-5. If the new row can receive notes, sources, media, tasks, or other
-   attachments, add its type to `TARGET_TYPES` and wire the op cleanup.
+5. If the new row can receive notes, sources, media, identifiers, contacts,
+   contributors, or tasks, add its type to the relevant sets in
+   `packages/core/src/model/targetPolicy.ts`, render the matching panel
+   section, and wire the op cleanup.
 6. If the new row can own dates, add its `*_date_id` columns (with
    `ON DELETE RESTRICT`), indexes, and repository delete cleanup.
 7. Add indexes for every foreign-key child column and for ordered lists.

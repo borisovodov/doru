@@ -4,6 +4,8 @@
  * no database or UI code lives here.
  */
 
+export * from './targetPolicy';
+
 export type Sex = 'M' | 'F' | 'X' | 'U';
 
 // ---------------------------------------------------------------------------
@@ -789,8 +791,9 @@ export interface IdentifierRecord {
 
 /**
  * A contact detail on a target that GEDCOM can carry one for (see
- * `CONTACT_TARGET_TYPES`). `kind` is deliberately open: every kind is offered
- * on every supported target, and unknown values survive a round trip.
+ * `CONTACT_TARGET_TYPES` in `targetPolicy.ts`). `kind` is deliberately open:
+ * every kind is offered on every supported target, and unknown values survive
+ * a round trip.
  */
 export interface ContactRecord {
   id: string;
@@ -1019,61 +1022,6 @@ export interface TitleRecord {
   repositoryId?: string | undefined;
   callNumber?: string | undefined;
   sequence?: number | undefined;
-}
-
-// ---------------------------------------------------------------------------
-// Attachments
-// ---------------------------------------------------------------------------
-
-/**
- * The machine-readable list of attachment target types. The polymorphic
- * attachment tables pair `target_type` with the target row's UUID. `note` is
- * deliberately absent: a note is a leaf annotation that stores text and can
- * be attached to records, but no attachment may target it. Free-text
- * `family_witness` rows are likewise absent: they are names without stable
- * identity and are not attachment targets.
- */
-export const TARGET_TYPES = [
-  'person',
-  'family',
-  'family_partner',
-  'family_child',
-  'family_marriage_status',
-  'fact',
-  'name',
-  'name_part',
-  'source',
-  'citation',
-  'media',
-  'media_file',
-  'media_link',
-  'place',
-  'place_name',
-  'place_hierarchy',
-  'repository',
-  'submitter',
-  'address',
-  'address_line',
-  'association',
-  'task',
-  'title',
-] as const;
-
-export type TargetType = (typeof TARGET_TYPES)[number];
-
-/**
- * The targets that can own contact details. GEDCOM keeps PHON, EMAIL, FAX and
- * WWW inside addresses (5.5.x), on event details and on the REPO and SUBM
- * records (7.0); direct INDI contacts are a vendor extension Dóru keeps on a
- * person. Every other attachment target has no contact slot on import or
- * export, so a contact row there would be dead data.
- */
-export const CONTACT_TARGET_TYPES = ['person', 'fact', 'address', 'repository', 'submitter'] as const;
-
-export type ContactTargetType = (typeof CONTACT_TARGET_TYPES)[number];
-
-export function isContactTargetType(type: string): type is ContactTargetType {
-  return (CONTACT_TARGET_TYPES as readonly string[]).includes(type);
 }
 
 // ---------------------------------------------------------------------------

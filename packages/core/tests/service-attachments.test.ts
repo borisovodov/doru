@@ -313,20 +313,110 @@ describe('TreeService attachments', () => {
       service.addPerson({ id: 'P1', names: [], sex: 'U', facts: [] });
       service.addTask({ id: 'T1', text: 'Find the record', targets: [] });
 
-      expect(() => service.addSource(source(), 'task', 'T1')).toThrow('A source cannot be attached to a task.');
+      expect(() => service.addSource(source(), 'task', 'T1')).toThrow('A citation cannot target a task.');
       expect(fixture.repo.listCitationsFor('task', 'T1')).toEqual([]);
 
       service.addSource(source());
-      expect(() => service.attachSource('S1', 'task', 'T1')).toThrow('A source cannot be attached to a task.');
+      expect(() => service.attachSource('S1', 'task', 'T1')).toThrow('A citation cannot target a task.');
       expect(fixture.repo.listCitationsFor('task', 'T1')).toEqual([]);
 
       service.attachSource('S1', 'person', 'P1');
       const [citation] = fixture.repo.listCitationRecordsFor('person', 'P1');
       expect(() => service.updateCitation(citation!, { ...citation!, targetType: 'task', targetId: 'T1' })).toThrow(
-        'A source cannot be attached to a task.',
+        'A citation cannot target a task.',
       );
       expect(fixture.repo.listCitationRecordsFor('person', 'P1')).toEqual([citation]);
       expect(fixture.repo.listCitationsFor('task', 'T1')).toEqual([]);
+    } finally {
+      cleanupRepo(fixture);
+    }
+  });
+
+  it('enforces the task link target policy', () => {
+    const { fixture, service } = makeService();
+    try {
+      service.addPerson({ id: 'P1', names: [], sex: 'U', facts: [] });
+      service.addTask({ id: 'T1', text: 'Find the record', targets: [] });
+
+      expect(() =>
+        service.addTask({
+          id: 'T2',
+          text: 'Another task',
+          targets: [{ id: 'TL1', taskId: 'T2', targetType: 'task', targetId: 'T1' }],
+        }),
+      ).toThrow('A taskLink cannot target a task.');
+      expect(() => service.addTaskLink({ id: 'TL2', taskId: 'T1', targetType: 'submitter', targetId: 'SU1' })).toThrow(
+        'A taskLink cannot target a submitter.',
+      );
+      expect(() => service.addTaskLink({ id: 'TL3', taskId: 'T1', targetType: 'media_link', targetId: 'ML1' })).toThrow(
+        'A taskLink cannot target a media_link.',
+      );
+      expect(fixture.repo.listTaskLinksFor('task', 'T1')).toEqual([]);
+      expect(fixture.repo.listTaskLinksFor('submitter', 'SU1')).toEqual([]);
+      expect(fixture.repo.listTaskLinksFor('media_link', 'ML1')).toEqual([]);
+
+      service.addTaskLink({ id: 'TL4', taskId: 'T1', targetType: 'person', targetId: 'P1' });
+      service.addTaskLink({ id: 'TL5', taskId: 'T1', targetType: 'source', targetId: 'S1' });
+      const stored = fixture.repo.getTask('T1')!;
+      expect(() =>
+        service.updateTask(stored, {
+          ...stored,
+          targets: [...stored.targets, { id: 'TL6', taskId: 'T1', targetType: 'task', targetId: 'T1' }],
+        }),
+      ).toThrow('A taskLink cannot target a task.');
+      expect(fixture.repo.listTaskLinksFor('task', 'T1')).toEqual([]);
+    } finally {
+      cleanupRepo(fixture);
+    }
+  });
+
+  it('enforces note and media link target policies', () => {
+    const { fixture, service } = makeService();
+    try {
+      expect(() => service.addNote(note({ targetType: 'media_link', targetId: 'ML1' }))).toThrow(
+        'A noteLink cannot target a media_link.',
+      );
+      service.addNote(note());
+      expect(() => service.attachNote('N1', { id: 'L2', targetType: 'media_link', targetId: 'ML1' })).toThrow(
+        'A noteLink cannot target a media_link.',
+      );
+
+      service.addMedia({ id: 'M1', title: 'Scan' });
+      expect(() => service.addMedia({ id: 'M2', title: 'Copy', targetType: 'media_link', targetId: 'ML1' })).toThrow(
+        'A mediaLink cannot target a media_link.',
+      );
+      expect(() =>
+        service.attachMedia({ id: 'ML2', mediaId: 'M1', targetType: 'media_link', targetId: 'ML1' }),
+      ).toThrow('A mediaLink cannot target a media_link.');
+      expect(() => service.attachMediaToTargets('M1', [{ targetType: 'media_link', targetId: 'ML1' }])).toThrow(
+        'A mediaLink cannot target a media_link.',
+      );
+      expect(fixture.repo.listMediaLinksFor('media_link', 'ML1')).toEqual([]);
+      expect(fixture.repo.listNotesFor('media_link', 'ML1')).toEqual([]);
+    } finally {
+      cleanupRepo(fixture);
+    }
+  });
+
+  it('enforces identifier and contributor target policies', () => {
+    const { fixture, service } = makeService();
+    try {
+      expect(() => service.addIdentifier(identifier({ targetType: 'task', targetId: 'T1' }))).toThrow(
+        'A identifier cannot target a task.',
+      );
+      service.addIdentifier(identifier());
+      expect(() =>
+        service.updateIdentifier(identifier(), identifier({ targetType: 'media_link', targetId: 'ML1' })),
+      ).toThrow('A identifier cannot target a media_link.');
+
+      expect(() => service.addRecordSubmitter('SU1', 'task', 'T1')).toThrow('A recordSubmitter cannot target a task.');
+      expect(() => service.addRecordSubmitter('SU1', 'media_link', 'ML1')).toThrow(
+        'A recordSubmitter cannot target a media_link.',
+      );
+      expect(fixture.repo.listIdentifiersFor('task', 'T1')).toEqual([]);
+      expect(fixture.repo.listIdentifiersFor('media_link', 'ML1')).toEqual([]);
+      expect(fixture.repo.listRecordSubmittersFor('task', 'T1')).toEqual([]);
+      expect(fixture.repo.listRecordSubmittersFor('media_link', 'ML1')).toEqual([]);
     } finally {
       cleanupRepo(fixture);
     }
@@ -338,12 +428,10 @@ describe('TreeService attachments', () => {
       service.addNote(note());
       service.addSource(source());
 
-      expect(() => service.attachSource('S1', 'note', 'N1')).toThrow('A note cannot be an attachment target.');
-      expect(() => service.addSource(source({ id: 'S2' }), 'note', 'N1')).toThrow(
-        'A note cannot be an attachment target.',
-      );
+      expect(() => service.attachSource('S1', 'note', 'N1')).toThrow('A citation cannot target a note.');
+      expect(() => service.addSource(source({ id: 'S2' }), 'note', 'N1')).toThrow('A citation cannot target a note.');
       expect(() => service.attachSourceToTargets('S1', [{ targetType: 'note', targetId: 'N1' }])).toThrow(
-        'A note cannot be an attachment target.',
+        'A citation cannot target a note.',
       );
       expect(fixture.repo.listCitationRecordsFor('note', 'N1')).toEqual([]);
 
@@ -351,13 +439,13 @@ describe('TreeService attachments', () => {
       service.attachSource('S1', 'person', 'P1');
       const [citation] = fixture.repo.listCitationRecordsFor('person', 'P1');
       expect(() => service.updateCitation(citation!, { ...citation!, targetType: 'note', targetId: 'N1' })).toThrow(
-        'A note cannot be an attachment target.',
+        'A citation cannot target a note.',
       );
       expect(fixture.repo.listCitationRecordsFor('person', 'P1')).toEqual([citation]);
 
       service.addTask({ id: 'T1', text: 'Find the record', targets: [] });
       expect(() => service.addTaskLink({ id: 'TL1', taskId: 'T1', targetType: 'note', targetId: 'N1' })).toThrow(
-        'A note cannot be an attachment target.',
+        'A taskLink cannot target a note.',
       );
       expect(() =>
         service.addTask({
@@ -365,27 +453,27 @@ describe('TreeService attachments', () => {
           text: 'Another task',
           targets: [{ id: 'TL2', taskId: 'T2', targetType: 'note', targetId: 'N1' }],
         }),
-      ).toThrow('A note cannot be an attachment target.');
+      ).toThrow('A taskLink cannot target a note.');
 
       expect(() => service.attachNote('N1', { id: 'L2', targetType: 'note', targetId: 'N2' })).toThrow(
-        'A note cannot be an attachment target.',
+        'A noteLink cannot target a note.',
       );
       expect(() => service.addNote(note({ id: 'N2', targetType: 'note', targetId: 'N1' }))).toThrow(
-        'A note cannot be an attachment target.',
+        'A noteLink cannot target a note.',
       );
 
       service.addMedia({ id: 'M1', links: [] });
       expect(() => service.attachMedia({ id: 'ML1', mediaId: 'M1', targetType: 'note', targetId: 'N1' })).toThrow(
-        'A note cannot be an attachment target.',
+        'A mediaLink cannot target a note.',
       );
       expect(() => service.attachMediaToTargets('M1', [{ targetType: 'note', targetId: 'N1' }])).toThrow(
-        'A note cannot be an attachment target.',
+        'A mediaLink cannot target a note.',
       );
 
       expect(() => service.addIdentifier(identifier({ targetType: 'note', targetId: 'N1' }))).toThrow(
-        'A note cannot be an attachment target.',
+        'A identifier cannot target a note.',
       );
-      expect(() => service.addRecordSubmitter('SU1', 'note', 'N1')).toThrow('A note cannot be an attachment target.');
+      expect(() => service.addRecordSubmitter('SU1', 'note', 'N1')).toThrow('A recordSubmitter cannot target a note.');
 
       // The failed attempts left no rows behind.
       expect(fixture.repo.listCitationRecordsFor('note', 'N1')).toEqual([]);
@@ -650,14 +738,14 @@ describe('TreeService attachments', () => {
     try {
       service.addTask({ id: 'T1', text: 'Find the record', targets: [] });
       expect(() => service.addContact(contact({ targetType: 'task', targetId: 'T1' }))).toThrow(
-        'A contact cannot be attached to a task.',
+        'A contact cannot target a task.',
       );
       expect(fixture.repo.listContactsFor('task', 'T1')).toEqual([]);
 
       const familyContact = contact({ id: 'C2', targetType: 'family', targetId: 'F1' });
       fixture.repo.insertContact(familyContact);
       expect(() => service.updateContact(familyContact, { ...familyContact, value: '+7 495 000-00-00' })).toThrow(
-        'A contact cannot be attached to a family.',
+        'A contact cannot target a family.',
       );
     } finally {
       cleanupRepo(fixture);
@@ -777,19 +865,19 @@ describe('TreeService attachments', () => {
     }
   });
 
-  it('restores a submitter link only once across media and consumer snapshots', () => {
+  it('restores submitter links and contributor rows exactly once on undo', () => {
     const { fixture, service } = makeService();
     try {
       service.addSubmitter(submitter());
       service.addMedia({ id: 'M1', title: 'Scan' });
       service.attachMedia({ id: 'ML1', mediaId: 'M1', targetType: 'submitter', targetId: 'SU1' });
-      service.addRecordSubmitter('SU1', 'media_link', 'ML1');
-      const link = fixture.repo.listRecordSubmittersFor('media_link', 'ML1')[0]!;
+      service.addRecordSubmitter('SU1', 'media', 'M1');
+      const link = fixture.repo.listRecordSubmittersFor('media', 'M1')[0]!;
 
       service.deleteSubmitter(submitter());
       expect(fixture.repo.getSubmitter('SU1')).toBeUndefined();
       expect(fixture.repo.getMedia('M1')?.links).toEqual([]);
-      expect(fixture.repo.listRecordSubmittersFor('media_link', 'ML1')).toEqual([]);
+      expect(fixture.repo.listRecordSubmittersFor('media', 'M1')).toEqual([]);
 
       service.undo();
 
@@ -797,7 +885,7 @@ describe('TreeService attachments', () => {
       expect(fixture.repo.getMedia('M1')?.links).toEqual([
         expect.objectContaining({ id: 'ML1', targetType: 'submitter', targetId: 'SU1' }),
       ]);
-      expect(fixture.repo.listRecordSubmittersFor('media_link', 'ML1')).toEqual([link]);
+      expect(fixture.repo.listRecordSubmittersFor('media', 'M1')).toEqual([link]);
     } finally {
       cleanupRepo(fixture);
     }

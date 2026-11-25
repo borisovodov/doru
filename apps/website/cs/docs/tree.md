@@ -1,5 +1,5 @@
 ---
-source-hash: d6792c4fa89a
+source-hash: 99b1e27e511c
 ---
 
 # Práce se stromem
@@ -75,11 +75,9 @@ adresy přímo na místě.
 
 ## Úkoly
 
-Úkoly mají datum vytvoření a datum připomenutí. Uzavření úkolu mění pouze jeho stav; samostatné datum dokončení se neukládá. Každý editor má sekci **Úkoly**: přidejte tam úkol a automaticky se
-propojí s daným záznamem. Události, jména a citace mají vlastní sekci
-Úkoly ve svém panelu příloh. **Související s** propojí úkol s jedním nebo několika záznamy ve stromu — osobou, rodinou, událostí, jménem, zdrojem, citací, médiem, místem, archivem, adresou nebo dílem; ponechte prázdné pro samostatný úkol. Úkol je sdílený: úprava kdekoli aktualizuje stejný záznam a smazání souvisejícího záznamu úkol ponechá na místě. Pomocí **Připojit existující úkol** můžete znovu použít sdílený úkol místo vytvoření nového.
+Úkoly mají datum vytvoření a datum připomenutí. Uzavření úkolu mění pouze jeho stav; samostatné datum dokončení se neukládá. Většina editorů má sekci **Úkoly**: přidejte tam úkol a automaticky se propojí s daným záznamem. Výjimkou jsou editor úkolu a editor odesílatele a řádek mediální vazby má pouze sekci Prameny: karta úkolu si ponechává Poznámky a Média, karta odesílatele nemá sekci Úkoly a mediální vazba není cílem úkolů. Události, jména a citace mají vlastní sekci Úkoly ve svém panelu příloh. **Související s** propojí úkol s jedním nebo několika záznamy ve stromu — osobou, rodinou, událostí, jménem, zdrojem, citací, médiem, místem, archivem, adresou nebo dílem, ale ne s dalším úkolem, odesílatelem nebo mediální vazbou; ponechte prázdné pro samostatný úkol. Úkol je sdílený: úprava kdekoli aktualizuje stejný záznam a smazání souvisejícího záznamu úkol ponechá na místě. Pomocí **Připojit existující úkol** můžete znovu použít sdílený úkol místo vytvoření nového.
 
-Díla, adresy, spojení a vazby partnera/dítěte v rodinách mají stejné sekce Poznámky, Prameny, Identifikátory, Přispěvatelé a Úkoly jako karty hlavních entit. Adresy mají také Kontakty. Úkoly si zachovávají sekce Poznámky, Identifikátory, Přispěvatelé a starší sekci Úkoly, ale nemají Prameny ani Kontakty.
+Díla, adresy, spojení a vazby partnera/dítěte v rodinách mají stejné sekce Poznámky, Prameny, Identifikátory, Přispěvatelé a Úkoly jako karty hlavních entit. Adresy mají také Kontakty. Úkoly si zachovávají Poznámky a Média, ale nemají Prameny, Identifikátory, Kontakty, Přispěvatele ani Úkoly. Mediální vazba má pouze Prameny.
 
 ## Média
 

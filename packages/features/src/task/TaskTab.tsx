@@ -41,7 +41,7 @@ import { nls } from '../nls';
 /** Media targets stay out of the picker while media editing is hidden. */
 const VISIBLE_TARGET_TYPES = MEDIA_VISIBLE
   ? TASK_TARGET_TYPES
-  : TASK_TARGET_TYPES.filter((type) => type !== 'media' && type !== 'media_file' && type !== 'media_link');
+  : TASK_TARGET_TYPES.filter((type) => type !== 'media' && type !== 'media_file');
 
 export function TaskTab({
   entityId,
@@ -410,6 +410,7 @@ function TaskTabBody({
           targetId={taskId}
           api={api}
           sources={sources}
+          sections={['notes', 'media']}
           onOpenMedia={onOpenMedia}
           onOpenSource={onOpenSource}
         />

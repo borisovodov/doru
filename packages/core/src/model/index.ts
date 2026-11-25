@@ -4,7 +4,6 @@ export type {
   AttachmentsSnapshot,
   CitationRecord,
   ContactRecord,
-  ContactTargetType,
   DateComponent,
   DateQuality,
   DateValue,
@@ -37,7 +36,6 @@ export type {
   SourceText,
   SubmitterRecord,
   TargetRef,
-  TargetType,
   TaskPriority,
   TaskRecord,
   TaskStatus,
@@ -47,10 +45,8 @@ export type {
   TreeDocument,
 } from './types';
 export {
-  CONTACT_TARGET_TYPES,
   FACT_FLAGS,
   IMAGE_EXTENSIONS,
-  TARGET_TYPES,
   TASK_PRIORITIES,
   TASK_STATUSES,
   canonicalizeTaskStatus,
@@ -60,7 +56,6 @@ export {
   emptyDocument,
   factOf,
   factYear,
-  isContactTargetType,
   isImagePath,
   isProjectMediaPath,
   isVisibleMedia,
@@ -69,3 +64,4 @@ export {
   placeName,
   signedYear,
 } from './types';
+export * from './targetPolicy';

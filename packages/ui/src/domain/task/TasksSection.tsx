@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { X } from 'lucide-react';
 import type { TaskRecord, TaskTargetLink } from '@doru/core';
-import { normalizeTaskPriority, normalizeTaskStatus } from '@doru/core/model';
+import { isAttachmentTargetAllowed, normalizeTaskPriority, normalizeTaskStatus } from '@doru/core/model';
 import { Button } from '../../atoms/button/Button';
 import { Chip } from '../../atoms/display/Chip';
 import { EmptyText } from '../../atoms/feedback/EmptyText';
@@ -12,7 +12,6 @@ import { AttachExisting } from '../../patterns/attach-existing/AttachExisting';
 import { SectionCard } from '../../patterns/section-card/SectionCard';
 import { nls } from '../../nls';
 import { formatTimestamp } from '../format/format';
-import { TASK_TARGET_TYPES } from './taskTargets';
 import './TasksSection.css';
 
 /** The task operations an entity editor needs for one target. */
@@ -34,12 +33,14 @@ export function TasksSection({
   targetType,
   targetId,
   api,
+  canAdd = isAttachmentTargetAllowed('taskLink', targetType),
 }: {
   targetType: string;
   targetId: string;
   api: TasksSectionApi;
+  /** False when the target cannot own task links (a task, submitter, or media link). */
+  canAdd?: boolean;
 }) {
-  const canAdd = (TASK_TARGET_TYPES as readonly string[]).includes(targetType);
   const [tasks, setTasks] = useState<TaskRecord[]>([]);
   const [allTasks, setAllTasks] = useState<TaskRecord[]>([]);
   const [draft, setDraft] = useState('');
@@ -128,7 +129,8 @@ export function TasksSection({
     .sort(
       (a, b) => Number(normalizeTaskStatus(a.status) === 'closed') - Number(normalizeTaskStatus(b.status) === 'closed'),
     );
-  // Sources and tasks cannot gain child tasks; legacy links stay visible.
+  // A target that cannot own tasks (a task, submitter, or media link) hides
+  // the empty section; legacy links stay visible.
   if (!canAdd && sorted.length === 0) {
     return null;
   }

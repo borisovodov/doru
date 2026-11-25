@@ -200,7 +200,8 @@ describe('importGedcomDataset edge coverage', () => {
       expect(repo.listIdentifiersFor('submitter', submitter.id)).toEqual([]);
       expect(repo.listNotesFor('submitter', submitter.id)).toHaveLength(1);
 
-      // Free-standing task with fields and uid.
+      // Free-standing task with fields. The parser keeps `_UID`, but the tree
+      // drops it: an identifier cannot target a task.
       const tasks = repo.listTasks();
       expect(tasks).toHaveLength(1);
       expect(tasks[0]).toMatchObject({
@@ -209,7 +210,7 @@ describe('importGedcomDataset edge coverage', () => {
         status: 'open',
       });
       expect(tasks[0]).not.toHaveProperty('category');
-      expect(repo.listIdentifiersFor('task', tasks[0]!.id).map((identifier) => identifier.value)).toEqual(['task-uid']);
+      expect(repo.listIdentifiersFor('task', tasks[0]!.id)).toEqual([]);
 
       // The occurrence became one fact per participant.
       const facts = repo.listAllFacts();

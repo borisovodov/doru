@@ -109,6 +109,11 @@ status instead. The record-form `_TTIL` title and the GEDCOM-L `TYPE` task kind 
 solution text are dropped too: Dóru has one task text, no task-type taxonomy,
 and no separate task-result field.
 
+The `_TODO._UID` value is parsed by `@doru/gedcom` (it stays on
+`TodoRecord.uids`) but is not imported into the tree and is never written on
+export: an identifier cannot target a task. The task's own identifiers section
+does not exist, so there is no editor path for such a row either.
+
 ## Tasks are shared across targets
 
 A task is one record with any number of `task_link` rows, not a copy per
@@ -120,25 +125,35 @@ separate tasks. Sources are valid targets (a task can be about checking or
 acquiring one), but tasks linked only to targets without a GEDCOM embedding
 slot (places, sources, …) are dropped on export.
 
-## Tasks are not citation targets
+## Attachment target policy
 
-A task is a research work item, not an assertion about a person, family or
-fact, so a source has nothing to cite on it. The task tab does not render the
-sources section, and `TreeService` rejects a citation whose target type is
-`task`; agents and IPC callers therefore cannot create one either. This also
-keeps the task model from forming a task → citation → task cycle. GEDCOM has
-no citation slot on `_TODO`, so import and export are unaffected.
+Every polymorphic link family has one explicit allowed-target set in
+`packages/core/src/model/targetPolicy.ts`. The service guards, the attachment
+panel's section visibility, every `canAdd` flag, and every target picker read
+those sets; there is no global runtime target list and no second UI list.
 
-## Notes are not attachment targets
+| Family | Allowed targets |
+|---|---|
+| Note link | Every target type except `media_link`. A note is never a target. |
+| Citation | Every target type except `task`; `media_link` is allowed. |
+| Media link | Every target type except `media_link`; a task is a valid media target. |
+| Identifier | Every target type except `task` and `media_link`. |
+| Contact | `person`, `fact`, `address`, `repository`, `submitter`. |
+| Task link | Every target type except `task`, `submitter`, and `media_link`; `source` is valid. |
+| Contributor link | Every target type except `task` and `media_link`. |
+
+Consequences: a source has nothing to cite on a task (a task asserts nothing),
+a task card keeps Notes and Media only, a submitter card has no Tasks section,
+a media link carries Sources only, and identifiers and contributors are absent
+from task cards. `TreeService` rejects every disallowed pair with one shared
+guard, so agents and IPC callers follow the same matrix as the UI.
 
 A note is a leaf annotation: it attaches to a record and stores its text, but
-no attachment may point at it. `TreeService` rejects note targets for
-citations, tasks, media, identifiers, contributors and note links; the target
-pickers offer no notes, and a note row has no attachment panel.
-GEDCOM 7 allows `SOUR` inside both `NOTE` and `SNOTE`; `@doru/gedcom` still
-parses it, but the core mapping drops it on import and never writes it on
-export. GEDCOM `UID`/`EXID`/`REFN` identifiers and vendor `_SUBM` links on
-notes are dropped the same way.
+no attachment may point at it, and a note row has no attachment panel. GEDCOM 7
+allows `SOUR` inside both `NOTE` and `SNOTE`; `@doru/gedcom` still parses it, but
+the core mapping drops it on import and never writes it on export. GEDCOM
+`UID`/`EXID`/`REFN` identifiers and vendor `_SUBM` links on notes are dropped
+the same way.
 
 ## Notes store text only
 
@@ -265,7 +280,8 @@ instead of stale values. `FORM` is synthesized
 from the file path on export; `TRAN` is written only for GEDCOM 7.0. Sources
 and notes attach to the media record (`media`); vendor `SOUR` lines under an
 `OBJE` link attach to the link (`media_link`) and are editable in the media
-tab.
+tab. A media link is a source-only nested row: citations may target it, while
+notes, media, identifiers, contacts, contributors, and tasks may not.
 
 ## API stability before 1.0.0
 

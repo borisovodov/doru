@@ -42,7 +42,7 @@ export function IdentifiersSection({
   onAdd: (identifier: IdentifierRecord) => Promise<void>;
   onUpdate: (before: IdentifierRecord, after: IdentifierRecord) => Promise<void>;
   onDelete: (identifier: IdentifierRecord) => Promise<void>;
-  /** False for targets that must not gain new identifiers (tasks). */
+  /** False for targets that must not gain new identifiers (tasks and media links). */
   canAdd?: boolean;
 }) {
   const [namespace, setNamespace] = useState('');
@@ -102,8 +102,8 @@ export function IdentifiersSection({
   // `rin` was removed from the Dóru model; legacy rows stay in old files but
   // must not surface in the UI.
   const visibleIdentifiers = identifiers.filter((identifier) => identifier.namespace !== 'rin');
-  // A target that cannot gain identifiers (a task) hides the empty section;
-  // legacy identifiers stay visible and removable.
+  // A target that cannot gain identifiers (a task or media link) hides the
+  // empty section; legacy identifiers stay visible and removable.
   if (!canAdd && visibleIdentifiers.length === 0) {
     return null;
   }

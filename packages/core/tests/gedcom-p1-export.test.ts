@@ -173,6 +173,47 @@ describe('P1 GEDCOM export gaps', () => {
       cleanupRepo(fixture);
     }
   });
+  it('does not export task identifiers as _UID', () => {
+    const fixture = makeRepo();
+    try {
+      const { repo } = fixture;
+      repo.insertPerson({ id: 'P1', names: [], sex: 'U', facts: [] });
+      repo.insertTask({ id: 'T1', text: 'Free task', targets: [] });
+      repo.insertTask({
+        id: 'T2',
+        text: 'Attached task',
+        targets: [{ id: 'TL2', taskId: 'T2', targetType: 'person', targetId: 'P1' }],
+      });
+      repo.insertIdentifier({
+        id: 'TI1',
+        targetType: 'task',
+        targetId: 'T1',
+        namespace: 'uid',
+        value: 'free-task-uid',
+      });
+      repo.insertIdentifier({
+        id: 'TI2',
+        targetType: 'task',
+        targetId: 'T2',
+        namespace: 'uid',
+        value: 'attached-task-uid',
+      });
+
+      for (const serialize of [serializeGedcom70, serializeGedcom551]) {
+        const serialized = serialize(buildGedcomDataset(repo));
+        expect(serialized.ok).toBe(true);
+        if (!serialized.ok) {
+          continue;
+        }
+        expect(serialized.value).not.toContain('free-task-uid');
+        expect(serialized.value).not.toContain('attached-task-uid');
+        expect(serialized.value).not.toMatch(/^1 _UID /m);
+      }
+    } finally {
+      cleanupRepo(fixture);
+    }
+  });
+
   it('omits task timestamps outside the Date range instead of throwing', () => {
     const fixture = makeRepo();
     try {
