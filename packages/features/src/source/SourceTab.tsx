@@ -11,7 +11,7 @@ import type {
   TargetRef,
   TitleRecord,
 } from '@doru/core';
-import { TARGET_TYPES } from '@doru/core/model';
+import { CITATION_TARGET_TYPES } from '@doru/core/model';
 import { CitationAttachments, useAttachments } from '../attachments';
 import { AutoSaveError } from '../autoSaveFeedback';
 import { useEntityDelete } from '../entityDelete';
@@ -41,9 +41,6 @@ import { nls } from '../nls';
 function newSourceDraft(): SourceDraft {
   return { ...emptySourceDraft(), title: nls.t('features.tree.source.newSource') };
 }
-
-/** A source citation may point at any record except a task. */
-const SOURCE_TARGET_TYPES = TARGET_TYPES.filter((type) => type !== 'task');
 
 export function SourceTab({
   entityId,
@@ -467,7 +464,7 @@ function SourceTabBody({
           {attachSourceToTargets !== undefined && (
             <SectionCard title={nls.t('features.tasks.target')}>
               <TargetPicker
-                allowedTypes={SOURCE_TARGET_TYPES}
+                allowedTypes={CITATION_TARGET_TYPES}
                 value={linkTargets}
                 onChange={setLinkTargets}
                 ariaLabel={nls.t('features.tasks.target')}

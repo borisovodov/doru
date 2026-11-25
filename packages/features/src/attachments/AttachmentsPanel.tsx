@@ -1,6 +1,6 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import type { CitationRecord, SourceRecord } from '@doru/core';
-import { isContactTargetType } from '@doru/core/model';
+import { isAttachmentTargetAllowed, type AttachmentTargetKind } from '@doru/core/model';
 import { MEDIA_VISIBLE } from '@doru/platform';
 import {
   ContactsSection,
@@ -28,6 +28,17 @@ const ALL_SECTIONS: readonly AttachmentSection[] = [
   'contributors',
   'tasks',
 ];
+
+/** The attachment family that governs each panel section. */
+const SECTION_TARGET_KIND: Readonly<Record<AttachmentSection, AttachmentTargetKind>> = {
+  notes: 'noteLink',
+  sources: 'citation',
+  media: 'mediaLink',
+  identifiers: 'identifier',
+  contacts: 'contact',
+  contributors: 'recordSubmitter',
+  tasks: 'taskLink',
+};
 
 /**
  * The universal attachment surface of one target. Fact, name and citation
@@ -64,23 +75,18 @@ export function AttachmentsPanel({
     return null;
   }
 
-  // A task is a work item, not an assertion about the tree: a source cited on
-  // it would be evidence for nothing. Hide the sources section regardless of
-  // the caller's list, matching the service-level rejection in @doru/core.
-  // Contacts likewise exist only on targets GEDCOM can carry them for; other
-  // targets have no import or export path.
-  const availableSections = sections.filter((section) => {
-    if (section === 'sources' && targetType === 'task') {
-      return false;
-    }
-    if (section === 'contacts' && !isContactTargetType(targetType)) {
-      return false;
-    }
-    return true;
-  });
+  // Every section is filtered through the core target policy, so a target
+  // that the link family cannot point at never shows an empty or unusable
+  // section. The explicit `sections` list only narrows the caller's request.
+  const availableSections = sections.filter((section) =>
+    isAttachmentTargetAllowed(SECTION_TARGET_KIND[section], targetType),
+  );
   const include = new Set(
     MEDIA_VISIBLE ? availableSections : availableSections.filter((section) => section !== 'media'),
   );
+  const canAddIdentifier = isAttachmentTargetAllowed('identifier', targetType);
+  const canAddContributor = isAttachmentTargetAllowed('recordSubmitter', targetType);
+  const canAddTask = isAttachmentTargetAllowed('taskLink', targetType);
   return (
     <>
       {include.has('notes') && (
@@ -144,7 +150,7 @@ export function AttachmentsPanel({
           targetType={targetType}
           targetId={targetId}
           identifiers={identifiers}
-          canAdd={targetType !== 'task'}
+          canAdd={canAddIdentifier}
           onAdd={async (identifier) => {
             await api.addIdentifier(identifier);
             await refresh();
@@ -184,7 +190,7 @@ export function AttachmentsPanel({
           targetId={targetId}
           submitters={submitters}
           links={contributors}
-          canAdd={targetType !== 'task'}
+          canAdd={canAddContributor}
           onAdd={async (submitterId, type, id, kind) => {
             await api.addRecordSubmitter(submitterId, type, id, kind);
             await refresh();
@@ -195,7 +201,9 @@ export function AttachmentsPanel({
           }}
         />
       )}
-      {include.has('tasks') && <TasksSection targetType={targetType} targetId={targetId} api={api} />}
+      {include.has('tasks') && (
+        <TasksSection targetType={targetType} targetId={targetId} api={api} canAdd={canAddTask} />
+      )}
     </>
   );
 }

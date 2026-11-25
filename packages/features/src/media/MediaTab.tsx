@@ -8,7 +8,7 @@ import {
   type MediaRecord,
   type SourceRecord,
   type TargetRef,
-  TARGET_TYPES,
+  MEDIA_LINK_TARGET_TYPES,
 } from '@doru/core/model';
 import {
   Button,
@@ -741,7 +741,7 @@ function MediaTabBody({
         <SectionCard title={nls.t('features.tasks.target')}>
           <div className="media-link-add">
             <TargetPicker
-              allowedTypes={TARGET_TYPES}
+              allowedTypes={MEDIA_LINK_TARGET_TYPES}
               value={linkTargets}
               onChange={setLinkTargets}
               ariaLabel={nls.t('features.tasks.target')}

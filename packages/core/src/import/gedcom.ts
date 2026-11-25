@@ -1373,9 +1373,10 @@ function importGedcomTodoRecord(record: GedcomTodoRecord, ctx: ImportContext): v
   // _TODO.REPO is deliberately ignored: a task has no direct repository
   // field, and a repository can be selected as the task's target instead.
   // _TODO._CAT (category), _TODO._LOCL (locality), and _TODO._TTIL (title) are
-  // deliberately ignored too. Status and priority are normalized immediately;
-  // unknown values become open and medium rather than lingering in the
-  // database.
+  // deliberately ignored too. `_TODO._UID` is parsed by `@doru/gedcom` but
+  // dropped here: an identifier cannot target a task. Status and priority are
+  // normalized immediately; unknown values become open and medium rather than
+  // lingering in the database.
   const id = crypto.randomUUID();
   ctx.repo.insertTask({
     id,
@@ -1387,15 +1388,6 @@ function importGedcomTodoRecord(record: GedcomTodoRecord, ctx: ImportContext): v
     updatedAt: Date.now(),
     remindAt: parseTaskTextDate(record.reminderDate) ?? parseTaskTextDate(record.scheduledDate),
   });
-  for (const uid of record.uids ?? []) {
-    ctx.repo.insertIdentifier({
-      id: crypto.randomUUID(),
-      targetType: 'task',
-      targetId: id,
-      namespace: 'uid',
-      value: uid,
-    });
-  }
 }
 
 /**

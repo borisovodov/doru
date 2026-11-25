@@ -54,12 +54,15 @@ function taskElement(entityId: string, tasks: TaskRecord[], api: TaskEditorApi) 
 }
 
 describe('TaskTab', () => {
-  it('does not offer source or contact attachments', () => {
+  it('does not offer source, identifier, contributor, contact, or task attachments', () => {
     const task: TaskRecord = { id: 'T1', text: 'Find the record', targets: [] };
     renderUi(taskElement(task.id, [task], apiStub()));
 
     expect(screen.queryByText(nls.t('features.tree.sources.title'))).not.toBeInTheDocument();
     expect(screen.queryByText(nls.t('features.tree.contacts.title'))).not.toBeInTheDocument();
+    expect(screen.queryByText(nls.t('features.tree.identifiers.title'))).not.toBeInTheDocument();
+    expect(screen.queryByText(nls.t('features.tree.contributors.title'))).not.toBeInTheDocument();
+    expect(screen.queryByText(nls.t('features.tasks.title'))).not.toBeInTheDocument();
     expect(screen.getByText(nls.t('features.tree.notes.title'))).toBeInTheDocument();
   });
 

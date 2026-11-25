@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { TASK_LINK_TARGET_TYPES } from '@doru/core/model';
 import type { TaskTargetData } from '../src/domain/task/taskTargets';
 import { TASK_TARGET_TYPES, taskTargetLabel } from '../src/domain/task/taskTargets';
 
@@ -26,10 +27,15 @@ const data: TaskTargetData = {
 };
 
 describe('TASK_TARGET_TYPES', () => {
-  it('offers sources but not other tasks, submitters, or notes', () => {
+  it('re-exports the core task link policy', () => {
+    expect(TASK_TARGET_TYPES).toBe(TASK_LINK_TARGET_TYPES);
+  });
+
+  it('offers sources but not other tasks, submitters, media links, or notes', () => {
     expect(TASK_TARGET_TYPES).toContain('source');
     expect(TASK_TARGET_TYPES).not.toContain('task');
     expect(TASK_TARGET_TYPES).not.toContain('submitter');
+    expect(TASK_TARGET_TYPES).not.toContain('media_link');
     expect(TASK_TARGET_TYPES).not.toContain('note');
     expect(TASK_TARGET_TYPES).toContain('person');
     expect(TASK_TARGET_TYPES).toContain('citation');

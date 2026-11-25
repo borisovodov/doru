@@ -28,6 +28,64 @@ function panel(targetType: string) {
   return <AttachmentsPanel targetType={targetType} targetId="X1" api={apiStub()} sources={[]} />;
 }
 
+function sectionVisible(title: string): boolean {
+  return screen.queryByText(title) !== null;
+}
+
+describe('AttachmentsPanel target policy', () => {
+  it('shows only notes on a task (media is feature-hidden)', () => {
+    renderUi(panel('task'));
+
+    expect(sectionVisible(nls.t('features.tree.notes.title'))).toBe(true);
+    expect(sectionVisible(nls.t('features.tree.sources.title'))).toBe(false);
+    expect(sectionVisible(nls.t('features.tree.identifiers.title'))).toBe(false);
+    expect(sectionVisible(nls.t('features.tree.contacts.title'))).toBe(false);
+    expect(sectionVisible(nls.t('features.tree.contributors.title'))).toBe(false);
+    expect(sectionVisible(nls.t('features.tasks.title'))).toBe(false);
+  });
+
+  it('shows only sources on a media link', () => {
+    renderUi(panel('media_link'));
+
+    expect(sectionVisible(nls.t('features.tree.sources.title'))).toBe(true);
+    expect(sectionVisible(nls.t('features.tree.notes.title'))).toBe(false);
+    expect(sectionVisible(nls.t('features.tree.identifiers.title'))).toBe(false);
+    expect(sectionVisible(nls.t('features.tree.contacts.title'))).toBe(false);
+    expect(sectionVisible(nls.t('features.tree.contributors.title'))).toBe(false);
+    expect(sectionVisible(nls.t('features.tasks.title'))).toBe(false);
+  });
+
+  it('does not render a disallowed section even when the caller asks for it', () => {
+    renderUi(
+      <AttachmentsPanel
+        targetType="media_link"
+        targetId="ML1"
+        api={apiStub()}
+        sources={[]}
+        sections={['notes', 'sources', 'media', 'tasks']}
+      />,
+    );
+
+    expect(sectionVisible(nls.t('features.tree.sources.title'))).toBe(true);
+    expect(sectionVisible(nls.t('features.tree.notes.title'))).toBe(false);
+    expect(sectionVisible(nls.t('features.tasks.title'))).toBe(false);
+  });
+
+  it('hides tasks on a submitter but keeps identifiers and contributors', () => {
+    renderUi(panel('submitter'));
+
+    expect(sectionVisible(nls.t('features.tree.identifiers.title'))).toBe(true);
+    expect(sectionVisible(nls.t('features.tree.contributors.title'))).toBe(true);
+    expect(sectionVisible(nls.t('features.tasks.title'))).toBe(false);
+  });
+
+  it('shows tasks on a source', () => {
+    renderUi(panel('source'));
+
+    expect(sectionVisible(nls.t('features.tasks.title'))).toBe(true);
+  });
+});
+
 describe('AttachmentsPanel contacts', () => {
   it('offers contacts on a target that can carry them', () => {
     renderUi(panel('fact'));

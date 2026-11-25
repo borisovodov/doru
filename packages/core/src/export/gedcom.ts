@@ -697,11 +697,8 @@ function gedcomTaskStatus(status: string | undefined): string {
 
 function buildGedcomTodoRecord(task: TaskRecord, repo: TreeRepository, xrefs: Xrefs): GedcomRecord {
   // _TODO.REPO, _TODO._CAT, and _TODO._LOCL are deliberately not written:
-  // Dóru has no task repository, category, or locality fields.
-  const uids = repo
-    .listIdentifiersFor('task', task.id)
-    .filter((identifier) => identifier.namespace === 'uid')
-    .map((identifier) => identifier.value);
+  // Dóru has no task repository, category, or locality fields. _TODO._UID is
+  // parsed by @doru/gedcom but never written: identifiers cannot target tasks.
   const createdDate = formatTaskTimestamp(task.createdAt);
   const reminderDate = formatTaskTimestamp(task.remindAt);
   return {
@@ -711,7 +708,6 @@ function buildGedcomTodoRecord(task: TaskRecord, repo: TreeRepository, xrefs: Xr
     status: gedcomTaskStatus(task.status),
     ...(createdDate !== undefined ? { createdDate } : {}),
     ...(reminderDate !== undefined ? { reminderDate } : {}),
-    ...(uids.length > 0 ? { uids } : {}),
     ...withNoteList(repo, 'task', task.id, xrefs),
   };
 }

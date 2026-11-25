@@ -19,9 +19,22 @@ describe('TasksSection', () => {
     expect(screen.queryByRole('button', { name: nls.t('features.tasks.add') })).not.toBeInTheDocument();
   });
 
-  it('offers inline task creation on a source', () => {
-    renderUi(<TasksSection targetType="source" targetId="S1" api={api} />);
+  it('offers inline task creation and attachment on a source', async () => {
+    const sourceApi = {
+      ...api,
+      getAllTasks: async () => [{ id: 'T2', text: 'Translate the census', targets: [] }],
+    };
+    renderUi(<TasksSection targetType="source" targetId="S1" api={sourceApi} />);
     expect(screen.getByRole('button', { name: nls.t('features.tasks.add') })).toBeInTheDocument();
+    await waitFor(() =>
+      expect(screen.getByRole('combobox', { name: nls.t('features.tasks.attachExisting') })).toBeInTheDocument(),
+    );
+  });
+
+  it('does not offer task creation on a media link', () => {
+    renderUi(<TasksSection targetType="media_link" targetId="ML1" api={api} />);
+    expect(screen.queryByRole('button', { name: nls.t('features.tasks.add') })).not.toBeInTheDocument();
+    expect(screen.queryByRole('region', { name: nls.t('features.tasks.title') })).not.toBeInTheDocument();
   });
 
   it('still offers inline task creation on a person', () => {

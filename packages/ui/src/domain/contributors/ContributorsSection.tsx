@@ -42,7 +42,7 @@ export function ContributorsSection({
     targetId: string,
     kind: RecordSubmitterLink['kind'],
   ) => Promise<void>;
-  /** False for targets that must not gain new contributor links (tasks). */
+  /** False for targets that must not gain new contributor links (tasks and media links). */
   canAdd?: boolean;
 }) {
   const [adding, setAdding] = useState(false);
@@ -62,8 +62,8 @@ export function ContributorsSection({
     setAdding(false);
   };
 
-  // A target that cannot gain contributors (a task) hides the empty section;
-  // legacy links stay visible and removable.
+  // A target that cannot gain contributors (a task or media link) hides the
+  // empty section; legacy links stay visible and removable.
   if (!canAdd && links.length === 0) {
     return null;
   }

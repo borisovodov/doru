@@ -1,5 +1,5 @@
 ---
-source-hash: d6792c4fa89a
+source-hash: 99b1e27e511c
 ---
 
 # Praca z drzewem
@@ -77,11 +77,9 @@ adres** do edycji adresu na miejscu.
 
 ## Zadania
 
-Zadania mają datę utworzenia i datę przypomnienia. Zamknięcie zadania zmienia tylko jego status; osobna data ukończenia nie jest zapisywana. Każdy edytor ma sekcję **Zadania**: dodaj tam zadanie, a zostanie
-automatycznie powiązane z tym rekordem. Wydarzenia, imiona i cytaty
-mają własną sekcję Zadania w swoim panelu załączników. **Powiązane z** łączy zadanie z jednym lub kilkoma rekordami w drzewie — osobą, rodziną, wydarzeniem, imieniem, źródłem, cytatem, multimediami, miejscem, repozytorium, adresem lub dziełem; pozostaw puste dla samodzielnego zadania. Zadanie jest współdzielone: edycja w dowolnym miejscu aktualizuje ten sam rekord, a usunięcie powiązanego rekordu pozostawia zadanie na miejscu. Użyj **Dołącz istniejące zadanie**, aby ponownie wykorzystać współdzielone zadanie zamiast tworzyć nowe.
+Zadania mają datę utworzenia i datę przypomnienia. Zamknięcie zadania zmienia tylko jego status; osobna data ukończenia nie jest zapisywana. Większość edytorów ma sekcję **Zadania**: dodaj tam zadanie, a zostanie automatycznie powiązane z tym rekordem. Wyjątkami są edytor zadania i edytor współtwórcy, a wiersz powiązania multimedialnego ma tylko sekcję Źródła: karta zadania zachowuje Notatki i Multimedia, karta współtwórcy nie ma sekcji Zadania, a powiązanie multimedialne nie jest celem zadań. Wydarzenia, imiona i cytaty mają własną sekcję Zadania w swoim panelu załączników. **Powiązane z** łączy zadanie z jednym lub kilkoma rekordami w drzewie — osobą, rodziną, wydarzeniem, imieniem, źródłem, cytatem, multimediami, miejscem, repozytorium, adresem lub dziełem, ale nie z innym zadaniem, współtwórcą ani powiązaniem multimedialnym; pozostaw puste dla samodzielnego zadania. Zadanie jest współdzielone: edycja w dowolnym miejscu aktualizuje ten sam rekord, a usunięcie powiązanego rekordu pozostawia zadanie na miejscu. Użyj **Dołącz istniejące zadanie**, aby ponownie wykorzystać współdzielone zadanie zamiast tworzyć nowe.
 
-Dzieła, adresy, powiązania i relacje partner/dziecko w rodzinach mają te same sekcje Notatki, Źródła, Identyfikatory, Współtwórcy i Zadania co karty głównych encji. Adresy mają także Kontakty. Zadania zachowują sekcje Notatki, Identyfikatory, Współtwórcy oraz dotychczasową sekcję Zadania, ale nie mają Źródeł ani Kontaktów.
+Dzieła, adresy, powiązania i relacje partner/dziecko w rodzinach mają te same sekcje Notatki, Źródła, Identyfikatory, Współtwórcy i Zadania co karty głównych encji. Adresy mają także Kontakty. Zadania zachowują Notatki i Multimedia, ale nie mają Źródeł, Identyfikatorów, Kontaktów, Współtwórców ani Zadań. Powiązanie multimedialne ma tylko Źródła.
 
 ## Multimedia
 

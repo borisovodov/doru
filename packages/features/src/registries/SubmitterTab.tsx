@@ -20,7 +20,6 @@ import {
   IdentifiersSection,
   NotesSection,
   SourcesSection,
-  TasksSection,
   addressDraftEmpty,
   addressDraftMatches,
   addressLabel,
@@ -462,7 +461,6 @@ function SubmitterTabBody({
             onAdd={api.addRecordSubmitter}
             onDelete={api.deleteRecordSubmitter}
           />
-          <TasksSection targetType="submitter" targetId={targetId} api={api} />
         </>
       )}
       {(!isNew || lastSaved !== undefined) && (
