@@ -27,7 +27,6 @@ export const mediaTab: TabDescriptor = {
         titles: context.tree.titles,
         facts: context.tree.facts,
         citations: context.tree.citations,
-        notes: context.tree.notes,
         media: context.tree.media,
         submitters: context.tree.submitters,
         addresses: context.tree.addresses,

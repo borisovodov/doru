@@ -128,17 +128,16 @@ sources section, and `TreeService` rejects a citation whose target type is
 keeps the task model from forming a task → citation → task cycle. GEDCOM has
 no citation slot on `_TODO`, so import and export are unaffected.
 
-## Notes are citation targets only
+## Notes are not attachment targets
 
-A source may cite a note: GEDCOM 7 allows `SOUR` inside both `NOTE` and
-`SNOTE`, so a note keeps its sources. Every other attachment is refused: a
-note cannot own media, identifiers, contacts, contributors, tasks or another
-note. `TreeService` rejects note targets for tasks, media, identifiers,
-contributors and note links; the task and media pickers omit notes, and the
-note row only opens its sources panel. GEDCOM `UID`/`EXID`/`REFN` identifiers
-and vendor `_SUBM` links on notes are dropped on import and not written on
-export; `@doru/gedcom` still parses them. The citation target remains valid
-for both inline and shared notes.
+A note is a leaf annotation: it attaches to a record and stores its text, but
+no attachment may point at it. `TreeService` rejects note targets for
+citations, tasks, media, identifiers, contributors and note links; the target
+pickers offer no notes, and a note row has no attachment panel.
+GEDCOM 7 allows `SOUR` inside both `NOTE` and `SNOTE`; `@doru/gedcom` still
+parses it, but the core mapping drops it on import and never writes it on
+export. GEDCOM `UID`/`EXID`/`REFN` identifiers and vendor `_SUBM` links on
+notes are dropped the same way.
 
 ## Notes store text only
 

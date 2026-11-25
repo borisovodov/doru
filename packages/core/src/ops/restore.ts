@@ -365,8 +365,6 @@ export function attachmentTargetExists(ctx: MutationContext, targetType: string,
       return ctx.repo.hasMediaFile(targetId);
     case 'media_link':
       return ctx.repo.hasMediaLink(targetId);
-    case 'note':
-      return ctx.repo.getNote(targetId) !== undefined;
     case 'task':
       return ctx.repo.getTask(targetId) !== undefined;
     case 'source':

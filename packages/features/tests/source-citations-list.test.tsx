@@ -28,7 +28,6 @@ const data: TaskTargetData = {
   titles: [],
   facts: [],
   citations: [],
-  notes: [],
   media: [],
   submitters: [],
   addresses: [],

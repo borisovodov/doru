@@ -13,7 +13,6 @@ import {
 } from '@doru/ui/domain';
 import { MediaSection } from '../media/MediaSection';
 import type { AttachmentsApi } from '../person/types';
-import { NoteSources } from './NoteSources';
 import { useAttachments, type ContributorApi } from './useAttachments';
 
 export type AttachmentSection = 'notes' | 'sources' | 'media' | 'identifiers' | 'contacts' | 'contributors' | 'tasks';
@@ -31,9 +30,9 @@ const ALL_SECTIONS: readonly AttachmentSection[] = [
 ];
 
 /**
- * The universal attachment surface of one target. Fact, name, citation and
- * note editors use it with a restricted `sections` list to avoid recursive
- * panels; entity tabs reuse it with the full default set.
+ * The universal attachment surface of one target. Fact, name and citation
+ * editors use it with a restricted `sections` list to avoid recursive panels;
+ * entity tabs reuse it with the full default set.
  */
 export function AttachmentsPanel({
   targetType,
@@ -120,7 +119,6 @@ export function AttachmentsPanel({
             await api.deleteNote(note);
             await refresh();
           }}
-          renderSources={(note) => <NoteSources note={note} api={api} sources={sources} onOpenSource={onOpenSource} />}
         />
       )}
       {include.has('sources') && (

@@ -281,7 +281,6 @@ export function App() {
             sources={tree.sources}
             media={tree.media}
             citations={tree.citations}
-            notes={tree.notes}
             places={tree.places}
             repositories={tree.repositories}
             submitters={tree.submitters}

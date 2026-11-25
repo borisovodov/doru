@@ -4,7 +4,7 @@ import { SectionCard } from '@doru/ui';
 import { Field } from '@doru/ui';
 import { Archive } from 'lucide-react';
 import type { AddressRecord, RepositoryRecord, SourceRecord, TitleRecord } from '@doru/core';
-import { AttachmentsPanel, CitationAttachments, NoteSources, useAttachments } from '../attachments';
+import { AttachmentsPanel, CitationAttachments, useAttachments } from '../attachments';
 import { AutoSaveError } from '../autoSaveFeedback';
 import { useEntityDelete } from '../entityDelete';
 import { MediaSection } from '../media/MediaSection';
@@ -353,9 +353,6 @@ function RepositoryTabBody({
               await api.deleteNote(note);
               await refreshAttachments();
             }}
-            renderSources={(note) => (
-              <NoteSources note={note} api={api} sources={sources} onOpenSource={onOpenSource} />
-            )}
           />
           <IdentifiersSection
             targetType="repository"

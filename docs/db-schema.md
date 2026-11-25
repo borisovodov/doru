@@ -759,7 +759,10 @@ milliseconds). An inline note has one link; a shared note has several. A note
 is linked to a given target at most once: `(note_id, target_type, target_id)`
 is unique, and re-attaching a note that is already linked is a no-op, so
 repeated `NOTE`/`SNOTE` references in a GEDCOM file cannot produce duplicate
-links.
+links. A note is never an attachment target: citations, media links,
+identifiers, contacts, contributors, tasks and other notes cannot point at
+it. GEDCOM `NOTE.SOUR`/`SNOTE.SOUR` is parsed by `@doru/gedcom` but dropped
+on import and not written on export.
 
 ```mermaid
 erDiagram
@@ -944,7 +947,7 @@ other target type remains available:
 
 ```text
 person, family, family_partner, family_child, family_marriage_status,
-fact, name, name_part, citation, note, media, media_file,
+fact, name, name_part, citation, media, media_file,
 media_link, place, place_name, place_hierarchy, repository,
 address, address_line, association, title
 ```

@@ -20,7 +20,6 @@ const data: TargetData = {
   titles: [],
   facts: [],
   citations: [],
-  notes: [],
   media: [],
   submitters: [],
   addresses: [],

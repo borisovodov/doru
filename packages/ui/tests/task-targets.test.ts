@@ -11,7 +11,6 @@ const data: TaskTargetData = {
   titles: [],
   facts: [],
   citations: [],
-  notes: [],
   media: [
     {
       id: 'M1',

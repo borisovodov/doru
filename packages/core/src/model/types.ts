@@ -587,10 +587,10 @@ export interface SourceRecord {
 
 /**
  * A source attached to some part of the tree (a person, family, fact, name,
- * …). A task is never a target: a citation is evidence for a genealogical
- * assertion, while a task is a work item that asserts nothing. `page` is the
- * location within the source, `quality` the reliability assessment for this
- * claim.
+ * …). A task and a note are never targets: a citation is evidence for a
+ * genealogical assertion, while a task is a work item that asserts nothing
+ * and a note is a leaf annotation. `page` is the location within the source,
+ * `quality` the reliability assessment for this claim.
  */
 export interface CitationRecord {
   id: string;
@@ -1031,11 +1031,11 @@ export interface TitleRecord {
 
 /**
  * The machine-readable list of attachment target types. The polymorphic
- * attachment tables pair `target_type` with the target row's UUID.
- * `note` is included because a source citation may point at a note (GEDCOM
- * `NOTE.SOUR`/`SNOTE.SOUR`); every other attachment kind rejects it in
- * `TreeService`. Free-text `family_witness` rows are deliberately absent:
- * they are names without stable identity and are not attachment targets.
+ * attachment tables pair `target_type` with the target row's UUID. `note` is
+ * deliberately absent: a note is a leaf annotation that stores text and can
+ * be attached to records, but no attachment may target it. Free-text
+ * `family_witness` rows are likewise absent: they are names without stable
+ * identity and are not attachment targets.
  */
 export const TARGET_TYPES = [
   'person',
@@ -1048,7 +1048,6 @@ export const TARGET_TYPES = [
   'name_part',
   'source',
   'citation',
-  'note',
   'media',
   'media_file',
   'media_link',

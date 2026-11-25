@@ -16,7 +16,6 @@ const targetDirectory: TaskTargetData = {
   titles: [],
   facts: [],
   citations: [],
-  notes: [],
   media: [],
   submitters: [],
   addresses: [],

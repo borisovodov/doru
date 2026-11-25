@@ -9,7 +9,6 @@ import type {
   CitationRecord,
   FactRecord,
   FamilyRecord,
-  NoteRecord,
   PersonRecord,
   PlaceRecord,
   RepositoryRecord,
@@ -48,7 +47,6 @@ export function SidebarView({
   sources,
   media,
   citations,
-  notes,
   places,
   repositories,
   submitters,
@@ -89,7 +87,6 @@ export function SidebarView({
   sources: SourceRecord[];
   media: SidebarMediaItem[];
   citations: CitationRecord[];
-  notes: NoteRecord[];
   places: PlaceRecord[];
   repositories: RepositoryRecord[];
   submitters: SubmitterRecord[];
@@ -239,7 +236,6 @@ export function SidebarView({
             titles={titles}
             facts={facts}
             citations={citations}
-            notes={notes}
             media={media}
             mediaVisible={MEDIA_VISIBLE}
             submitters={submitters}

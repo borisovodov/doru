@@ -51,7 +51,7 @@ describe('buildGedcomDataset', () => {
     }
   });
 
-  it('exports an app-created shared note as an SNOTE record', () => {
+  it('exports an app-created shared note as an SNOTE record without a citation', () => {
     const fixture = makeRepo();
     try {
       const { repo } = fixture;
@@ -67,19 +67,14 @@ describe('buildGedcomDataset', () => {
       repo.addSourceCitation('S1', 'note', 'SN1');
       const dataset = buildGedcomDataset(repo);
       const note = dataset.records.find((record) => record.tag === 'SNOTE');
-      expect(note).toEqual(
-        expect.objectContaining({
-          xref: '@N1@',
-          payload: 'shared note',
-          citations: [expect.objectContaining({ tag: 'SOUR' })],
-        }),
-      );
+      expect(note).toEqual(expect.objectContaining({ xref: '@N1@', payload: 'shared note' }));
+      expect(note).not.toHaveProperty('citations');
     } finally {
       cleanupRepo(fixture);
     }
   });
 
-  it('exports an unlinked note as a standalone SNOTE with its citations', () => {
+  it('exports an unlinked note as a standalone SNOTE and drops its citation', () => {
     const fixture = makeRepo();
     try {
       const { repo } = fixture;
@@ -89,19 +84,15 @@ describe('buildGedcomDataset', () => {
 
       const dataset = buildGedcomDataset(repo);
       const note = dataset.records.find((record) => record.tag === 'SNOTE');
-      expect(note).toEqual(
-        expect.objectContaining({
-          payload: 'orphan note',
-          citations: [expect.objectContaining({ tag: 'SOUR' })],
-        }),
-      );
+      expect(note).toEqual(expect.objectContaining({ payload: 'orphan note' }));
+      expect(note).not.toHaveProperty('citations');
 
       const target = makeRepo();
       try {
         importGedcomDataset(dataset, target.repo);
         const imported = target.repo.listNotes().find((entry) => entry.text === 'orphan note');
         expect(imported).toBeDefined();
-        expect(target.repo.listCitationRecordsFor('note', imported!.id)).toHaveLength(1);
+        expect(target.repo.listCitationRecordsFor('note', imported!.id)).toEqual([]);
       } finally {
         cleanupRepo(target);
       }
@@ -164,6 +155,7 @@ describe('buildGedcomDataset', () => {
       repo.insertSource(source);
       repo.addSourceCitation('S1', 'fact', 'B1');
       repo.insertNote({ id: 'NN1', text: 'inline note', targetType: 'person', targetId: 'P1' });
+      repo.addSourceCitation('S1', 'note', 'NN1');
 
       const dataset = buildGedcomDataset(repo);
       const serialized = serializeGedcom70(dataset);
@@ -213,9 +205,9 @@ describe('buildGedcomDataset', () => {
         expect(target.repo.listSources()).toEqual([
           expect.objectContaining({ title: 'Parish register', author: 'Church' }),
         ]);
-        expect(target.repo.listNotesFor('person', ivan?.id ?? '')).toEqual([
-          expect.objectContaining({ text: 'inline note' }),
-        ]);
+        const notes = target.repo.listNotesFor('person', ivan?.id ?? '');
+        expect(notes).toEqual([expect.objectContaining({ text: 'inline note' })]);
+        expect(target.repo.listCitationRecordsFor('note', notes[0]!.id)).toEqual([]);
       } finally {
         cleanupRepo(target);
       }

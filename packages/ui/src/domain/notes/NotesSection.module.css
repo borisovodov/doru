@@ -28,15 +28,6 @@
   gap: 6px;
 }
 
-.notesSources {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  margin: 6px 0 10px;
-  padding-left: 12px;
-  border-left: 2px solid var(--doru-border);
-}
-
 .notesEdit textarea {
   width: 100%;
 }

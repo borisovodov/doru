@@ -7,8 +7,8 @@ import { Select } from '../../atoms/form/Select';
 import { Textarea } from '../../atoms/form/Textarea';
 import { AttachExisting } from '../../patterns/attach-existing/AttachExisting';
 import { SectionCard } from '../../patterns/section-card/SectionCard';
-import { useState, type ReactNode } from 'react';
-import { BookOpenText, Pencil, Trash2, X } from 'lucide-react';
+import { useState } from 'react';
+import { Pencil, Trash2, X } from 'lucide-react';
 import type { NoteLinkRecord, NoteRecord } from '@doru/core';
 import { nls } from '../../nls';
 import styles from './NotesSection.module.css';
@@ -16,9 +16,7 @@ import styles from './NotesSection.module.css';
 /**
  * The person's notes with inline editing. Editing a shared note from this
  * context splits it (copy-on-write) — the service handles that when the
- * context link is passed through. The edit form covers the note text. The
- * sources button opens the citations of a note; a note has no other
- * attachments.
+ * context link is passed through. The edit form covers the note text.
  */
 export function NotesSection({
   targetType,
@@ -30,13 +28,11 @@ export function NotesSection({
   onAttach,
   onDetach,
   onDelete,
-  renderSources,
 }: {
   targetType: string;
   targetId: string;
   notes: NoteRecord[];
   availableNotes?: NoteRecord[];
-  renderSources?: ((note: NoteRecord) => ReactNode) | undefined;
   onAdd: (text: string) => Promise<void>;
   onUpdate: (
     before: NoteRecord,
@@ -51,7 +47,6 @@ export function NotesSection({
   const [draft, setDraft] = useState('');
   const [attachError, setAttachError] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [expandedSourcesId, setExpandedSourcesId] = useState<string | null>(null);
   const [editText, setEditText] = useState('');
   const [editShared, setEditShared] = useState(false);
 
@@ -135,14 +130,6 @@ export function NotesSection({
                   {(note.links?.length ?? 0) > 1 && (
                     <span className={styles['notesMeta']}>{nls.t('features.tree.notes.shared')}</span>
                   )}
-                  {renderSources !== undefined && (
-                    <IconButton
-                      size="sm"
-                      label={nls.t('features.tree.sources.title')}
-                      icon={<BookOpenText size={13} aria-hidden="true" />}
-                      onClick={() => setExpandedSourcesId(expandedSourcesId === note.id ? null : note.id)}
-                    />
-                  )}
                   <IconButton
                     size="sm"
                     label={nls.t('features.tree.notes.edit')}
@@ -181,9 +168,6 @@ export function NotesSection({
                     onClick={() => void onDelete(note)}
                   />
                 </div>
-              )}
-              {renderSources !== undefined && expandedSourcesId === note.id && (
-                <div className={styles['notesSources']}>{renderSources(note)}</div>
               )}
             </li>
           ))}
