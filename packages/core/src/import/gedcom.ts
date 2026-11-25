@@ -20,7 +20,6 @@ import type {
   GedcomRecord,
   IdentifierStructure,
   IndividualRecord as GedcomIndividualRecord,
-  NoteReference,
   NoteStructure,
   PersonalNamePieces,
   PersonalNameStructure,
@@ -78,6 +77,8 @@ import type {
  *   and have no second-person slot in our model).
  * - the 5.5.1-only `RFN`/`AFN` person identifiers: neither has a 7.0
  *   spelling, and the tree has no matching identifier namespace.
+ * - source citations on notes (`NOTE.SOUR`/`SNOTE.SOUR`): a note is not an
+ *   attachment target in the tree.
  * Whole dropped vendor record types are counted into `droppedStructures`;
  * HEAD/SUBN, SCHMA and raw extension/unknown structures are wire metadata
  * and are not counted.
@@ -418,7 +419,6 @@ function importSharedNotes(records: GedcomRecord[], ctx: ImportContext): void {
     const note = record as unknown as {
       xref?: string;
       payload: string;
-      citations?: import('@doru/gedcom').SourceCitation[];
     };
     if (note.xref === undefined) {
       continue;
@@ -432,7 +432,6 @@ function importSharedNotes(records: GedcomRecord[], ctx: ImportContext): void {
       createdAt: now,
       updatedAt: now,
     });
-    importCitations(note.citations, 'note', id, ctx);
   }
 }
 
@@ -1702,7 +1701,6 @@ function importNotes(
         continue;
       }
       ctx.repo.addNoteLink(noteId, { id: crypto.randomUUID(), targetType, targetId });
-      importCitations((structure as NoteReference).citations, 'note', noteId, ctx);
       continue;
     }
     const note = structure;
@@ -1715,7 +1713,6 @@ function importNotes(
       updatedAt: now,
       links: [{ id: crypto.randomUUID(), targetType, targetId }],
     });
-    importCitations(note.citations, 'note', id, ctx);
   }
 }
 

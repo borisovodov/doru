@@ -6,7 +6,7 @@ import { Field, FieldGrid, InlineForm } from '@doru/ui';
 import { Plus, User, X } from 'lucide-react';
 import type { AddressRecord, RecordSubmitterLink, SourceRecord, SubmitterRecord } from '@doru/core';
 import { MEDIA_VISIBLE } from '@doru/platform';
-import { AttachmentsPanel, CitationAttachments, NoteSources, useAttachments } from '../attachments';
+import { AttachmentsPanel, CitationAttachments, useAttachments } from '../attachments';
 import { AutoSaveError } from '../autoSaveFeedback';
 import { useEntityDelete } from '../entityDelete';
 import { MediaSection } from '../media/MediaSection';
@@ -409,9 +409,6 @@ function SubmitterTabBody({
               await api.deleteNote(note);
               await refreshAttachments();
             }}
-            renderSources={(note) => (
-              <NoteSources note={note} api={api} sources={sources} onOpenSource={onOpenSource} />
-            )}
           />
           <IdentifiersSection
             targetType="submitter"

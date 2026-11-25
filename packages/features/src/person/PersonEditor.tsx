@@ -30,7 +30,7 @@ import { DateEditor } from '@doru/ui/domain';
 import { FactsSection } from '@doru/ui/domain';
 import { FamilySection } from '@doru/ui/domain';
 import { NotesSection } from '@doru/ui/domain';
-import { AttachmentsPanel, NoteSources } from '../attachments';
+import { AttachmentsPanel } from '../attachments';
 import { CitationAttachments } from '../attachments/TargetAttachments';
 import { MediaSection } from '../media/MediaSection';
 import { NamesSection } from '@doru/ui/domain';
@@ -519,14 +519,6 @@ export function PersonEditor({
               await api.deleteNote(note);
               await refreshNotes();
             }}
-            renderSources={(note) => (
-              <NoteSources
-                note={note}
-                api={api}
-                sources={sources}
-                onOpenSource={(sourceId) => api.openSource?.(sourceId)}
-              />
-            )}
           />
           <IdentifiersSection
             targetType="person"

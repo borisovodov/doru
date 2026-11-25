@@ -331,7 +331,7 @@ describe('importGedcomDataset', () => {
     }
   });
 
-  it('imports citations on shared notes before families reference them', () => {
+  it('imports a shared note linked before families reference it and drops its citation', () => {
     const gedcom = [
       '0 HEAD',
       '1 GEDC',
@@ -356,10 +356,7 @@ describe('importGedcomDataset', () => {
     try {
       importGedcomDataset(result.value.dataset, fixture.repo);
       const note = fixture.repo.listNotes().find((entry) => entry.text === 'Shared note text')!;
-      const source = fixture.repo.listSources().find((entry) => entry.title === 'Parish register')!;
-      expect(fixture.repo.listCitationRecordsFor('note', note.id).map((citation) => citation.sourceId)).toEqual([
-        source.id,
-      ]);
+      expect(fixture.repo.listCitationRecordsFor('note', note.id)).toEqual([]);
       const family = fixture.repo.listFamilies()[0]!;
       const childLink = family.childLinks?.[0];
       expect(childLink).toBeDefined();
@@ -371,7 +368,7 @@ describe('importGedcomDataset', () => {
     }
   });
 
-  it('keeps citations on shared notes but drops their identifiers and submitters', () => {
+  it('drops citations, identifiers and submitters on shared notes', () => {
     const gedcom = [
       '0 HEAD',
       '1 GEDC',
@@ -395,10 +392,7 @@ describe('importGedcomDataset', () => {
     try {
       importGedcomDataset(result.value.dataset, fixture.repo);
       const note = fixture.repo.listNotes().find((entry) => entry.text === 'Shared note text')!;
-      const source = fixture.repo.listSources().find((entry) => entry.title === 'Parish register')!;
-      expect(fixture.repo.listCitationRecordsFor('note', note.id).map((citation) => citation.sourceId)).toEqual([
-        source.id,
-      ]);
+      expect(fixture.repo.listCitationRecordsFor('note', note.id)).toEqual([]);
       expect(fixture.repo.listIdentifiersFor('note', note.id)).toEqual([]);
       expect(fixture.repo.listRecordSubmittersFor('note', note.id)).toEqual([]);
     } finally {
@@ -406,7 +400,7 @@ describe('importGedcomDataset', () => {
     }
   });
 
-  it('keeps place-card and repository-note citations that point at a later source', () => {
+  it('keeps place-card citations that point at a later source and drops note citations', () => {
     const gedcom = [
       '0 HEAD',
       '1 GEDC',
@@ -435,7 +429,7 @@ describe('importGedcomDataset', () => {
       ]);
       const repository = fixture.repo.listRepositories()[0]!;
       const note = fixture.repo.listNotesFor('repository', repository.id)[0]!;
-      expect(fixture.repo.listCitationRecordsFor('note', note.id).map((entry) => entry.sourceId)).toEqual([source.id]);
+      expect(fixture.repo.listCitationRecordsFor('note', note.id)).toEqual([]);
     } finally {
       cleanupRepo(fixture);
     }

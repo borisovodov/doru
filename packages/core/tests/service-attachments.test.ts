@@ -332,17 +332,32 @@ describe('TreeService attachments', () => {
     }
   });
 
-  it('allows citations on a note but refuses every other target link', () => {
+  it('refuses citations and every other target link on a note', () => {
     const { fixture, service } = makeService();
     try {
       service.addNote(note());
       service.addSource(source());
-      service.attachSource('S1', 'note', 'N1');
-      expect(fixture.repo.listCitationRecordsFor('note', 'N1')).toHaveLength(1);
+
+      expect(() => service.attachSource('S1', 'note', 'N1')).toThrow('A note cannot be an attachment target.');
+      expect(() => service.addSource(source({ id: 'S2' }), 'note', 'N1')).toThrow(
+        'A note cannot be an attachment target.',
+      );
+      expect(() => service.attachSourceToTargets('S1', [{ targetType: 'note', targetId: 'N1' }])).toThrow(
+        'A note cannot be an attachment target.',
+      );
+      expect(fixture.repo.listCitationRecordsFor('note', 'N1')).toEqual([]);
+
+      service.addPerson({ id: 'P1', names: [], sex: 'U', facts: [] });
+      service.attachSource('S1', 'person', 'P1');
+      const [citation] = fixture.repo.listCitationRecordsFor('person', 'P1');
+      expect(() => service.updateCitation(citation!, { ...citation!, targetType: 'note', targetId: 'N1' })).toThrow(
+        'A note cannot be an attachment target.',
+      );
+      expect(fixture.repo.listCitationRecordsFor('person', 'P1')).toEqual([citation]);
 
       service.addTask({ id: 'T1', text: 'Find the record', targets: [] });
       expect(() => service.addTaskLink({ id: 'TL1', taskId: 'T1', targetType: 'note', targetId: 'N1' })).toThrow(
-        'Only source citations may target a note.',
+        'A note cannot be an attachment target.',
       );
       expect(() =>
         service.addTask({
@@ -350,29 +365,30 @@ describe('TreeService attachments', () => {
           text: 'Another task',
           targets: [{ id: 'TL2', taskId: 'T2', targetType: 'note', targetId: 'N1' }],
         }),
-      ).toThrow('Only source citations may target a note.');
+      ).toThrow('A note cannot be an attachment target.');
 
       expect(() => service.attachNote('N1', { id: 'L2', targetType: 'note', targetId: 'N2' })).toThrow(
-        'Only source citations may target a note.',
+        'A note cannot be an attachment target.',
       );
       expect(() => service.addNote(note({ id: 'N2', targetType: 'note', targetId: 'N1' }))).toThrow(
-        'Only source citations may target a note.',
+        'A note cannot be an attachment target.',
       );
 
       service.addMedia({ id: 'M1', links: [] });
       expect(() => service.attachMedia({ id: 'ML1', mediaId: 'M1', targetType: 'note', targetId: 'N1' })).toThrow(
-        'Only source citations may target a note.',
+        'A note cannot be an attachment target.',
       );
       expect(() => service.attachMediaToTargets('M1', [{ targetType: 'note', targetId: 'N1' }])).toThrow(
-        'Only source citations may target a note.',
+        'A note cannot be an attachment target.',
       );
 
       expect(() => service.addIdentifier(identifier({ targetType: 'note', targetId: 'N1' }))).toThrow(
-        'Only source citations may target a note.',
+        'A note cannot be an attachment target.',
       );
-      expect(() => service.addRecordSubmitter('SU1', 'note', 'N1')).toThrow('Only source citations may target a note.');
+      expect(() => service.addRecordSubmitter('SU1', 'note', 'N1')).toThrow('A note cannot be an attachment target.');
 
       // The failed attempts left no rows behind.
+      expect(fixture.repo.listCitationRecordsFor('note', 'N1')).toEqual([]);
       expect(fixture.repo.listTaskLinksFor('note', 'N1')).toEqual([]);
       expect(fixture.repo.listMediaLinksFor('note', 'N1')).toEqual([]);
       expect(fixture.repo.listIdentifiersFor('note', 'N1')).toEqual([]);

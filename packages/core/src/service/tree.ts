@@ -141,25 +141,25 @@ export class ParentCycleError extends Error {
 
 /**
  * A source citation is evidence for a genealogical assertion. A task is a
- * work item, not an assertion, so a citation never points at one. The task
- * tab hides the sources section; this guard keeps the IPC and agent paths
- * consistent with it.
+ * work item, not an assertion, and a note is a leaf annotation, so neither
+ * can be a citation target. This guard keeps the IPC and agent paths
+ * consistent with the UI.
  */
 function assertCitationTarget(targetType: string): void {
   if (targetType === 'task') {
     throw new Error('A source cannot be attached to a task.');
   }
+  assertNoteIsNotTarget(targetType);
 }
 
 /**
- * A note is a leaf annotation: source citations may point at it (GEDCOM
- * NOTE.SOUR/SNOTE.SOUR), but no other attachment may. This guard keeps the
- * IPC and agent paths consistent with the UI, which only offers citations on
- * a note.
+ * A note is a leaf annotation: no attachment may target it. This guard keeps
+ * the IPC and agent paths consistent with the UI, which shows no attachment
+ * panel on a note.
  */
 function assertNoteIsNotTarget(targetType: string): void {
   if (targetType === 'note') {
-    throw new Error('Only source citations may target a note.');
+    throw new Error('A note cannot be an attachment target.');
   }
 }
 

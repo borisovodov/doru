@@ -337,9 +337,9 @@ CREATE TABLE IF NOT EXISTS source_template_field (
   position INTEGER NOT NULL
 );
 
--- Citations: a source cited at some target, with its details. A task is not
--- a citation target: sources support genealogical assertions, while a task
--- is a work item with nothing to cite.
+-- Citations: a source cited at some target, with its details. A task and a
+-- note are not citation targets: sources support genealogical assertions,
+-- while a task is a work item and a note is a leaf annotation.
 
 CREATE TABLE IF NOT EXISTS citation (
   id TEXT PRIMARY KEY,

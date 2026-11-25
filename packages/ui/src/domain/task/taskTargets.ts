@@ -21,10 +21,10 @@ import { placeName, TARGET_TYPES } from '@doru/core/model';
  * The target types a task can be linked to. Sources, other tasks, submitters
  * and notes are excluded: a citation or a task-to-task chain would duplicate
  * the research record, a task is not a contribution to a submitter's record,
- * and a note is only a citation target, never an attachment host.
+ * and a note is never an attachment target.
  */
 export const TASK_TARGET_TYPES = TARGET_TYPES.filter(
-  (type) => type !== 'source' && type !== 'task' && type !== 'submitter' && type !== 'note',
+  (type) => type !== 'source' && type !== 'task' && type !== 'submitter',
 );
 import { displayName, factOwnerName, familyLabel, formatAddress, formatDate } from '../format/format';
 

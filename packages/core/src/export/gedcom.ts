@@ -182,7 +182,7 @@ export function buildGedcomDataset(repo: TreeRepository): GedcomDataset {
     ...repositories.map((repository) => buildRepository(repository, repo, xrefs)),
     ...titles.map((title) => buildTitle(title, repo, xrefs)),
     ...sources.map((source) => buildSource(source, repo, xrefs)),
-    ...notes.map((note) => buildSharedNote(note, repo, xrefs)),
+    ...notes.map((note) => buildSharedNote(note, xrefs)),
     ...persons.map((person) => buildPerson(person, repo, xrefs)),
     ...families.map((family) => buildFamily(family, repo, xrefs)),
     ...tasks.map((task) => buildGedcomTodoRecord(task, repo, xrefs)),
@@ -680,12 +680,12 @@ function buildTitle(title: import('../model/types').TitleRecord, repo: TreeRepos
   };
 }
 
-function buildSharedNote(note: NoteRecord, repo: TreeRepository, xrefs: Xrefs): GedcomRecord {
+/** A note is not an attachment target, so it never carries citations. */
+function buildSharedNote(note: NoteRecord, xrefs: Xrefs): GedcomRecord {
   return {
     tag: 'SNOTE',
     xref: xrefs.of(note.id),
     payload: note.text,
-    ...withCitationList(repo, 'note', note.id, xrefs),
   };
 }
 
@@ -1144,7 +1144,6 @@ function withNoteList(
       : {
           tag: 'NOTE',
           payload: note.text,
-          ...withCitationList(repo, 'note', note.id, xrefs),
         },
   );
   return { notes };
