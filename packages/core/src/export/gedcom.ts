@@ -143,6 +143,11 @@ export function buildGedcomDataset(repo: TreeRepository): GedcomDataset {
   const media = repo.listAllMedia().filter((entry) => (entry.files ?? []).length > 0);
   const firstSubmitter = submitters[0];
   const notes = repo.listNotes().filter((note) => (note.links?.length ?? 0) !== 1);
+  // Only free-standing tasks become top-level `_TODO` records. Person and
+  // family targets carry embedded structures; tasks whose targets have no
+  // GEDCOM embedding slot (repository, source, place, …) are deliberately
+  // omitted. In particular, Dóru does not write `_TODO.REPO`, so a task whose
+  // only target is a repository disappears from the export.
   const tasks = repo.listTasks().filter((task) => task.targets.length === 0);
 
   for (const person of persons) {
@@ -696,9 +701,11 @@ function gedcomTaskStatus(status: string | undefined): string {
 }
 
 function buildGedcomTodoRecord(task: TaskRecord, repo: TreeRepository, xrefs: Xrefs): GedcomRecord {
-  // _TODO.REPO, _TODO._CAT, and _TODO._LOCL are deliberately not written:
-  // Dóru has no task repository, category, or locality fields. _TODO._UID is
-  // parsed by @doru/gedcom but never written: identifiers cannot target tasks.
+  // _TODO.REPO is deliberately not written: Dóru stores repository targets in
+  // task_link, and a task whose only target is a repository is not exported
+  // (see buildGedcomDataset). _TODO._CAT, _TODO._LOCL, _TODO._TTIL,
+  // _TODO.TYPE, and _TODO.DATA have no Dóru fields; _TODO._UID is parsed by
+  // @doru/gedcom but never written because identifiers cannot target tasks.
   const createdDate = formatTaskTimestamp(task.createdAt);
   const reminderDate = formatTaskTimestamp(task.remindAt);
   return {
@@ -1156,8 +1163,9 @@ function withGedcomTodoStructures(
   targetType: string,
   targetId: string,
 ): { todos?: Array<import('@doru/gedcom').TodoStructure> } {
-  // _TODO.REPO, _TODO._CAT, and _TODO._LOCL are deliberately not written:
-  // see buildGedcomTodoRecord.
+  // _TODO.REPO is deliberately not written: repository targets stay in
+  // task_link. _TODO._CAT and _TODO._LOCL are also not written; see
+  // buildGedcomTodoRecord.
   const structures = repo.listTasksFor(targetType, targetId).map((task) => {
     const createdDate = formatTaskTimestamp(task.createdAt);
     const reminderDate = taskTimestampToDateValue(task.remindAt);

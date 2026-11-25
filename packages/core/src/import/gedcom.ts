@@ -1369,19 +1369,35 @@ function importResearchRecords(records: GedcomRecord[], ctx: ImportContext): voi
   }
 }
 
+/** Resolves a `_TODO.REPO` pointer to a repository target link, when it exists. */
+function taskRepositoryTarget(
+  taskId: string,
+  repository: string | undefined,
+  ctx: ImportContext,
+): TaskRecord['targets'][number] | undefined {
+  if (repository === undefined) {
+    return undefined;
+  }
+  const repositoryId = ctx.repositoryIds.get(repository);
+  if (repositoryId === undefined) {
+    return undefined;
+  }
+  return { id: crypto.randomUUID(), taskId, targetType: 'repository', targetId: repositoryId };
+}
+
 function importGedcomTodoRecord(record: GedcomTodoRecord, ctx: ImportContext): void {
-  // _TODO.REPO is deliberately ignored: a task has no direct repository
-  // field, and a repository can be selected as the task's target instead.
-  // _TODO._CAT (category), _TODO._LOCL (locality), and _TODO._TTIL (title) are
-  // deliberately ignored too. `_TODO._UID` is parsed by `@doru/gedcom` but
-  // dropped here: an identifier cannot target a task. Status and priority are
-  // normalized immediately; unknown values become open and medium rather than
-  // lingering in the database.
+  // _TODO.REPO becomes an ordinary repository target link: a task has no
+  // direct repository field. _TODO._CAT (category), _TODO._LOCL (locality),
+  // and _TODO._TTIL (title) are deliberately ignored. `_TODO._UID` is parsed
+  // by `@doru/gedcom` but dropped here: an identifier cannot target a task.
+  // Status and priority are normalized immediately; unknown values become
+  // open and medium rather than lingering in the database.
   const id = crypto.randomUUID();
+  const repository = taskRepositoryTarget(id, record.repository, ctx);
   ctx.repo.insertTask({
     id,
     text: record.payload || '',
-    targets: [],
+    targets: repository === undefined ? [] : [repository],
     priority: normalizeTaskPriority(record.priority),
     status: normalizeTaskStatus(record.status),
     createdAt: parseTaskTextDate(record.createdDate),
@@ -1541,15 +1557,21 @@ function importGedcomTodoStructure(
   targetId: string,
   ctx: ImportContext,
 ): void {
-  // _TODO.REPO, _TODO._CAT, _TODO._LOCL, _TODO.TYPE, and _TODO.DATA are
-  // deliberately ignored: see importGedcomTodoRecord. Dóru has no task-type
-  // taxonomy or separate task-result field. GEDCOM-L DATE is the creation
-  // date; the reminder date is the only future date a task carries.
+  // _TODO.REPO becomes an extra repository target alongside the enclosing
+  // person/family target. _TODO._CAT, _TODO._LOCL, _TODO.TYPE, and _TODO.DATA
+  // are deliberately ignored: see importGedcomTodoRecord. Dóru has no
+  // task-type taxonomy or separate task-result field. GEDCOM-L DATE is the
+  // creation date; the reminder date is the only future date a task carries.
   const id = crypto.randomUUID();
+  const targets: TaskRecord['targets'] = [{ id: crypto.randomUUID(), taskId: id, targetType, targetId }];
+  const repository = taskRepositoryTarget(id, structure.repository, ctx);
+  if (repository !== undefined) {
+    targets.push(repository);
+  }
   const mapped: TaskRecord = {
     id,
     text: structure.payload ?? structure.description ?? '',
-    targets: [{ id: crypto.randomUUID(), taskId: id, targetType, targetId }],
+    targets,
     priority: normalizeTaskPriority(structure.priority),
     status: normalizeTaskStatus(structure.status),
     createdAt:
