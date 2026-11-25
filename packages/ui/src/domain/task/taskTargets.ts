@@ -5,7 +5,6 @@ import type {
   FactRecord,
   FamilyRecord,
   MediaRecord,
-  NoteRecord,
   PersonName,
   PersonRecord,
   PlaceRecord,
@@ -18,10 +17,10 @@ import type {
 import { placeName, TARGET_TYPES } from '@doru/core/model';
 
 /**
- * The target types a task can be linked to. Sources, other tasks, submitters
- * and notes are excluded: a citation or a task-to-task chain would duplicate
- * the research record, a task is not a contribution to a submitter's record,
- * and a note is never an attachment target.
+ * The target types a task can be linked to. Sources, other tasks and
+ * submitters are excluded: a citation or a task-to-task chain would duplicate
+ * the research record, and a task is not a contribution to a submitter's
+ * record.
  */
 export const TASK_TARGET_TYPES = TARGET_TYPES.filter(
   (type) => type !== 'source' && type !== 'task' && type !== 'submitter',
@@ -38,7 +37,6 @@ export interface TaskTargetData {
   titles: TitleRecord[];
   facts: FactRecord[];
   citations: CitationRecord[];
-  notes: NoteRecord[];
   media: MediaRecord[];
   submitters: SubmitterRecord[];
   addresses: AddressRecord[];
@@ -135,8 +133,6 @@ export function taskTargetOptions(type: string, data: TaskTargetData): TaskTarge
         id: citation.id,
         label: `${sourceById.get(citation.sourceId)?.title ?? citation.sourceId} · ${citation.targetType}`,
       }));
-    case 'note':
-      return data.notes.map((note) => ({ id: note.id, label: truncate(note.text) }));
     case 'media':
       return data.media.map((media) => ({ id: media.id, label: mediaLabel(media) }));
     case 'media_file':

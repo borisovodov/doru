@@ -46,7 +46,6 @@ const meta = {
     titles: [],
     facts: [],
     citations: [],
-    notes: [],
     media: [],
     submitters: [],
     addresses: [],

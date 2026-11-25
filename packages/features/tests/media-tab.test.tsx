@@ -26,7 +26,6 @@ const targetData = {
   titles: [],
   facts: [],
   citations: [],
-  notes: [],
   media: [],
   submitters: [],
   addresses: [],

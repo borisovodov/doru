@@ -33,7 +33,6 @@ const emptyTargetData = {
   titles: [],
   facts: [],
   citations: [],
-  notes: [],
   media: [],
   submitters: [],
   addresses: [],

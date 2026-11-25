@@ -396,7 +396,6 @@ describe('undo restore sanitizers', () => {
       repo.insertSubmitter({ id: 'SU1', name: 'Person' });
       repo.insertAddress({ id: 'A1', lines: [] });
       repo.insertTask({ id: 'T1', text: 'Task', targets: [] });
-      repo.insertNote({ id: 'N1', text: 'Note', targetType: 'person', targetId: 'P1' });
       repo.insertFact({ id: 'FACT1', personId: 'P1', tag: 'BIRT' });
       repo.insertAssociation({ id: 'AS1', personId: 'P1', otherPersonId: 'P1' });
       repo.insertMedia({ id: 'M1', targetType: 'person', targetId: 'P1' });
@@ -408,7 +407,6 @@ describe('undo restore sanitizers', () => {
         ['person', 'P1'],
         ['place', 'PL1'],
         ['media', 'M1'],
-        ['note', 'N1'],
         ['task', 'T1'],
         ['source', 'S1'],
         ['repository', 'R1'],

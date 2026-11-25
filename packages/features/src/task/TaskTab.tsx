@@ -11,7 +11,6 @@ import type {
   FactRecord,
   FamilyRecord,
   MediaRecord,
-  NoteRecord,
   PersonRecord,
   PlaceRecord,
   RepositoryRecord,
@@ -55,7 +54,6 @@ export function TaskTab({
   titles,
   facts,
   citations,
-  notes,
   media,
   submitters,
   addresses,
@@ -76,7 +74,6 @@ export function TaskTab({
   titles: TitleRecord[];
   facts: FactRecord[];
   citations: CitationRecord[];
-  notes: NoteRecord[];
   media: MediaRecord[];
   submitters: SubmitterRecord[];
   addresses: AddressRecord[];
@@ -106,7 +103,6 @@ export function TaskTab({
       titles={titles}
       facts={facts}
       citations={citations}
-      notes={notes}
       media={media}
       submitters={submitters}
       addresses={addresses}
@@ -132,7 +128,6 @@ function TaskTabBody({
   titles,
   facts,
   citations,
-  notes,
   media,
   submitters,
   addresses,
@@ -154,7 +149,6 @@ function TaskTabBody({
   titles: TitleRecord[];
   facts: FactRecord[];
   citations: CitationRecord[];
-  notes: NoteRecord[];
   media: MediaRecord[];
   submitters: SubmitterRecord[];
   addresses: AddressRecord[];
@@ -278,7 +272,6 @@ function TaskTabBody({
       titles,
       facts,
       citations,
-      notes,
       media,
       submitters,
       addresses,
@@ -294,7 +287,6 @@ function TaskTabBody({
       titles,
       facts,
       citations,
-      notes,
       media,
       submitters,
       addresses,

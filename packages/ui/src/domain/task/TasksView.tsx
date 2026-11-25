@@ -5,7 +5,6 @@ import type {
   FactRecord,
   FamilyRecord,
   MediaRecord,
-  NoteRecord,
   PersonRecord,
   PlaceRecord,
   RepositoryRecord,
@@ -38,7 +37,6 @@ export function TasksView({
   titles,
   facts,
   citations,
-  notes,
   media,
   mediaVisible = true,
   submitters,
@@ -65,7 +63,6 @@ export function TasksView({
   titles: TitleRecord[];
   facts: FactRecord[];
   citations: CitationRecord[];
-  notes: NoteRecord[];
   media: MediaRecord[];
   /** Whether media targets are shown as links; hidden media stays a plain chip. */
   mediaVisible?: boolean;
@@ -94,7 +91,6 @@ export function TasksView({
     titles,
     facts,
     citations,
-    notes,
     media,
     submitters,
     addresses,

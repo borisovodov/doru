@@ -47,7 +47,6 @@ const data: TargetData = {
   titles: [{ id: 'TIT1', name: 'Tula province parish registers' }],
   facts: [],
   citations: [],
-  notes: [{ id: 'NO1', text: 'The 1890 register is water-damaged.' }],
   media: [
     {
       id: 'M1',
