@@ -69,7 +69,8 @@ non-goals: [docs/decisions.md](docs/decisions.md).
 
 - Strict package boundaries: `packages/core` must not import `platform`,
   `workbench`, or anything UI-related. UI and agents access the domain model
-  only through services.
+  only through services. `@doru/canvas` is domain-free: React + d3 only, no
+  `@doru/*` imports.
 - SQLite is only touched by the Electron main process; renderer and agents go
   through IPC/MCP tools.
 - Every tree mutation goes through ops (command pattern with inverse) so that
@@ -91,8 +92,8 @@ non-goals: [docs/decisions.md](docs/decisions.md).
   with zero tabs — it is not a window type of its own. `Cmd/Ctrl+W` closes the
   active tab via renderer keybindings, not via the application menu.
 - **UI drags are pointer-based, not HTML5 drag-and-drop** (tab reorder,
-  side-bar sashes): `setPointerCapture` + a gesture threshold + Escape
-  cancel. Native drag sessions flash the macOS copy cursor and fight our
+  side-bar sashes, canvas card re-parenting): `setPointerCapture` + a gesture
+  threshold + Escape cancel. Native drag sessions flash the macOS copy cursor and fight our
   cursor/ghost styling. Use custom tooltips instead of `title` (broken under
   the drag region on macOS); `IconButton` renders one from its required
   `label`. Always reset `padding: 0` on icon-only buttons — the UA button
@@ -141,12 +142,19 @@ non-goals: [docs/decisions.md](docs/decisions.md).
   arrive in either order across channels. The reply carries the authoritative
   state; renderers must ignore streamed events that arrive after the reply
   finalizes it.
-- **Tree canvas nodes carry preset dimensions and handles.** React Flow keeps
-  an unmeasured node `visibility: hidden` and drops its edges until handle
-  bounds exist, and after a wholesale node replacement its ResizeObserver may
-  never fire. Every projected node in `projectLayout` must set `measured`,
-  and edge endpoints must set explicit `handles` — never rely on runtime
-  measurement.
+- **The tree canvas is `@doru/canvas`, not a general node-graph framework.**
+  The package owns viewport pan/zoom, the world transform, screen-space
+  overlays and the pointer-drag gesture; the tree feature maps
+  `PedigreeLayout` to positioned cards and edge paths. Positions are never
+  stored and never measured: cards have fixed sizes, layout is the only source
+  of coordinates, and there is no free-form card dragging or multi-select.
+  Dragging a card body pans the canvas; re-parenting starts from the grip in
+  the card's top-left corner.
+  Fit runs on first show and when the chart shape changes (focus, chart kind,
+  collapsed set, card keys, bounds), not on every rename or container resize.
+  The canvas has no per-node ResizeObserver; its only observer reads the
+  container size and never changes layout. React Flow and its attribution are
+  gone — do not reintroduce a node-graph dependency for this canvas.
 - **macOS app icons.** The icon source of truth is the Icon Composer project
   `apps/desktop/build/Icon.icon`. electron-builder renders the app bundle icon
   from it at package time (actool, Xcode 26+). `npm run icon:mac -w

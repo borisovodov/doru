@@ -51,10 +51,12 @@ test('canvas editing cycle: add a child, reparent by drag, undo everything', asy
   const kid2 = page.getByRole('group', { name: 'Kid2 Ivanov', exact: true });
   const kbox = await kid.boundingBox();
   const k2box = await kid2.boundingBox();
-  await page.mouse.move(kbox!.x + kbox!.width / 2, kbox!.y + kbox!.height / 2);
+  // Card re-parenting starts from the grip in the top-left corner; dragging
+  // the card body pans the canvas.
+  await page.mouse.move(kbox!.x + 8, kbox!.y + 7);
   await page.mouse.down();
   // Cross the 4px drag threshold first so the gesture reliably starts.
-  await page.mouse.move(kbox!.x + kbox!.width / 2 + 20, kbox!.y + kbox!.height / 2);
+  await page.mouse.move(kbox!.x + 28, kbox!.y + 7);
   await page.mouse.move(k2box!.x + k2box!.width / 2, k2box!.y + k2box!.height / 2, { steps: 10 });
   await page.mouse.up();
   await page.waitForTimeout(900);
@@ -151,6 +153,60 @@ test('rename and delete with undo on the canvas', async () => {
   await page.keyboard.press('Meta+z');
   await expect(page.getByRole('group', { name: 'Maria Ivanova', exact: true })).toBeVisible();
 
+  await app.close();
+});
+
+test('the canvas does not emit ResizeObserver loop or attribution warnings', async () => {
+  const project = join(mkdtempSync(join(tmpdir(), 'doru-canvas-errors-e2e-')), 'family.doru');
+  const { app, page } = await launchApp({ project });
+  const warnings: string[] = [];
+  page.on('console', (message) => {
+    if (message.type() === 'warning') {
+      warnings.push(message.text());
+    }
+  });
+  await page.addInitScript(() => {
+    const target = window as Window & { __resizeObserverErrors?: string[] };
+    target.__resizeObserverErrors = [];
+    const record = (message: string): void => {
+      if (message.includes('ResizeObserver')) {
+        target.__resizeObserverErrors?.push(message);
+      }
+    };
+    window.addEventListener('error', (event) => {
+      record(event.message);
+    });
+    window.addEventListener('unhandledrejection', (event) => {
+      record(String(event.reason ?? ''));
+    });
+  });
+  await seedFamilyTree(page, project);
+  await page.reload();
+  const ivan = page.getByRole('group', { name: 'Ivan Ivanov', exact: true });
+  await expect(ivan).toBeVisible({ timeout: 20_000 });
+  // The old attribution warning fired one second after mount.
+  await page.waitForTimeout(1_500);
+
+  // Backspace must not remove a selected card from the canvas only.
+  await ivan.click();
+  await page.keyboard.press('Backspace');
+  await expect(ivan).toBeVisible();
+
+  // Zoom, hide the tab, come back: the camera survives a tab switch.
+  await page.getByRole('button', { name: 'Zoom in' }).click();
+  await page.waitForTimeout(300);
+  const zoomed = await ivan.boundingBox();
+  await page.getByRole('button', { name: 'Settings', exact: true }).click();
+  await page.getByRole('tab', { name: 'Family Tree' }).click();
+  await page.waitForTimeout(300);
+  expect(await ivan.boundingBox()).toEqual(zoomed);
+  await page.waitForTimeout(300);
+
+  const errors = await page.evaluate(
+    () => (window as Window & { __resizeObserverErrors?: string[] }).__resizeObserverErrors ?? [],
+  );
+  expect(errors).toEqual([]);
+  expect(warnings.filter((warning) => warning.includes('attribution'))).toEqual([]);
   await app.close();
 });
 

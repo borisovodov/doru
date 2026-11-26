@@ -271,6 +271,21 @@ decisions about what we deliberately do **not** build, see
   (e.g. a `settings.json` or theme file that fails schema validation) end up
   in the log.
 
+## Canvas
+
+- The tree editor renders through **`@doru/canvas`**, an internal package
+  that owns the viewport (`d3-zoom`), the transformed world layer,
+  screen-space panels/overlays and the pointer-drag gesture. It has no domain
+  imports and no node/edge data model; see [canvas.md](canvas.md).
+- Layout stays pure math in `@doru/core`: positions are computed, never
+  stored, and cards have fixed sizes. The canvas never measures a card and
+  never runs a per-node `ResizeObserver`.
+- Fit is a camera command: it runs on first show and when the chart shape
+  changes, not on every data edit or container resize. The user's zoom and pan
+  survive renames, tab switches and window resizes.
+- Card dragging is a pointer-based re-parent gesture, not free positioning;
+  there is no multi-select and Delete/Backspace is not bound on the canvas.
+
 ## Design system
 
 - **The accent is the app icon**: deep forest green (`#263b2e`) and warm

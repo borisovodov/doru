@@ -9,62 +9,41 @@
 .tree-canvas {
   flex: 1;
   min-height: 0;
-  position: relative;
-  overflow: hidden;
   background: var(--doru-bg-canvas);
-
-  /* Canvas interactions (pan, zoom, drag) come later; disable text
-     selection and native scrolling gestures from the start. */
-  user-select: none;
-  touch-action: none;
 
   --doru-line-paternal: var(--doru-info);
   --doru-line-maternal: #c98ba0;
 }
 
-/* ── React Flow theme: map the doru tokens onto the xyflow tokens ──── */
+/* ── Overlay panels ───────────────────────────────────────────────── */
 
-.tree-canvas .react-flow {
-  --xy-background-color: transparent;
-  --xy-background-pattern-dots-color-default: color-mix(in srgb, var(--doru-border) 55%, transparent);
-  --xy-edge-stroke-default: var(--doru-border-strong);
-  --xy-edge-stroke-selected-default: var(--doru-accent);
-  --xy-edge-stroke-width-default: 1.5px;
-  --xy-node-background-color-default: var(--doru-bg-raised);
-  --xy-node-border-default: var(--doru-border);
-  --xy-node-border-radius-default: var(--doru-radius-md);
-  --xy-node-boxshadow-default: var(--doru-ring);
-  --xy-node-boxshadow-hover-default: var(--doru-ring);
-  --xy-node-boxshadow-selected-default: 0 0 0 2px var(--doru-accent);
-  --xy-node-color-default: var(--doru-fg);
-  --xy-selection-background-color-default: color-mix(in srgb, var(--doru-accent) 12%, transparent);
-  --xy-selection-border-default: var(--doru-accent);
-  --xy-controls-button-background-color-default: var(--doru-bg-raised);
-  --xy-controls-button-background-color-hover-default: var(--doru-bg-chrome);
-  --xy-controls-button-color-default: var(--doru-fg);
-  --xy-controls-button-color-hover-default: var(--doru-fg);
-  --xy-controls-button-border-color-default: var(--doru-border);
-  --xy-controls-box-shadow-default: var(--doru-ring);
+.tree-toolbar-panel {
+  margin: 15px;
 }
 
-/* Invisible connection points: React Flow needs handles to attach edges,
-   but the pedigree edges carry their own geometry. */
-.person-card-handle {
-  width: 1px;
-  height: 1px;
-  min-width: 0;
-  min-height: 0;
-  background: transparent;
-  border: none;
-  opacity: 0;
-  pointer-events: none;
+.tree-zoom {
+  display: flex;
+  flex-direction: row;
+  margin: 10px;
+  overflow: hidden;
+  border-radius: var(--doru-radius-sm);
+  box-shadow: var(--doru-ring);
+}
+
+.tree-drop-error {
+  margin: 10px;
+  padding: 6px 10px;
+  color: var(--doru-danger);
+  background: var(--doru-bg-raised);
+  border: 1px solid var(--doru-danger);
+  border-radius: var(--doru-radius-sm);
+  font-size: 12px;
 }
 
 /* ── Generation bands ─────────────────────────────────────────────── */
 
 .generation-band {
-  width: 100%;
-  height: 100%;
+  position: absolute;
   border-radius: var(--doru-radius-md);
   pointer-events: none;
 }
@@ -77,11 +56,49 @@
   background: color-mix(in srgb, var(--doru-bg-raised) 55%, transparent);
 }
 
-/* ── See-also edges ───────────────────────────────────────────────── */
+/* ── Edges ────────────────────────────────────────────────────────── */
 
-.see-also-edge {
-  stroke-dasharray: 4 4;
+.tree-edges {
+  position: absolute;
+  overflow: visible;
+  pointer-events: none;
+}
+
+.tree-edge {
+  fill: none;
+  stroke: var(--doru-border-strong);
+  stroke-width: 1.5;
+}
+
+.tree-edge-see-also {
   stroke: var(--doru-fg-faint);
+  stroke-dasharray: 4 4;
+}
+
+/* ── Card drag handle ─────────────────────────────────────────────── */
+
+.tree-card-drag-handle {
+  position: absolute;
+  top: 3px;
+  left: 4px;
+  z-index: 2;
+  display: flex;
+  width: 16px;
+  height: 16px;
+  align-items: center;
+  justify-content: center;
+  color: var(--doru-fg-faint);
+  cursor: grab;
+  background: var(--doru-bg-input);
+  border: 1px solid var(--doru-border);
+  border-radius: var(--doru-radius-sm);
+  opacity: 0;
+  touch-action: none;
+}
+
+.tree-card:hover .tree-card-drag-handle,
+.tree-card:focus-within .tree-card-drag-handle {
+  opacity: 1;
 }
 
 /* ── Card quick-action toolbar ────────────────────────────────────── */
@@ -94,25 +111,4 @@
   border: 1px solid var(--doru-border);
   border-radius: var(--doru-radius-md);
   box-shadow: var(--doru-ring);
-}
-
-/* ── Zoom controls ────────────────────────────────────────────────── */
-
-.tree-zoom {
-  display: flex;
-  flex-direction: row;
-  margin: 10px;
-  overflow: hidden;
-  border-radius: var(--doru-radius-sm);
-  box-shadow: var(--xy-controls-box-shadow-default);
-}
-
-.tree-drop-error {
-  margin: 10px;
-  padding: 6px 10px;
-  color: var(--doru-danger);
-  background: var(--doru-bg-raised);
-  border: 1px solid var(--doru-danger);
-  border-radius: var(--doru-radius-sm);
-  font-size: 12px;
 }

@@ -1,41 +1,38 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import {
-  Background,
-  BackgroundVariant,
-  Panel,
-  ReactFlow,
-  ReactFlowProvider,
-  applyEdgeChanges,
-  applyNodeChanges,
-  useReactFlow,
-  Position,
-  type Edge,
-  type EdgeChange,
-  type NodeChange,
-} from '@xyflow/react';
 import { layoutPedigree, suggestFocusPerson, isDescendantOf } from '@doru/core/layout';
 import type { ChartKind, PedigreeLayout, PersonRecord } from '@doru/core';
 import { Minus, Plus, Scan } from 'lucide-react';
+import {
+  Canvas,
+  CanvasBackground,
+  CanvasItem,
+  CanvasOverlay,
+  CanvasPanel,
+  CanvasProvider,
+  CanvasWorld,
+  rectsIntersect,
+  useCanvas,
+  type Rect,
+} from '@doru/canvas';
 import { IconButton } from '@doru/ui';
+import { PersonCardEditor, PersonCardView, TreeToolbar, type CardAction } from '@doru/ui/domain';
 import { nls } from '../nls';
-import { GenerationBand } from './GenerationBand';
-import { MarriageEdge, PedigreeEdge, SeeAlsoEdge } from './PedigreeEdges';
-import { PersonCard, type CardAction, type PersonCardData } from './PersonCard';
-import { TreeToolbar } from '@doru/ui/domain';
-import { computeFit } from './fit';
-import { projectLayout, type CanvasNode } from './project';
-import { CARD_HEIGHT, CARD_WIDTH } from './sizes';
+import { CardToolbar } from './CardToolbar';
+import { PersonCard } from './PersonCard';
+import { TreeEdges } from './PedigreeEdges';
+import { CARD_HEIGHT, CARD_WIDTH, ROW_HEIGHT } from './sizes';
+import { buildTreeView } from './view';
 import type { FocusHistory, PersonCounts, RelativeRelation, TreeCanvasProps } from './types';
-import '@xyflow/react/dist/style.css';
 import './TreeCanvas.css';
 
 export type { PersonCounts, RelativeRelation, TreeCanvasApi, TreeCanvasProps } from './types';
 
-const nodeTypes = { personCard: PersonCard, generationBand: GenerationBand };
-const edgeTypes = { pedigree: PedigreeEdge, marriage: MarriageEdge, seeAlso: SeeAlsoEdge };
-
 /** The never-saved placeholder card shown on an empty (new) tree. */
 const DRAFT_CARD_ID = 'draft:new';
+
+const EMPTY_COUNTS: Record<string, PersonCounts> = {};
+const EMPTY_PERSON_COUNTS: PersonCounts = { notes: 0, sources: 0, media: 0 };
+const FIT_OPTIONS = { padding: 0.12, maxZoom: 1 } as const;
 
 /**
  * A never-persisted card in which a new person is typed right on the canvas
@@ -50,29 +47,6 @@ interface DraftCard {
   editing: boolean;
 }
 
-/** One-card layout so the fit math centers the draft like a real chart. */
-const DRAFT_LAYOUT: PedigreeLayout = {
-  cards: [
-    {
-      key: DRAFT_CARD_ID,
-      personId: DRAFT_CARD_ID,
-      role: 'focus',
-      familyId: null,
-      generation: 0,
-      line: null,
-      hasSubtree: false,
-      x: 0,
-      y: 0,
-    },
-  ],
-  edges: [],
-  focusKey: DRAFT_CARD_ID,
-  width: CARD_WIDTH,
-  height: CARD_HEIGHT,
-  minX: -CARD_WIDTH / 2,
-  minY: -CARD_HEIGHT / 2,
-};
-
 const IDLE_NEW_DRAFT: DraftCard = {
   id: DRAFT_CARD_ID,
   relation: 'new',
@@ -80,33 +54,29 @@ const IDLE_NEW_DRAFT: DraftCard = {
   editing: false,
 };
 
-const EMPTY_COUNTS: Record<string, PersonCounts> = {};
-
-/**
- * The tree tab: one full-size canvas. The graph is derived from the domain
- * model on every render (controlled mode) — React Flow never owns the data.
- * Double-clicking a card refocuses the chart; the toolbar switches between
- * chart kinds, walks the focus history and collapses branches.
- */
 export function TreeCanvas(props: TreeCanvasProps) {
   return (
-    <ReactFlowProvider>
+    <CanvasProvider>
       <TreeCanvasInner {...props} />
-    </ReactFlowProvider>
+    </CanvasProvider>
   );
 }
 
 function TreeCanvasInner({ persons, families, photos = new Map(), api, focusRequest }: TreeCanvasProps) {
+  const { addPerson, addRelative, deletePerson, reparent, getPersonCounts, openEditor } = api;
   const [kind, setKind] = useState<ChartKind>('ancestors');
   const [history, setHistory] = useState<FocusHistory | null>(null);
   const [collapsed, setCollapsed] = useState<ReadonlySet<string>>(() => new Set<string>());
   const [drafts, setDrafts] = useState<DraftCard[]>([]);
+  const [selectedKey, setSelectedKey] = useState<string | null>(null);
+  const [draggingKey, setDraggingKey] = useState<string | null>(null);
+  const [dropTargetKey, setDropTargetKey] = useState<string | null>(null);
+  const [dropError, setDropError] = useState(false);
   const [countResult, setCountResult] = useState<{
     layout: PedigreeLayout;
     counts: Record<string, PersonCounts>;
   } | null>(null);
-  const canvasRef = useRef<HTMLDivElement | null>(null);
-  const { setViewport, zoomIn, zoomOut, getIntersectingNodes } = useReactFlow();
+  const dropTargetRef = useRef<string | null>(null);
 
   const suggested = suggestFocusPerson(persons, families);
   const focusId = history ? history.stack[history.index] : suggested;
@@ -126,6 +96,48 @@ function TreeCanvasInner({ persons, families, photos = new Map(), api, focusRequ
       nodeHeight: CARD_HEIGHT,
     });
   }, [effectiveFocus, persons, families, kind, collapsed]);
+
+  const activeCounts = layout !== null && countResult?.layout === layout ? countResult.counts : EMPTY_COUNTS;
+
+  const view = useMemo(() => {
+    if (!layout) {
+      return null;
+    }
+    return buildTreeView(layout, persons, collapsed, activeCounts, photos);
+  }, [layout, persons, collapsed, activeCounts, photos]);
+
+  const isEmpty = persons.length === 0;
+
+  // An empty tree always shows one idle placeholder card. It is derived here
+  // instead of stored in state, so no effect has to synchronize it with the
+  // person list; the editing copy is added to `drafts` on first interaction.
+  const visibleDrafts = useMemo(() => {
+    const relatives = drafts.filter((draft) => draft.relation !== 'new');
+    if (!isEmpty) {
+      return relatives;
+    }
+    const newDraft = drafts.find((draft) => draft.relation === 'new');
+    return [newDraft ?? IDLE_NEW_DRAFT, ...relatives];
+  }, [drafts, isEmpty]);
+
+  const cardKeySet = useMemo(() => new Set(view?.cards.map((entry) => entry.card.key) ?? []), [view]);
+  const effectiveSelectedKey = selectedKey !== null && cardKeySet.has(selectedKey) ? selectedKey : null;
+
+  useEffect(() => {
+    if (!layout) {
+      return;
+    }
+    let cancelled = false;
+    const ids = [...new Set(layout.cards.map((card) => card.personId))];
+    void getPersonCounts(ids).then((result) => {
+      if (!cancelled) {
+        setCountResult({ layout, counts: result });
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [layout, getPersonCounts]);
 
   const refocus = useCallback(
     (personId: string) => {
@@ -151,9 +163,9 @@ function TreeCanvasInner({ persons, families, photos = new Map(), api, focusRequ
         return;
       }
       if (action === 'edit') {
-        api.openEditor(personId);
+        openEditor(personId);
       } else if (action === 'delete') {
-        void api.deletePerson(person);
+        void deletePerson(person);
       } else {
         // child | spouse | parent: a draft card to type the name into.
         setDrafts((current) => [
@@ -167,7 +179,7 @@ function TreeCanvasInner({ persons, families, photos = new Map(), api, focusRequ
         ]);
       }
     },
-    [persons, api],
+    [persons, openEditor, deletePerson],
   );
 
   const toggleCollapse = useCallback((personId: string) => {
@@ -186,13 +198,13 @@ function TreeCanvasInner({ persons, families, photos = new Map(), api, focusRequ
   const handleDraftSave = useCallback(
     (draft: DraftCard, person: PersonRecord) => {
       if (draft.relation === 'new') {
-        void api.addPerson(person);
+        void addPerson(person);
       } else {
-        void api.addRelative(draft.relation, draft.anchorId, person);
+        void addRelative(draft.relation, draft.anchorId, person);
       }
       setDrafts((current) => current.filter((entry) => entry.id !== draft.id));
     },
-    [api],
+    [addPerson, addRelative],
   );
 
   /** Cancelling a relative draft removes the card; the first-person draft
@@ -205,165 +217,15 @@ function TreeCanvasInner({ persons, families, photos = new Map(), api, focusRequ
     );
   }, []);
 
-  const isEmpty = persons.length === 0;
-
-  // An empty tree always shows one idle placeholder card. It is derived here
-  // instead of stored in state, so no effect has to synchronize it with the
-  // person list; the editing copy is added to `drafts` on first interaction.
-  const visibleDrafts = useMemo(() => {
-    const relatives = drafts.filter((draft) => draft.relation !== 'new');
-    if (!isEmpty) {
-      return relatives;
-    }
-    const newDraft = drafts.find((draft) => draft.relation === 'new');
-    return [newDraft ?? IDLE_NEW_DRAFT, ...relatives];
-  }, [drafts, isEmpty]);
-
-  const activeCounts = layout !== null && countResult?.layout === layout ? countResult.counts : EMPTY_COUNTS;
-
-  const projected = useMemo(() => {
-    const base = !layout
-      ? { nodes: [] as CanvasNode[], edges: [] as Edge[] }
-      : projectLayout(layout, persons, collapsed, activeCounts, null, photos, {
-          onToggleCollapse: toggleCollapse,
-          onAction: handleAction,
-        });
-    // Draft cards sit next to their anchor (or centered for the first
-    // person). Their ids are stable while typing, so React Flow keeps the
-    // node mounted and the input state intact across re-projections.
-    const draftNodes: CanvasNode[] = visibleDrafts.map((draft, index) => {
-      const anchor =
-        draft.relation === 'new'
-          ? undefined
-          : base.nodes.find(
-              (node) => node.type === 'personCard' && (node.data as PersonCardData).person.id === draft.anchorId,
-            );
-      const cascade = index * 16;
-      let position: { x: number; y: number };
-      if (!anchor) {
-        position = { x: -CARD_WIDTH / 2, y: -CARD_HEIGHT / 2 };
-      } else if (draft.relation === 'child') {
-        position = { x: anchor.position.x, y: anchor.position.y + CARD_HEIGHT + 24 + cascade };
-      } else if (draft.relation === 'spouse') {
-        position = { x: anchor.position.x - CARD_WIDTH - 24, y: anchor.position.y + cascade };
-      } else {
-        // parent
-        position = { x: anchor.position.x, y: anchor.position.y - CARD_HEIGHT - 24 + cascade };
+  const startDraftEditing = useCallback((draftId: string) => {
+    setDrafts((current) => {
+      const existing = current.find((draft) => draft.id === draftId);
+      if (existing === undefined) {
+        return [...current, { ...IDLE_NEW_DRAFT, editing: true }];
       }
-      return {
-        id: draft.id,
-        type: 'personCard',
-        position,
-        measured: { width: CARD_WIDTH, height: CARD_HEIGHT },
-        handles: [
-          { type: 'source', position: Position.Bottom, id: 'bottom', x: CARD_WIDTH / 2, y: CARD_HEIGHT },
-          { type: 'target', position: Position.Top, id: 'top', x: CARD_WIDTH / 2, y: 0 },
-        ],
-        draggable: false,
-        data: {
-          person: { id: draft.id, names: [], sex: 'U', facts: [] },
-          line: null,
-          isFocus: false,
-          hasSubtree: false,
-          collapsed: false,
-          counts: { notes: 0, sources: 0, media: 0 },
-          isDropTarget: false,
-          isDraft: true,
-          isEditing: draft.editing,
-          onDraftSave: (person) => handleDraftSave(draft, person),
-          onDraftCancel: () => handleDraftCancel(draft),
-        } satisfies PersonCardData,
-      };
+      return current.map((draft) => (draft.id === draftId ? { ...draft, editing: true } : draft));
     });
-    // Drafts come last so they paint above the real cards (React Flow stacks
-    // nodes in DOM order); a draft must never end up hidden under a card.
-    return { nodes: [...base.nodes, ...draftNodes], edges: base.edges };
-  }, [
-    layout,
-    persons,
-    collapsed,
-    activeCounts,
-    photos,
-    toggleCollapse,
-    handleAction,
-    visibleDrafts,
-    handleDraftSave,
-    handleDraftCancel,
-  ]);
-
-  // React Flow is controlled through these two states: every projection
-  // resets them, and UI-only changes (selection) are applied through the
-  // standard change handlers.
-  const [nodes, setNodes] = useState<CanvasNode[]>([]);
-  const [edges, setEdges] = useState<Edge[]>([]);
-  const [dropError, setDropError] = useState(false);
-  // React Flow is a controlled external store: these two states mirror the
-  // domain projection and must reset whenever the projection changes. This is
-  // the one deliberate exception to the synchronous-setState-in-effect rule.
-  useEffect(() => {
-    /* oxlint-disable react/set-state-in-effect -- syncing the controlled React Flow store */
-    setNodes(projected.nodes);
-    setEdges(projected.edges);
-    /* oxlint-enable react/set-state-in-effect */
-  }, [projected]);
-
-  // Badge counts for the visible cards.
-  useEffect(() => {
-    if (!layout) {
-      return;
-    }
-    let cancelled = false;
-    const ids = [...new Set(layout.cards.map((card) => card.personId))];
-    void api.getPersonCounts(ids).then((result) => {
-      if (!cancelled) {
-        setCountResult({ layout, counts: result });
-      }
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, [layout, api]);
-
-  const onNodesChange = useCallback((changes: NodeChange[]) => {
-    setNodes((current) => applyNodeChanges(changes, current) as CanvasNode[]);
   }, []);
-  const onEdgesChange = useCallback((changes: EdgeChange[]) => {
-    setEdges((current) => applyEdgeChanges(changes, current));
-  }, []);
-
-  // Fit the chart into the canvas. Deterministic: computed from the exact
-  // layout bounds, no node measurement involved. Runs as a macrotask so it
-  // lands after React StrictMode's double-mount of the React Flow subtree
-  // (whose second pan/zoom instance would otherwise reset the viewport).
-  // The draft card of an empty tree gets the same fit treatment via its
-  // one-card layout.
-  const fitTarget = layout ?? (isEmpty ? DRAFT_LAYOUT : null);
-  const fitChart = useCallback(() => {
-    const el = canvasRef.current;
-    if (!el || !fitTarget || el.clientWidth === 0 || el.clientHeight === 0) {
-      return;
-    }
-    void setViewport(computeFit(fitTarget, el.clientWidth, el.clientHeight));
-  }, [fitTarget, setViewport]);
-
-  useEffect(() => {
-    if (!fitTarget) {
-      return;
-    }
-    const timer = setTimeout(fitChart, 0);
-    return () => clearTimeout(timer);
-  }, [fitTarget, fitChart]);
-
-  // Re-fit when the canvas itself is resized (window resize, sidebars).
-  useEffect(() => {
-    const el = canvasRef.current;
-    if (!el) {
-      return;
-    }
-    const observer = new ResizeObserver(() => fitChart());
-    observer.observe(el);
-    return () => observer.disconnect();
-  }, [fitChart]);
 
   // External focus requests (e.g. a click in the People sidebar).
   const lastFocusRequestRef = useRef(0);
@@ -396,146 +258,241 @@ function TreeCanvasInner({ persons, families, photos = new Map(), api, focusRequ
     setCollapsed(new Set());
   }, []);
 
-  // Drag-to-reparent: dropping a card onto another person's card moves the
-  // dragged person (as a child) into that family. Anything else snaps back.
-  // The valid drop target is highlighted while dragging by patching the
-  // node data in place — the projection must not rerun mid-drag, or the
-  // dragged card would snap back to its layout position.
-  const resolveDropTarget = useCallback(
-    (node: CanvasNode): CanvasNode | undefined => {
-      const data = node.data as PersonCardData;
-      const target = getIntersectingNodes(node).find(
-        (candidate) => candidate.type === 'personCard' && candidate.id !== node.id,
-      );
-      const targetPerson = (target?.data as PersonCardData | undefined)?.person;
-      if (
-        !target ||
-        !targetPerson ||
-        targetPerson.id === data.person.id ||
-        isDescendantOf(families, data.person.id, targetPerson.id)
-      ) {
-        return undefined;
-      }
-      return target as CanvasNode;
-    },
-    [getIntersectingNodes, families],
-  );
-
-  const handleNodeDrag = useCallback(
-    (_event: MouseEvent | TouchEvent, node: CanvasNode) => {
-      const targetId = resolveDropTarget(node)?.id ?? null;
-      setNodes((current) =>
-        current.map((entry) => {
-          if (entry.type !== 'personCard') {
-            return entry;
-          }
-          const data = entry.data as PersonCardData;
-          const isDropTarget = entry.id === targetId;
-          if (data.isDropTarget === isDropTarget) {
-            return entry;
-          }
-          return { ...entry, data: { ...data, isDropTarget } };
-        }),
-      );
-    },
-    [resolveDropTarget],
-  );
-
-  const handleNodeDragStop = useCallback(
-    (_event: MouseEvent | TouchEvent, node: CanvasNode) => {
-      const target = resolveDropTarget(node);
-      const data = node.data as PersonCardData;
-      if (target) {
-        const targetPerson = (target.data as PersonCardData).person;
-        void api
-          .reparent(data.person.id, targetPerson.id)
-          .then(() => setDropError(false))
-          .catch(() => setDropError(true));
-      }
-      // Re-project: clears the highlight and snaps the card back.
-      setNodes(projected.nodes);
-    },
-    [resolveDropTarget, api, projected],
-  );
-
-  const handleNodeDoubleClick = useCallback(
-    (_event: React.MouseEvent, node: CanvasNode) => {
-      const data = node.data as PersonCardData;
-      refocus(data.person.id);
-    },
-    [refocus],
-  );
-
-  // A single click on the idle first-person draft card switches it into
-  // editing mode; the detail check keeps a double-click from firing twice.
-  const handleNodeClick = useCallback((event: React.MouseEvent, node: CanvasNode) => {
-    const data = node.data as PersonCardData;
-    if (data.isDraft && !data.isEditing && event.detail === 1) {
-      setDrafts((current) => {
-        const existing = current.find((draft) => draft.id === node.id);
-        if (existing === undefined) {
-          return [...current, { id: node.id, relation: 'new', anchorId: '', editing: true }];
-        }
-        return current.map((draft) => (draft.id === node.id ? { ...draft, editing: true } : draft));
-      });
-    }
+  const handleSelect = useCallback((cardKey: string) => {
+    setSelectedKey(cardKey);
   }, []);
+
+  const handleClearSelection = useCallback(() => {
+    setSelectedKey(null);
+  }, []);
+
+  const handleActivate = useCallback(
+    (cardKey: string) => {
+      const entry = view?.cards.find((card) => card.card.key === cardKey);
+      if (entry) {
+        refocus(entry.person.id);
+      }
+    },
+    [view, refocus],
+  );
+
+  const handleDragStart = useCallback((cardKey: string) => {
+    setDraggingKey(cardKey);
+    setSelectedKey(cardKey);
+    dropTargetRef.current = null;
+    setDropTargetKey(null);
+  }, []);
+
+  const handleDragMove = useCallback(
+    (cardKey: string, dx: number, dy: number) => {
+      if (!layout) {
+        return;
+      }
+      const dragged = layout.cards.find((card) => card.key === cardKey);
+      if (!dragged) {
+        return;
+      }
+      const draggedRect = {
+        x: dragged.x - CARD_WIDTH / 2 + dx,
+        y: dragged.y - CARD_HEIGHT / 2 + dy,
+        width: CARD_WIDTH,
+        height: CARD_HEIGHT,
+      };
+      const target = layout.cards.find((card) => {
+        if (card.key === cardKey || card.personId === dragged.personId) {
+          return false;
+        }
+        if (isDescendantOf(families, dragged.personId, card.personId)) {
+          return false;
+        }
+        const rect = {
+          x: card.x - CARD_WIDTH / 2,
+          y: card.y - CARD_HEIGHT / 2,
+          width: CARD_WIDTH,
+          height: CARD_HEIGHT,
+        };
+        return rectsIntersect(draggedRect, rect);
+      });
+      const targetKey = target?.key ?? null;
+      if (targetKey !== dropTargetRef.current) {
+        dropTargetRef.current = targetKey;
+        setDropTargetKey(targetKey);
+      }
+    },
+    [layout, families],
+  );
+
+  const handleDragEnd = useCallback(
+    (cardKey: string, _dx: number, _dy: number, cancelled: boolean) => {
+      const targetKey = dropTargetRef.current;
+      dropTargetRef.current = null;
+      setDraggingKey(null);
+      setDropTargetKey(null);
+      if (cancelled || !layout || targetKey === null) {
+        return;
+      }
+      const dragged = layout.cards.find((card) => card.key === cardKey);
+      const target = layout.cards.find((card) => card.key === targetKey);
+      if (!dragged || !target) {
+        return;
+      }
+      void reparent(dragged.personId, target.personId)
+        .then(() => setDropError(false))
+        .catch(() => setDropError(true));
+    },
+    [layout, reparent],
+  );
+
+  const fitBounds = useMemo<Rect | undefined>(() => {
+    if (layout) {
+      return { x: layout.minX, y: layout.minY, width: layout.width, height: layout.height };
+    }
+    if (isEmpty) {
+      return { x: -CARD_WIDTH / 2, y: -CARD_HEIGHT / 2, width: CARD_WIDTH, height: CARD_HEIGHT };
+    }
+    return undefined;
+  }, [layout, isEmpty]);
+
+  // Only the shape of the chart triggers a fit. Renames and date edits
+  // recompute the layout but keep the same card set and bounds, so the
+  // user's camera survives them.
+  const shapeKey = useMemo(() => {
+    if (!layout) {
+      return isEmpty ? 'empty' : 'none';
+    }
+    return [
+      layout.focusKey,
+      kind,
+      [...collapsed].sort().join(','),
+      layout.cards.map((card) => card.key).join('|'),
+      layout.minX,
+      layout.minY,
+      layout.width,
+      layout.height,
+    ].join('§');
+  }, [layout, kind, collapsed, isEmpty]);
+
+  const selectedCard = view?.cards.find((entry) => entry.card.key === effectiveSelectedKey);
+  const selectedRect = selectedCard
+    ? {
+        x: selectedCard.card.x - CARD_WIDTH / 2,
+        y: selectedCard.card.y - CARD_HEIGHT / 2,
+        width: CARD_WIDTH,
+        height: CARD_HEIGHT,
+      }
+    : null;
+
+  const draftItems = useMemo(() => {
+    return visibleDrafts.map((draft, index) => {
+      const anchor =
+        draft.relation === 'new' ? undefined : view?.cards.find((entry) => entry.person.id === draft.anchorId)?.card;
+      const cascade = index * 16;
+      let x: number;
+      let y: number;
+      if (!anchor) {
+        x = -CARD_WIDTH / 2;
+        y = -CARD_HEIGHT / 2;
+      } else {
+        const left = anchor.x - CARD_WIDTH / 2;
+        const top = anchor.y - CARD_HEIGHT / 2;
+        if (draft.relation === 'child') {
+          x = left;
+          y = top + CARD_HEIGHT + 24 + cascade;
+        } else if (draft.relation === 'spouse') {
+          x = left - CARD_WIDTH - 24;
+          y = top + cascade;
+        } else {
+          x = left;
+          y = top - CARD_HEIGHT - 24 + cascade;
+        }
+      }
+      return { draft, x, y };
+    });
+  }, [visibleDrafts, view]);
 
   const breadcrumbs = history ? history.stack.slice(0, history.index + 1) : [];
 
   return (
     <div className="tree-view">
-      <div className="tree-canvas" ref={canvasRef} role="region" aria-label={nls.t('workbench.activityBar.tree')}>
-        <ReactFlow
-          nodes={nodes}
-          edges={edges}
-          nodeTypes={nodeTypes}
-          edgeTypes={edgeTypes}
-          minZoom={0.1}
-          maxZoom={2}
-          onNodesChange={onNodesChange}
-          onEdgesChange={onEdgesChange}
-          onNodeClick={handleNodeClick}
-          onNodeDoubleClick={handleNodeDoubleClick}
-          onNodeDrag={handleNodeDrag}
-          onNodeDragStop={handleNodeDragStop}
-          zoomOnDoubleClick={false}
-          // Trackpad gesture model, same on every platform: two-finger scroll
-          // pans the canvas, pinch zooms (browsers surface pinch as
-          // ctrl+wheel, which @xyflow/react handles natively). Mouse users
-          // zoom with Ctrl/Cmd+scroll or the zoom buttons.
-          zoomOnScroll={false}
-          panOnScroll={true}
-          zoomOnPinch={true}
-          proOptions={{ hideAttribution: true }}
-        >
-          <Background variant={BackgroundVariant.Dots} gap={24} size={1} />
-          {dropError && (
-            <Panel position="top-right" className="tree-drop-error" role="status">
-              {nls.t('tree.canvas.cycle')}
-            </Panel>
+      <Canvas
+        className="tree-canvas"
+        ariaLabel={nls.t('workbench.activityBar.tree')}
+        fitBounds={fitBounds}
+        fitKey={shapeKey}
+        fitOptions={FIT_OPTIONS}
+        onPaneClick={handleClearSelection}
+      >
+        <CanvasBackground gap={24} size={1} color="var(--doru-border)" />
+        <CanvasWorld>
+          {layout &&
+            view?.bands.map(({ generation, y }) => (
+              <div
+                key={generation}
+                className={generation % 2 === 0 ? 'generation-band even' : 'generation-band odd'}
+                style={{
+                  left: layout.minX - 240,
+                  top: y - ROW_HEIGHT / 2,
+                  width: layout.width + 480,
+                  height: ROW_HEIGHT,
+                }}
+              />
+            ))}
+          {layout && view && (
+            <TreeEdges
+              edges={view.edges}
+              bounds={{
+                minX: layout.minX,
+                minY: layout.minY,
+                width: layout.width,
+                height: layout.height,
+              }}
+              hiddenKey={draggingKey}
+            />
           )}
-          <Panel position="bottom-left" className="tree-zoom">
-            <IconButton
-              size="sm"
-              label={nls.t('tree.canvas.zoomOut')}
-              icon={<Minus size={16} aria-hidden="true" />}
-              onClick={() => void zoomOut({ duration: 150 })}
+          {view?.cards.map((entry) => (
+            <PersonCard
+              key={entry.card.key}
+              card={entry.card}
+              person={entry.person}
+              counts={entry.counts}
+              photo={entry.photo}
+              isFocus={entry.isFocus}
+              selected={effectiveSelectedKey === entry.card.key}
+              isDropTarget={dropTargetKey === entry.card.key}
+              collapsed={entry.collapsed}
+              onSelect={handleSelect}
+              onClearSelection={handleClearSelection}
+              onActivate={handleActivate}
+              onToggleCollapse={toggleCollapse}
+              onDragStart={handleDragStart}
+              onDragMove={handleDragMove}
+              onDragEnd={handleDragEnd}
             />
-            <IconButton
-              size="sm"
-              label={nls.t('tree.canvas.zoomIn')}
-              icon={<Plus size={16} aria-hidden="true" />}
-              onClick={() => void zoomIn({ duration: 150 })}
+          ))}
+          {draftItems.map(({ draft, x, y }) => (
+            <DraftPersonCard
+              key={draft.id}
+              draft={draft}
+              x={x}
+              y={y}
+              onStartEditing={() => startDraftEditing(draft.id)}
+              onSave={(person) => handleDraftSave(draft, person)}
+              onCancel={() => handleDraftCancel(draft)}
             />
-            <IconButton
-              size="sm"
-              label={nls.t('tree.canvas.fit')}
-              icon={<Scan size={16} aria-hidden="true" />}
-              onClick={fitChart}
-            />
-          </Panel>
-          <Panel position="top-left" className="tree-toolbar-panel">
+          ))}
+        </CanvasWorld>
+        {dropError && (
+          <CanvasPanel position="top-right">
+            <div className="tree-drop-error" role="status">
+              {nls.t('tree.canvas.cycle')}
+            </div>
+          </CanvasPanel>
+        )}
+        <CanvasPanel position="bottom-left">
+          <ZoomControls fitBounds={fitBounds} />
+        </CanvasPanel>
+        <CanvasPanel position="top-left">
+          <div className="tree-toolbar-panel">
             <TreeToolbar
               kind={kind}
               onKindChange={setKind}
@@ -550,9 +507,100 @@ function TreeCanvasInner({ persons, families, photos = new Map(), api, focusRequ
               persons={persons}
               onJump={jumpTo}
             />
-          </Panel>
-        </ReactFlow>
-      </div>
+          </div>
+        </CanvasPanel>
+        {selectedCard && selectedRect && draggingKey === null && (
+          <CanvasOverlay anchor={selectedRect} position="top" offset={8}>
+            <CardToolbar personId={selectedCard.person.id} onAction={handleAction} />
+          </CanvasOverlay>
+        )}
+      </Canvas>
     </div>
+  );
+}
+
+function ZoomControls({ fitBounds }: { fitBounds: Rect | undefined }) {
+  const canvas = useCanvas();
+  return (
+    <div className="tree-zoom">
+      <IconButton
+        size="sm"
+        label={nls.t('tree.canvas.zoomOut')}
+        icon={<Minus size={16} aria-hidden="true" />}
+        onClick={() => void canvas.zoomOut({ duration: 150 })}
+      />
+      <IconButton
+        size="sm"
+        label={nls.t('tree.canvas.zoomIn')}
+        icon={<Plus size={16} aria-hidden="true" />}
+        onClick={() => void canvas.zoomIn({ duration: 150 })}
+      />
+      <IconButton
+        size="sm"
+        label={nls.t('tree.canvas.fit')}
+        icon={<Scan size={16} aria-hidden="true" />}
+        onClick={() => {
+          if (fitBounds) {
+            void canvas.fit(fitBounds, { duration: 150, padding: 0.12, maxZoom: 1 });
+          }
+        }}
+      />
+    </div>
+  );
+}
+
+function DraftPersonCard({
+  draft,
+  x,
+  y,
+  onStartEditing,
+  onSave,
+  onCancel,
+}: {
+  draft: DraftCard;
+  x: number;
+  y: number;
+  onStartEditing(): void;
+  onSave(person: PersonRecord): void;
+  onCancel(): void;
+}) {
+  return (
+    <CanvasItem
+      x={x}
+      y={y}
+      width={CARD_WIDTH}
+      height={CARD_HEIGHT}
+      className="tree-card tree-card-draft"
+      onClick={(event) => {
+        if (!draft.editing && event.detail === 1) {
+          onStartEditing();
+        }
+      }}
+    >
+      <PersonCardView
+        person={{ id: draft.id, names: [], sex: 'U', facts: [] }}
+        line={null}
+        isFocus={false}
+        hasSubtree={false}
+        collapsed={false}
+        counts={EMPTY_PERSON_COUNTS}
+        isDropTarget={false}
+        isDraft
+        isEditing={draft.editing}
+        editingContent={draft.editing ? <PersonCardEditor autoFocus onSave={onSave} onCancel={onCancel} /> : undefined}
+        tabIndex={draft.editing ? undefined : 0}
+        onKeyDown={(event) => {
+          if (draft.editing) {
+            return;
+          }
+          if (event.key === 'Enter' || event.key === ' ') {
+            event.preventDefault();
+            onStartEditing();
+          } else if (event.key === 'Escape') {
+            onCancel();
+          }
+        }}
+      />
+    </CanvasItem>
   );
 }

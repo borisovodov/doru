@@ -1,9 +1,9 @@
 # Tree editor: architecture, decisions and future work
 
 The interactive family tree lives in the tree tab of the desktop app. This
-document captures the architecture, the decisions made while building it
-and the pitfalls discovered along the way. Future work lives in GitHub
-issues (see the "Tree editor" issue track).
+document captures the architecture, the decisions made while building it and
+the pitfalls discovered along the way. Future work lives in GitHub issues (see
+the "Tree editor" issue track).
 
 ## Architecture
 
@@ -22,47 +22,68 @@ issues (see the "Tree editor" issue track).
 - **Couples** are tidy-tree slots expanded into two adjacent cards with a
   marriage edge between them and a pedigree "bracket" (Z-shaped edge)
   dropping to the children.
-- **React Flow is the canvas runtime only** (viewport, gestures, selection).
-  It never owns the data: nodes/edges are projected from the pure
-  layout (`features/src/tree/project.ts`) in controlled mode.
-- **Deterministic auto-layout.** Positions are computed, never stored — the
-  `.doru` file holds no coordinates. The fit is computed from the exact
-  layout bounds (`features/src/tree/fit.ts`), never zooms in beyond 1, and
-  re-runs on canvas resize.
-- **Every mutation is one compound op.** Adding a relative, deleting a
-  person and reparenting are single ops in `packages/core/src/ops/person.ts`
-  that also manage the family links — one Cmd+Z undoes a whole user action.
+- **`@doru/canvas` is the canvas runtime.** The internal package owns the
+  viewport (`d3-zoom`), the transformed world layer, screen-space panels and
+  overlays, and the pointer-drag gesture. The tree feature maps the pure
+  layout to positioned cards and precomputed SVG paths. The canvas never owns
+  domain data and never measures DOM nodes.
+- **Positions are computed, never stored.** The `.doru` file holds no
+  coordinates. Cards have fixed sizes and the layout is the only source of
+  their world positions.
+- **Fit is a camera command, not a layout pass.** It runs on the first visible
+  size and when the chart shape changes (focus, chart kind, collapsed set,
+  card keys, bounds). A rename or date edit recomputes the layout but keeps
+  the same shape key, so the user's zoom and pan survive. Container resize and
+  tab switching preserve the camera; the Fit button restores a fitted view.
+- **Every mutation is one compound op.** Adding a relative, deleting a person
+  and reparenting are single ops in `packages/core/src/ops/person.ts` that also
+  manage the family links — one Cmd+Z undoes a whole user action.
 - **Bulk reads.** `tree:all` (all persons + families) and
   `tree:personCounts` (badge counts for a list of persons) avoid N+1 IPC.
 
 ## Decisions
 
-- The full person editor stays a tab (PersonTab); the card action "Edit"
-  opens it. The canvas handles structure and quick edits.
+- The full person editor stays a tab (PersonTab); the card action "Edit" opens
+  it. The canvas handles structure and quick edits.
 - Default focus is `suggestFocusPerson`: a childless child (youngest
   generation), then any child, then the first person.
 - Manual card positions are not persisted; auto-layout is the source of
-  truth. Revisit only if a free-form mode is wanted.
+  truth. There is no free-form positioning and no multi-select.
+- Delete/Backspace is not bound on the canvas. Deletion goes through the card
+  toolbar (a domain op with undo), so React Flow's accidental "remove the node
+  from the view only" behaviour cannot come back.
 - Chart kinds: ancestors → descendants → hourglass → family.
-- Dependencies: d3 for pure layout math and React Flow for the canvas
-  runtime — the layout itself is domain code we own.
+- Dependencies: `d3-hierarchy` for pure layout math in `@doru/core`, and
+  `d3-zoom` in `@doru/canvas` for the viewport. The canvas library itself is
+  ours; there is no general node-graph framework dependency.
 
 ## Pitfalls and lessons
 
-- **React Flow v12**
-  - Controlled mode silently drops selection changes unless `onNodesChange`
-    / `onEdgesChange` are wired with `applyNodeChanges`/`applyEdgeChanges`.
-  - Edges require `Handle`s on nodes (error #008) — the pedigree edges use
-    invisible handles and carry their own geometry in edge data.
-  - The pane's double-click zoom (d3-zoom) calls `stopImmediatePropagation`,
-    which kills React's `onDoubleClick` anywhere inside the pane — set
-    `zoomOnDoubleClick={false}` when double-click has its own meaning.
-  - `useNodesInitialized` stays `false` until the `nodes` prop changes
-    identity; do not gate viewport logic on it.
-  - React StrictMode double-mounts the flow subtree, and the second pan/zoom
-    instance resets the viewport — schedule fit as a macrotask.
-  - `fitView` zooms small charts in up to `maxZoom`; compute the fit
-    manually from layout bounds and cap zoom at 1.
+- **Canvas runtime**
+  - Node measurement is deliberately absent. Cards have fixed sizes and edges
+    are plain SVG paths from layout geometry; do not add a ResizeObserver per
+    card.
+  - The only ResizeObserver observes the canvas container. It reads its size
+    and may schedule a pending fit in `requestAnimationFrame`; it never
+    changes layout. This is what keeps the browser's "ResizeObserver loop"
+    warning away.
+  - Pan is a CSS `transform` on one world layer, not React state. Cards must
+    not re-render on pan/zoom; only the background and the anchored overlay
+    subscribe to the viewport.
+  - Card dragging is a re-parent gesture, not free positioning. It starts
+    from the grip in the card's top-left corner; dragging the card body pans
+    the canvas instead. The gesture uses pointer capture, a 4px threshold,
+    Escape cancellation and click suppression. The offset is in world units
+    (`screen delta / zoom`). Incident edges are hidden while the card is
+    dragged.
+  - Selection is a single card key owned by the tree feature. It is
+    independent of layout re-computation, so badge counts, photos or a rename
+    cannot clear the selected card's toolbar.
+  - The card toolbar is a screen-space `CanvasOverlay` anchored to the card's
+    world rectangle. It stays at a constant size at every zoom level.
+  - Trackpad model: two-finger scroll pans, pinch (ctrl+wheel on macOS) zooms,
+    mouse users zoom with Ctrl/Cmd+wheel or the zoom buttons. Double-click
+    zoom is disabled because double-click refocuses the chart.
 - **Dóru specifics**
   - `@doru/core`'s entry pulls `node:sqlite` into the renderer; runtime
     imports from the renderer must use the pure `@doru/core/layout` subpath.
@@ -72,7 +93,7 @@ issues (see the "Tree editor" issue track).
   - Vitest uses `Object.is` — normalize `-0` in layout math.
 - **Tooling**
   - Playwright-launched Electron windows do not resize like native ones;
-    launch the app directly (`npx electron apps/desktop <project>.doru`)
-    for manual testing.
-  - Destructive test scripts must use isolated projects — a shared demo
-    file gets corrupted by delete/reparent experiments.
+    launch the app directly (`npx electron apps/desktop <project>.doru`) for
+    manual testing.
+  - Destructive test scripts must use isolated projects — a shared demo file
+    gets corrupted by delete/reparent experiments.

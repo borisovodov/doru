@@ -28,7 +28,7 @@ export function Avatar({ initials, tone = 'neutral', size = 'md', shape = 'round
       )}
       aria-hidden="true"
     >
-      {src !== undefined ? <img src={src} alt="" loading="lazy" /> : initials}
+      {src !== undefined ? <img src={src} alt="" loading="lazy" draggable={false} /> : initials}
     </span>
   );
 }
