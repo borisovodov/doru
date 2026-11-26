@@ -1,5 +1,5 @@
 import { useEffect, useId, useMemo, useRef, useState } from 'react';
-import { X } from 'lucide-react';
+import { Unlink } from 'lucide-react';
 import { foldCase, type TargetRef, type TargetType } from '@doru/core/model';
 import { IconButton } from '../../atoms/icon-button/IconButton';
 import { nls } from '../../nls';
@@ -114,7 +114,7 @@ export function TargetPicker({
             <IconButton
               size="sm"
               label={nls.t('features.targets.remove')}
-              icon={<X size={12} aria-hidden="true" />}
+              icon={<Unlink size={12} aria-hidden="true" />}
               disabled={disabled}
               onClick={() => remove(target)}
             />

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Plus, X } from 'lucide-react';
+import { Plus, Unlink } from 'lucide-react';
 import type { RecordSubmitterLink, SubmitterRecord } from '@doru/core';
 import { nls } from '../../nls';
 import { Button } from '../../atoms/button/Button';
@@ -98,7 +98,7 @@ export function ContributorsSection({
               <IconButton
                 size="sm"
                 label={nls.t('features.tree.contributors.remove')}
-                icon={<X size={12} aria-hidden="true" />}
+                icon={<Unlink size={12} aria-hidden="true" />}
                 onClick={() =>
                   void onDelete(link.id, link.submitterId, link.targetType, link.targetId, link.kind ?? 'contributor')
                 }

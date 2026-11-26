@@ -8,7 +8,11 @@ const noopAdd = vi.fn(async () => {});
 const noopUpdate = vi.fn(async () => {});
 const noopDelete = vi.fn(async () => {});
 
-function section(targetType: string, contacts: Parameters<typeof ContactsSection>[0]['contacts'] = []) {
+function section(
+  targetType: string,
+  contacts: Parameters<typeof ContactsSection>[0]['contacts'] = [],
+  onDelete: Parameters<typeof ContactsSection>[0]['onDelete'] = noopDelete,
+) {
   return (
     <ContactsSection
       targetType={targetType}
@@ -16,7 +20,7 @@ function section(targetType: string, contacts: Parameters<typeof ContactsSection
       contacts={contacts}
       onAdd={noopAdd}
       onUpdate={noopUpdate}
-      onDelete={noopDelete}
+      onDelete={onDelete}
     />
   );
 }
@@ -54,5 +58,21 @@ describe('ContactsSection', () => {
     expect((editKind as HTMLSelectElement).value).toBe('www');
     expect((addKind as HTMLSelectElement).value).toBe('email');
     expect(screen.queryByRole('option', { name: nls.t('features.tree.contacts.kind.url') })).not.toBeInTheDocument();
+  });
+
+  it('deletes a contact from the target', () => {
+    const onDelete = vi.fn(async () => {});
+    const contact = {
+      id: 'C1',
+      targetType: 'person',
+      targetId: 'X1',
+      kind: 'email',
+      value: 'anna@example.org',
+    };
+    renderUi(section('person', [contact], onDelete));
+
+    fireEvent.click(screen.getByRole('button', { name: nls.t('features.tree.contacts.remove') }));
+
+    expect(onDelete).toHaveBeenCalledWith(contact);
   });
 });

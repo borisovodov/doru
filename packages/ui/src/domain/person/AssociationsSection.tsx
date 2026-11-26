@@ -1,5 +1,5 @@
 import { useState, type ReactNode } from 'react';
-import { Paperclip, Pencil, Plus, X } from 'lucide-react';
+import { Paperclip, Pencil, Plus, Trash2 } from 'lucide-react';
 import type { AssociationRecord, PersonRecord } from '@doru/core';
 import { nls } from '../../nls';
 import { Button } from '../../atoms/button/Button';
@@ -131,7 +131,7 @@ function AssociationRow({
               <IconButton
                 size="sm"
                 label={nls.t('features.tree.associations.remove')}
-                icon={<X size={13} aria-hidden="true" />}
+                icon={<Trash2 size={13} aria-hidden="true" />}
                 onClick={() => void onDelete(association)}
               />
             </>

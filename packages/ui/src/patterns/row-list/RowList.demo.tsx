@@ -1,5 +1,5 @@
 import type { Demo, DemoMeta } from '../../../gallery/types';
-import { Pencil, X } from 'lucide-react';
+import { Pencil, Trash2 } from 'lucide-react';
 import { IconButton } from '../../atoms/icon-button/IconButton';
 import { AttachmentRow, RowList } from './RowList';
 
@@ -15,7 +15,7 @@ const meta = {
           actions={
             <>
               <IconButton label="Edit" size="sm" icon={<Pencil size={13} />} />
-              <IconButton label="Remove" size="sm" icon={<X size={13} />} />
+              <IconButton label="Delete" size="sm" icon={<Trash2 size={13} />} />
             </>
           }
         />

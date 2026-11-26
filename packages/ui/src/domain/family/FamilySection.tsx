@@ -1,7 +1,7 @@
 import { Button } from '../../atoms/button/Button';
 import { EmptyText } from '../../atoms/feedback/EmptyText';
 import { useEffect, useState } from 'react';
-import { X } from 'lucide-react';
+import { Trash2, Unlink } from 'lucide-react';
 import type { FactRecord, FamilyRecord, PersonRecord } from '@doru/core';
 import { foldCase } from '@doru/core/model';
 import { nls } from '../../nls';
@@ -167,7 +167,7 @@ function FamilyCard({
               <IconButton
                 size="sm"
                 label={nls.t('features.tree.family.removeMember')}
-                icon={<X size={12} aria-hidden="true" />}
+                icon={<Unlink size={12} aria-hidden="true" />}
                 onClick={() => onRemoveMember(partnerId)}
               />
             </span>
@@ -178,7 +178,7 @@ function FamilyCard({
             <IconButton
               size="sm"
               label={nls.t('features.tree.family.removeMember')}
-              icon={<X size={12} aria-hidden="true" />}
+              icon={<Unlink size={12} aria-hidden="true" />}
               onClick={() => onRemoveMember(childId)}
             />
           </span>
@@ -205,7 +205,7 @@ function FamilyCard({
             <IconButton
               size="sm"
               label={nls.t('features.tree.events.remove')}
-              icon={<X size={12} aria-hidden="true" />}
+              icon={<Trash2 size={12} aria-hidden="true" />}
               onClick={() => void removeFact(fact)}
             />
           </span>

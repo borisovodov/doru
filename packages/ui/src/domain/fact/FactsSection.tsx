@@ -1,6 +1,6 @@
 import { useState, type ReactNode } from 'react';
 import { EmptyText } from '../../atoms/feedback/EmptyText';
-import { ChevronDown, ChevronRight, X } from 'lucide-react';
+import { ChevronDown, ChevronRight, Trash2 } from 'lucide-react';
 import type { AddressRecord, FactRecord, FamilyRecord, PersonRecord, PlaceRecord } from '@doru/core';
 import { nls } from '../../nls';
 import { DateEditor } from '../date/DateEditor';
@@ -114,7 +114,7 @@ export function FactsSection({
                 <IconButton
                   size="sm"
                   label={nls.t('features.tree.events.remove')}
-                  icon={<X size={14} aria-hidden="true" />}
+                  icon={<Trash2 size={14} aria-hidden="true" />}
                   onClick={(event) => {
                     event.stopPropagation();
                     void remove(fact);
