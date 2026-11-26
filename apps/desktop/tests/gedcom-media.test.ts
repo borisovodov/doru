@@ -26,6 +26,14 @@ function makeLogger() {
   return { info: vi.fn(), warn: vi.fn() };
 }
 
+function deferred(): { promise: Promise<void>; resolve: () => void } {
+  let resolve!: () => void;
+  const promise = new Promise<void>((done) => {
+    resolve = done;
+  });
+  return { promise, resolve };
+}
+
 async function makeTempDir(): Promise<string> {
   const dir = await mkdtemp(join(tmpdir(), 'doru-gedcom-media-'));
   tempDirs.push(dir);
@@ -101,25 +109,43 @@ describe('prepareGedcomMedia', () => {
     const dir = await makeTempDir();
     const sizes = [100, 99, 1, 1, 1, 50].map((megabytes) => megabytes * 1024 * 1024);
     const urls = sizes.map((_, index) => `https://example.com/${index}.jpg`);
+    const pending = sizes.map(() => deferred());
     const download = vi.fn(async (url: string, options?: RemoteMediaOptions) => {
       const index = urls.indexOf(url);
       const size = sizes[index] ?? 0;
       if (size > (options?.maxBytes ?? size)) {
         throw new Error('remote media file exceeds the size limit');
       }
+      await pending[index]?.promise;
       return {
         bytes: { byteLength: size } as unknown as Uint8Array,
         finalUrl: url,
       };
     });
 
-    const paths = await prepareGedcomMedia(datasetWithFiles(urls), undefined, join(dir, 'tree.ged'), dir, {
+    const result = prepareGedcomMedia(datasetWithFiles(urls), undefined, join(dir, 'tree.ged'), dir, {
       download,
       write: vi.fn(async () => undefined),
       logger: makeLogger(),
     });
 
-    expect(download).toHaveBeenCalledTimes(6);
+    // Four workers start, each reserving 100 MiB.
+    await vi.waitFor(() => expect(download).toHaveBeenCalledTimes(4));
+    pending[0]?.resolve();
+    // The 100 MiB file frees a full slot, so the fifth download starts.
+    await vi.waitFor(() => expect(download).toHaveBeenCalledTimes(5));
+    pending[1]?.resolve();
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    // Only 1 MiB is free while three reservations remain: the 50 MiB file
+    // must wait instead of starting with a 1 MiB cap.
+    expect(download).toHaveBeenCalledTimes(5);
+    pending[2]?.resolve();
+    await vi.waitFor(() => expect(download).toHaveBeenCalledTimes(6));
+
+    for (const entry of pending) {
+      entry.resolve();
+    }
+    const paths = await result;
     expect(paths.size).toBe(6);
   });
 
