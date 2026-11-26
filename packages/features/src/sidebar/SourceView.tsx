@@ -1,5 +1,5 @@
 import { useMemo, type FocusEventHandler, type ReactNode } from 'react';
-import { BookOpenText, X } from 'lucide-react';
+import { BookOpenText, Unlink } from 'lucide-react';
 import type { CitationRecord, FactRecord, FamilyRecord, NoteRecord, PersonRecord, SourceRecord } from '@doru/core';
 import { nls } from '../nls';
 import { createTaskTargetLabeler, displayName, familyLabel, useTargetDirectory } from '@doru/ui/domain';
@@ -65,7 +65,7 @@ export function SourceCitationsList({
                       <IconButton
                         size="sm"
                         label={nls.t('features.tree.sources.detach')}
-                        icon={<X size={13} aria-hidden="true" />}
+                        icon={<Unlink size={13} aria-hidden="true" />}
                         onClick={() => onDetachCitation(citation.id)}
                       />
                     )}

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Trash2, X } from 'lucide-react';
+import { Trash2, Unlink } from 'lucide-react';
 import type { TaskRecord, TaskTargetLink } from '@doru/core';
 import { isAttachmentTargetAllowed, normalizeTaskPriority, normalizeTaskStatus } from '@doru/core/model';
 import { Button } from '../../atoms/button/Button';
@@ -172,7 +172,7 @@ export function TasksSection({
               <IconButton
                 size="sm"
                 label={nls.t('features.tasks.remove')}
-                icon={<X size={13} aria-hidden="true" />}
+                icon={<Unlink size={13} aria-hidden="true" />}
                 onClick={() => void remove(task)}
               />
               <IconButton

@@ -6,7 +6,7 @@ import { Input } from '../../atoms/form/Input';
 import { SectionCard } from '../../patterns/section-card/SectionCard';
 import { SourceLink } from './SourceLink';
 import { useState, type ReactNode } from 'react';
-import { Pencil, X } from 'lucide-react';
+import { Pencil, Unlink } from 'lucide-react';
 import type { CitationRecord, SourceRecord } from '@doru/core';
 import { nls } from '../../nls';
 import { CitationEditor } from '../citation/CitationEditor';
@@ -111,7 +111,7 @@ export function SourcesSection({
               <IconButton
                 size="sm"
                 label={nls.t('features.tree.sources.detach')}
-                icon={<X size={13} aria-hidden="true" />}
+                icon={<Unlink size={13} aria-hidden="true" />}
                 onClick={() => void detach(citation.id)}
               />
             </div>

@@ -70,9 +70,10 @@ component fits, add one to the library with a gallery demo instead.
 - `Trash2` deletes the record and its owned attachments. A draft row that
   will become a record (an address line, place name, marriage status) uses
   the same icon. Undo restores the record where the operation has an inverse.
-- `X` detaches a link from the current record while the linked record
-  survives, or removes a form-only row that never becomes a record. Close and
-  cancel controls also use `X`.
+- `Unlink` detaches a link from the current record while the linked record
+  survives.
+- `X` removes a transient form or list row that never becomes a record.
+  Close and cancel controls also use `X`.
 - The tooltip names the outcome: `Delete …`, `Detach …`,
   `Remove … from this record`, or `Unlink`.
 

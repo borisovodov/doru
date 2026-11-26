@@ -1,4 +1,4 @@
-import { Trash2, X } from 'lucide-react';
+import { Trash2, Unlink } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { IconButton } from '../../atoms/icon-button/IconButton';
 import { cx } from '../../lib/cx';
@@ -53,7 +53,7 @@ export function MediaTile(props: MediaTileProps) {
               className={styles['action']}
               size="sm"
               label={detach.label}
-              icon={<X size={13} aria-hidden="true" />}
+              icon={<Unlink size={13} aria-hidden="true" />}
               onClick={detach.onClick}
             />
           ) : null}

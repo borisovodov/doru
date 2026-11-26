@@ -4,7 +4,7 @@ import { Input } from '@doru/ui';
 import { Select, Textarea } from '@doru/ui';
 import { SectionCard, Subcard, ReorderButtons } from '@doru/ui';
 import { Field, FieldGrid } from '@doru/ui';
-import { BookOpenText, Plus, X } from 'lucide-react';
+import { BookOpenText, Plus, Unlink, X } from 'lucide-react';
 import type { PlaceRecord, RepositoryRecord, TitleRecord } from '@doru/core';
 import { placeName } from '@doru/core/model';
 import { nls } from '../nls';
@@ -337,7 +337,7 @@ export function SourceEditor({
               <IconButton
                 size="sm"
                 label={nls.t('features.tree.source.repositories.remove')}
-                icon={<X size={13} aria-hidden="true" />}
+                icon={<Unlink size={13} aria-hidden="true" />}
                 onClick={() => removeRepository(index)}
               />
             </div>

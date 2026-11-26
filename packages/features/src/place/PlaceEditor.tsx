@@ -2,7 +2,7 @@ import { IconButton } from '@doru/ui';
 import { EmptyText } from '@doru/ui';
 import { Fragment, useMemo, useState } from 'react';
 import { Checkbox, Field, FieldGrid, Input, ReorderButtons, Select, SectionCard, Subcard } from '@doru/ui';
-import { MapPin, Paperclip, Plus, Trash2, X } from 'lucide-react';
+import { MapPin, Paperclip, Plus, Trash2, Unlink, X } from 'lucide-react';
 import type { FocusEventHandler, ReactNode } from 'react';
 import type { PlaceRecord } from '@doru/core';
 import { nls } from '../nls';
@@ -339,7 +339,7 @@ export function PlaceEditor({
               <IconButton
                 size="sm"
                 label={nls.t('features.tree.place.hierarchy.remove')}
-                icon={<X size={13} aria-hidden="true" />}
+                icon={<Unlink size={13} aria-hidden="true" />}
                 onClick={() => removeHierarchy(index)}
               />
             </div>

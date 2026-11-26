@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Plus, X } from 'lucide-react';
+import { Plus, Unlink } from 'lucide-react';
 import type { PersonRecord } from '@doru/core';
 import { nls } from '../../nls';
 import { displayName } from '../format/format';
@@ -74,7 +74,7 @@ export function AliasesSection({
                   <IconButton
                     size="sm"
                     label={nls.t('features.tree.aliases.remove')}
-                    icon={<X size={13} aria-hidden="true" />}
+                    icon={<Unlink size={13} aria-hidden="true" />}
                     onClick={() => void onDelete(alias.id, personId, alias.aliasId)}
                   />
                 }

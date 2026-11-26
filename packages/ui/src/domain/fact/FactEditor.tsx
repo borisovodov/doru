@@ -1,7 +1,7 @@
 import { Button } from '../../atoms/button/Button';
 import { IconButton } from '../../atoms/icon-button/IconButton';
 import { useState, type ReactNode } from 'react';
-import { Plus, X } from 'lucide-react';
+import { Plus, Unlink, X } from 'lucide-react';
 import type {
   AddressRecord,
   FactAge,
@@ -383,7 +383,7 @@ export function FactEditor({
             <IconButton
               size="sm"
               label={nls.t('features.tree.fact.additionalPlaces')}
-              icon={<X size={13} aria-hidden="true" />}
+              icon={<Unlink size={13} aria-hidden="true" />}
               onClick={() => set({ additionalPlaceIds: draft.additionalPlaceIds.filter((_, i) => i !== index) })}
             />
           </div>
