@@ -1,6 +1,6 @@
 import { useCallback, useContext, useMemo, useSyncExternalStore } from 'react';
 import { CanvasContext, type CanvasContextValue } from './CanvasContext';
-import { screenToWorld as toWorld, worldToScreen as toScreen } from './geometry';
+import { clientToWorld as fromClient, screenToWorld as toWorld, worldToScreen as toScreen } from './geometry';
 import type { FitOptions, Point, Rect, Viewport, ViewportTransitionOptions } from './types';
 
 export interface CanvasApi {
@@ -51,7 +51,7 @@ export function useCanvas(): CanvasApi {
   const clientToWorld = useCallback(
     (point: Point) => {
       const rect = rootRef.current?.getBoundingClientRect();
-      return toWorld({ x: point.x - (rect?.left ?? 0), y: point.y - (rect?.top ?? 0) }, store.getSnapshot());
+      return fromClient(point, { x: rect?.left ?? 0, y: rect?.top ?? 0 }, store.getSnapshot());
     },
     [rootRef, store],
   );

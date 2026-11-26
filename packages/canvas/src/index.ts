@@ -12,7 +12,7 @@ export {
   type PointerDragOptions,
   type PointerDragResult,
 } from './usePointerDrag';
-export { clamp, fitViewport, rectsIntersect, screenToWorld, worldToScreen } from './geometry';
+export { clamp, clientToWorld, fitViewport, rectsIntersect, screenToWorld, worldToScreen } from './geometry';
 export type {
   FitOptions,
   OverlayPosition,

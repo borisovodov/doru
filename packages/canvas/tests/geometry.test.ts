@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { fitViewport, rectsIntersect, screenToWorld, worldToScreen, type Rect } from '../src';
+import { clientToWorld, fitViewport, rectsIntersect, screenToWorld, worldToScreen, type Rect } from '../src';
 
 function bounds(width: number, height: number, x = 0, y = 0): Rect {
   return { x, y, width, height };
@@ -41,6 +41,15 @@ describe('coordinate conversion', () => {
     const roundTrip = worldToScreen(screenToWorld(point, viewport), viewport);
     expect(roundTrip.x).toBeCloseTo(point.x);
     expect(roundTrip.y).toBeCloseTo(point.y);
+  });
+
+  it('removes the canvas origin before converting client points', () => {
+    const origin = { x: 100, y: 40 };
+    const start = clientToWorld({ x: 200, y: 100 }, origin, { x: 0, y: 0, zoom: 1 });
+    const end = clientToWorld({ x: 210, y: 100 }, origin, { x: -100, y: 0, zoom: 2 });
+    expect(start).toEqual({ x: 100, y: 60 });
+    expect(end.x - start.x).toBe(5);
+    expect(end.y - start.y).toBe(-30);
   });
 });
 
