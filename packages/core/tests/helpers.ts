@@ -61,7 +61,7 @@ export function flatFamily(family: FamilyRecord): FamilyRecord {
   return { id: family.id, xref: family.xref, partners: family.partners, children: family.children };
 }
 
-/** The flat contract of a hydrated media record: the first file/link as flat fields. */
+/** The flat contract of a hydrated media record: the first link as flat fields. */
 export function flatMedia(media: MediaRecord): MediaRecord {
   return {
     id: media.id,

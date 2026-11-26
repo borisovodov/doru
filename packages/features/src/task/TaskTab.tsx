@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Button, DangerZone, EntityViewCard, InlineError, SectionCard, useAutoSaveOnBlur } from '@doru/ui';
-import { MEDIA_VISIBLE } from '@doru/platform';
 import { AutoSaveError } from '../autoSaveFeedback';
 import { useEntityDelete } from '../entityDelete';
 import { ListTodo } from 'lucide-react';
@@ -37,11 +36,6 @@ import {
   type TaskDraft,
 } from '@doru/ui/domain';
 import { nls } from '../nls';
-
-/** Media targets stay out of the picker while media editing is hidden. */
-const VISIBLE_TARGET_TYPES = MEDIA_VISIBLE
-  ? TASK_TARGET_TYPES
-  : TASK_TARGET_TYPES.filter((type) => type !== 'media' && type !== 'media_file');
 
 export function TaskTab({
   entityId,
@@ -417,7 +411,7 @@ function TaskTabBody({
       )}
       <SectionCard title={nls.t('features.tasks.target')}>
         <TargetPicker
-          allowedTypes={VISIBLE_TARGET_TYPES}
+          allowedTypes={TASK_TARGET_TYPES}
           value={targets}
           onChange={updateTargets}
           data={targetData}

@@ -1,4 +1,4 @@
-import type { MediaFile, MediaRecord } from '@doru/core';
+import type { MediaRecord } from '@doru/core';
 
 /** Technical facts derived from the file, never stored in the database. */
 export interface MediaFileFacts {
@@ -8,15 +8,10 @@ export interface MediaFileFacts {
   height?: number | undefined;
 }
 
-export interface MediaFileWithPath extends MediaFile {
+export interface MediaWithPath extends MediaRecord {
+  /** Absolute path of the single file; empty for external/unresolved media. */
   absolutePath: string;
   facts?: MediaFileFacts | undefined;
-}
-
-export interface MediaWithPath extends Omit<MediaRecord, 'files'> {
-  /** Absolute path of the first file, for the compact preview. */
-  absolutePath: string;
-  files?: MediaFileWithPath[] | undefined;
 }
 
 export type CardAction = 'child' | 'spouse' | 'parent' | 'edit' | 'delete';

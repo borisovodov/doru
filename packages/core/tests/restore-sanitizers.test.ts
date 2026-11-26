@@ -121,7 +121,7 @@ describe('undo restore sanitizers', () => {
       expect(repo.getFamily('F1')?.marriageStatuses?.[0]?.id).toBe('MS1');
       expect(repo.getFamily('F1')?.marriageStatuses?.[0]?.placeId).toBeUndefined();
 
-      restoreMedia(ctx, { id: 'M1', title: 'Photo', place: 'Moscow', placeId: 'missing' });
+      restoreMedia(ctx, { id: 'M1', path: 'media/m1.jpg', title: 'Photo', place: 'Moscow', placeId: 'missing' });
       expect(repo.getMedia('M1')?.place).toBe('Moscow');
       expect(repo.getMedia('M1')?.placeId).toBeUndefined();
 
@@ -161,7 +161,7 @@ describe('undo restore sanitizers', () => {
       expect(repo.getSource('S1')?.dataEvents?.[0]?.placeId).toBe('PL1');
       expect(repo.getSource('S1')?.repositories?.[0]?.repositoryId).toBe('R1');
 
-      restoreMedia(ctx, { id: 'M1', title: 'Photo', place: 'Moscow', placeId: 'PL1' });
+      restoreMedia(ctx, { id: 'M1', path: 'media/m1.jpg', title: 'Photo', place: 'Moscow', placeId: 'PL1' });
       expect(repo.getMedia('M1')?.placeId).toBe('PL1');
 
       repo.insertPerson({ id: 'P1', names: [], sex: 'U', facts: [] });
@@ -290,6 +290,7 @@ describe('undo restore sanitizers', () => {
       repo.insertPerson({ id: 'P1', names: [], sex: 'U', facts: [] });
       const restored = restoreMedia(ctx, {
         id: 'M1',
+        path: 'media/m1.jpg',
         title: 'Photo',
         links: [
           { id: 'L1', mediaId: 'M1', targetType: 'person', targetId: 'P1' },
@@ -301,6 +302,7 @@ describe('undo restore sanitizers', () => {
 
       const noLinks = restoreMedia(ctx, {
         id: 'M2',
+        path: 'media/m2.jpg',
         title: 'Standalone',
         links: [{ id: 'L3', mediaId: 'M2', targetType: 'person', targetId: 'missing' }],
       });
@@ -398,7 +400,7 @@ describe('undo restore sanitizers', () => {
       repo.insertTask({ id: 'T1', text: 'Task', targets: [] });
       repo.insertFact({ id: 'FACT1', personId: 'P1', tag: 'BIRT' });
       repo.insertAssociation({ id: 'AS1', personId: 'P1', otherPersonId: 'P1' });
-      repo.insertMedia({ id: 'M1', targetType: 'person', targetId: 'P1' });
+      repo.insertMedia({ id: 'M1', path: 'media/m1.jpg', targetType: 'person', targetId: 'P1' });
       repo.insertPlace({ id: 'PL1', names: [] });
 
       for (const [type, id] of [
@@ -447,7 +449,7 @@ describe('undo restore sanitizers', () => {
 
       repo.insertSource({ id: 'S1', title: 'Book' });
       repo.insertCitation({ id: 'C1', sourceId: 'S1', targetType: 'person', targetId: 'P1', page: '1' });
-      repo.insertMedia({ id: 'M1', title: 'Photo', targetType: 'person', targetId: 'P1' });
+      repo.insertMedia({ id: 'M1', path: 'media/m1.jpg', title: 'Photo', targetType: 'person', targetId: 'P1' });
       repo.insertContact({ id: 'CT1', targetType: 'person', targetId: 'P1', kind: 'email', value: 'a@b.c' });
       repo.insertSubmitter({ id: 'SU1', name: 'Submitter' });
       repo.insertRecordSubmitter('RS1', 'SU1', 'person', 'P1', 'contributor');

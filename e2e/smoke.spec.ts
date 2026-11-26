@@ -45,10 +45,13 @@ test('Search stays hidden until the feature is ready', async () => {
   await app.close();
 });
 
-test('Media stays hidden until the feature is ready', async () => {
+test('Media is available from the activity bar', async () => {
   const { app, page } = await launchApp();
 
-  await expect(page.getByRole('button', { name: 'Media', exact: true })).toHaveCount(0);
+  const mediaButton = page.getByRole('button', { name: 'Media', exact: true });
+  await expect(mediaButton).toBeVisible();
+  await mediaButton.click();
+  await expect(page.getByRole('complementary', { name: 'Media' })).toBeVisible();
   await app.close();
 });
 

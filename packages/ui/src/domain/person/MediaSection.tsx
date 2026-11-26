@@ -1,4 +1,4 @@
-import { isImagePath, type MediaLinkRecord, type MediaRecord } from '@doru/core/model';
+import { isExternalMediaPath, isImagePath, type MediaLinkRecord, type MediaRecord } from '@doru/core/model';
 import { FileImage } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { nls } from '../../nls';
@@ -19,6 +19,10 @@ export interface MediaSectionApi {
   attachMedia(link: MediaLinkRecord): Promise<void>;
   detachMedia(link: MediaLinkRecord): Promise<void>;
   deleteMedia(media: MediaRecord): Promise<void>;
+}
+
+function mediaList(items: MediaWithPath[] | undefined): MediaWithPath[] {
+  return items ?? [];
 }
 
 export function MediaSection({
@@ -43,7 +47,7 @@ export function MediaSection({
     let cancelled = false;
     void api.getAllMedia().then((loaded) => {
       if (!cancelled) {
-        setAllMedia(loaded);
+        setAllMedia(mediaList(loaded));
       }
     });
     return () => {
@@ -56,7 +60,7 @@ export function MediaSection({
     try {
       await api.addMediaToTarget(targetType, targetId);
       await refresh();
-      setAllMedia(await api.getAllMedia());
+      setAllMedia(mediaList(await api.getAllMedia()));
     } catch {
       setMediaError(true);
     }
@@ -67,7 +71,7 @@ export function MediaSection({
     try {
       await api.attachMedia({ id: crypto.randomUUID(), mediaId, targetType, targetId });
       await refresh();
-      setAllMedia(await api.getAllMedia());
+      setAllMedia(mediaList(await api.getAllMedia()));
     } catch (error) {
       setMediaError(true);
       throw error;
@@ -82,7 +86,7 @@ export function MediaSection({
     try {
       await api.deleteMedia(item);
       await refresh();
-      setAllMedia(await api.getAllMedia());
+      setAllMedia(mediaList(await api.getAllMedia()));
     } catch {
       setMediaError(true);
     }
@@ -97,7 +101,7 @@ export function MediaSection({
     try {
       await api.detachMedia(link);
       await refresh();
-      setAllMedia(await api.getAllMedia());
+      setAllMedia(mediaList(await api.getAllMedia()));
     } catch {
       setMediaError(true);
     }
@@ -105,14 +109,15 @@ export function MediaSection({
 
   const linkOf = (item: MediaRecord) =>
     item.links?.find((entry) => entry.targetType === targetType && entry.targetId === targetId);
-  const hasResolvedFile = (item: MediaWithPath): boolean => (item.files ?? []).some((file) => file.absolutePath !== '');
+  const hasDisplayableFile = (item: MediaWithPath): boolean =>
+    item.absolutePath !== '' || isExternalMediaPath(item.path);
   const visibleMedia = media
-    .filter(hasResolvedFile)
+    .filter(hasDisplayableFile)
     .slice()
     .sort((a, b) => Number(linkOf(b)?.primary === true) - Number(linkOf(a)?.primary === true));
   const attachable = allMedia.filter(
     (item) =>
-      hasResolvedFile(item) &&
+      hasDisplayableFile(item) &&
       !(item.links ?? []).some((link) => link.targetType === targetType && link.targetId === targetId),
   );
 
@@ -125,11 +130,11 @@ export function MediaSection({
           {visibleMedia.map((item) => {
             const link = linkOf(item);
             const shared = (item.links?.length ?? 0) > 1;
-            const resolvedFile = item.files?.find((file) => file.absolutePath !== '');
             const preview =
-              resolvedFile !== undefined && isImagePath(resolvedFile.path)
-                ? `doru-media://local/?path=${encodeURIComponent(resolvedFile.absolutePath)}`
+              item.absolutePath !== '' && isImagePath(item.path)
+                ? `doru-media://local/?path=${encodeURIComponent(item.absolutePath)}`
                 : '';
+            const label = item.title ?? (isExternalMediaPath(item.path) ? item.id : item.path);
             const badge =
               link?.primary === true
                 ? nls.t('features.tree.media.primary')
@@ -140,11 +145,11 @@ export function MediaSection({
               <MediaTile
                 key={item.id}
                 src={preview}
-                alt={item.title ?? item.path ?? item.id}
+                alt={label}
                 fallback={
                   <span className={styles['fallback']}>
                     <FileImage size={24} aria-hidden="true" />
-                    <span>{item.title ?? item.path ?? item.id}</span>
+                    <span>{label}</span>
                   </span>
                 }
                 {...(badge !== undefined ? { badge } : {})}
@@ -178,7 +183,7 @@ export function MediaSection({
           actionLabel={nls.t('features.tree.media.attach')}
           options={attachable.map((item) => ({
             id: item.id,
-            label: item.title ?? item.path ?? item.id,
+            label: item.title ?? item.path,
           }))}
           onAttach={attach}
         />

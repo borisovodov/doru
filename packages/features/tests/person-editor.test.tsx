@@ -42,7 +42,7 @@ describe('PersonEditor', () => {
     expect(screen.getByLabelText(nls.t('features.personEditor.title'))).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: nls.t('features.tree.person.newPerson') })).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: nls.t('features.tree.names.title') })).toBeInTheDocument();
-    // MEDIA_VISIBLE in @doru/platform is off: the media editor is not offered.
+    // A new person has no saved-record attachment sections yet.
     expect(screen.queryByRole('heading', { name: nls.t('features.tree.media.title') })).not.toBeInTheDocument();
     const nameInput = screen.getByDisplayValue(nls.t('features.tree.person.newPerson'));
     expect(nameInput).toHaveFocus();

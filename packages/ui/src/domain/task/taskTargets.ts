@@ -132,13 +132,6 @@ export function taskTargetOptions(type: string, data: TaskTargetData): TaskTarge
       }));
     case 'media':
       return data.media.map((media) => ({ id: media.id, label: mediaLabel(media) }));
-    case 'media_file':
-      return data.media.flatMap((media) =>
-        (media.files ?? []).map((file) => ({
-          id: file.id,
-          label: `${mediaLabel(media)} · ${file.title ?? file.path}`,
-        })),
-      );
     case 'media_link': {
       const labelFor = createTaskTargetLabeler(data, false);
       return data.media.flatMap((media) =>
@@ -262,7 +255,7 @@ function nameLabel(name: PersonName): string {
 }
 
 function mediaLabel(media: MediaRecord): string {
-  return media.title ?? media.path ?? media.id;
+  return media.title ?? media.path;
 }
 
 function truncate(text: string): string {

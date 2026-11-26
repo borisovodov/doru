@@ -75,17 +75,19 @@ decisions about what we deliberately do **not** build, see
 
 ## Media
 
-- File bytes live in the `media/` folder next to the `.doru` file; the
-  database stores project-relative paths plus `media_file`/`media_link`
-  metadata. The main process validates every path against `media/` before it
-  reads or deletes a file. Historical media fields (date, place, object type,
-  description, keywords, file medium) are stored; MIME, size and image
-  dimensions are derived from the file at read time and never persisted.
+- File bytes live in the `media/` folder next to the `.doru` file; a `media`
+  row stores one project-relative path or one external URL, plus the
+  `media_link` rows that attach the card to its targets. The main process
+  validates every local path against `media/` before it reads or deletes a
+  file. Historical media fields (date, place, object type, description,
+  keywords, medium, content type, transcription) are stored; MIME, size and
+  image dimensions are derived from the file at read time and never persisted.
 - A media record can be linked to several targets. Detaching its last link
   removes the record; deleting a target removes only that target's links and
   keeps a media record that has no links left. Removing a file copy is
   deliberately not undoable, so undo restores the database rows but not bytes
-  that were deleted from disk.
+  that were deleted from disk. Attachments on a media card target `media`;
+  there is no separate file attachment target.
 - `target_type`/`target_id` attachments (notes, citations,
   contacts, contributors, media links) are polymorphic and
   keyed by UUID. Every op that deletes or removes a target cleans its
@@ -122,9 +124,11 @@ decisions about what we deliberately do **not** build, see
   autosaves like any other.
 - **Media** follows the project-folder rule: GEDZIP bytes are written to
   the project's `media/` folder during import, and plain GEDCOM `FILE`
-  paths are copied when the referenced file is reachable. Unresolvable
-  paths stay external references in the database and are hidden from the
-  media UI; the bytes are never stored in SQLite.
+  paths are copied when the referenced file is reachable. Plain `http(s)`
+  URLs are downloaded silently with size, timeout and private-address limits;
+  failed downloads stay external references in the database and render as a
+  generic placeholder. A multi-FILE `OBJE` is split into one file card per
+  `FILE`; `TRAN` is ignored. The bytes are never stored in SQLite.
 - Export happens in the Export tab, which offers **GEDCOM 7.0 (`.ged`)** and
   **GEDZIP (`.gdz`)**. GEDZIP bundles the managed media files; `.ged`
   keeps only their paths. The save dialog opens only after the user

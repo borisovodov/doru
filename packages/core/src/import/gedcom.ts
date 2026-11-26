@@ -140,10 +140,12 @@ interface ImportContext {
   placeCardIds: Map<string, string>;
   /** Place id → parent links resolved after all cards are imported. */
   placeParents: Map<string, Array<{ parentXref: string; type?: string | undefined; date?: DateValue | undefined }>>;
-  /** Media record xref → media id. */
-  mediaIds: Map<string, string>;
+  /** Media record xref → the one or more cards split from that record. */
+  mediaIds: Map<string, string[]>;
   /** Media id → historical place text, resolved after place records exist. */
   mediaPlaceText: Map<string, string>;
+  /** Number of media cards created (after multi-FILE splitting). */
+  mediaCreated: number;
   /** Original GEDCOM FILE path → project-relative path prepared by the host. */
   mediaPaths: ReadonlyMap<string, string>;
   /** Person xref → the dates carried by their FAMS links, keyed by family xref. */
@@ -209,6 +211,7 @@ export function importGedcomDataset(
     placeParents: new Map(),
     mediaIds: new Map(),
     mediaPlaceText: new Map(),
+    mediaCreated: 0,
     mediaPaths,
     spouseLinkDates: new Map(),
     spouseLinkNotes: new Map(),
@@ -259,7 +262,7 @@ export function importGedcomDataset(
     importedFamilies,
     importedSources,
     importedPlaces: ctx.placeIds.size,
-    importedMedia: ctx.mediaIds.size,
+    importedMedia: ctx.mediaCreated,
     totalPersons: repo.countPersons(),
     droppedStructures: ctx.dropped,
   };
@@ -2170,59 +2173,55 @@ function mapCoordinate(
   return value.direction === negativeDirection ? -value.degrees : value.degrees;
 }
 
-/** Imports the global OBJE records before any link references them. */
+/**
+ * Imports the global OBJE records before any link references them. GEDCOM
+ * allows several FILE rows on one record; Dóru has one file per card, so each
+ * usable FILE becomes its own media record with a copy of the record metadata
+ * and attachments. The first card keeps the original xref.
+ */
 function importMediaRecords(records: GedcomRecord[], ctx: ImportContext): void {
   for (const record of records) {
     if (record.tag !== 'OBJE') {
       continue;
     }
-    const files = record.files
-      .filter((file) => file.payload !== '')
-      .map((file) => ({
-        id: crypto.randomUUID(),
-        path: ctx.mediaPaths.get(file.payload) ?? file.payload,
-        ...(file.title !== undefined ? { title: file.title } : {}),
-        ...(file.form?.medium !== undefined ? { medium: file.form.medium.payload } : {}),
-        ...(file.contentType !== undefined ? { contentType: file.contentType } : {}),
-        ...(file.text !== undefined ? { text: file.text } : {}),
-        ...(file.translations !== undefined && file.translations.length > 0
-          ? {
-              translations: file.translations.map((translation, position) => ({
-                id: crypto.randomUUID(),
-                path: ctx.mediaPaths.get(translation.payload) ?? translation.payload,
-                position,
-              })),
-            }
-          : {}),
-      }));
+    const files = record.files.filter((file) => file.payload !== '');
     if (files.length === 0) {
       // A record with only FORM/BLOB (or an empty FILE) has no path to
       // store; registering its xref would make later OBJE links point at a
       // media row that does not exist and fail the import on the FK.
       continue;
     }
-    const id = crypto.randomUUID();
-    ctx.repo.insertMedia({
-      id,
-      ...(record.xref !== undefined ? { xref: record.xref } : {}),
-      ...(record.title !== undefined ? { title: record.title } : {}),
-      ...(record.date !== undefined ? { date: mapDate(record.date) } : {}),
-      ...(record.place !== undefined ? { place: record.place } : {}),
-      ...(record.objectType !== undefined ? { objectType: record.objectType } : {}),
-      ...(record.description !== undefined ? { description: record.description } : {}),
-      ...(record.keywords !== undefined ? { keywords: record.keywords } : {}),
-      ...importedRecordTimes(record, ctx),
-      files,
-    });
-    if (record.place !== undefined) {
-      ctx.mediaPlaceText.set(id, record.place);
+    for (const [index, file] of files.entries()) {
+      const id = crypto.randomUUID();
+      const title = file.title !== undefined && file.title !== '' ? file.title : record.title;
+      ctx.repo.insertMedia({
+        id,
+        ...(index === 0 && record.xref !== undefined ? { xref: record.xref } : {}),
+        ...(title !== undefined ? { title } : {}),
+        path: ctx.mediaPaths.get(file.payload) ?? file.payload,
+        ...(file.form?.medium !== undefined ? { medium: file.form.medium.payload } : {}),
+        ...(file.contentType !== undefined ? { contentType: file.contentType } : {}),
+        ...(file.text !== undefined ? { text: file.text } : {}),
+        ...(record.date !== undefined ? { date: mapDate(record.date) } : {}),
+        ...(record.place !== undefined ? { place: record.place } : {}),
+        ...(record.objectType !== undefined ? { objectType: record.objectType } : {}),
+        ...(record.description !== undefined ? { description: record.description } : {}),
+        ...(record.keywords !== undefined ? { keywords: record.keywords } : {}),
+        ...importedRecordTimes(record, ctx),
+      });
+      ctx.mediaCreated += 1;
+      if (record.place !== undefined) {
+        ctx.mediaPlaceText.set(id, record.place);
+      }
+      importCitations(record.citations, 'media', id, ctx);
+      importNotes(record.notes, 'media', id, ctx);
+      importSubmitterLinks(record.submitters, 'media', id, ctx);
+      if (record.xref !== undefined) {
+        const ids = ctx.mediaIds.get(record.xref) ?? [];
+        ids.push(id);
+        ctx.mediaIds.set(record.xref, ids);
+      }
     }
-    importCitations(record.citations, 'media', id, ctx);
-    if (record.xref !== undefined) {
-      ctx.mediaIds.set(record.xref, id);
-    }
-    importNotes(record.notes, 'media', id, ctx);
-    importSubmitterLinks(record.submitters, 'media', id, ctx);
   }
 }
 
@@ -2270,27 +2269,26 @@ function importMediaLinks(
   ctx: ImportContext,
 ): void {
   for (const link of links ?? []) {
-    const mediaId = ctx.mediaIds.get(link.object);
-    if (mediaId === undefined) {
-      continue;
+    const mediaIds = ctx.mediaIds.get(link.object) ?? [];
+    for (const mediaId of mediaIds) {
+      const linkId = crypto.randomUUID();
+      ctx.repo.addMediaLink(mediaId, {
+        id: linkId,
+        mediaId,
+        targetType,
+        targetId,
+        ...(link.crop !== undefined ? { crop: link.crop } : {}),
+        ...(link.title !== undefined ? { title: link.title } : {}),
+        ...(link.sequence !== undefined ? { sequence: link.sequence } : {}),
+        ...(link.primary !== undefined ? { primary: link.primary } : {}),
+        ...(link.scrapbook !== undefined ? { scrapbook: link.scrapbook } : {}),
+        ...(link.slideshow !== undefined ? { slideshow: link.slideshow } : {}),
+        ...(link.thumbnail !== undefined ? { thumbnail: link.thumbnail } : {}),
+        ...(link.excludeFromDiagrams !== undefined ? { exclude: link.excludeFromDiagrams } : {}),
+        ...(link.caption !== undefined ? { caption: link.caption } : {}),
+      });
+      importCitations(link.citations, 'media_link', linkId, ctx);
     }
-    const linkId = crypto.randomUUID();
-    ctx.repo.addMediaLink(mediaId, {
-      id: linkId,
-      mediaId,
-      targetType,
-      targetId,
-      ...(link.crop !== undefined ? { crop: link.crop } : {}),
-      ...(link.title !== undefined ? { title: link.title } : {}),
-      ...(link.sequence !== undefined ? { sequence: link.sequence } : {}),
-      ...(link.primary !== undefined ? { primary: link.primary } : {}),
-      ...(link.scrapbook !== undefined ? { scrapbook: link.scrapbook } : {}),
-      ...(link.slideshow !== undefined ? { slideshow: link.slideshow } : {}),
-      ...(link.thumbnail !== undefined ? { thumbnail: link.thumbnail } : {}),
-      ...(link.excludeFromDiagrams !== undefined ? { exclude: link.excludeFromDiagrams } : {}),
-      ...(link.caption !== undefined ? { caption: link.caption } : {}),
-    });
-    importCitations(link.citations, 'media_link', linkId, ctx);
   }
 }
 

@@ -139,22 +139,18 @@ describe('media historical metadata', () => {
       importGedcomDataset(parseDataset(GEDCOM), fixture.repo);
       const media = fixture.repo.listAllMedia()[0]!;
       expect(media).toMatchObject({
-        title: 'Portrait',
+        title: 'File title',
+        path: 'photos/a.jpg',
         place: 'Moscow',
         objectType: 'Photo',
         description: 'Studio portrait',
         keywords: 'family, portrait',
-      });
-      expect(media.placeId).toBeDefined();
-      expect(media.date).toMatchObject({ component: { year: 1900 } });
-      expect(media.files?.[0]).toMatchObject({
-        path: 'photos/a.jpg',
-        title: 'File title',
         medium: 'PHOTO',
         contentType: 'person',
         text: 'A transcription',
-        translations: [{ path: 'photos/a.png', position: 0 }],
       });
+      expect(media.placeId).toBeDefined();
+      expect(media.date).toMatchObject({ component: { year: 1900 } });
       expect(fixture.repo.listNotesFor('media', media.id).map((note) => note.text)).toEqual(['Record note']);
       expect(fixture.repo.listCitationRecordsFor('media', media.id)).toHaveLength(1);
 
@@ -180,35 +176,24 @@ describe('media historical metadata', () => {
         expect(text).toContain('2 _CTYP person');
         expect(text).toContain('2 SOUR @S1@');
         expect(text).toContain('3 PAGE Link page');
-        if (serialize === serializeGedcom70) {
-          expect(text).toContain('2 TRAN photos/a.png');
-          expect(text).toContain('3 FORM image/png');
-        } else {
-          expect(text).not.toContain('2 TRAN');
-        }
+        expect(text).not.toContain('2 TRAN');
 
         const target = makeRepo();
         try {
           importGedcomDataset(parseDataset(text), target.repo);
           const imported = target.repo.listAllMedia()[0]!;
           expect(imported).toMatchObject({
-            title: 'Portrait',
+            title: 'File title',
+            path: 'photos/a.jpg',
             place: 'Moscow',
             objectType: 'Photo',
             description: 'Studio portrait',
             keywords: 'family, portrait',
-          });
-          expect(imported.date).toMatchObject({ component: { year: 1900 } });
-          expect(imported.files?.[0]).toMatchObject({
             medium: 'PHOTO',
             contentType: 'person',
             text: 'A transcription',
           });
-          if (serialize === serializeGedcom70) {
-            expect(imported.files?.[0]?.translations?.[0]).toMatchObject({ path: 'photos/a.png', position: 0 });
-          } else {
-            expect(imported.files?.[0]?.translations).toEqual([]);
-          }
+          expect(imported.date).toMatchObject({ component: { year: 1900 } });
           expect(target.repo.listNotesFor('media', imported.id).map((note) => note.text)).toEqual(['Record note']);
           const importedSource = target.repo.listSources()[0]!;
           expect(target.repo.listCitationRecordsFor('media', imported.id).map((citation) => citation.sourceId)).toEqual(

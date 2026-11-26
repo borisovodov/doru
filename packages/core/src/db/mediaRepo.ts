@@ -1,5 +1,5 @@
 import type { DatabaseSync } from 'node:sqlite';
-import type { MediaFile, MediaFileTranslation, MediaLinkRecord, MediaRecord } from '../model/types';
+import type { MediaLinkRecord, MediaRecord } from '../model/types';
 import type { DateRepo } from './dateRepo';
 import type { TransactionScope } from './transaction';
 
@@ -7,6 +7,10 @@ interface MediaRow {
   id: string;
   xref: string | null;
   title: string | null;
+  path: string;
+  medium: string | null;
+  content_type: string | null;
+  text: string | null;
   place_id: string | null;
   place_text: string | null;
   object_type: string | null;
@@ -15,24 +19,6 @@ interface MediaRow {
   date_id: string | null;
   created_at: number | null;
   updated_at: number | null;
-}
-
-interface FileRow {
-  id: string;
-  media_id: string;
-  path: string;
-  title: string | null;
-  medium: string | null;
-  content_type: string | null;
-  text: string | null;
-  position: number;
-}
-
-interface TranslationRow {
-  id: string;
-  media_file_id: string;
-  path: string;
-  position: number;
 }
 
 interface LinkRow {
@@ -55,13 +41,13 @@ interface LinkRow {
 }
 
 /**
- * Media records with their file rows and link rows. File bytes live in the
- * media/ folder next to the project; only paths and titles are stored here.
- * The flat `path`/`targetType`/`targetId` on the model are projections of
- * the first file and the first link.
+ * Media records with their link rows. File bytes live in the media/ folder
+ * next to the project; only the path and metadata are stored here. A media
+ * record is exactly one file; the flat `targetType`/`targetId` on the model
+ * are projections of the first link.
  */
-const MEDIA_COLUMNS = `id, xref, title, place_id, place_text, object_type, description, keywords,
-  date_id, created_at, updated_at`;
+const MEDIA_COLUMNS = `id, xref, title, path, medium, content_type, text, place_id, place_text,
+  object_type, description, keywords, date_id, created_at, updated_at`;
 
 export class MediaRepo {
   constructor(
@@ -70,18 +56,17 @@ export class MediaRepo {
     private readonly transactions: TransactionScope,
   ) {}
 
-  /** Inserts the record with its files and links (or the flat projection as one file+link). */
+  /** Inserts the record with its links (or the flat projection as one link). */
   insertMedia(media: MediaRecord): void {
     this.transactions.run(() => {
       const dateId = media.date !== undefined ? this.dates.create(media.date) : null;
       this.db
         .prepare(
-          `INSERT INTO media (id, xref, title, place_id, place_text, object_type, description, keywords,
-             created_at, updated_at, date_id)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          `INSERT INTO media (id, xref, title, path, medium, content_type, text, place_id, place_text,
+             object_type, description, keywords, created_at, updated_at, date_id)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         )
         .run(...mediaParams(media), dateId);
-      this.replaceFiles(media);
       this.replaceLinks(media);
     });
   }
@@ -97,13 +82,12 @@ export class MediaRepo {
       const prepared = this.dates.prepareSlots([current.date_id], [media.date]);
       this.db
         .prepare(
-          `UPDATE media SET xref = ?, title = ?, place_id = ?, place_text = ?,
-             object_type = ?, description = ?, keywords = ?, created_at = ?, updated_at = ?,
-             date_id = ? WHERE id = ?`,
+          `UPDATE media SET xref = ?, title = ?, path = ?, medium = ?, content_type = ?, text = ?,
+             place_id = ?, place_text = ?, object_type = ?, description = ?, keywords = ?,
+             created_at = ?, updated_at = ?, date_id = ? WHERE id = ?`,
         )
         .run(...mediaParams(media).slice(1), prepared.ids[0] ?? null, media.id);
       this.dates.deleteMany(prepared.obsolete);
-      this.replaceFiles(media);
     });
   }
 
@@ -268,45 +252,6 @@ export class MediaRepo {
     return changed;
   }
 
-  private replaceFiles(media: MediaRecord): void {
-    const existing = this.db
-      .prepare('SELECT id, path FROM media_file WHERE media_id = ? ORDER BY position')
-      .all(media.id) as unknown as { id: string; path: string }[];
-    this.db
-      .prepare(
-        'DELETE FROM media_file_translation WHERE media_file_id IN (SELECT id FROM media_file WHERE media_id = ?)',
-      )
-      .run(media.id);
-    this.db.prepare('DELETE FROM media_file WHERE media_id = ?').run(media.id);
-    const insert = this.db.prepare(
-      `INSERT INTO media_file (id, media_id, path, title, medium, content_type, text, position)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-    );
-    const insertTranslation = this.db.prepare(
-      'INSERT INTO media_file_translation (id, media_file_id, path, position) VALUES (?, ?, ?, ?)',
-    );
-    const fallbackId =
-      media.path !== undefined
-        ? (existing.find((entry) => entry.path === media.path)?.id ?? crypto.randomUUID())
-        : crypto.randomUUID();
-    const files: MediaFile[] = media.files ?? (media.path !== undefined ? [{ id: fallbackId, path: media.path }] : []);
-    for (const [position, file] of files.entries()) {
-      insert.run(
-        file.id,
-        media.id,
-        file.path,
-        file.title ?? null,
-        file.medium ?? null,
-        file.contentType ?? null,
-        file.text ?? null,
-        position,
-      );
-      for (const translation of file.translations ?? []) {
-        insertTranslation.run(translation.id, file.id, translation.path, translation.position);
-      }
-    }
-  }
-
   private replaceLinks(media: MediaRecord): void {
     if (media.links !== undefined) {
       for (const link of media.links) {
@@ -326,17 +271,7 @@ export class MediaRepo {
     return this.db.prepare('SELECT 1 FROM media_link WHERE id = ?').get(id) !== undefined;
   }
 
-  hasFile(id: string): boolean {
-    return this.db.prepare('SELECT 1 FROM media_file WHERE id = ?').get(id) !== undefined;
-  }
-
   private hydrate(row: MediaRow): MediaRecord {
-    const files = this.db
-      .prepare(
-        `SELECT id, media_id, path, title, medium, content_type, text, position
-         FROM media_file WHERE media_id = ? ORDER BY position`,
-      )
-      .all(row.id) as unknown as FileRow[];
     const links = this.db
       .prepare(
         `SELECT id, media_id, target_type, target_id, crop_top, crop_left, crop_height, crop_width,
@@ -344,14 +279,16 @@ export class MediaRepo {
          FROM media_link WHERE media_id = ? ORDER BY sequence, id`,
       )
       .all(row.id) as unknown as LinkRow[];
-    const translationsByFile = this.translationsForFiles(files.map((file) => file.id));
-    const firstFile = files[0];
     const firstLink = links[0];
     const date = row.date_id !== null ? this.dates.get(row.date_id) : undefined;
     return {
       id: row.id,
       xref: row.xref ?? undefined,
       title: row.title ?? undefined,
+      path: row.path,
+      ...(row.medium !== null ? { medium: row.medium } : {}),
+      ...(row.content_type !== null ? { contentType: row.content_type } : {}),
+      ...(row.text !== null ? { text: row.text } : {}),
       ...(date !== undefined ? { date } : {}),
       ...(row.place_id !== null ? { placeId: row.place_id } : {}),
       ...(row.place_text !== null ? { place: row.place_text } : {}),
@@ -360,40 +297,10 @@ export class MediaRepo {
       ...(row.keywords !== null ? { keywords: row.keywords } : {}),
       createdAt: row.created_at ?? undefined,
       updatedAt: row.updated_at ?? undefined,
-      path: firstFile?.path,
       targetType: firstLink?.target_type,
       targetId: firstLink?.target_id,
-      files: files.map((file) => ({
-        id: file.id,
-        path: file.path,
-        title: file.title ?? undefined,
-        ...(file.medium !== null ? { medium: file.medium } : {}),
-        ...(file.content_type !== null ? { contentType: file.content_type } : {}),
-        ...(file.text !== null ? { text: file.text } : {}),
-        translations: translationsByFile.get(file.id) ?? [],
-      })),
       links: links.map(rowToLink),
     };
-  }
-
-  private translationsForFiles(fileIds: string[]): Map<string, MediaFileTranslation[]> {
-    const byFile = new Map<string, MediaFileTranslation[]>();
-    if (fileIds.length === 0) {
-      return byFile;
-    }
-    const placeholders = fileIds.map(() => '?').join(', ');
-    const rows = this.db
-      .prepare(
-        `SELECT id, media_file_id, path, position FROM media_file_translation
-         WHERE media_file_id IN (${placeholders}) ORDER BY position`,
-      )
-      .all(...fileIds) as unknown as TranslationRow[];
-    for (const row of rows) {
-      const list = byFile.get(row.media_file_id) ?? [];
-      list.push({ id: row.id, path: row.path, position: row.position });
-      byFile.set(row.media_file_id, list);
-    }
-    return byFile;
   }
 }
 
@@ -402,6 +309,10 @@ function mediaParams(media: MediaRecord): Array<string | number | null> {
     media.id,
     media.xref ?? null,
     media.title ?? null,
+    media.path,
+    media.medium ?? null,
+    media.contentType ?? null,
+    media.text ?? null,
     media.placeId ?? null,
     media.place ?? null,
     media.objectType ?? null,

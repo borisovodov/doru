@@ -51,8 +51,8 @@ function attachmentsStub(overrides: Partial<AttachmentsPanelApi> = {}): Attachme
 const record: MediaWithPath = {
   id: 'M1',
   title: 'Old title',
+  path: 'media/a.jpg',
   absolutePath: '',
-  files: [],
   links: [{ id: 'L1', mediaId: 'M1', targetType: 'person', targetId: 'P1' }],
 };
 
@@ -106,7 +106,7 @@ describe('MediaTab', () => {
     expect(screen.getAllByText(nls.t('features.tree.contributors.title'))).toHaveLength(1);
   });
 
-  it('saves a file title on the registered close flush', async () => {
+  it('saves the card title on the registered close flush', async () => {
     const updateMedia = vi.fn(async (_before: MediaRecord, _after: MediaRecord) => undefined);
     const api = stubApi<MediaAdminApi>({
       updateMedia,
@@ -117,14 +117,7 @@ describe('MediaTab', () => {
       <AutoSaveTabProvider tabId="media:M1">
         <MediaTab
           entityId="M1"
-          media={[
-            {
-              id: 'M1',
-              title: 'Media',
-              absolutePath: '',
-              files: [{ id: 'F1', path: 'a.jpg', absolutePath: '/tmp/a.jpg', title: 'Old file' }],
-            },
-          ]}
+          media={[{ id: 'M1', title: 'Media', path: 'media/a.jpg', absolutePath: '' }]}
           api={api}
           attachmentsApi={attachmentsStub()}
           sources={[]}
@@ -134,18 +127,18 @@ describe('MediaTab', () => {
       </AutoSaveTabProvider>,
     );
 
-    fireEvent.change(screen.getByLabelText(nls.t('features.tree.media.fileTitle')), {
-      target: { value: 'New file' },
+    fireEvent.change(screen.getByLabelText(nls.t('features.tree.media.titleField')), {
+      target: { value: 'New title' },
     });
     await act(async () => {
       expect(await flushAutoSaves('media:M1')).toBe(true);
     });
     expect(updateMedia).toHaveBeenCalledTimes(1);
     const after = updateMedia.mock.calls[0]?.[1];
-    expect(after?.files?.[0]).toMatchObject({ id: 'F1', title: 'New file' });
+    expect(after?.title).toBe('New title');
 
-    fireEvent.change(screen.getByLabelText(nls.t('features.tree.media.fileTitle')), {
-      target: { value: ' New file ' },
+    fireEvent.change(screen.getByLabelText(nls.t('features.tree.media.titleField')), {
+      target: { value: ' New title ' },
     });
     await act(async () => {
       expect(await flushAutoSaves('media:M1')).toBe(true);
@@ -164,7 +157,7 @@ describe('MediaTab', () => {
     const view = renderUi(
       <MediaTab
         entityId="M1"
-        media={[{ id: 'M1', title: 'Old title', absolutePath: '', files: [] }]}
+        media={[{ id: 'M1', title: 'Old title', path: 'media/a.jpg', absolutePath: '' }]}
         api={api}
         attachmentsApi={attachmentsStub()}
         sources={[]}
@@ -182,7 +175,7 @@ describe('MediaTab', () => {
     view.rerender(
       <MediaTab
         entityId="M1"
-        media={[{ id: 'M1', title: 'Old title', absolutePath: '', files: [] }]}
+        media={[{ id: 'M1', title: 'Old title', path: 'media/a.jpg', absolutePath: '' }]}
         api={api}
         attachmentsApi={attachmentsStub()}
         sources={[]}
@@ -211,7 +204,7 @@ describe('MediaTab', () => {
     renderUi(
       <MediaTab
         entityId="M1"
-        media={[{ id: 'M1', title: 'Old title', absolutePath: '', files: [] }]}
+        media={[{ id: 'M1', title: 'Old title', path: 'media/a.jpg', absolutePath: '' }]}
         api={api}
         attachmentsApi={attachmentsStub()}
         sources={[]}
@@ -242,7 +235,7 @@ describe('MediaTab', () => {
       getAllMedia: async () => [],
     });
     const media = (title: string, description: string) => [
-      { id: 'M1', title, description, absolutePath: '', files: [] },
+      { id: 'M1', title, description, path: 'media/a.jpg', absolutePath: '' },
     ];
     const view = renderUi(
       <MediaTab
@@ -276,54 +269,6 @@ describe('MediaTab', () => {
     expect(screen.getByDisplayValue('Z')).toBeInTheDocument();
   });
 
-  it('saves a reversal made after a pre-write refresh', async () => {
-    const pending = deferred();
-    const updateMedia = vi
-      .fn()
-      .mockImplementationOnce(async () => pending.promise)
-      .mockResolvedValueOnce(undefined);
-    const api = stubApi<MediaAdminApi>({
-      updateMedia,
-      getMediaFor: async () => [],
-      getAllMedia: async () => [],
-    });
-    const media = (title: string) => [{ id: 'M1', title, absolutePath: '', files: [] }];
-    const view = renderUi(
-      <MediaTab
-        entityId="M1"
-        media={media('Old')}
-        api={api}
-        attachmentsApi={attachmentsStub()}
-        sources={[]}
-        targetData={targetData}
-        onClose={vi.fn()}
-      />,
-    );
-    fireEvent.change(screen.getByDisplayValue('Old'), { target: { value: 'New' } });
-    fireEvent.blur(screen.getByDisplayValue('New'), { relatedTarget: document.body });
-    await waitFor(() => expect(updateMedia).toHaveBeenCalledTimes(1));
-
-    // A refresh captured before the write must not become the dirty baseline.
-    view.rerender(
-      <MediaTab
-        entityId="M1"
-        media={media('Old')}
-        api={api}
-        attachmentsApi={attachmentsStub()}
-        sources={[]}
-        targetData={targetData}
-        onClose={vi.fn()}
-      />,
-    );
-    await act(async () => pending.resolve());
-    expect(screen.getByDisplayValue('New')).toBeInTheDocument();
-
-    fireEvent.change(screen.getByDisplayValue('New'), { target: { value: 'Old' } });
-    fireEvent.blur(screen.getByDisplayValue('Old'), { relatedTarget: document.body });
-    await waitFor(() => expect(updateMedia).toHaveBeenCalledTimes(2));
-    expect(updateMedia.mock.calls[1]?.[1]).toMatchObject({ title: 'Old' });
-  });
-
   it('keeps a reversal across queued saves', async () => {
     const first = deferred();
     const second = deferred();
@@ -339,7 +284,7 @@ describe('MediaTab', () => {
     renderUi(
       <MediaTab
         entityId="M1"
-        media={[{ id: 'M1', title: 'A', absolutePath: '', files: [] }]}
+        media={[{ id: 'M1', title: 'A', path: 'media/a.jpg', absolutePath: '' }]}
         api={api}
         attachmentsApi={attachmentsStub()}
         sources={[]}
@@ -378,7 +323,7 @@ describe('MediaTab', () => {
       >
         <MediaTab
           entityId="M1"
-          media={[{ id: 'M1', title: 'Photo', absolutePath: '', files: [] }]}
+          media={[{ id: 'M1', title: 'Photo', path: 'media/a.jpg', absolutePath: '' }]}
           api={api}
           attachmentsApi={attachmentsStub()}
           sources={[]}
@@ -451,7 +396,7 @@ describe('MediaTab', () => {
       >
         <MediaTab
           entityId="M1"
-          media={[{ id: 'M1', title: 'Photo', absolutePath: '', files: [] }]}
+          media={[{ id: 'M1', title: 'Photo', path: 'media/a.jpg', absolutePath: '' }]}
           api={api}
           attachmentsApi={attachmentsStub()}
           sources={[]}

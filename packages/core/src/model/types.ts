@@ -675,27 +675,6 @@ export interface NoteRecord {
   updatedAt?: number | undefined;
 }
 
-/** One file of a media record; the bytes live in the media/ folder, never in the DB. */
-export interface MediaFile {
-  id: string;
-  path: string;
-  title?: string | undefined;
-  /** FORM.MEDI: the historical medium (photograph, negative, digital, …). */
-  medium?: string | undefined;
-  /** _CTYP: person, group, place, tombstone, document, heirloom, … */
-  contentType?: string | undefined;
-  /** _TEXT: the file's transcription text. */
-  text?: string | undefined;
-  /** TRAN: the same content in another digital format. */
-  translations?: MediaFileTranslation[] | undefined;
-}
-
-export interface MediaFileTranslation {
-  id: string;
-  path: string;
-  position: number;
-}
-
 /** A media record attached to some target, with the link's usage details. */
 export interface MediaLinkRecord {
   id: string;
@@ -714,16 +693,23 @@ export interface MediaLinkRecord {
 }
 
 /**
- * A media record with its files and links. `path`, `targetType`, `targetId`
- * and `title` are projections of the first file/link, kept for the renderer.
+ * A media record: exactly one file plus its links. `targetType`/`targetId`
+ * are projections of the first link, kept for the renderer.
  */
 export interface MediaRecord extends RecordTimestamps {
   id: string;
   /** Identifier assigned by a GEDCOM import; provenance only. */
   xref?: string | undefined;
-  /** Project-relative path under the media folder (first file). */
-  path?: string | undefined;
+  /** The single card title; a GEDCOM FILE.TITL or a record-level TITL. */
   title?: string | undefined;
+  /** Project-relative path under the media folder, or an external URL. */
+  path: string;
+  /** FORM.MEDI: the historical medium (photograph, negative, digital, …). */
+  medium?: string | undefined;
+  /** _CTYP: person, group, place, tombstone, document, heirloom, … */
+  contentType?: string | undefined;
+  /** _TEXT: the file's transcription text. */
+  text?: string | undefined;
   /** Historical media date (`_DATE`), not the file's EXIF timestamp. */
   date?: DateValue | undefined;
   /** Historical place (`PLAC`), as typed and optionally linked to a place row. */
@@ -737,7 +723,6 @@ export interface MediaRecord extends RecordTimestamps {
   keywords?: string | undefined;
   targetType?: string | undefined;
   targetId?: string | undefined;
-  files?: MediaFile[] | undefined;
   links?: MediaLinkRecord[] | undefined;
 }
 
@@ -758,13 +743,18 @@ export function isProjectMediaPath(path: string): boolean {
   return normalized.startsWith('media/') && !normalized.split('/').includes('..');
 }
 
+/** True when a stored path is an external URL rather than a project file. */
+export function isExternalMediaPath(path: string): boolean {
+  return /^(?:https?|ftp|file):\/\//i.test(path.replaceAll('\\', '/'));
+}
+
 /**
- * True when a media record has at least one project-relative image file.
- * External paths and non-image files are intentionally hidden from the UI.
+ * True when a media card should appear in the UI: a project-relative file or
+ * an external URL. External cards render a silent placeholder and are never
+ * fetched by the renderer.
  */
-export function isVisibleMedia(media: Pick<MediaRecord, 'path' | 'files'>): boolean {
-  const paths = media.files?.map((file) => file.path) ?? (media.path !== undefined ? [media.path] : []);
-  return paths.some((path) => isProjectMediaPath(path) && isImagePath(path));
+export function isVisibleMedia(media: Pick<MediaRecord, 'path'>): boolean {
+  return isProjectMediaPath(media.path) || isExternalMediaPath(media.path);
 }
 
 // ---------------------------------------------------------------------------
@@ -845,8 +835,6 @@ export interface AttachmentsSnapshot {
   mediaLinks: Array<{ media: MediaRecord; link: MediaLinkRecord }>;
   /** Attachments of media records that would be deleted with this target. */
   mediaAttachments: NestedAttachmentSnapshot[];
-  /** Attachments of the files of those media records. */
-  mediaFileAttachments: NestedAttachmentSnapshot[];
   /** Attachments of the media links above, restored with them. */
   mediaLinkAttachments: NestedAttachmentSnapshot[];
   contacts: ContactRecord[];
@@ -862,7 +850,6 @@ export function emptyAttachments(): AttachmentsSnapshot {
     citationAttachments: [],
     mediaLinks: [],
     mediaAttachments: [],
-    mediaFileAttachments: [],
     mediaLinkAttachments: [],
     contacts: [],
     taskLinks: [],

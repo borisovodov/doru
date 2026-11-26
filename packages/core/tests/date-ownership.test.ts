@@ -179,7 +179,7 @@ describe('date ownership', () => {
         otherPersonId: 'P2',
         period: { quality: 'range', component: { year: 1907 }, end: { year: 1908 } },
       });
-      fixture.repo.insertMedia({ id: 'M1', date: exact(1909) });
+      fixture.repo.insertMedia({ id: 'M1', path: 'media/m1.jpg', date: exact(1909) });
       fixture.repo.insertSource({
         id: 'S1',
         pubDate: exact(1910),
@@ -276,7 +276,7 @@ describe('date ownership', () => {
     try {
       fixture.repo.insertPerson({ id: 'P1', names: [], sex: 'M', facts: [] });
       fixture.repo.insertPerson({ id: 'P2', names: [], sex: 'F', facts: [] });
-      fixture.repo.insertMedia({ id: 'M1', date: exact(1903) });
+      fixture.repo.insertMedia({ id: 'M1', path: 'media/m1.jpg', date: exact(1903) });
       fixture.repo.insertSource({
         id: 'S1',
         dataEvents: [{ id: 'E1', tag: 'EVEN', date: exact(1904) }],

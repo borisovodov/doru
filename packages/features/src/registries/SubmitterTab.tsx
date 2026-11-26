@@ -5,7 +5,6 @@ import { SectionCard } from '@doru/ui';
 import { Field, FieldGrid, InlineForm } from '@doru/ui';
 import { Plus, User, X } from 'lucide-react';
 import type { AddressRecord, RecordSubmitterLink, SourceRecord, SubmitterRecord } from '@doru/core';
-import { MEDIA_VISIBLE } from '@doru/platform';
 import { AttachmentsPanel, CitationAttachments, useAttachments } from '../attachments';
 import { AutoSaveError } from '../autoSaveFeedback';
 import { useEntityDelete } from '../entityDelete';
@@ -251,7 +250,6 @@ function SubmitterTabBody({
     return labels;
   }, [referencedBy, targetData]);
   const openableTarget = (targetType: string): boolean =>
-    (MEDIA_VISIBLE || !targetType.startsWith('media')) &&
     ['person', 'family', 'source', 'place', 'repository', 'submitter', 'address', 'task', 'media', 'title'].includes(
       targetType,
     );

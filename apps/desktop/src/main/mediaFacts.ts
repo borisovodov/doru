@@ -13,14 +13,22 @@ export interface MediaFileFacts {
 }
 
 const MIME_BY_EXTENSION = new Map<string, string>([
+  ['bmp', 'image/bmp'],
   ['gif', 'image/gif'],
   ['heic', 'image/heic'],
   ['jpeg', 'image/jpeg'],
   ['jpg', 'image/jpeg'],
+  ['mp3', 'audio/mpeg'],
+  ['mp4', 'video/mp4'],
+  ['ogg', 'audio/ogg'],
   ['pdf', 'application/pdf'],
   ['png', 'image/png'],
+  ['svg', 'image/svg+xml'],
   ['tif', 'image/tiff'],
   ['tiff', 'image/tiff'],
+  ['txt', 'text/plain'],
+  ['wav', 'audio/wav'],
+  ['webm', 'video/webm'],
   ['webp', 'image/webp'],
 ]);
 

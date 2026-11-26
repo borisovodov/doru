@@ -16,7 +16,7 @@ const data: TaskTargetData = {
     {
       id: 'M1',
       title: 'Portrait',
-      files: [],
+      path: 'media/portrait.jpg',
       links: [{ id: 'ML1', mediaId: 'M1', targetType: 'person', targetId: 'P1' }],
     },
   ],

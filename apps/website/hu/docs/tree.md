@@ -1,5 +1,5 @@
 ---
-source-hash: bd745f4dc593
+source-hash: 162b59a48ae2
 ---
 
 # A családfa használata
@@ -50,9 +50,9 @@ A művek, címek, társítások és családi partner/gyermek kapcsolatok ugyanaz
 
 ## Média
 
-A fényképek közönséges fájlok a projekt melletti `media/` mappában. Adja hozzá őket egy személytől, családtól, forrástól, helytől, levéltártól, beküldőtől, műtől, feladattól vagy címtől; a médialapon a **Kapcsolódó** szakaszban egy meglévő rekordot további célokhoz csatolhat. Kattintson egy előnézetre a média lap megnyitásához, ahol szerkesztheti a címet, kezelheti a fájlokat és szerkesztheti a hivatkozás metaadatait, például a feliratot, a sorrendet, az elsődleges jelzőt és a kizárási jelzőt.
+A fényképek közönséges fájlok a projekt melletti `media/` mappában. Adja hozzá őket egy személytől, családtól, forrástól, helytől, levéltártól, beküldőtől, műtől, feladattól vagy címtől; a médialap **Kapcsolódó** szakaszában egy meglévő rekordot további célokhoz csatolhat. Minden médiakártya pontosan egy fájlt tartalmaz. Kattintson egy előnézetre a média lap megnyitásához, ahol szerkesztheti a címet és a hivatkozás metaadatait, például a feliratot, a sorrendet, az elsődleges jelzőt és a kizárási jelzőt.
 
-Egy médiarekord több célhoz is kapcsolható. A **Leválasztás erről a rekordról** csak akkor jelenik meg, ha a média több célhoz van kapcsolva; egy hivatkozást távolít el. A **Média törlése** eltávolítja a rekordot és fájlmásolatait. Egy célrekord törlése csak a hivatkozásait távolítja el, így egy médiarekord hivatkozások nélkül is megmaradhat.
+Egy médiarekord több célhoz is kapcsolható. A **Leválasztás erről a rekordról** csak akkor jelenik meg, ha a média több célhoz van kapcsolva; egy hivatkozást távolít el. A **Média törlése** eltávolítja a rekordot és a fájlmásolatát. Egy célrekord törlése csak a hivatkozásait távolítja el, így egy médiarekord hivatkozások nélkül is megmaradhat. A több fájlt tartalmazó GEDCOM `OBJE` importja fájlonként egy kártyát hoz létre; az alternatív `TRAN` formátumok nem importálhatók.
 
 ## Sorrendezés
 

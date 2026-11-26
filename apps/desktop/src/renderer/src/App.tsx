@@ -29,13 +29,17 @@ export function App() {
 
   const tree = useTreeData(projectPath);
 
-  // Media editing is hidden behind MEDIA_VISIBLE; the primary photo stays a
-  // read-only avatar on the tree cards.
+  // The primary media link supplies the read-only avatar on the tree cards.
   const personPhotos = useMemo(() => {
     const photos = new Map<string, string>();
     for (const media of tree.media) {
       for (const link of media.links ?? []) {
-        if (link.targetType === 'person' && link.primary === true && link.exclude !== true) {
+        if (
+          media.absolutePath !== '' &&
+          link.targetType === 'person' &&
+          link.primary === true &&
+          link.exclude !== true
+        ) {
           photos.set(link.targetId, `doru-media://local/?path=${encodeURIComponent(media.absolutePath)}`);
         }
       }

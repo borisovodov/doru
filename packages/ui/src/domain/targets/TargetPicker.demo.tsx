@@ -51,7 +51,7 @@ const data: TargetData = {
     {
       id: 'M1',
       title: 'Ivanova family photograph',
-      files: [{ id: 'MF1', path: 'media/ivanova-1908.jpg', title: 'Front side' }],
+      path: 'media/ivanova-1908.jpg',
     },
   ],
   submitters: [{ id: 'SUB1', name: 'Boris Ovodov' }],

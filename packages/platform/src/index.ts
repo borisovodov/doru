@@ -1,5 +1,5 @@
 export type { IDisposable } from './disposable';
-export { GEDCOM_INTEROP_VISIBLE, MEDIA_VISIBLE, SEARCH_VISIBLE } from './flags';
+export { GEDCOM_INTEROP_VISIBLE, SEARCH_VISIBLE } from './flags';
 export { CommandService } from './commands';
 export type { Command, ICommandService } from './commands';
 export { KeybindingService } from './keybindings';

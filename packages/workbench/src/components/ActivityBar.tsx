@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 import { Blend, BookOpenText, Image, ListTodo, Map, Search, Settings, TreeDeciduous, User } from 'lucide-react';
-import { MEDIA_VISIBLE, SEARCH_VISIBLE } from '@doru/platform';
+import { SEARCH_VISIBLE } from '@doru/platform';
 import { IconButton } from '@doru/ui';
 import { nls } from '../nls';
 
@@ -47,15 +47,11 @@ export function ActivityBar({ activeView, onSelectView, onOpenSettings, shortcut
       title: nls.t('workbench.activityBar.places'),
       icon: <Map size={ICON_SIZE} aria-hidden="true" />,
     },
-    ...(MEDIA_VISIBLE
-      ? [
-          {
-            id: 'media' as const,
-            title: nls.t('workbench.activityBar.media'),
-            icon: <Image size={ICON_SIZE} aria-hidden="true" />,
-          },
-        ]
-      : []),
+    {
+      id: 'media',
+      title: nls.t('workbench.activityBar.media'),
+      icon: <Image size={ICON_SIZE} aria-hidden="true" />,
+    },
     {
       id: 'sources',
       title: nls.t('workbench.activityBar.sources'),

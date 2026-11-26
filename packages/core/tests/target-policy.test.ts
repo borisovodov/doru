@@ -27,7 +27,6 @@ const ALL_TARGET_TYPES = [
   'source',
   'citation',
   'media',
-  'media_file',
   'media_link',
   'place',
   'place_name',

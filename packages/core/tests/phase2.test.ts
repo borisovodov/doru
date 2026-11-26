@@ -147,7 +147,7 @@ describe('Phase 2: sources and media', () => {
       repo.insertPerson(person('P1'));
       repo.insertMedia({
         id: 'M1',
-        files: [{ id: 'F1', path: 'media/a.jpg' }],
+        path: 'media/a.jpg',
         links: [{ id: 'L1', mediaId: 'M1', targetType: 'person', targetId: 'P1' }],
       });
 

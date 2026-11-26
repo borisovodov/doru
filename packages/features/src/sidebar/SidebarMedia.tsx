@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { FileImage } from 'lucide-react';
-import { isImagePath, type MediaRecord, type PersonRecord } from '@doru/core/model';
+import { isExternalMediaPath, isImagePath, type MediaRecord, type PersonRecord } from '@doru/core/model';
 import { displayName } from '@doru/ui/domain';
 import { EntityRow, SideBarList } from '@doru/ui';
 import './sidebar.css';
@@ -53,7 +53,7 @@ export function SidebarMedia({
                     },
                   }
                 : { icon: <FileImage size={15} aria-hidden="true" /> })}
-              title={item.title ?? (fileName(item.path ?? '') || item.id)}
+              title={item.title ?? (isExternalMediaPath(item.path) ? item.id : fileName(item.path) || item.id)}
               subtitle={owner ?? null}
               onClick={() => onOpenMedia(item.id)}
             />

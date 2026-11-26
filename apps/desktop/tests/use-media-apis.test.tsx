@@ -3,7 +3,7 @@ import { act, renderHook } from '@testing-library/react';
 import type { MediaRecord } from '@doru/core';
 import { useMediaApis } from '../src/renderer/src/hooks/tree/useMediaApis';
 
-const record: MediaRecord = { id: 'M1' };
+const record: MediaRecord = { id: 'M1', path: 'media/a.jpg' };
 
 describe('useMediaApis', () => {
   it('keeps a committed media write successful when the tree refresh fails', async () => {

@@ -170,7 +170,7 @@ describe('importGedcomDataset media', () => {
       const media = fixture.repo.listAllMedia();
       expect(media).toHaveLength(1);
       expect(media[0]).toMatchObject({ title: 'Portrait', xref: '@O1@' });
-      expect(media[0]?.files?.[0]?.path).toBe('media/prepared.jpg');
+      expect(media[0]?.path).toBe('media/prepared.jpg');
 
       const person = fixture.repo.listAllPersons()[0]!;
       const links = fixture.repo.listAttachmentsFor('person', person.id).mediaLinks;
@@ -691,6 +691,79 @@ describe('importGedcomDataset', () => {
     try {
       importGedcomDataset(result.value.dataset, fixture.repo);
       expect(fixture.repo.listSubmitters()).toEqual([expect.objectContaining({ name: 'Test Submitter' })]);
+    } finally {
+      cleanupRepo(fixture);
+    }
+  });
+});
+
+describe('importGedcomDataset media splitting', () => {
+  it('splits multi-file OBJE records and duplicates metadata, links and evidence', () => {
+    const fixture = makeRepo();
+    try {
+      const gedcom = [
+        '0 HEAD',
+        '1 GEDC',
+        '2 VERS 7.0',
+        '0 @S1@ SOUR',
+        '1 TITL Source',
+        '0 @O1@ OBJE',
+        '1 FILE photos/a.jpg',
+        '2 FORM image/jpeg',
+        '2 TITL Front',
+        '1 FILE audio/b.mp3',
+        '2 FORM audio/mp3',
+        '2 TITL Sound',
+        '1 NOTE Shared media note',
+        '1 SOUR @S1@',
+        '0 @I1@ INDI',
+        '1 NAME One /Test/',
+        '1 OBJE @O1@',
+        '2 SOUR @S1@',
+        '3 PAGE link page',
+        '0 @I2@ INDI',
+        '1 NAME Two /Test/',
+        '1 OBJE @O1@',
+        '0 TRLR',
+      ].join('\n');
+      const result = parse(new TextEncoder().encode(gedcom));
+      if (!result.ok || result.value.kind !== 'dataset') {
+        throw new Error('fixture failed to parse');
+      }
+      const imported = importGedcomDataset(result.value.dataset, fixture.repo);
+      expect(imported.importedMedia).toBe(2);
+
+      const media = fixture.repo.listAllMedia().sort((a, b) => a.path.localeCompare(b.path));
+      expect(media).toHaveLength(2);
+      expect(media.map((entry) => entry.path)).toEqual(['audio/b.mp3', 'photos/a.jpg']);
+      expect(media.map((entry) => entry.title)).toEqual(['Sound', 'Front']);
+      expect(media[0]?.xref).toBeUndefined();
+      expect(media[1]?.xref).toBe('@O1@');
+
+      for (const entry of media) {
+        expect(fixture.repo.listNotesFor('media', entry.id).map((note) => note.text)).toEqual(['Shared media note']);
+        expect(fixture.repo.listCitationRecordsFor('media', entry.id)).toHaveLength(1);
+      }
+
+      const persons = fixture.repo.listAllPersons();
+      let totalLinks = 0;
+      let totalLinkCitations = 0;
+      for (const person of persons) {
+        const links = fixture.repo.listAttachmentsFor('person', person.id).mediaLinks;
+        expect(links).toHaveLength(2);
+        totalLinks += links.length;
+        for (const entry of links) {
+          const pages = fixture.repo
+            .listCitationRecordsFor('media_link', entry.link.id)
+            .map((citation) => citation.page);
+          totalLinkCitations += pages.length;
+          if (pages.length > 0) {
+            expect(pages).toEqual(['link page']);
+          }
+        }
+      }
+      expect(totalLinks).toBe(4);
+      expect(totalLinkCitations).toBe(2);
     } finally {
       cleanupRepo(fixture);
     }
