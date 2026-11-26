@@ -156,6 +156,7 @@ const DIRECT_CONTACTS = [
   '0 @I1@ INDI',
   '1 NAME Ivan /Petrov/',
   '1 WWW https://person.example',
+  '1 WWW https://person-two.example',
   '0 @R1@ REPO',
   '1 NAME State Archive',
   '1 WWW https://repo.example',
@@ -177,6 +178,7 @@ describe('canonical website and handles', () => {
       const submitter = fixture.repo.listSubmitters()[0]!;
 
       expect(contactPairs(fixture.repo.listContactsFor('person', person.id))).toEqual([
+        ['www', 'https://person-two.example'],
         ['www', 'https://person.example'],
       ]);
       expect(contactPairs(fixture.repo.listContactsFor('repository', repository.id))).toEqual([
@@ -201,7 +203,10 @@ describe('canonical website and handles', () => {
       if (!serialized.ok) {
         return;
       }
-      expect(serialized.value).toContain('1 _URL https://person.example');
+      expect(serialized.value).toContain('https://person.example');
+      expect(serialized.value).toContain('https://person-two.example');
+      expect(serialized.value).toContain('1 _URL https://person');
+      expect(serialized.value).toContain('1 WWW https://person');
       expect(serialized.value).toContain('1 _SKYPEID ivan.skype');
       expect(serialized.value).toContain('1 _JABBERID ivan@jabber.example');
     } finally {

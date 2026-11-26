@@ -700,6 +700,7 @@ function importPerson(record: GedcomIndividualRecord, ctx: ImportContext): void 
       ...(record.phone ?? []).map((value) => ({ kind: 'phone', value })),
       ...(record.fax ?? []).map((value) => ({ kind: 'fax', value })),
       ...(record.url ? [{ kind: 'www', value: record.url }] : []),
+      ...(record.www ?? []).map((value) => ({ kind: 'www', value })),
       ...addressContacts(record.address),
     ],
     ctx,
