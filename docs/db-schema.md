@@ -85,12 +85,13 @@ family, because facts are part of that aggregate and have no separate stamp.
 
 GEDCOM import maps structured `CREA`/`CHAN` and the vendor
 `_CREAT`/`_CREA`/`_CRE`/`_UPD` spellings when they contain a complete exact
-date. `CREA` and vendor creation text fill `created_at`; `CHAN`, `_UPD` and the
-latest fact `CHAN` fill `updated_at`. When a record has no creation stamp, the
-earliest known change date is used as its lower bound. Partial, approximate,
-range, BCE and unparseable values are dropped rather than invented. When no
-GEDCOM stamp is usable, both instants are the single import instant. Export
-does not synthesize `CHAN` or `CREA`.
+date. Typed record fields win; the same tags left in generic extensions are
+the second priority. `CREA` and vendor creation text fill `created_at`;
+`CHAN`, `_UPD` and the latest fact `CHAN` fill `updated_at`. When a record has
+no creation stamp, the earliest known change date is used as its lower bound.
+Partial, approximate, range, BCE and unparseable values are dropped rather
+than invented. When no GEDCOM stamp is usable, both instants are the single
+import instant. Export does not synthesize `CHAN` or `CREA`.
 
 ---
 
@@ -938,7 +939,8 @@ complete exact `CHAN`), and `remind_at` is the single user-chosen reminder
 instant. Closing a task only changes its status; the schema has no completion
 timestamp. Import accepts complete exact dates only (including My Family
 Tree's encoded `DDMMYYYY` record slots); partial, approximate, range, or
-otherwise unparseable task dates are dropped.
+otherwise unparseable values are not used as task dates, and the general
+record timestamp fallback applies.
 
 The GEDCOM `TODO` `REPO` slot is parsed by `@doru/gedcom` and imported as a
 repository target (`task_link`), not as a direct column. The `_CAT`, `_LOCL`,

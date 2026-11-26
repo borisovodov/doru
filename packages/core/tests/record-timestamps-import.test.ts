@@ -62,6 +62,10 @@ const GEDCOM = [
   '2 DATE 1 JAN 2002',
   '1 CHAN',
   '2 DATE 1 JAN 2012',
+  '0 @R2@ REPO',
+  '1 NAME Legacy archive',
+  '1 _CREAT 2 MAR 2003',
+  '1 _UPD 3 APR 2013',
   '0 @U1@ SUBM',
   '1 NAME Submitter',
   '1 CREA',
@@ -76,9 +80,16 @@ const GEDCOM = [
   '0 @PL1@ _PLAC Moscow',
   '1 CHAN',
   '2 DATE 1 JAN 2015',
+  '0 @PL2@ _PLAC Kazan',
+  '1 CREA',
+  '2 DATE 1 JAN 2018',
   '0 @T1@ TITL Parish books',
   '1 CHAN',
   '2 DATE 1 JAN 2016',
+  '0 _TODO Task with change',
+  '1 _TCDT 2010-01-01',
+  '1 CHAN',
+  '2 DATE 2 FEB 2020',
   '0 TRLR',
 ].join('\n');
 
@@ -137,9 +148,16 @@ describe('GEDCOM import timestamps', () => {
         createdAt: local(2020, 3, 5),
         updatedAt: local(2021, 6, 6),
       });
-      expect(fixture.repo.listRepositories()[0]).toMatchObject({
+      const repositories = fixture.repo.listRepositories();
+      const archive = repositories.find((entry) => entry.name === 'Archive')!;
+      const legacy = repositories.find((entry) => entry.name === 'Legacy archive')!;
+      expect(archive).toMatchObject({
         createdAt: local(2002, 1, 1),
         updatedAt: local(2012, 1, 1),
+      });
+      expect(legacy).toMatchObject({
+        createdAt: local(2003, 3, 2),
+        updatedAt: local(2013, 4, 3),
       });
       expect(fixture.repo.listSubmitters()[0]).toMatchObject({
         createdAt: local(2003, 1, 1),
@@ -158,9 +176,16 @@ describe('GEDCOM import timestamps', () => {
       });
       const place = fixture.repo.listPlaces().find((entry) => entry.names.some((name) => name.value === 'Moscow'))!;
       expect(place).toMatchObject({ createdAt: local(2015, 1, 1), updatedAt: local(2015, 1, 1) });
+      const kazan = fixture.repo.listPlaces().find((entry) => entry.names.some((name) => name.value === 'Kazan'))!;
+      expect(kazan).toMatchObject({ createdAt: local(2018, 1, 1), updatedAt: local(2018, 1, 1) });
       expect(fixture.repo.listTitles()[0]).toMatchObject({
         createdAt: local(2016, 1, 1),
         updatedAt: local(2016, 1, 1),
+      });
+      const task = fixture.repo.listTasks().find((entry) => entry.text === 'Task with change')!;
+      expect(task).toMatchObject({
+        createdAt: local(2010, 1, 1),
+        updatedAt: local(2020, 2, 2),
       });
     } finally {
       cleanupRepo(fixture);

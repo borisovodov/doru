@@ -85,7 +85,8 @@ import type {
  * Record timestamps are the exception to the "wire metadata is dropped" rule:
  * structured `CREA`/`CHAN` and the known vendor `_CREAT`/`_CREA`/`_CRE`/`_UPD`
  * spellings fill the root's `createdAt`/`updatedAt` when they carry a complete
- * exact date. The values stay Dóru-local and are never written back.
+ * exact date. Typed fields win; the same tags left in generic extensions are
+ * read as a fallback. The values stay Dóru-local and are never written back.
  * Whole dropped vendor record types are counted into `droppedStructures`;
  * HEAD/SUBN, SCHMA and raw extension/unknown structures are wire metadata
  * and are not counted.
@@ -288,6 +289,7 @@ function importRepositories(records: GedcomRecord[], ctx: ImportContext): void {
       submitters?: string[];
       creationDate?: CreationDate;
       changeDate?: ChangeDate;
+      extensions?: ExtensionStructure[];
     };
     const id = crypto.randomUUID();
     if (repository.xref !== undefined) {
@@ -339,6 +341,7 @@ function importSubmitters(records: GedcomRecord[], ctx: ImportContext): void {
       submitters?: string[];
       creationDate?: CreationDate;
       changeDate?: ChangeDate;
+      extensions?: ExtensionStructure[];
     };
     const id = crypto.randomUUID();
     if (submitter.xref !== undefined) {
@@ -456,6 +459,7 @@ function importSharedNotes(records: GedcomRecord[], ctx: ImportContext): void {
       payload: string;
       creationDate?: CreationDate;
       changeDate?: ChangeDate;
+      extensions?: ExtensionStructure[];
     };
     if (note.xref === undefined) {
       continue;
@@ -1400,9 +1404,10 @@ function importGedcomTodoRecord(record: GedcomTodoRecord, ctx: ImportContext): v
   // open and medium rather than lingering in the database.
   const id = crypto.randomUUID();
   const repository = taskRepositoryTarget(id, record.repository, ctx);
-  const times = resolveImportedTimes(
+  const times = importedTimes(
     [parseTaskTextDate(record.createdDate)],
     [exactDateToTimestamp(record.changed)],
+    record.extensions,
     ctx.importedAt,
   );
   ctx.repo.insertTask({
@@ -1419,8 +1424,9 @@ function importGedcomTodoRecord(record: GedcomTodoRecord, ctx: ImportContext): v
 /**
  * Task dates are operational instants, not genealogical dates. The record
  * form carries My Family Tree's encoded strings (`V05T00S0001DDMMYYYY…` and
- * `V02C0000S01DDMMYYYY…`); date-only values become local midnight. Anything
- * that is not a complete exact date is dropped.
+ * `V02C0000S01DDMMYYYY…`); date-only values become local midnight. Values that
+ * are not a complete exact date are not used as task dates; the record
+ * timestamps below then follow their own fallback.
  */
 function parseTaskTextDate(text: string | undefined): number | undefined {
   if (text === undefined || text.trim() === '') {
@@ -1432,13 +1438,16 @@ function parseTaskTextDate(text: string | undefined): number | undefined {
 /**
  * The GEDCOM timestamp sources of one record. `creationDate`/`changeDate` are
  * the structured CREA/CHAN blocks; the text fields are the vendor `_CREAT`/
- * `_UPD` spellings, whose wire format is undocumented.
+ * `_UPD` spellings, whose wire format is undocumented. Generic extensions that
+ * the parser left untyped are consulted only when no typed stamp exists.
  */
 interface RecordTimestampSources {
   creationDate?: CreationDate | undefined;
   createdAt?: string | undefined;
   changeDate?: ChangeDate | undefined;
   updatedAt?: string | undefined;
+  /** Generic extensions that may carry a vendor CREAT/CREA/CRE/UPD tag. */
+  extensions?: ReadonlyArray<ExtensionStructure> | undefined;
 }
 
 interface ImportedRecordTimes {
@@ -1522,20 +1531,74 @@ function maxDefined(values: ReadonlyArray<number | undefined>): number | undefin
   return result;
 }
 
+const CREATION_TIMESTAMP_TAGS: ReadonlySet<string> = new Set(['CREA', '_CREAT', '_CREA', '_CRE']);
+const CHANGE_TIMESTAMP_TAGS: ReadonlySet<string> = new Set(['CHAN', '_UPD']);
+
 /**
- * Resolves a record's pair from every known stamp. Creation is the earliest
- * known creation date; when GEDCOM has none, the earliest change date is the
- * lower bound ("known since"). Edit is the latest change date; when GEDCOM
- * has none, the record is treated as unedited since creation. Import time is
- * used only when the file carries no usable stamp.
+ * A timestamp carried by a generic extension: the MFT7/GenPlus/Heredis
+ * text payload, or the structured `CREA`/`CHAN` block that the parser did
+ * not type for this record (a DATE child with an optional TIME child).
  */
-function resolveImportedTimes(
+function extensionTimestamp(extension: ExtensionStructure): number | undefined {
+  if (extension.payload !== undefined && extension.payload.trim() !== '') {
+    return parseRecordTimestampText(extension.payload);
+  }
+  const date = extension.children.find((child) => child.tag === 'DATE');
+  if (date?.payload === undefined || date.payload.trim() === '') {
+    return undefined;
+  }
+  const dateText = date.payload.trim();
+  if (/\d:\d/.test(dateText)) {
+    return parseRecordTimestampText(dateText);
+  }
+  const time =
+    date.children.find((child) => child.tag === 'TIME')?.payload?.trim() ??
+    extension.children.find((child) => child.tag === 'TIME')?.payload?.trim();
+  if (time === undefined || time === '') {
+    return parseRecordTimestampText(dateText);
+  }
+  const utc = time.endsWith('Z');
+  const combined = parseRecordTimestampText(`${dateText} ${utc ? time.slice(0, -1) : time}${utc ? ' GMT +0000' : ''}`);
+  return combined ?? parseRecordTimestampText(dateText);
+}
+
+function extensionTimestamps(
+  extensions: ReadonlyArray<ExtensionStructure> | undefined,
+  tags: ReadonlySet<string>,
+): number[] {
+  if (extensions === undefined) {
+    return [];
+  }
+  const values: number[] = [];
+  for (const extension of extensions) {
+    if (!tags.has(extension.tag)) {
+      continue;
+    }
+    const value = extensionTimestamp(extension);
+    if (value !== undefined) {
+      values.push(value);
+    }
+  }
+  return values;
+}
+
+/**
+ * Typed fields win. Generic extensions are the second priority and are only
+ * consulted when the record has no typed creation/change stamp at all.
+ */
+function importedTimes(
   creationValues: ReadonlyArray<number | undefined>,
   changeValues: ReadonlyArray<number | undefined>,
+  extensions: ReadonlyArray<ExtensionStructure> | undefined,
   importedAt: number,
 ): ImportedRecordTimes {
-  const createdAt = minDefined(creationValues) ?? minDefined(changeValues) ?? importedAt;
-  const updatedAt = maxDefined(changeValues) ?? createdAt;
+  const typedCreation = minDefined(creationValues);
+  const earliestTypedChange = minDefined(changeValues);
+  const extensionCreation = extensionTimestamps(extensions, CREATION_TIMESTAMP_TAGS);
+  const extensionChange = extensionTimestamps(extensions, CHANGE_TIMESTAMP_TAGS);
+  const createdAt =
+    typedCreation ?? minDefined(extensionCreation) ?? earliestTypedChange ?? minDefined(extensionChange) ?? importedAt;
+  const updatedAt = maxDefined(changeValues) ?? maxDefined(extensionChange) ?? createdAt;
   return { createdAt, updatedAt: Math.max(createdAt, updatedAt) };
 }
 
@@ -1544,9 +1607,10 @@ function importedRecordTimes(
   ctx: ImportContext,
   extraChanges: ReadonlyArray<number | undefined> = [],
 ): ImportedRecordTimes {
-  return resolveImportedTimes(
+  return importedTimes(
     [exactDateToTimestamp(sources.creationDate), parseRecordTimestampText(sources.createdAt)],
     [exactDateToTimestamp(sources.changeDate), parseRecordTimestampText(sources.updatedAt), ...extraChanges],
+    sources.extensions,
     ctx.importedAt,
   );
 }
@@ -1599,7 +1663,7 @@ function parseIsoTimestamp(text: string): number | undefined {
 
 /**
  * `toISOString()` writes an expanded year (`+010000`) outside 0000-9999,
- * which the anchored task-date parser cannot read back.
+ * which the anchored timestamp parser cannot read back.
  */
 function isSupportedInstant(timestamp: number): boolean {
   const year = new Date(timestamp).getUTCFullYear();
@@ -1700,12 +1764,13 @@ function importGedcomTodoStructure(
   if (repository !== undefined) {
     targets.push(repository);
   }
-  const times = resolveImportedTimes(
+  const times = importedTimes(
     [
       parseTaskTextDate(structure.createdDate),
       dateValueToTimestamp(mapDate(structure.date), structure.date?.interpreted),
     ],
     [],
+    structure.extensions,
     ctx.importedAt,
   );
   const mapped: TaskRecord = {

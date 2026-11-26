@@ -249,7 +249,9 @@ every task edit, and `remind_at` is the single user-chosen reminder instant.
 Closing a task only changes its status; there is no separate completion
 timestamp. Link changes do not count as edits. The UI uses a date-and-time
 control, not the GEDCOM date editor. Import maps a complete exact
-`_TODO.CHAN` to `updated_at`; otherwise it uses the import instant.
+`_TODO.CHAN` to `updated_at`; when it is absent, `updated_at` follows
+`created_at`, which falls back to the import instant when no GEDCOM task date
+is usable.
 
 GEDCOM task dates are imported only when they are complete exact dates:
 My Family Tree's encoded `DDMMYYYY` text in the record form, and exact GEDCOM
@@ -257,7 +259,8 @@ dates in the `_TODO` structure form. Date-only values become local midnight.
 `_TODO.DATE` is the creation date and maps to `created_at`; `_RDATE`/`_TRDT`
 map to `remind_at`, with `_TSDT` as a fallback. `_CDATE` is dropped together
 with the completion timestamp. Partial, approximate, range, or otherwise
-unparseable task dates are dropped rather than inventing an instant.
+unparseable values are not used as task dates; the record timestamps follow
+the fallback above.
 
 ## Record timestamps are aggregate-level
 
@@ -279,13 +282,14 @@ restores the edit's.
 
 GEDCOM import fills these instants from the file when possible:
 `CREA`/`_CREAT`/`_CREA`/`_CRE` for creation, `CHAN`/`_UPD` and the latest fact
-`CHAN` for editing. Only complete exact dates are accepted; partial,
-approximate, range, BCE and unparseable text are dropped. When GEDCOM has no
-creation stamp, the earliest known change date is used as a lower bound. With
-no usable stamp at all, both instants are the import instant. The values stay
-Dóru-local: `CHAN.NOTE`, `CHAN._WT_USER`, `CHAN.SOUR` and change history are
-ignored, and export does not synthesize `CHAN` or `CREA`. The UI does not
-display these fields.
+`CHAN` for editing. Typed record fields win; the same tags left in generic
+extensions are the second priority. Only complete exact dates are accepted;
+partial, approximate, range, BCE and unparseable text are dropped. When
+GEDCOM has no creation stamp, the earliest known change date is used as a
+lower bound. With no usable stamp at all, both instants are the import
+instant. The values stay Dóru-local: `CHAN.NOTE`, `CHAN._WT_USER`,
+`CHAN.SOUR` and change history are ignored, and export does not synthesize
+`CHAN` or `CREA`. The UI does not display these fields.
 
 ## No persistent change log
 
