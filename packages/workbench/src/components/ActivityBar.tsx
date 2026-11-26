@@ -48,9 +48,9 @@ export function ActivityBar({ activeView, onSelectView, onOpenSettings, shortcut
       icon: <Map size={ICON_SIZE} aria-hidden="true" />,
     },
     {
-      id: 'media',
-      title: nls.t('workbench.activityBar.media'),
-      icon: <Image size={ICON_SIZE} aria-hidden="true" />,
+      id: 'tasks',
+      title: nls.t('workbench.activityBar.tasks'),
+      icon: <ListTodo size={ICON_SIZE} aria-hidden="true" />,
     },
     {
       id: 'sources',
@@ -58,9 +58,9 @@ export function ActivityBar({ activeView, onSelectView, onOpenSettings, shortcut
       icon: <BookOpenText size={ICON_SIZE} aria-hidden="true" />,
     },
     {
-      id: 'tasks',
-      title: nls.t('workbench.activityBar.tasks'),
-      icon: <ListTodo size={ICON_SIZE} aria-hidden="true" />,
+      id: 'media',
+      title: nls.t('workbench.activityBar.media'),
+      icon: <Image size={ICON_SIZE} aria-hidden="true" />,
     },
   ];
 
