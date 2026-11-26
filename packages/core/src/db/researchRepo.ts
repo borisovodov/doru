@@ -138,9 +138,9 @@ export class ResearchRepo {
   insertTitle(title: TitleRecord): void {
     this.db
       .prepare(
-        `INSERT INTO title (id, xref, name, author, publisher, series, abbreviation, repository_id, call_number, sequence,
+        `INSERT INTO title (id, name, author, publisher, series, abbreviation, repository_id, call_number, sequence,
            created_at, updated_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       )
       .run(...titleParams(title));
   }
@@ -151,7 +151,7 @@ export class ResearchRepo {
     }
     this.db
       .prepare(
-        `UPDATE title SET xref = ?, name = ?, author = ?, publisher = ?, series = ?, abbreviation = ?,
+        `UPDATE title SET name = ?, author = ?, publisher = ?, series = ?, abbreviation = ?,
            repository_id = ?, call_number = ?, sequence = ?, created_at = ?, updated_at = ? WHERE id = ?`,
       )
       .run(...titleParams(title).slice(1), title.id);
@@ -170,7 +170,7 @@ export class ResearchRepo {
   getTitle(id: string): TitleRecord | undefined {
     const row = this.db
       .prepare(
-        'SELECT id, xref, name, author, publisher, series, abbreviation, repository_id, call_number, sequence, created_at, updated_at FROM title WHERE id = ?',
+        'SELECT id, name, author, publisher, series, abbreviation, repository_id, call_number, sequence, created_at, updated_at FROM title WHERE id = ?',
       )
       .get(id) as TitleRow | undefined;
     return row === undefined ? undefined : rowToTitle(row);
@@ -179,7 +179,7 @@ export class ResearchRepo {
   listTitles(): TitleRecord[] {
     const rows = this.db
       .prepare(
-        'SELECT id, xref, name, author, publisher, series, abbreviation, repository_id, call_number, sequence, created_at, updated_at FROM title ORDER BY id',
+        'SELECT id, name, author, publisher, series, abbreviation, repository_id, call_number, sequence, created_at, updated_at FROM title ORDER BY id',
       )
       .all() as unknown as TitleRow[];
     return rows.map(rowToTitle);
@@ -205,7 +205,6 @@ interface TaskLinkRow {
 
 interface TitleRow {
   id: string;
-  xref: string | null;
   name: string | null;
   author: string | null;
   publisher: string | null;
@@ -246,7 +245,6 @@ function rowToTaskLink(row: TaskLinkRow): TaskTargetLink {
 function titleParams(title: TitleRecord): Array<string | number | null> {
   return [
     title.id,
-    title.xref ?? null,
     title.name ?? null,
     title.author ?? null,
     title.publisher ?? null,
@@ -263,7 +261,6 @@ function titleParams(title: TitleRecord): Array<string | number | null> {
 function rowToTitle(row: TitleRow): TitleRecord {
   return {
     id: row.id,
-    xref: row.xref ?? undefined,
     name: row.name ?? undefined,
     author: row.author ?? undefined,
     publisher: row.publisher ?? undefined,

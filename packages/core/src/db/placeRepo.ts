@@ -5,7 +5,6 @@ import type { TransactionScope } from './transaction';
 
 interface PlaceRow {
   id: string;
-  xref: string | null;
   latitude: number | null;
   longitude: number | null;
   verified: number;
@@ -55,12 +54,11 @@ export class PlaceRepo {
   insertPlace(place: PlaceRecord): void {
     this.transactions.run(() => {
       this.db
-        .prepare(`INSERT INTO place (id, xref, latitude, longitude, verified, form, abbreviation,
+        .prepare(`INSERT INTO place (id, latitude, longitude, verified, form, abbreviation,
           preposition, maidenhead, place_type, created_at, updated_at)
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`)
         .run(
           place.id,
-          place.xref ?? null,
           place.latitude ?? null,
           place.longitude ?? null,
           place.verified ? 1 : 0,
@@ -83,11 +81,10 @@ export class PlaceRepo {
         throw new Error(`place ${place.id} no longer exists`);
       }
       this.db
-        .prepare(`UPDATE place SET xref = ?, latitude = ?, longitude = ?, verified = ?, form = ?,
+        .prepare(`UPDATE place SET latitude = ?, longitude = ?, verified = ?, form = ?,
           abbreviation = ?, preposition = ?, maidenhead = ?, place_type = ?,
           created_at = ?, updated_at = ? WHERE id = ?`)
         .run(
-          place.xref ?? null,
           place.latitude ?? null,
           place.longitude ?? null,
           place.verified ? 1 : 0,
@@ -106,7 +103,7 @@ export class PlaceRepo {
 
   getPlace(id: string): PlaceRecord | undefined {
     const row = this.db
-      .prepare(`SELECT id, xref, latitude, longitude, verified, form, abbreviation, preposition,
+      .prepare(`SELECT id, latitude, longitude, verified, form, abbreviation, preposition,
         maidenhead, place_type, created_at, updated_at FROM place WHERE id = ?`)
       .get(id) as PlaceRow | undefined;
     return row ? this.hydrate(row) : undefined;
@@ -123,7 +120,7 @@ export class PlaceRepo {
 
   listPlaces(): PlaceRecord[] {
     const rows = this.db
-      .prepare(`SELECT id, xref, latitude, longitude, verified, form, abbreviation, preposition,
+      .prepare(`SELECT id, latitude, longitude, verified, form, abbreviation, preposition,
         maidenhead, place_type, created_at, updated_at FROM place ORDER BY id`)
       .all() as unknown as PlaceRow[];
     return rows.map((row) => this.hydrate(row));
@@ -272,7 +269,6 @@ export class PlaceRepo {
     });
     return {
       id: row.id,
-      xref: row.xref ?? undefined,
       latitude: row.latitude ?? undefined,
       longitude: row.longitude ?? undefined,
       verified: row.verified === 1 ? true : undefined,

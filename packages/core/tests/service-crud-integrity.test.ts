@@ -110,7 +110,6 @@ describe('TreeService CRUD integrity', () => {
       );
       service.addFamily(family);
       service.addSource(source);
-      service.addMedia({ id: 'M1', path: 'media/photo.jpg', placeId: 'PL1', targetType: 'person', targetId: 'P1' });
       service.addNote(note('N1', 'place', 'PL1'));
       service.addNote(note('N2', 'place_name', 'PN1'));
       service.addNote(note('N3', 'place_hierarchy', 'PH2'));
@@ -133,8 +132,6 @@ describe('TreeService CRUD integrity', () => {
       expect(repo.getFamily('F1')?.marriageStatuses?.[0]?.placeId).toBeUndefined();
       expect(repo.getSource('S1')).toBeDefined();
       expect(repo.getSource('S1')?.dataEvents?.[0]?.placeId).toBeUndefined();
-      expect(repo.getMedia('M1')).toBeDefined();
-      expect(repo.getMedia('M1')?.placeId).toBeUndefined();
       expect(repo.getPlace('PL2')).toBeDefined();
       expect(repo.getPlace('PL2')?.hierarchy).toBeUndefined();
       expect(repo.listNotesFor('place', 'PL1')).toEqual([]);
@@ -156,7 +153,6 @@ describe('TreeService CRUD integrity', () => {
       ]);
       expect(repo.getFamily('F1')?.marriageStatuses?.[0]?.placeId).toBe('PL1');
       expect(repo.getSource('S1')?.dataEvents?.[0]?.placeId).toBe('PL1');
-      expect(repo.getMedia('M1')?.placeId).toBe('PL1');
       expect(repo.getPlace('PL2')?.hierarchy?.[0]?.parentId).toBe('PL1');
       expect(repo.listNotesFor('place', 'PL1').map((entry) => entry.id)).toEqual(['N1']);
       expect(repo.listNotesFor('place_name', 'PN1').map((entry) => entry.id)).toEqual(['N2']);
@@ -998,25 +994,6 @@ describe('TreeService CRUD integrity', () => {
 
       expect(repo.getPerson('P1')).toBeDefined();
       expect(repo.getFact('F2')).toBeUndefined();
-    } finally {
-      cleanupRepo(fixture);
-    }
-  });
-
-  it('keeps a later media edit when undoing a place deletion', () => {
-    const { fixture, service } = makeService();
-    const { repo } = fixture;
-    try {
-      service.addPlace({ id: 'PL1', names: [{ id: 'PN1', kind: 'official', position: 0, value: 'Tula' }] });
-      service.addMedia({ id: 'M1', path: 'media/a.jpg', placeId: 'PL1' });
-      service.deletePlace(repo.getPlace('PL1')!);
-
-      const media = repo.getMedia('M1')!;
-      repo.updateMedia({ ...media, description: 'Later edit' });
-      service.undo();
-
-      expect(repo.getMedia('M1')?.placeId).toBe('PL1');
-      expect(repo.getMedia('M1')?.description).toBe('Later edit');
     } finally {
       cleanupRepo(fixture);
     }

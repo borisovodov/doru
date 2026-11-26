@@ -1,5 +1,4 @@
 import { describe, expect, it } from 'vitest';
-import { deleteMediaOp } from '../src/ops/media';
 import { OpQueue } from '../src/ops/op';
 import { TreeService } from '../src/service/tree';
 import { cleanupRepo, makeRepo } from './helpers';
@@ -10,45 +9,13 @@ describe('media repo edge cases', () => {
     try {
       const { repo } = fixture;
       repo.insertMedia({ id: 'M1', path: 'media/a.jpg', title: 'Photo', targetType: 'person', targetId: 'P1' });
-      repo.updateMedia({ ...repo.getMedia('M1')!, xref: '@M1@', title: 'Renamed' });
-      expect(repo.getMedia('M1')).toMatchObject({ title: 'Renamed', xref: '@M1@' });
+      repo.updateMedia({ ...repo.getMedia('M1')!, title: 'Renamed' });
+      expect(repo.getMedia('M1')).toMatchObject({ title: 'Renamed' });
 
       const links = repo.listAttachmentsFor('person', 'P1').mediaLinks;
       expect(links).toHaveLength(1);
       expect(links[0]?.media).toMatchObject({ id: 'M1', title: 'Renamed' });
       expect(links[0]?.link).toMatchObject({ mediaId: 'M1', targetType: 'person', targetId: 'P1' });
-    } finally {
-      cleanupRepo(fixture);
-    }
-  });
-
-  it('restores media without a vanished historical place link', () => {
-    const fixture = makeRepo();
-    try {
-      const { repo } = fixture;
-      repo.insertPerson({ id: 'P1', names: [], sex: 'U', facts: [] });
-      repo.insertPlace({ id: 'PL1', names: [{ id: 'PN1', kind: 'official', position: 0, value: 'Moscow' }] });
-      repo.insertMedia({
-        id: 'M1',
-        path: 'media/a.jpg',
-        title: 'Portrait',
-        place: 'Moscow',
-        placeId: 'PL1',
-        targetType: 'person',
-        targetId: 'P1',
-      });
-      const media = repo.getMedia('M1')!;
-
-      const del = deleteMediaOp(media);
-      del.apply({ repo });
-      // Another writer removes the place while the media record is gone.
-      repo.deletePlace('PL1');
-      del.inverse({ repo });
-
-      const restored = repo.getMedia('M1')!;
-      expect(restored.place).toBe('Moscow');
-      expect(restored.placeId).toBeUndefined();
-      expect(restored.links?.map((link) => link.targetId)).toEqual(['P1']);
     } finally {
       cleanupRepo(fixture);
     }
@@ -62,20 +29,19 @@ describe('media repo edge cases', () => {
       repo.insertMedia({
         id: 'M1',
         title: 'Old',
-        description: 'Draft',
         path: 'media/a.jpg',
         targetType: 'person',
         targetId: 'P1',
       });
       const stale = repo.getMedia('M1')!;
       const service = new TreeService(repo, new OpQueue());
-      repo.updateMedia({ ...repo.getMedia('M1')!, description: 'Concurrent' });
-      service.updateMedia(stale, { ...stale, title: 'New' });
-      expect(repo.getMedia('M1')).toMatchObject({ title: 'New', description: 'Concurrent' });
+      repo.updateMedia({ ...repo.getMedia('M1')!, title: 'Concurrent' });
+      service.updateMedia(stale, { ...stale, path: 'media/b.jpg' });
+      expect(repo.getMedia('M1')).toMatchObject({ title: 'Concurrent', path: 'media/b.jpg' });
 
-      const beforePath = repo.getMedia('M1')!;
-      service.updateMedia(beforePath, { ...beforePath, path: 'media/b.jpg' });
-      expect(repo.getMedia('M1')?.path).toBe('media/b.jpg');
+      const before = repo.getMedia('M1')!;
+      service.updateMedia(before, { ...before, title: 'New' });
+      expect(repo.getMedia('M1')?.title).toBe('New');
     } finally {
       cleanupRepo(fixture);
     }
@@ -120,25 +86,15 @@ describe('media repo edge cases', () => {
     }
   });
 
-  it('round-trips historical fields, file metadata and link citations', () => {
+  it('round-trips the media title and historical date', () => {
     const fixture = makeRepo();
     try {
       const { repo, store } = fixture;
-      repo.insertPlace({ id: 'PL1', names: [{ id: 'PN1', kind: 'official', position: 0, value: 'Moscow' }] });
-      repo.insertSource({ id: 'S1', title: 'Source' });
       repo.insertMedia({
         id: 'M1',
         path: 'media/a.jpg',
         title: 'File title',
-        medium: 'photograph',
-        contentType: 'person',
-        text: 'Transcription',
         date: { quality: 'exact', component: { year: 1900 } },
-        place: 'Moscow',
-        placeId: 'PL1',
-        objectType: 'Photo',
-        description: 'Studio portrait',
-        keywords: 'family, portrait',
         targetType: 'person',
         targetId: 'P1',
       });
@@ -147,21 +103,8 @@ describe('media repo edge cases', () => {
       expect(read).toMatchObject({
         title: 'File title',
         path: 'media/a.jpg',
-        medium: 'photograph',
-        contentType: 'person',
-        text: 'Transcription',
-        place: 'Moscow',
-        placeId: 'PL1',
-        objectType: 'Photo',
-        description: 'Studio portrait',
-        keywords: 'family, portrait',
       });
       expect(read.date).toMatchObject({ quality: 'exact', component: { year: 1900 } });
-
-      const link = repo.listAttachmentsFor('person', 'P1').mediaLinks[0]!.link;
-      repo.insertCitation({ id: 'C1', sourceId: 'S1', targetType: 'media_link', targetId: link.id });
-      expect(repo.listCitationRecordsFor('media_link', link.id).map((citation) => citation.id)).toEqual(['C1']);
-      expect(repo.listAttachmentsFor('person', 'P1').mediaLinkAttachments[0]?.attachments.citations).toHaveLength(1);
 
       repo.updateMedia({ ...repo.getMedia('M1')!, title: 'Renamed', date: undefined });
       expect(repo.getMedia('M1')?.date).toBeUndefined();
@@ -169,7 +112,6 @@ describe('media repo edge cases', () => {
 
       repo.deleteAttachmentsFor('person', 'P1');
       expect(repo.getMedia('M1')?.links).toEqual([]);
-      expect(repo.listCitationRecordsFor('media_link', link.id)).toEqual([]);
     } finally {
       cleanupRepo(fixture);
     }

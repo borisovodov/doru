@@ -142,8 +142,6 @@ interface ImportContext {
   placeParents: Map<string, Array<{ parentXref: string; type?: string | undefined; date?: DateValue | undefined }>>;
   /** Media record xref → the one or more cards split from that record. */
   mediaIds: Map<string, string[]>;
-  /** Media id → historical place text, resolved after place records exist. */
-  mediaPlaceText: Map<string, string>;
   /** Number of media cards created (after multi-FILE splitting). */
   mediaCreated: number;
   /** Original GEDCOM FILE path → project-relative path prepared by the host. */
@@ -185,8 +183,8 @@ interface ImportContext {
 
 /**
  * Writes the dataset into the repository in one transaction. Record ids are
- * fresh UUIDs; the GEDCOM cross-reference lands in `xref` for export
- * provenance.
+ * fresh UUIDs; GEDCOM cross-references are transient import keys used only to
+ * resolve pointers.
  */
 export function importGedcomDataset(
   dataset: GedcomDataset,
@@ -210,7 +208,6 @@ export function importGedcomDataset(
     placeCardIds: new Map(),
     placeParents: new Map(),
     mediaIds: new Map(),
-    mediaPlaceText: new Map(),
     mediaCreated: 0,
     mediaPaths,
     spouseLinkDates: new Map(),
@@ -251,7 +248,6 @@ export function importGedcomDataset(
     importPersonRelations(dataset.records, ctx);
     linkPlaceHierarchy(ctx);
     importResearchRecords(dataset.records, ctx);
-    linkMediaPlaces(ctx);
     const cycles = detectParentCycles(repo.toTreeDocument());
     if (cycles.length > 0) {
       throw new Error(`GEDCOM import contains a parent cycle: ${cycles[0]?.message ?? 'unknown cycle'}`);
@@ -304,7 +300,6 @@ function importRepositories(records: GedcomRecord[], ctx: ImportContext): void {
     }
     ctx.repo.insertRepository({
       id,
-      xref: repository.xref,
       name: repository.name,
       addressId,
       ...importedRecordTimes(repository, ctx),
@@ -359,7 +354,6 @@ function importSubmitters(records: GedcomRecord[], ctx: ImportContext): void {
     }
     ctx.repo.insertSubmitter({
       id,
-      xref: submitter.xref,
       name: submitter.name,
       addressId,
       languages: submitter.languages,
@@ -380,7 +374,6 @@ function importSubmitters(records: GedcomRecord[], ctx: ImportContext): void {
       ],
       ctx,
     );
-    importSubmitterLinks(submitter.submitters, 'submitter', id, ctx);
   }
 }
 
@@ -397,7 +390,6 @@ function importTitles(records: GedcomRecord[], ctx: ImportContext): void {
     const author = typeof title.author === 'string' ? title.author : undefined;
     ctx.repo.insertTitle({
       id,
-      xref: title.xref,
       name: title.payload,
       author,
       publisher: title.publisher,
@@ -525,7 +517,6 @@ function importSources(records: GedcomRecord[], ctx: ImportContext): number {
     });
     ctx.repo.insertSource({
       id,
-      xref: source.xref,
       title: source.title,
       abbreviation: source.abbreviation,
       author: source.author,
@@ -649,7 +640,6 @@ function importPerson(record: GedcomIndividualRecord, ctx: ImportContext): void 
   const factChanges = factStructures.map((structure) => exactDateToTimestamp(structure.detail?.changeDate));
   ctx.repo.insertPerson({
     id,
-    xref: record.xref,
     sex: mapSex(record.sex),
     ...(record.deceased === true
       ? { deathStatus: 'dead' as const }
@@ -1100,7 +1090,6 @@ function importFamily(record: GedcomFamilyRecord, ctx: ImportContext): void {
   );
   ctx.repo.insertFamily({
     id,
-    xref: record.xref,
     preferred: record.preferred,
     sameSex: record.sameSexUnion,
     unionKind: record.unionKind,
@@ -2177,7 +2166,8 @@ function mapCoordinate(
  * Imports the global OBJE records before any link references them. GEDCOM
  * allows several FILE rows on one record; Dóru has one file per card, so each
  * usable FILE becomes its own media record with a copy of the record metadata
- * and attachments. The first card keeps the original xref.
+ * and attachments. The record xref is only a transient key for resolving
+ * links; it is not stored.
  */
 function importMediaRecords(records: GedcomRecord[], ctx: ImportContext): void {
   for (const record of records) {
@@ -2191,28 +2181,18 @@ function importMediaRecords(records: GedcomRecord[], ctx: ImportContext): void {
       // media row that does not exist and fail the import on the FK.
       continue;
     }
-    for (const [index, file] of files.entries()) {
+    for (const file of files) {
       const id = crypto.randomUUID();
       const title = file.title !== undefined && file.title !== '' ? file.title : record.title;
+      const date = record.date !== undefined ? mapDate(record.date) : undefined;
       ctx.repo.insertMedia({
         id,
-        ...(index === 0 && record.xref !== undefined ? { xref: record.xref } : {}),
         ...(title !== undefined ? { title } : {}),
         path: ctx.mediaPaths.get(file.payload) ?? file.payload,
-        ...(file.form?.medium !== undefined ? { medium: file.form.medium.payload } : {}),
-        ...(file.contentType !== undefined ? { contentType: file.contentType } : {}),
-        ...(file.text !== undefined ? { text: file.text } : {}),
-        ...(record.date !== undefined ? { date: mapDate(record.date) } : {}),
-        ...(record.place !== undefined ? { place: record.place } : {}),
-        ...(record.objectType !== undefined ? { objectType: record.objectType } : {}),
-        ...(record.description !== undefined ? { description: record.description } : {}),
-        ...(record.keywords !== undefined ? { keywords: record.keywords } : {}),
+        ...(date !== undefined ? { date } : {}),
         ...importedRecordTimes(record, ctx),
       });
       ctx.mediaCreated += 1;
-      if (record.place !== undefined) {
-        ctx.mediaPlaceText.set(id, record.place);
-      }
       importCitations(record.citations, 'media', id, ctx);
       importNotes(record.notes, 'media', id, ctx);
       importSubmitterLinks(record.submitters, 'media', id, ctx);
@@ -2234,34 +2214,13 @@ function flushPendingCitations(ctx: ImportContext): void {
   }
 }
 
-/** Resolves historical media places after the place records are registered. */
-function linkMediaPlaces(ctx: ImportContext): void {
-  for (const [mediaId, placeText] of ctx.mediaPlaceText) {
-    if (ctx.ambiguousPlaceNames.has(placeText)) {
-      continue;
-    }
-    const placeId = ctx.placeIds.get(placeText);
-    if (placeId !== undefined) {
-      ctx.repo.setMediaPlaceId(mediaId, placeId);
-    }
-  }
-}
-
 /** Imports OBJE links under a structure into the media_link table. */
 function importMediaLinks(
   links:
     | Array<{
         object: string;
         crop?: { top?: number; left?: number; height?: number; width?: number } | undefined;
-        title?: string | undefined;
-        sequence?: number | undefined;
         primary?: boolean | undefined;
-        scrapbook?: boolean | undefined;
-        slideshow?: boolean | undefined;
-        thumbnail?: boolean | undefined;
-        excludeFromDiagrams?: boolean | undefined;
-        caption?: boolean | undefined;
-        citations?: SourceCitation[] | undefined;
       }>
     | undefined,
   targetType: string,
@@ -2271,23 +2230,14 @@ function importMediaLinks(
   for (const link of links ?? []) {
     const mediaIds = ctx.mediaIds.get(link.object) ?? [];
     for (const mediaId of mediaIds) {
-      const linkId = crypto.randomUUID();
       ctx.repo.addMediaLink(mediaId, {
-        id: linkId,
+        id: crypto.randomUUID(),
         mediaId,
         targetType,
         targetId,
         ...(link.crop !== undefined ? { crop: link.crop } : {}),
-        ...(link.title !== undefined ? { title: link.title } : {}),
-        ...(link.sequence !== undefined ? { sequence: link.sequence } : {}),
         ...(link.primary !== undefined ? { primary: link.primary } : {}),
-        ...(link.scrapbook !== undefined ? { scrapbook: link.scrapbook } : {}),
-        ...(link.slideshow !== undefined ? { slideshow: link.slideshow } : {}),
-        ...(link.thumbnail !== undefined ? { thumbnail: link.thumbnail } : {}),
-        ...(link.excludeFromDiagrams !== undefined ? { exclude: link.excludeFromDiagrams } : {}),
-        ...(link.caption !== undefined ? { caption: link.caption } : {}),
       });
-      importCitations(link.citations, 'media_link', linkId, ctx);
     }
   }
 }
@@ -2352,7 +2302,6 @@ function importPlaceRecords(records: GedcomRecord[], ctx: ImportContext): void {
     const longitude = mapCoordinate(record.map?.longitude, 'W');
     ctx.repo.insertPlace({
       id,
-      ...(record.xref !== undefined ? { xref: record.xref } : {}),
       ...(latitude !== undefined ? { latitude } : {}),
       ...(longitude !== undefined ? { longitude } : {}),
       ...(verified === true ? { verified: true } : {}),

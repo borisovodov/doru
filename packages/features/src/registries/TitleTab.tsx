@@ -98,7 +98,6 @@ function TitleTabBody({
 
   const build = (): TitleRecord => ({
     id: base.id,
-    xref: base.xref,
     name: name.trim() || undefined,
     author: author.trim() || undefined,
     publisher: publisher.trim() || undefined,

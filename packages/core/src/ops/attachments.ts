@@ -254,12 +254,7 @@ export function detachCitationOp(citation: CitationRecord, attachments: Attachme
 
 // --- media -------------------------------------------------------------------
 
-export function attachMediaOp(
-  link: MediaLinkRecord,
-  media?: MediaRecord,
-  attachments?: AttachmentsSnapshot,
-  linkAttachments?: AttachmentsSnapshot,
-): Op {
+export function attachMediaOp(link: MediaLinkRecord, media?: MediaRecord, attachments?: AttachmentsSnapshot): Op {
   return {
     ...op(
       crypto.randomUUID(),
@@ -272,9 +267,6 @@ export function attachMediaOp(
           if (attachments !== undefined) {
             ctx.repo.restoreAttachments(attachments);
           }
-        }
-        if (linkAttachments !== undefined) {
-          ctx.repo.restoreAttachments(linkAttachments);
         }
       },
     ),
@@ -309,7 +301,6 @@ export function attachMediaLinksOp(links: MediaLinkRecord[]): Op {
     },
     (ctx) => {
       for (const link of links) {
-        ctx.repo.deleteAttachmentsFor('media_link', link.id);
         ctx.repo.removeMediaLinkOnly(link.id);
       }
     },
@@ -317,12 +308,7 @@ export function attachMediaLinksOp(links: MediaLinkRecord[]): Op {
   );
 }
 
-export function detachMediaOp(
-  link: MediaLinkRecord,
-  media?: MediaRecord,
-  attachments?: AttachmentsSnapshot,
-  linkAttachments?: AttachmentsSnapshot,
-): Op {
+export function detachMediaOp(link: MediaLinkRecord, media?: MediaRecord, attachments?: AttachmentsSnapshot): Op {
   let mediaBaseline = media;
   let linkBaseline = link;
   return {
@@ -332,18 +318,12 @@ export function detachMediaOp(
       (ctx) => ctx.repo.removeMediaLink(link.id),
       (ctx) => {
         if (ctx.repo.getMedia(link.mediaId) === undefined && media !== undefined) {
-          const restoredLinks = restoreMedia(ctx, media);
+          restoreMedia(ctx, media);
           if (attachments !== undefined) {
             ctx.repo.restoreAttachments(attachments);
           }
-          if (linkAttachments !== undefined && restoredLinks.has(link.id)) {
-            ctx.repo.restoreAttachments(linkAttachments);
-          }
         } else if (attachmentTargetExists(ctx, link.targetType, link.targetId)) {
           ctx.repo.addMediaLink(link.mediaId, link);
-          if (linkAttachments !== undefined) {
-            ctx.repo.restoreAttachments(linkAttachments);
-          }
         }
         mediaBaseline = ctx.repo.getMedia(link.mediaId) ?? mediaBaseline;
         linkBaseline = mediaBaseline?.links?.find((entry) => entry.id === link.id) ?? link;
@@ -362,9 +342,6 @@ export function detachMediaOp(
       }
       if (current === undefined) {
         return true;
-      }
-      if (linkAttachments !== undefined && !attachmentsMatch(ctx, 'media_link', link.id, linkAttachments)) {
-        return false;
       }
       const lastLink = (current.links ?? []).length <= 1;
       if (!lastLink) {

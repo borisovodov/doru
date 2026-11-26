@@ -63,12 +63,9 @@ export function SidebarSearch({
       ),
     );
 
-    const matchedFamilies = families.filter((family) => {
-      if (matches(family.xref)) {
-        return true;
-      }
-      return [...family.partners, ...family.children].some((id) => matchedPersons.some((person) => person.id === id));
-    });
+    const matchedFamilies = families.filter((family) =>
+      [...family.partners, ...family.children].some((id) => matchedPersons.some((person) => person.id === id)),
+    );
 
     const matchedSources = sources.filter(
       (source) =>

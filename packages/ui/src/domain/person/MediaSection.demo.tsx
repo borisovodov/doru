@@ -33,7 +33,7 @@ const portrait: MediaWithPath = {
   ],
 };
 
-const excluded: MediaWithPath = {
+const document: MediaWithPath = {
   id: 'M3',
   title: 'Damaged duplicate',
   path: 'media/damaged-duplicate.pdf',
@@ -44,7 +44,6 @@ const excluded: MediaWithPath = {
       mediaId: 'M3',
       targetType: 'person',
       targetId: 'P1',
-      exclude: true,
     },
   ],
 };
@@ -88,7 +87,7 @@ export const Empty: DemoCase = {
 
 export const PrimaryAndExcluded: DemoCase = {
   args: {
-    media: [portrait, excluded],
-    api: { ...api, getAllMedia: async () => [portrait, excluded] },
+    media: [portrait, document],
+    api: { ...api, getAllMedia: async () => [portrait, document] },
   },
 };

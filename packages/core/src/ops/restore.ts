@@ -145,9 +145,6 @@ export function restoreFamily(ctx: MutationContext, family: FamilyRecord): void 
 
 export function restoreMedia(ctx: MutationContext, media: MediaRecord): Set<string> {
   const clean: MediaRecord = { ...media };
-  if (clean.placeId !== undefined && ctx.repo.getPlace(clean.placeId) === undefined) {
-    delete clean.placeId;
-  }
   const links = (media.links ?? []).filter((link) => attachmentTargetExists(ctx, link.targetType, link.targetId));
   clean.links = links;
   ctx.repo.insertMedia(clean);
@@ -291,7 +288,7 @@ export function attachmentsMatch(
         return;
       }
       records.set(key, JSON.stringify(direct(node)));
-      for (const nested of [...node.citationAttachments, ...node.mediaAttachments, ...node.mediaLinkAttachments]) {
+      for (const nested of [...node.citationAttachments, ...node.mediaAttachments]) {
         const childKey = `${nested.targetType}\u0000${nested.targetId}`;
         edges.push(`${key}>${childKey}`);
         walk(nested.attachments, childKey);
@@ -352,8 +349,6 @@ export function attachmentTargetExists(ctx: MutationContext, targetType: string,
       return ctx.repo.getPlace(targetId) !== undefined;
     case 'media':
       return ctx.repo.getMedia(targetId) !== undefined;
-    case 'media_link':
-      return ctx.repo.hasMediaLink(targetId);
     case 'task':
       return ctx.repo.getTask(targetId) !== undefined;
     case 'source':

@@ -28,7 +28,6 @@ describe('familyToDraft / familyDraftToRecord', () => {
   it('round-trips every link field', () => {
     const stored: FamilyRecord = {
       id: 'F1',
-      xref: '@F1@',
       partners: ['P1', 'P2'],
       children: ['P3', 'P4'],
       partnerLinks: [

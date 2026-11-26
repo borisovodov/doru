@@ -44,7 +44,7 @@ const GEDCOM = [
   '0 TRLR',
 ].join('\n');
 
-describe('media historical metadata', () => {
+describe('media metadata', () => {
   it('keeps citations on anonymous media records', () => {
     const fixture = makeRepo();
     try {
@@ -72,68 +72,41 @@ describe('media historical metadata', () => {
     }
   });
 
-  it('keeps place-media citations that point at a later source', () => {
+  it('imports inline crop and primary flags on a media link', () => {
     const fixture = makeRepo();
     try {
       const parsed = parseDataset(
         [
           '0 HEAD',
           '1 GEDC',
-          '2 VERS 7.0',
-          '0 @O1@ OBJE',
-          '1 FILE photos/a.jpg',
-          '0 @PL1@ _PLAC Moscow',
-          '1 OBJE @O1@',
-          '2 SOUR @S2@',
-          '0 @S2@ SOUR',
-          '1 TITL Later',
+          '2 VERS 5.5.1',
+          '1 SUBM @U1@',
+          '0 @U1@ SUBM',
+          '0 @I1@ INDI',
+          '1 NAME One /Test/',
+          '1 OBJE',
+          '2 FILE photos/a.jpg',
+          '2 FORM jpg',
+          '2 _CROP',
+          '3 _LEFT 1',
+          '3 _TOP 2',
+          '3 _WDTH 3',
+          '3 _HGHT 4',
+          '2 _PRIM Y',
           '0 TRLR',
         ].join('\n'),
       );
       importGedcomDataset(parsed, fixture.repo);
-      const place = fixture.repo.listPlaces().find((entry) => entry.xref === '@PL1@')!;
-      const s2 = fixture.repo.listSources().find((source) => source.xref === '@S2@')!;
-      const link = fixture.repo.listAttachmentsFor('place', place.id).mediaLinks[0]!.link;
-      expect(fixture.repo.listCitationRecordsFor('media_link', link.id).map((citation) => citation.sourceId)).toEqual([
-        s2.id,
-      ]);
+      const person = fixture.repo.listAllPersons()[0]!;
+      const link = fixture.repo.listAttachmentsFor('person', person.id).mediaLinks[0]!.link;
+      expect(link.crop).toEqual({ left: 1, top: 2, width: 3, height: 4 });
+      expect(link.primary).toBe(true);
     } finally {
       cleanupRepo(fixture);
     }
   });
 
-  it('keeps source media-link citations that point at a later source', () => {
-    const fixture = makeRepo();
-    try {
-      const parsed = parseDataset(
-        [
-          '0 HEAD',
-          '1 GEDC',
-          '2 VERS 7.0',
-          '0 @O1@ OBJE',
-          '1 FILE photos/a.jpg',
-          '0 @S1@ SOUR',
-          '1 TITL First',
-          '1 OBJE @O1@',
-          '2 SOUR @S2@',
-          '0 @S2@ SOUR',
-          '1 TITL Second',
-          '0 TRLR',
-        ].join('\n'),
-      );
-      importGedcomDataset(parsed, fixture.repo);
-      const s1 = fixture.repo.listSources().find((source) => source.xref === '@S1@')!;
-      const s2 = fixture.repo.listSources().find((source) => source.xref === '@S2@')!;
-      const link = fixture.repo.listAttachmentsFor('source', s1.id).mediaLinks[0]!.link;
-      expect(fixture.repo.listCitationRecordsFor('media_link', link.id).map((citation) => citation.sourceId)).toEqual([
-        s2.id,
-      ]);
-    } finally {
-      cleanupRepo(fixture);
-    }
-  });
-
-  it('imports the historical record/file fields and round-trips them', () => {
+  it('imports the media title and date and drops the historical metadata', () => {
     const fixture = makeRepo();
     try {
       importGedcomDataset(parseDataset(GEDCOM), fixture.repo);
@@ -141,24 +114,23 @@ describe('media historical metadata', () => {
       expect(media).toMatchObject({
         title: 'File title',
         path: 'photos/a.jpg',
-        place: 'Moscow',
-        objectType: 'Photo',
-        description: 'Studio portrait',
-        keywords: 'family, portrait',
-        medium: 'PHOTO',
-        contentType: 'person',
-        text: 'A transcription',
       });
-      expect(media.placeId).toBeDefined();
+      expect(media).not.toHaveProperty('place');
+      expect(media).not.toHaveProperty('placeId');
+      expect(media).not.toHaveProperty('objectType');
+      expect(media).not.toHaveProperty('description');
+      expect(media).not.toHaveProperty('keywords');
+      expect(media).not.toHaveProperty('medium');
+      expect(media).not.toHaveProperty('contentType');
+      expect(media).not.toHaveProperty('text');
       expect(media.date).toMatchObject({ component: { year: 1900 } });
       expect(fixture.repo.listNotesFor('media', media.id).map((note) => note.text)).toEqual(['Record note']);
       expect(fixture.repo.listCitationRecordsFor('media', media.id)).toHaveLength(1);
 
       const person = fixture.repo.listAllPersons()[0]!;
       const link = fixture.repo.listAttachmentsFor('person', person.id).mediaLinks[0]!.link;
-      expect(fixture.repo.listCitationRecordsFor('media_link', link.id).map((citation) => citation.page)).toEqual([
-        'Link page',
-      ]);
+      expect(link).toMatchObject({ mediaId: media.id, targetType: 'person', targetId: person.id });
+      expect(fixture.repo.listCitationRecordsFor('media_link', link.id)).toEqual([]);
 
       for (const serialize of [serializeGedcom70, serializeGedcom551]) {
         const serialized = serialize(buildGedcomDataset(fixture.repo));
@@ -168,15 +140,14 @@ describe('media historical metadata', () => {
         }
         const text = serialized.value;
         expect(text).toContain('1 _DATE 1900');
-        expect(text).toContain('1 _PLAC Moscow');
-        expect(text).toContain('1 _TYPE Photo');
-        expect(text).toContain('1 _DSCR Studio portrait');
-        expect(text).toContain('1 _KEYS family, portrait');
-        expect(text).toContain('2 _TEXT A transcription');
-        expect(text).toContain('2 _CTYP person');
-        expect(text).toContain('2 SOUR @S1@');
-        expect(text).toContain('3 PAGE Link page');
-        expect(text).not.toContain('2 TRAN');
+        expect(text).not.toContain('_PLAC Moscow');
+        expect(text).not.toContain('_TYPE Photo');
+        expect(text).not.toContain('_DSCR Studio portrait');
+        expect(text).not.toContain('_KEYS family, portrait');
+        expect(text).not.toContain('_TEXT A transcription');
+        expect(text).not.toContain('_CTYP person');
+        expect(text).toContain('1 SOUR @S1@');
+        expect(text).not.toContain('PAGE Link page');
 
         const target = makeRepo();
         try {
@@ -185,13 +156,6 @@ describe('media historical metadata', () => {
           expect(imported).toMatchObject({
             title: 'File title',
             path: 'photos/a.jpg',
-            place: 'Moscow',
-            objectType: 'Photo',
-            description: 'Studio portrait',
-            keywords: 'family, portrait',
-            medium: 'PHOTO',
-            contentType: 'person',
-            text: 'A transcription',
           });
           expect(imported.date).toMatchObject({ component: { year: 1900 } });
           expect(target.repo.listNotesFor('media', imported.id).map((note) => note.text)).toEqual(['Record note']);
@@ -201,7 +165,7 @@ describe('media historical metadata', () => {
           );
           const importedPerson = target.repo.listAllPersons()[0]!;
           const importedLink = target.repo.listAttachmentsFor('person', importedPerson.id).mediaLinks[0]!.link;
-          expect(target.repo.listCitationRecordsFor('media_link', importedLink.id)).toHaveLength(1);
+          expect(target.repo.listCitationRecordsFor('media_link', importedLink.id)).toEqual([]);
         } finally {
           cleanupRepo(target);
         }

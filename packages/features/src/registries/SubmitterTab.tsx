@@ -177,7 +177,6 @@ function SubmitterTabBody({
     try {
       const next: SubmitterRecord = {
         id: base.id,
-        xref: base.xref,
         name: name.trim(),
         languages: languages.map((language) => language.trim()).filter((language) => language !== ''),
       };

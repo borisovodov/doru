@@ -442,46 +442,6 @@ describe('TreeService attachments', () => {
     }
   });
 
-  it('restores media-link citations when detaching and deleting the record', () => {
-    const { fixture, service } = makeService();
-    try {
-      service.addPerson({ id: 'P1', names: [], sex: 'U', facts: [] });
-      service.addSource(source());
-      service.addMedia({ id: 'M1', path: 'media/photo.jpg', title: 'Portrait', targetType: 'person', targetId: 'P1' });
-      const link = fixture.repo.listAttachmentsFor('person', 'P1').mediaLinks[0]!.link;
-      fixture.repo.insertCitation({
-        id: 'C1',
-        sourceId: 'S1',
-        targetType: 'media_link',
-        targetId: link.id,
-        page: 'p. 1',
-      });
-      expect(fixture.repo.listCitationRecordsFor('media_link', link.id)).toHaveLength(1);
-
-      service.detachMedia(link);
-      expect(fixture.repo.listMediaFor('person', 'P1')).toEqual([]);
-      expect(fixture.repo.listCitationRecordsFor('media_link', link.id)).toEqual([]);
-      service.undo();
-      expect(
-        fixture.repo.listAttachmentsFor('person', 'P1').mediaLinks.some((entry) => entry.link.id === link.id),
-      ).toBe(true);
-      expect(fixture.repo.listCitationRecordsFor('media_link', link.id).map((entry) => entry.id)).toEqual(['C1']);
-
-      const media = fixture.repo.getMedia('M1')!;
-      service.deleteMedia(media);
-      expect(fixture.repo.getMedia('M1')).toBeUndefined();
-      expect(fixture.repo.listCitationRecordsFor('media_link', link.id)).toEqual([]);
-      service.undo();
-      expect(fixture.repo.getMedia('M1')).toBeDefined();
-      expect(
-        fixture.repo.listAttachmentsFor('person', 'P1').mediaLinks.some((entry) => entry.link.id === link.id),
-      ).toBe(true);
-      expect(fixture.repo.listCitationRecordsFor('media_link', link.id).map((entry) => entry.id)).toEqual(['C1']);
-    } finally {
-      cleanupRepo(fixture);
-    }
-  });
-
   it('updates media records and link metadata with undo', () => {
     const { fixture, service } = makeService();
     try {
@@ -494,17 +454,17 @@ describe('TreeService attachments', () => {
       expect(fixture.repo.getMedia('M1')?.title).toBe('Portrait');
 
       const beforeLink = fixture.repo.listAttachmentsFor('person', 'P1').mediaLinks[0]!.link;
-      const afterLink = { ...beforeLink, title: 'Front', sequence: 2, primary: true };
+      const afterLink = { ...beforeLink, crop: { top: 1, left: 2, width: 3, height: 4 }, primary: true };
       service.updateMediaLink(beforeLink, afterLink);
       expect(
         fixture.repo.listAttachmentsFor('person', 'P1').mediaLinks.find((entry) => entry.link.id === beforeLink.id)
           ?.link,
-      ).toMatchObject({ title: 'Front', sequence: 2, primary: true });
+      ).toMatchObject({ crop: { top: 1, left: 2, width: 3, height: 4 }, primary: true });
       service.undo();
       expect(
         fixture.repo.listAttachmentsFor('person', 'P1').mediaLinks.find((entry) => entry.link.id === beforeLink.id)
           ?.link,
-      ).toMatchObject({ title: undefined, sequence: undefined });
+      ).toMatchObject({ crop: undefined, primary: undefined });
     } finally {
       cleanupRepo(fixture);
     }
@@ -594,17 +554,9 @@ describe('TreeService attachments', () => {
       expect(fixture.repo.listMediaFor('person', 'P1')).toHaveLength(1);
       expect(fixture.repo.listMediaFor('person', 'P2')).toHaveLength(1);
       expect(fixture.repo.getMedia('M1')?.links).toHaveLength(2);
-      const [firstLink] = fixture.repo.listMediaLinksFor('person', 'P1');
-      fixture.repo.insertCitation({
-        id: 'C1',
-        sourceId: 'S1',
-        targetType: 'media_link',
-        targetId: firstLink!.link.id,
-      });
 
       service.undo();
       expect(fixture.repo.getMedia('M1')?.links).toEqual([]);
-      expect(fixture.repo.listCitationRecordsFor('media_link', firstLink!.link.id)).toEqual([]);
       service.undo();
       expect(fixture.repo.listCitationsFor('person', 'P1')).toEqual([]);
       expect(fixture.repo.listCitationsFor('person', 'P2')).toEqual([]);

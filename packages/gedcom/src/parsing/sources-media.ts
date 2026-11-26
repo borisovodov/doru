@@ -604,6 +604,11 @@ export function parseMultimediaLink(node: RawNode, ctx: Ctx): MultimediaLink {
   let scrapbook: boolean | undefined;
   let slideshow: boolean | undefined;
   let thumbnail: boolean | undefined;
+  let crop: MultimediaLink['crop'];
+  let sequence: number | undefined;
+  let area: string | undefined;
+  let excludeFromDiagrams: boolean | undefined;
+  let caption: boolean | undefined;
   let fileSize: number | undefined;
   let album: string | undefined;
   let photoRecordId: string | undefined;
@@ -663,6 +668,35 @@ export function parseMultimediaLink(node: RawNode, ctx: Ctx): MultimediaLink {
       _THUM: (child) => {
         // Généatique: the thumbnail flag (see MultimediaLink.thumbnail).
         thumbnail = parseYNFlag(child, '_THUM');
+      },
+      CROP: (child) => {
+        // GEDCOM 7.0 CROP on the inline link: the same display area
+        // the pointer form carries (see MultimediaLink.crop).
+        crop = parseCrop(child, ctx);
+      },
+      _CROP: (child) => {
+        // Ancestry.com Family Trees spells the crop block `_CROP` with
+        // the underscore children (see parseCrop).
+        crop = parseCrop(child, ctx);
+      },
+      _SEQ: (child) => {
+        // FH: the sequence number on the inline link (see
+        // MultimediaLink.sequence).
+        sequence = reqDigits(child);
+      },
+      _AREA: (child) => {
+        // FH: the display area kept verbatim (see MultimediaLink.area).
+        area = reqText(child);
+      },
+      _EXCL: (child) => {
+        // FH: the exclude-from-diagrams flag on the inline link (see
+        // MultimediaLink.excludeFromDiagrams).
+        excludeFromDiagrams = parseFhPresenceFlag(child, '_EXCL');
+      },
+      _CAPT: (child) => {
+        // FH: the caption flag on the inline link (see
+        // MultimediaLink.caption).
+        caption = parseFhPresenceFlag(child, '_CAPT');
       },
       _TYPE: (child) => {
         record.objectType = reqText(child);
@@ -800,6 +834,11 @@ export function parseMultimediaLink(node: RawNode, ctx: Ctx): MultimediaLink {
   return {
     tag: 'OBJE',
     object: xref,
+    ...(crop === undefined ? {} : { crop }),
+    ...(sequence === undefined ? {} : { sequence }),
+    ...(area === undefined ? {} : { area }),
+    ...(excludeFromDiagrams === undefined ? {} : { excludeFromDiagrams }),
+    ...(caption === undefined ? {} : { caption }),
     ...(primary === undefined ? {} : { primary }),
     ...(scrapbook === undefined ? {} : { scrapbook }),
     ...(slideshow === undefined ? {} : { slideshow }),

@@ -1,6 +1,6 @@
 import type { AttachmentsSnapshot, MediaRecord } from '../model/types';
 import { emptyAttachments } from '../model/types';
-import type { NestedAttachments, Op } from './op';
+import type { Op } from './op';
 import { attachmentsMatch, restoreMedia, sameRecord } from './restore';
 
 export function addMediaOp(media: MediaRecord): Op {
@@ -41,20 +41,15 @@ export function updateMediaOp(before: MediaRecord, after: MediaRecord): Op {
   };
 }
 
-export function deleteMediaOp(
-  media: MediaRecord,
-  attachments: AttachmentsSnapshot = emptyAttachments(),
-  linkAttachments: NestedAttachments[] = [],
-): Op {
+export function deleteMediaOp(media: MediaRecord, attachments: AttachmentsSnapshot = emptyAttachments()): Op {
   let baseline = media;
   let attachmentBaseline = attachments;
-  let linkBaseline = linkAttachments;
   return {
     id: crypto.randomUUID(),
     kind: 'media.delete',
     timestamp: new Date().toISOString(),
     change: { targetType: 'media', targetId: media.id, kind: 'changed' },
-    snapshots: [attachments, ...linkAttachments.map((nested) => nested.attachments)],
+    snapshots: [attachments],
     apply(ctx) {
       ctx.repo.deleteMedia(media.id);
     },
@@ -69,39 +64,14 @@ export function deleteMediaOp(
           return false;
         }
       }
-      if (!attachmentsMatch(ctx, 'media', media.id, attachmentBaseline)) {
-        return false;
-      }
-      for (const nested of linkBaseline) {
-        if (!attachmentsMatch(ctx, nested.targetType, nested.targetId, nested.attachments)) {
-          return false;
-        }
-      }
-      return true;
+      return attachmentsMatch(ctx, 'media', media.id, attachmentBaseline);
     },
     inverse(ctx) {
-      const restoredLinks = restoreMedia(ctx, media);
+      restoreMedia(ctx, media);
       ctx.repo.restoreAttachments(attachments);
-      for (const nested of linkAttachments) {
-        if (restoredLinks.has(nested.targetId)) {
-          ctx.repo.restoreAttachments(nested.attachments);
-        }
-      }
       const current = ctx.repo.getMedia(media.id) ?? media;
       baseline = current;
       attachmentBaseline = ctx.repo.listAttachmentsFor('media', media.id);
-      const linkSnapshotById = new Map(linkAttachments.map((nested) => [nested.targetId, nested]));
-      linkBaseline = (baseline.links ?? []).flatMap((link) => {
-        const nested = linkSnapshotById.get(link.id);
-        return nested === undefined
-          ? []
-          : [
-              {
-                ...nested,
-                attachments: ctx.repo.listAttachmentsFor(nested.targetType, nested.targetId),
-              },
-            ];
-      });
     },
   };
 }

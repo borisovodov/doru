@@ -99,8 +99,10 @@ exported as `NOTE`, not as the vendor `TEXT` tag.
 field, but the tree mapping ignores all of them. Dóru has no identifier
 table, no identifier attachment, and no identifier editor; export never
 writes `UID`, `EXID`, `REFN`, `AFN`, `RFN`, `RIN` or `_GOV` tags. Record
-`xref`s remain provenance for GEDCOM pointers. The parser-level model and
-tests remain in the format package, which is storage-free by design.
+`xref`s are not stored either: import keeps them only in transient maps for
+resolving GEDCOM pointers, and export assigns fresh `@…@` identifiers. The
+parser-level model and tests remain in the format package, which is
+storage-free by design.
 
 ## GEDCOM task repositories, categories, localities, titles, and types
 
@@ -148,17 +150,18 @@ those sets; there is no global runtime target list and no second UI list.
 | Family | Allowed targets |
 |---|---|
 | Note | Every target type except `media_link`. A note record is never a target. |
-| Citation | Every target type except `task`; `media_link` is allowed. |
-| Media link | Every target type except `media_link`; a task is a valid media target. |
+| Citation | Every target type except `task`, `citation`, and `media_link`. |
+| Media link | Every target type except `media` and `media_link`; a task is a valid media target. |
 | Contact | `person`, `fact`, `repository`, `submitter`. |
 | Task link | Every target type except `task`, `submitter`, and `media_link`; `source` is valid. |
-| Contributor link | Every target type except `task` and `media_link`. |
+| Contributor link | Every target type except `task`, `media_link`, and `submitter`. |
 
 Consequences: a source has nothing to cite on a task (a task asserts nothing),
-a task card keeps Notes and Media only, a submitter card has no Tasks section,
-a media link carries Sources only, and contributors are absent
-from task cards. `TreeService` rejects every disallowed pair with one shared
-guard, so agents and IPC callers follow the same matrix as the UI.
+a task card keeps Notes and Media only, a submitter card has no Tasks or
+Contributors section, a media link carries no attachments at all, and
+contributors are absent from task cards. `TreeService` rejects every disallowed
+pair with one shared guard, so agents and IPC callers follow the same matrix as
+the UI.
 
 A note is a leaf annotation: it is owned by exactly one record and stores its
 text, but no attachment may point at it, and a note row has no attachment
@@ -334,29 +337,34 @@ belong to, which keeps the sidebar focused on records with their own tabs.
 ## GEDCOM media
 
 Dóru models one media card as exactly one file. A GEDCOM `OBJE` with several
-`FILE` rows is split into one card per file on import; the record metadata,
-notes, citations, submitters, links and link citations are duplicated onto
-every card. The first card keeps the original `xref`, the others receive fresh
-export identifiers. `TRAN` is ignored. GEDZIP bytes and reachable local
-`FILE` paths are copied into the project's `media/` folder. Plain `http(s)`
+`FILE` rows is split into one card per file on import; the record notes,
+citations, submitters and links are duplicated onto every card. The imported
+xref is not stored; every card receives a fresh export identifier. `TRAN` is
+ignored. GEDZIP bytes and reachable local `FILE` paths are copied into the
+project's `media/` folder. Plain `http(s)`
 URLs are downloaded silently with protocol, size, timeout and private-address
 limits; a failed download keeps the URL in `media.path` and the UI shows a
 silent generic placeholder. Export offers GEDCOM 7.0 (`.ged`, paths only) and
 GEDZIP (`.gdz`, bundled local files); the choice lives in the Export tab, not
 in a save-dialog filter.
 
-The database stores historical/GEDCOM metadata on the media row: title,
-`_DATE`, `_PLAC`, `_TYPE`, `_DSCR` and `_KEYS`, plus the file's `MEDI`,
-`_CTYP` and `_TEXT`. Technical facts — MIME type, byte size and image
-dimensions — are derived from the file in the main process and never
-persisted; EXIF metadata is neither derived nor stored. A moved or replaced
-file therefore reports fresh facts, and a missing file reports none instead of
-stale values. `FORM` is synthesized from the file path on export. Sources and
-notes attach to the media card (`media`); vendor `SOUR` lines under an `OBJE`
-link attach to the link (`media_link`) and are editable in the media tab. A
-media link is a source-only nested row: citations may target it, while notes,
-media, contacts, contributors, and tasks may not. There is no separate
-`media_file` attachment target.
+The database stores only the media card itself: the title and the historical
+`_DATE`. Other GEDCOM metadata (`_PLAC`, `_TYPE`, `_DSCR`, `_KEYS`, `MEDI`,
+`_CTYP`, `_TEXT`) and the file's technical facts are not persisted: MIME type,
+byte size and image dimensions are derived from the file in the main process,
+and the parser's historical fields are dropped by the core mapping. EXIF
+metadata is neither derived nor stored. A moved or replaced file therefore
+reports fresh facts, and a missing file reports none instead of stale values.
+`FORM` is synthesized from the file path on export.
+
+Sources and notes attach to the media card (`media`), never to a link row.
+Citations written under an `OBJE` link are dropped on import and not written on
+export; an inline 5.5.1 `NOTE` under the link is hoisted onto the media record,
+while a pointer-form link note has no slot and is dropped. A media link stores
+only the crop and the primary flag; it is not an attachment target at all. The
+GEDCOM parser still reads the link-level display fields (`CROP`, `_PRIM`,
+`_SCBK`, `_SSHOW`, `_THUM`, `_SEQ`, `_EXCL`, `_CAPT`) so `@doru/gedcom` stays
+faithful, but the tree keeps only `crop` and `primary`.
 
 ## API stability before 1.0.0
 

@@ -76,18 +76,19 @@ decisions about what we deliberately do **not** build, see
 ## Media
 
 - File bytes live in the `media/` folder next to the `.doru` file; a `media`
-  row stores one project-relative path or one external URL, plus the
-  `media_link` rows that attach the card to its targets. The main process
-  validates every local path against `media/` before it reads or deletes a
-  file. Historical media fields (date, place, object type, description,
-  keywords, medium, content type, transcription) are stored; MIME, size and
-  image dimensions are derived from the file at read time and never persisted.
+  row stores one project-relative path or one external URL, its title, its
+  historical date, and the `media_link` rows that attach the card to its
+  targets. The main process validates every local path against `media/` before
+  it reads or deletes a file. Other historical media fields and technical
+  facts (MIME, size, dimensions) are not persisted; MIME, size and image
+  dimensions are derived from the file at read time.
 - A media record can be linked to several targets. Detaching its last link
   removes the record; deleting a target removes only that target's links and
   keeps a media record that has no links left. Removing a file copy is
   deliberately not undoable, so undo restores the database rows but not bytes
   that were deleted from disk. Attachments on a media card target `media`;
-  there is no separate file attachment target.
+  a `media_link` carries only its crop and primary flag and no attachments.
+  There is no separate file attachment target.
 - `target_type`/`target_id` attachments (notes, citations,
   contacts, contributors, media links) are polymorphic and
   keyed by UUID. Every op that deletes or removes a target cleans its

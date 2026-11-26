@@ -162,7 +162,7 @@ function RepositoryTabBody({
       throw new Error('A repository name is required.');
     }
     try {
-      const next: RepositoryRecord = { id: base.id, xref: base.xref, name: name.trim() };
+      const next: RepositoryRecord = { id: base.id, name: name.trim() };
       if (linkedAddressId === undefined) {
         next.addressId = await saveAddress();
       } else {

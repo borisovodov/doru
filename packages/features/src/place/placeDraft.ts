@@ -38,11 +38,10 @@ export interface HierarchyDraft {
 
 /**
  * The editable form of a place. The names list is ordered by jurisdiction
- * (position 0 is the smallest); `xref` is provenance passed through.
+ * (position 0 is the smallest).
  */
 export interface PlaceDraft {
   id: string;
-  xref?: string | undefined;
   latitude: string;
   longitude: string;
   verified: boolean;
@@ -96,7 +95,6 @@ export function emptyPlaceDraft(): PlaceDraft {
 export function placeToDraft(place: PlaceRecord): PlaceDraft {
   return {
     id: place.id,
-    xref: place.xref,
     latitude: place.latitude !== undefined ? String(place.latitude) : '',
     longitude: place.longitude !== undefined ? String(place.longitude) : '',
     verified: place.verified === true,
@@ -138,7 +136,6 @@ export function placeDraftToRecord(draft: PlaceDraft, existing?: PlaceRecord): P
   const existingLinks = new Map((existing?.hierarchy ?? []).map((link) => [link.id, link]));
   return {
     id: draft.id,
-    xref: draft.xref,
     ...(parseCoordinate(draft.latitude) !== undefined ? { latitude: parseCoordinate(draft.latitude) } : {}),
     ...(parseCoordinate(draft.longitude) !== undefined ? { longitude: parseCoordinate(draft.longitude) } : {}),
     verified: draft.verified || undefined,
@@ -396,7 +393,6 @@ export function mergePlaceDraft(
         );
   return {
     id: draft.id,
-    xref: scalar('xref'),
     latitude: scalar('latitude'),
     longitude: scalar('longitude'),
     verified: scalar('verified'),
@@ -425,7 +421,6 @@ export function placeDraftMatches(draft: PlaceDraft, place: PlaceRecord): boolea
   const other = placeToDraft(place);
   return (
     draft.id === other.id &&
-    draft.xref === other.xref &&
     draft.latitude === other.latitude &&
     draft.longitude === other.longitude &&
     draft.verified === other.verified &&

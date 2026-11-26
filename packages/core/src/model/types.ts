@@ -423,8 +423,6 @@ export interface FactParticipant {
 /** A user-defined fact type (custom event/attribute definitions). */
 export interface PersonRecord extends RecordTimestamps {
   id: string;
-  /** Identifier assigned by a GEDCOM import; provenance only. */
-  xref?: string | undefined;
   sex: Sex;
   /** The parser's ISDEAD vital flag: alive | dead; undefined = unknown. */
   deathStatus?: 'alive' | 'dead' | undefined;
@@ -486,8 +484,6 @@ export interface FamilyMarriageStatus {
 
 export interface FamilyRecord extends RecordTimestamps {
   id: string;
-  /** Identifier assigned by a GEDCOM import; provenance only. */
-  xref?: string | undefined;
   /** The partners, ordered (the first is the "leftmost" in the UI) — projection of `partnerLinks`. */
   partners: string[];
   children: string[];
@@ -540,7 +536,6 @@ export interface PlaceName {
 
 export interface PlaceRecord extends RecordTimestamps {
   id: string;
-  xref?: string | undefined;
   latitude?: number | undefined;
   longitude?: number | undefined;
   verified?: boolean | undefined;
@@ -590,8 +585,6 @@ export interface SourceText {
 
 export interface SourceRecord extends RecordTimestamps {
   id: string;
-  /** Identifier assigned by a GEDCOM import; provenance only. */
-  xref?: string | undefined;
   title?: string | undefined;
   abbreviation?: string | undefined;
   author?: string | undefined;
@@ -682,14 +675,7 @@ export interface MediaLinkRecord {
   targetType: string;
   targetId: string;
   crop?: { top?: number; left?: number; height?: number; width?: number } | undefined;
-  title?: string | undefined;
-  sequence?: number | undefined;
   primary?: boolean | undefined;
-  scrapbook?: boolean | undefined;
-  slideshow?: boolean | undefined;
-  thumbnail?: boolean | undefined;
-  exclude?: boolean | undefined;
-  caption?: boolean | undefined;
 }
 
 /**
@@ -698,29 +684,12 @@ export interface MediaLinkRecord {
  */
 export interface MediaRecord extends RecordTimestamps {
   id: string;
-  /** Identifier assigned by a GEDCOM import; provenance only. */
-  xref?: string | undefined;
   /** The single card title; a GEDCOM FILE.TITL or a record-level TITL. */
   title?: string | undefined;
   /** Project-relative path under the media folder, or an external URL. */
   path: string;
-  /** FORM.MEDI: the historical medium (photograph, negative, digital, …). */
-  medium?: string | undefined;
-  /** _CTYP: person, group, place, tombstone, document, heirloom, … */
-  contentType?: string | undefined;
-  /** _TEXT: the file's transcription text. */
-  text?: string | undefined;
   /** Historical media date (`_DATE`), not the file's EXIF timestamp. */
   date?: DateValue | undefined;
-  /** Historical place (`PLAC`), as typed and optionally linked to a place row. */
-  place?: string | undefined;
-  placeId?: string | undefined;
-  /** _TYPE: Photo, Sound, Video, Document, … */
-  objectType?: string | undefined;
-  /** _DSCR: the media object's description. */
-  description?: string | undefined;
-  /** _KEYS: keywords of the media object. */
-  keywords?: string | undefined;
   targetType?: string | undefined;
   targetId?: string | undefined;
   links?: MediaLinkRecord[] | undefined;
@@ -778,14 +747,12 @@ export interface AddressRecord extends RecordTimestamps {
 
 export interface RepositoryRecord extends RecordTimestamps {
   id: string;
-  xref?: string | undefined;
   name: string;
   addressId?: string | undefined;
 }
 
 export interface SubmitterRecord extends RecordTimestamps {
   id: string;
-  xref?: string | undefined;
   name: string;
   addressId?: string | undefined;
   languages?: string[] | undefined;
@@ -819,7 +786,7 @@ export interface RecordSubmitterLink {
   kind?: 'contributor' | 'ancestor_interest' | 'descendant_interest' | undefined;
 }
 
-/** Attachments of a target nested inside a larger snapshot (e.g. a media link). */
+/** Attachments of a target nested inside a larger snapshot (e.g. a media record). */
 export interface NestedAttachmentSnapshot {
   targetType: string;
   targetId: string;
@@ -835,8 +802,6 @@ export interface AttachmentsSnapshot {
   mediaLinks: Array<{ media: MediaRecord; link: MediaLinkRecord }>;
   /** Attachments of media records that would be deleted with this target. */
   mediaAttachments: NestedAttachmentSnapshot[];
-  /** Attachments of the media links above, restored with them. */
-  mediaLinkAttachments: NestedAttachmentSnapshot[];
   contacts: ContactRecord[];
   /** Task links targeting this record; the tasks themselves survive. */
   taskLinks: TaskTargetLink[];
@@ -850,7 +815,6 @@ export function emptyAttachments(): AttachmentsSnapshot {
     citationAttachments: [],
     mediaLinks: [],
     mediaAttachments: [],
-    mediaLinkAttachments: [],
     contacts: [],
     taskLinks: [],
     recordSubmitters: [],
@@ -1012,7 +976,6 @@ export interface TaskRecord {
 /** A bibliographic work (GEDCOM 7.0 TITL record), cited by sources. */
 export interface TitleRecord extends RecordTimestamps {
   id: string;
-  xref?: string | undefined;
   name?: string | undefined;
   author?: string | undefined;
   publisher?: string | undefined;

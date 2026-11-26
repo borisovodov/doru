@@ -88,12 +88,17 @@ describe('P1 schema v5 GEDCOM structures', () => {
       );
       expect(fixture.repo.listCitationRecordsFor('person', person.id)).toHaveLength(1);
 
-      const childFamily = fixture.repo.listFamilies().find((entry) => entry.xref === '@F1@')!;
+      const families = fixture.repo.listFamilies();
+      const childFamily = families.find((entry) =>
+        (entry.childLinks ?? []).some((link) => link.childId === person.id),
+      )!;
       const childLink = (childFamily.childLinks ?? []).find((link) => link.childId === person.id)!;
       expect(childLink.statusPhrase).toBe('documented');
       expect(fixture.repo.listNotesFor('family_child', childLink.id).map((note) => note.text)).toEqual(['FAMC note']);
 
-      const spouseFamily = fixture.repo.listFamilies().find((entry) => entry.xref === '@F2@')!;
+      const spouseFamily = families.find((entry) =>
+        (entry.partnerLinks ?? []).some((link) => link.personId === person.id),
+      )!;
       const partnerLink = (spouseFamily.partnerLinks ?? []).find((link) => link.personId === person.id)!;
       expect(fixture.repo.listNotesFor('family_partner', partnerLink.id).map((note) => note.text)).toEqual([
         'FAMS note',
@@ -123,8 +128,11 @@ describe('P1 schema v5 GEDCOM structures', () => {
         }
         const text = serialized.value;
         expect(text).toContain('1 ISDEAD Y');
-        expect(text).toContain('1 ANCI @U1@');
-        expect(text).toContain('1 DESI @U2@');
+        const ancestorInterest = text.match(/^1 ANCI (@U\d+@)$/m)?.[1];
+        const descendantInterest = text.match(/^1 DESI (@U\d+@)$/m)?.[1];
+        expect(ancestorInterest).toBeDefined();
+        expect(descendantInterest).toBeDefined();
+        expect(ancestorInterest).not.toBe(descendantInterest);
         expect(text).toContain('1 SEX F');
         expect(text).toContain('1 SOUR @S1@');
         expect(text).toContain('2 PAGE Sex evidence');

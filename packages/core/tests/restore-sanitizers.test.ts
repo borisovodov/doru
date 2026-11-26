@@ -121,9 +121,8 @@ describe('undo restore sanitizers', () => {
       expect(repo.getFamily('F1')?.marriageStatuses?.[0]?.id).toBe('MS1');
       expect(repo.getFamily('F1')?.marriageStatuses?.[0]?.placeId).toBeUndefined();
 
-      restoreMedia(ctx, { id: 'M1', path: 'media/m1.jpg', title: 'Photo', place: 'Moscow', placeId: 'missing' });
-      expect(repo.getMedia('M1')?.place).toBe('Moscow');
-      expect(repo.getMedia('M1')?.placeId).toBeUndefined();
+      restoreMedia(ctx, { id: 'M1', path: 'media/m1.jpg', title: 'Photo' });
+      expect(repo.getMedia('M1')?.title).toBe('Photo');
 
       restoreSource(ctx, {
         id: 'S1',
@@ -161,8 +160,8 @@ describe('undo restore sanitizers', () => {
       expect(repo.getSource('S1')?.dataEvents?.[0]?.placeId).toBe('PL1');
       expect(repo.getSource('S1')?.repositories?.[0]?.repositoryId).toBe('R1');
 
-      restoreMedia(ctx, { id: 'M1', path: 'media/m1.jpg', title: 'Photo', place: 'Moscow', placeId: 'PL1' });
-      expect(repo.getMedia('M1')?.placeId).toBe('PL1');
+      restoreMedia(ctx, { id: 'M1', path: 'media/m1.jpg', title: 'Photo' });
+      expect(repo.getMedia('M1')?.title).toBe('Photo');
 
       repo.insertPerson({ id: 'P1', names: [], sex: 'U', facts: [] });
       restoreFamily(ctx, {

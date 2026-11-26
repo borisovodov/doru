@@ -167,7 +167,6 @@ function normalizePerson(person: unknown): PersonRecord {
   const sex = record['sex'];
   return {
     id,
-    xref: typeof record['xref'] === 'string' ? record['xref'] : undefined,
     sex: sex === 'M' || sex === 'F' || sex === 'X' || sex === 'U' ? sex : 'U',
     names,
     facts: Array.isArray(record['facts']) ? (record['facts'] as PersonRecord['facts']) : [],

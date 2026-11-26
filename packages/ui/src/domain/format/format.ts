@@ -102,9 +102,7 @@ export function years(person: PersonRecord): string {
 export function familyLabel(family: FamilyRecord, personById: Map<string, PersonRecord>): string {
   const names = family.partners.map((id) => displayName(personById.get(id))).filter((name) => name !== '?');
   if (names.length === 0) {
-    return family.children.length > 0
-      ? `${displayName(personById.get(family.children[0] ?? ''))} …`
-      : (family.xref ?? family.id);
+    return family.children.length > 0 ? `${displayName(personById.get(family.children[0] ?? ''))} …` : family.id;
   }
   return names.join(' & ');
 }

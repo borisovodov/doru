@@ -108,4 +108,42 @@ describe('media record vendor tags', () => {
       ]),
     });
   });
+
+  test('parses display fields on an inline OBJE link', () => {
+    const dataset = parseOk([
+      '0 HEAD',
+      '1 GEDC',
+      '2 VERS 5.5.1',
+      '1 SUBM @U1@',
+      '0 @U1@ SUBM',
+      '0 @I1@ INDI',
+      '1 OBJE',
+      '2 FILE media/photo.jpg',
+      '2 FORM jpg',
+      '2 CROP',
+      '3 LEFT 1',
+      '3 TOP 2',
+      '3 WIDTH 3',
+      '3 HEIGHT 4',
+      '2 _SEQ 7',
+      '2 _AREA {1,2,3,4}',
+      '2 _EXCL Y',
+      '2 _CAPT Y',
+      '0 TRLR',
+    ]);
+    const individual = dataset.records.find((entry) => entry.tag === 'INDI');
+    if (individual?.tag !== 'INDI') {
+      throw new Error('the person record was not parsed');
+    }
+    const link = individual.media?.[0];
+    expect(link).toMatchObject({
+      crop: { left: 1, top: 2, width: 3, height: 4 },
+      sequence: 7,
+      area: '{1,2,3,4}',
+      excludeFromDiagrams: true,
+      caption: true,
+    });
+    const synthesized = dataset.records.find((entry) => entry.tag === 'OBJE' && entry.xref === link?.object);
+    expect(synthesized).toMatchObject({ files: [{ payload: 'media/photo.jpg' }] });
+  });
 });

@@ -189,7 +189,6 @@ export function mergeFamilyDraft(
   );
   return {
     id: current.id,
-    xref: field('xref'),
     preferred: field('preferred'),
     sameSex: field('sameSex'),
     unionKind: field('unionKind'),

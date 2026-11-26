@@ -41,7 +41,6 @@ describe('sourceToDraft / sourceDraftToRecord', () => {
   it('round-trips every field', () => {
     const stored: SourceRecord = {
       id: 'S1',
-      xref: '@S1@',
       title: 'Metric book, 1923',
       abbreviation: 'MB23',
       author: 'State Archive',
@@ -83,7 +82,6 @@ describe('sourceToDraft / sourceDraftToRecord', () => {
     const draft = sourceToDraft(stored);
     expect(draft).toMatchObject({
       id: 'S1',
-      xref: '@S1@',
       title: 'Metric book, 1923',
       abbreviation: 'MB23',
       author: 'State Archive',

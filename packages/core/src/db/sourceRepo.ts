@@ -5,7 +5,6 @@ import type { TransactionScope } from './transaction';
 
 interface SourceRow {
   id: string;
-  xref: string | null;
   title: string | null;
   abbreviation: string | null;
   author: string | null;
@@ -66,11 +65,11 @@ export class SourceRepo {
       const publicationDateId = source.pubDate !== undefined ? this.dates.create(source.pubDate) : null;
       this.db
         .prepare(
-          `INSERT INTO source (id, xref, title, abbreviation, author, publication,
+          `INSERT INTO source (id, title, abbreviation, author, publication,
              medium, url, access_date, confidence, pub_place_text, agency, title_id,
              certainty, subsequent_citation_format, bibliography, data_note,
              created_at, updated_at, publication_date_id)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         )
         .run(...sourceParams(source), publicationDateId);
       this.replaceSourceDetails(source);
@@ -96,7 +95,7 @@ export class SourceRepo {
       );
       this.db
         .prepare(
-          `UPDATE source SET xref = ?, title = ?, abbreviation = ?, author = ?, publication = ?,
+          `UPDATE source SET title = ?, abbreviation = ?, author = ?, publication = ?,
              medium = ?, url = ?, access_date = ?, confidence = ?, pub_place_text = ?,
              agency = ?, title_id = ?, certainty = ?, subsequent_citation_format = ?, bibliography = ?,
              data_note = ?, created_at = ?, updated_at = ?, publication_date_id = ?
@@ -401,7 +400,6 @@ export class SourceRepo {
 
     const source: SourceRecord = {
       id: row.id,
-      xref: row.xref ?? undefined,
       title: row.title ?? undefined,
       abbreviation: row.abbreviation ?? undefined,
       author: row.author ?? undefined,
@@ -516,7 +514,7 @@ export class SourceRepo {
   }
 }
 
-const sourceSelect = `SELECT id, xref, title, abbreviation, author, publication,
+const sourceSelect = `SELECT id, title, abbreviation, author, publication,
   medium, url, access_date, confidence, pub_place_text, agency, title_id,
   certainty, subsequent_citation_format, bibliography, data_note,
   created_at, updated_at, publication_date_id
@@ -556,7 +554,6 @@ function sourcePublicationReservation(sourceId: string, reservedDates: DateReser
 function sourceParams(source: SourceRecord): Array<string | number | null> {
   return [
     source.id,
-    source.xref ?? null,
     source.title ?? null,
     source.abbreviation ?? null,
     source.author ?? null,

@@ -7,10 +7,9 @@ export class RepositoryRepo {
 
   insertRepository(repository: RepositoryRecord): void {
     this.db
-      .prepare('INSERT INTO repository (id, xref, name, address_id, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)')
+      .prepare('INSERT INTO repository (id, name, address_id, created_at, updated_at) VALUES (?, ?, ?, ?, ?)')
       .run(
         repository.id,
-        repository.xref ?? null,
         repository.name,
         repository.addressId ?? null,
         repository.createdAt ?? null,
@@ -20,9 +19,8 @@ export class RepositoryRepo {
 
   updateRepository(repository: RepositoryRecord): void {
     this.db
-      .prepare('UPDATE repository SET xref = ?, name = ?, address_id = ?, created_at = ?, updated_at = ? WHERE id = ?')
+      .prepare('UPDATE repository SET name = ?, address_id = ?, created_at = ?, updated_at = ? WHERE id = ?')
       .run(
-        repository.xref ?? null,
         repository.name,
         repository.addressId ?? null,
         repository.createdAt ?? null,
@@ -39,11 +37,10 @@ export class RepositoryRepo {
 
   getRepository(id: string): RepositoryRecord | undefined {
     const row = this.db
-      .prepare('SELECT id, xref, name, address_id, created_at, updated_at FROM repository WHERE id = ?')
+      .prepare('SELECT id, name, address_id, created_at, updated_at FROM repository WHERE id = ?')
       .get(id) as
       | {
           id: string;
-          xref: string | null;
           name: string;
           address_id: string | null;
           created_at: number | null;
@@ -53,7 +50,6 @@ export class RepositoryRepo {
     return row
       ? {
           id: row.id,
-          xref: row.xref ?? undefined,
           name: row.name,
           addressId: row.address_id ?? undefined,
           createdAt: row.created_at ?? undefined,
@@ -64,10 +60,9 @@ export class RepositoryRepo {
 
   listRepositories(): RepositoryRecord[] {
     const rows = this.db
-      .prepare('SELECT id, xref, name, address_id, created_at, updated_at FROM repository ORDER BY id')
+      .prepare('SELECT id, name, address_id, created_at, updated_at FROM repository ORDER BY id')
       .all() as unknown as {
       id: string;
-      xref: string | null;
       name: string;
       address_id: string | null;
       created_at: number | null;
@@ -75,7 +70,6 @@ export class RepositoryRepo {
     }[];
     return rows.map((row) => ({
       id: row.id,
-      xref: row.xref ?? undefined,
       name: row.name,
       addressId: row.address_id ?? undefined,
       createdAt: row.created_at ?? undefined,

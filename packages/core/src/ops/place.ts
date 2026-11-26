@@ -1,11 +1,4 @@
-import type {
-  AttachmentsSnapshot,
-  FactRecord,
-  FamilyRecord,
-  MediaRecord,
-  PlaceRecord,
-  SourceRecord,
-} from '../model/types';
+import type { AttachmentsSnapshot, FactRecord, FamilyRecord, PlaceRecord, SourceRecord } from '../model/types';
 import { emptyAttachments } from '../model/types';
 import type { NestedAttachments, Op } from './op';
 import { attachmentsMatch, restorePlace, sameRecord } from './restore';
@@ -77,8 +70,6 @@ export interface PlaceConsumers {
   sources?: SourceRecord[];
   /** Places whose hierarchy row has the deleted place as its parent (FK CASCADE). */
   childPlaces?: PlaceRecord[];
-  /** Media records whose historical place points at the deleted place (FK SET NULL). */
-  media?: MediaRecord[];
 }
 
 export function deletePlaceOp(
@@ -92,7 +83,6 @@ export function deletePlaceOp(
   let baselineFacts = facts;
   let baselineStatuses = new Set<string>();
   let baselineEvents = new Set<string>();
-  let baselineMedia = new Set<string>();
   let appliedRemovals: Array<{ factId: string; primary: boolean; positions: number[] }> = [];
   let baselineHierarchyLinks = [
     ...(place.hierarchy ?? []),
@@ -223,14 +213,7 @@ export function deletePlaceOp(
       ) {
         return false;
       }
-      const capturedMedia = baselineMedia;
-      const currentMedia = new Set(
-        ctx.repo
-          .listAllMedia()
-          .filter((entry) => entry.placeId === place.id)
-          .map((entry) => entry.id),
-      );
-      return capturedMedia.size === currentMedia.size && [...capturedMedia].every((id) => currentMedia.has(id));
+      return true;
     },
     inverse(ctx) {
       restorePlace(ctx, place);
@@ -318,12 +301,6 @@ export function deletePlaceOp(
             (source.dataEvents ?? []).filter((event) => event.placeId === place.id).map((event) => event.id),
           ),
       );
-      baselineMedia = new Set(
-        ctx.repo
-          .listAllMedia()
-          .filter((entry) => entry.placeId === place.id)
-          .map((entry) => entry.id),
-      );
       const restoredPlace = ctx.repo.getPlace(place.id);
       baselineHierarchyLinks =
         restoredPlace === undefined
@@ -354,9 +331,6 @@ export function deletePlaceOp(
           continue;
         }
         ctx.repo.restoreAttachments(nested.attachments);
-      }
-      for (const media of consumers.media ?? []) {
-        ctx.repo.setMediaPlaceId(media.id, place.id);
       }
       baselinePlace = ctx.repo.getPlace(place.id) ?? place;
       baselineHierarchyLinks = [

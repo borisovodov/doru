@@ -712,7 +712,6 @@ export function draftToRecord(draft: PersonDraft, existing?: PersonRecord): Pers
   const sex = draft.sexTouched === true || existing === undefined ? draft.sex : existing.sex;
   return {
     id: draft.id,
-    ...(existing?.xref !== undefined ? { xref: existing.xref } : {}),
     ...(addressId !== undefined ? { addressId } : {}),
     sex,
     ...(deathStatus !== undefined ? { deathStatus } : {}),
