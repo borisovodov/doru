@@ -1599,7 +1599,8 @@ tables are the inventory, so the list is not repeated here):
     INDI), `PART`, `FRND`, `CLER`, `CNTC`, `CPLR`, `INTE`, `INTV`,
     `OWNR`, `RECO` — a pointer payload → `ASSO` + `RELA` (7.0: `ROLE
     OTHER` + `PHRASE`), a text payload → `FACT` + `TYPE`;
-  - `URL` → `IndividualRecord.url` (export `_URL`); `WWW` → the same
+  - `URL` → `IndividualRecord.url` (export `_URL`; with an INDI address,
+    5.5.1 writes `WWW` inside the ADDRESS_STRUCTURE); `WWW` → the same
     slot (RootsMagic writes the standard tag under INDI); `FILN`/
     `HISTID`/`NUMB` → `REFN` identifiers;
   - `FSFTID` (RootsMagic) → `IndividualRecord.familySearchId` (export

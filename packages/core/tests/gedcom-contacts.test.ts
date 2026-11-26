@@ -101,6 +101,13 @@ describe('contact ownership', () => {
       expect(repo551?.email).toBeUndefined();
       expect(repo551?.address?.email).toEqual(['repo@example.org']);
       expect(repo551?.address?.phone).toEqual(['111']);
+      // The contacts stay in the address block: 5.5.1 writes the
+      // ADDRESS_STRUCTURE contacts as siblings of ADDR, not as INDI-level
+      // vendor `_EMAIL` tags. The serializer escapes `@` in 5.5.1 values.
+      expect(serialized551.value).toContain('1 ADDR 3 Person Lane');
+      expect(serialized551.value).toContain('1 PHON 333');
+      expect(serialized551.value).toContain('1 EMAIL person@@example.org');
+      expect(serialized551.value).not.toContain('1 _EMAIL person@@example.org');
       const person551 = round551.records.find((record) => record.tag === 'INDI')!;
       expect(person551.email).toEqual(['person@example.org']);
       expect(person551.address?.email).toBeUndefined();

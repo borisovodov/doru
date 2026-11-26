@@ -340,8 +340,9 @@ describe('vendor contact and identifier additions', () => {
     expect(text).toContain('1 ADDR Main St');
     expect(text).toContain('2 CITY Town');
     expect(text).toContain('1 PHON 123');
-    // The typed e-mail writes back as the _EMAIL spelling.
-    expect(text).toContain('1 _EMAIL a@@b.c');
+    // The typed e-mail stays in the address block, so it writes back as
+    // the ADDRESS_STRUCTURE EMAIL spelling.
+    expect(text).toContain('1 EMAIL a@@b.c');
   });
 
   test('Ancestry _INIT normalizes to INIL and back to _INIT on 5.5.1', () => {
