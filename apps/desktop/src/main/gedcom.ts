@@ -59,25 +59,60 @@ function redactMediaUrl(value: string): string {
   }
 }
 
-/** Maps items with bounded concurrency, preserving the input order. */
+/** A log-safe failure category: never a message, URL, stack or cause. */
+function mediaFailureCategory(error: unknown): string {
+  if (error instanceof Error) {
+    if (error.name === 'AbortError' || error.name === 'TimeoutError') {
+      return error.name;
+    }
+    const code = (error as { code?: unknown }).code;
+    if (typeof code === 'string' && /^[A-Z0-9_]{1,64}$/.test(code)) {
+      return code;
+    }
+  }
+  return 'download failed';
+}
+
+/**
+ * Maps items with bounded concurrency, preserving the input order. After the
+ * first failure no new items are assigned; active workers finish before the
+ * first error is rethrown, so callers can safely tear down shared state.
+ */
 async function mapWithConcurrency<T>(
   items: readonly T[],
   limit: number,
   map: (item: T) => Promise<void>,
 ): Promise<void> {
   let nextIndex = 0;
+  const status: { failed: boolean; hasFailure: boolean; failure: unknown } = {
+    failed: false,
+    hasFailure: false,
+    failure: undefined,
+  };
   const workers = Array.from({ length: Math.min(limit, items.length) }, async () => {
-    for (;;) {
+    while (!status.failed) {
       const index = nextIndex;
       nextIndex += 1;
       const item = items[index];
       if (item === undefined) {
         return;
       }
-      await map(item);
+      try {
+        await map(item);
+      } catch (error) {
+        if (!status.hasFailure) {
+          status.hasFailure = true;
+          status.failure = error;
+        }
+        status.failed = true;
+        return;
+      }
     }
   });
   await Promise.all(workers);
+  if (status.hasFailure) {
+    throw status.failure instanceof Error ? status.failure : new Error(String(status.failure));
+  }
 }
 
 /** Copies GEDCOM media into the project folder and maps FILE paths to them. */
@@ -138,7 +173,7 @@ export async function prepareGedcomMedia(
       });
     } catch (error) {
       remoteFailed += 1;
-      logger.warn('gedcom import: could not download media URL', redactMediaUrl(original), error);
+      logger.warn('gedcom import: could not download media URL', redactMediaUrl(original), mediaFailureCategory(error));
       return;
     } finally {
       reservedBytes -= reserved;
@@ -197,7 +232,9 @@ export async function prepareGedcomMedia(
       } else if (isExternalMediaUrl(payload)) {
         // ftp:// and file:// stay external references.
         logger.warn('gedcom import: external media URL left as a reference', redactMediaUrl(payload));
-      } else {
+      } else if (entries === undefined) {
+        // A GEDZIP must bundle its local files. Never copy a same-named file
+        // from beside the archive on the strength of an archive-supplied path.
         localPaths.add(payload);
       }
     }

@@ -269,6 +269,53 @@ describe('MediaTab', () => {
     expect(screen.getByDisplayValue('Z')).toBeInTheDocument();
   });
 
+  it('keeps a reversal after a confirming refresh during a save', async () => {
+    const pending = deferred();
+    const updateMedia = vi
+      .fn()
+      .mockImplementationOnce(async () => pending.promise)
+      .mockImplementation(async () => undefined);
+    const api = stubApi<MediaAdminApi>({
+      updateMedia,
+      getMediaFor: async () => [],
+      getAllMedia: async () => [],
+    });
+    const media = (title: string) => [{ id: 'M1', title, path: 'media/a.jpg', absolutePath: '' }];
+    const view = renderUi(
+      <MediaTab
+        entityId="M1"
+        media={media('A')}
+        api={api}
+        attachmentsApi={attachmentsStub()}
+        sources={[]}
+        targetData={targetData}
+        onClose={vi.fn()}
+      />,
+    );
+    fireEvent.change(screen.getByDisplayValue('A'), { target: { value: 'B' } });
+    fireEvent.blur(screen.getByDisplayValue('B'), { relatedTarget: document.body });
+    await waitFor(() => expect(updateMedia).toHaveBeenCalledTimes(1));
+
+    view.rerender(
+      <MediaTab
+        entityId="M1"
+        media={media('B')}
+        api={api}
+        attachmentsApi={attachmentsStub()}
+        sources={[]}
+        targetData={targetData}
+        onClose={vi.fn()}
+      />,
+    );
+    await act(async () => pending.resolve());
+    expect(screen.getByDisplayValue('B')).toBeInTheDocument();
+
+    fireEvent.change(screen.getByDisplayValue('B'), { target: { value: 'A' } });
+    fireEvent.blur(screen.getByDisplayValue('A'), { relatedTarget: document.body });
+    await waitFor(() => expect(updateMedia).toHaveBeenCalledTimes(2));
+    expect(updateMedia.mock.calls[1]?.[1]).toMatchObject({ title: 'A' });
+  });
+
   it('keeps a reversal across queued saves', async () => {
     const first = deferred();
     const second = deferred();

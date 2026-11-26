@@ -1,9 +1,9 @@
-import { mkdtemp, readFile, rm } from 'node:fs/promises';
+import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { parseGedcom70, type GedcomDataset } from '@doru/gedcom';
-import { prepareGedcomMedia, type GedcomMediaLogger } from '../src/main/gedcom';
+import { prepareGedcomMedia } from '../src/main/gedcom';
 
 const encoder = new TextEncoder();
 const tempDirs: string[] = [];
@@ -21,7 +21,7 @@ function datasetWithFiles(files: string[]): GedcomDataset {
   return parsed.value;
 }
 
-function makeLogger(): GedcomMediaLogger {
+function makeLogger() {
   return { info: vi.fn(), warn: vi.fn() };
 }
 
@@ -74,11 +74,11 @@ describe('prepareGedcomMedia', () => {
     expect(paths.size).toBe(5);
   });
 
-  it('keeps the URL as an external reference when the download fails', async () => {
+  it('keeps the URL as an external reference and does not log download errors', async () => {
     const dir = await makeTempDir();
     const logger = makeLogger();
     const download = vi.fn(async () => {
-      throw new Error('HTTP 404');
+      throw new Error('https://user:supersecret@example.com/missing.jpg?token=secret');
     });
 
     const paths = await prepareGedcomMedia(
@@ -93,8 +93,48 @@ describe('prepareGedcomMedia', () => {
     expect(logger.warn).toHaveBeenCalledWith(
       'gedcom import: could not download media URL',
       expect.stringContaining('example.com'),
-      expect.any(Error),
+      'download failed',
     );
+    expect(JSON.stringify(logger.warn.mock.calls)).not.toContain('secret');
+  });
+
+  it('does not copy local files beside a GEDZIP that does not bundle them', async () => {
+    const dir = await makeTempDir();
+    await writeFile(join(dir, 'secret.txt'), 'secret');
+
+    const paths = await prepareGedcomMedia(datasetWithFiles(['secret.txt']), [], join(dir, 'tree.gdz'), dir, {
+      download: vi.fn(),
+      logger: makeLogger(),
+    });
+
+    expect(paths.size).toBe(0);
+  });
+
+  it('drains active downloads before rejecting a project-write failure', async () => {
+    const dir = await makeTempDir();
+    const urls = Array.from({ length: 8 }, (_, index) => `https://example.com/${index}.jpg`);
+    let started = 0;
+    let completed = 0;
+    const download = vi.fn(async (url: string) => {
+      started += 1;
+      await Promise.resolve();
+      completed += 1;
+      return { bytes: new Uint8Array([1]), contentType: 'image/jpeg', finalUrl: url };
+    });
+    const write = vi.fn(async () => {
+      throw new Error('disk full');
+    });
+
+    await expect(
+      prepareGedcomMedia(datasetWithFiles(urls), undefined, join(dir, 'tree.ged'), dir, {
+        download,
+        write,
+        logger: makeLogger(),
+      }),
+    ).rejects.toThrow('disk full');
+
+    expect(started).toBe(4);
+    expect(completed).toBe(4);
   });
 
   it('propagates project-write failures instead of treating them as download failures', async () => {

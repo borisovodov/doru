@@ -308,6 +308,25 @@ describe('buildGedcomDataset', () => {
     }
   });
 
+  it('reserves retained media xrefs before allocating split-card xrefs', () => {
+    const fixture = makeRepo();
+    try {
+      const { repo } = fixture;
+      // The generated card sorts before the card that kept @O1@.
+      repo.insertMedia({ id: 'A', path: 'media/a.jpg' });
+      repo.insertMedia({ id: 'B', xref: '@O1@', path: 'media/b.jpg' });
+
+      const dataset = buildGedcomDataset(repo);
+      const xrefs = dataset.records.filter((record) => record.tag === 'OBJE').map((record) => record.xref);
+      expect(xrefs).toHaveLength(2);
+      expect(new Set(xrefs).size).toBe(2);
+      expect(xrefs).toContain('@O1@');
+      expect(xrefs).toContain('@O2@');
+    } finally {
+      cleanupRepo(fixture);
+    }
+  });
+
   it('round-trips calendar, modifier and range dates', () => {
     const fixture = makeRepo();
     try {

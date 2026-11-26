@@ -756,10 +756,8 @@ describe('importGedcomDataset media splitting', () => {
           const pages = fixture.repo
             .listCitationRecordsFor('media_link', entry.link.id)
             .map((citation) => citation.page);
+          expect(pages).toEqual(person.xref === '@I1@' ? ['link page'] : []);
           totalLinkCitations += pages.length;
-          if (pages.length > 0) {
-            expect(pages).toEqual(['link page']);
-          }
         }
       }
       expect(totalLinks).toBe(4);

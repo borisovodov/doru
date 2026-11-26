@@ -346,7 +346,7 @@ function MediaTabBody({
         savedRef.current = next;
         savedMetadataRef.current = next;
       } else {
-        const refreshed = reconcileAfterRefresh(recordRef.current, base, dirty, submission);
+        const refreshed = reconcileAfterRefresh(recordRef.current, next, dirty, submission);
         savedRef.current = refreshed;
         savedMetadataRef.current = refreshed;
       }

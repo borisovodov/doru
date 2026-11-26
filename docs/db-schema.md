@@ -781,8 +781,8 @@ erDiagram
 
 A media link is a source-only attachment host: citations may target it, while
 notes, media, contacts, contributors, and tasks may not. Media-level notes,
-citations, tasks, contacts and contributors target `media` directly; there is
-no separate file target.
+citations, tasks and contributors target `media` directly; there is no
+separate file target.
 
 ## Notes
 

@@ -148,6 +148,21 @@ export function buildGedcomDataset(repo: TreeRepository): GedcomDataset {
   // only target is a repository disappears from the export.
   const tasks = repo.listTasks().filter((task) => task.targets.length === 0);
 
+  // Reserve every retained xref first: a split media card without its own
+  // xref may be visited before the card that kept the original identifier.
+  for (const xref of [
+    ...persons.map((record) => record.xref),
+    ...families.map((record) => record.xref),
+    ...sources.map((record) => record.xref),
+    ...repositories.map((record) => record.xref),
+    ...submitters.map((record) => record.xref),
+    ...titles.map((record) => record.xref),
+    ...places.map((record) => record.xref),
+    ...media.map((record) => record.xref),
+  ]) {
+    xrefs.reserve(xref);
+  }
+
   for (const person of persons) {
     xrefs.assign('I', person.id, person.xref);
   }
@@ -1691,6 +1706,13 @@ class Xrefs {
   private readonly byId = new Map<string, string>();
   private readonly used = new Set<string>();
   private readonly counters = new Map<string, number>();
+
+  /** Marks a retained identifier as unavailable for generated xrefs. */
+  reserve(existing: string | undefined): void {
+    if (existing !== undefined && existing !== '') {
+      this.used.add(existing);
+    }
+  }
 
   assign(prefix: string, id: string, existing: string | undefined): string {
     if (existing !== undefined && existing !== '') {

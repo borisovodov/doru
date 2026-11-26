@@ -150,7 +150,31 @@ function isPrivateAddress(address: string): boolean {
   return false;
 }
 
-async function resolvePublicHost(hostname: string): Promise<PinnedHost> {
+function timeoutError(): Error {
+  return new Error('remote media download timed out');
+}
+
+function raceWithSignal<T>(promise: Promise<T>, signal: AbortSignal): Promise<T> {
+  if (signal.aborted) {
+    return Promise.reject(timeoutError());
+  }
+  return new Promise<T>((resolve, reject) => {
+    const onAbort = (): void => reject(timeoutError());
+    signal.addEventListener('abort', onAbort, { once: true });
+    promise.then(
+      (value) => {
+        signal.removeEventListener('abort', onAbort);
+        resolve(value);
+      },
+      (error: unknown) => {
+        signal.removeEventListener('abort', onAbort);
+        reject(error instanceof Error ? error : new Error(String(error)));
+      },
+    );
+  });
+}
+
+async function resolvePublicHost(hostname: string, signal: AbortSignal): Promise<PinnedHost> {
   const host = hostname.replace(/^\[|\]$/g, '');
   const literalFamily = isIP(host);
   if (literalFamily !== 0) {
@@ -159,7 +183,9 @@ async function resolvePublicHost(hostname: string): Promise<PinnedHost> {
     }
     return { addresses: [{ address: host, family: literalFamily === 4 ? 4 : 6 }] };
   }
-  const addresses = await lookup(host, { all: true, order: 'verbatim' });
+  // The OS resolver is separate from fetch, so the download deadline must
+  // cover the lookup as well as the request and response body.
+  const addresses = await raceWithSignal(lookup(host, { all: true, order: 'verbatim' }), signal);
   if (addresses.length === 0) {
     throw new Error('remote media host did not resolve');
   }
@@ -220,7 +246,10 @@ export async function downloadRemoteMedia(value: string, options: RemoteMediaOpt
     if (current.protocol !== 'http:' && current.protocol !== 'https:') {
       throw new Error('remote media URL uses an unsupported protocol');
     }
-    const pinned = await resolvePublicHost(current.hostname);
+    const pinned = await resolvePublicHost(current.hostname, signal);
+    if (signal.aborted) {
+      throw timeoutError();
+    }
     const agent = pinDownloads
       ? new Agent({
           connect: {

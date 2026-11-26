@@ -97,3 +97,31 @@ and mapped back to GEDCOM `FILE` payloads.
 seams. The new `apps/desktop/tests/gedcom-media.test.ts` covers the successful
 download and mapping, the failure that keeps the URL as an external reference,
 and the project-write failure that must propagate.
+
+## Pull request review follow-up
+
+The CodeRabbit review on PR #235 added these findings. All actionable comments
+were fixed:
+
+- Import workers now stop taking new items after the first project-write
+  failure and drain the active downloads before the error propagates, so the
+  temporary project is not deleted under a running worker.
+- Download failures are logged as a sanitized category; the raw error is never
+  written because undici can include the full URL, including credentials, in
+  its message.
+- The per-file deadline now covers DNS resolution as well as the fetch and
+  response body.
+- A GEDZIP import copies only bundled entries; an unmatched local `FILE` path
+  is left as an external reference instead of copying a same-named file from
+  beside the archive.
+- The zh-tw tree page uses the established 儲存庫 and 任務 terms.
+- The schema document no longer lists contacts as a media target.
+- A successful media save uses the submitted values as its reconciliation
+  baseline, so a later reversal is still saved.
+- Export reserves every retained xref before generating xrefs for split media
+  cards, preventing duplicate identifiers.
+- The multi-file import test now asserts citation ownership per person.
+
+Two review concerns were kept as deliberate product decisions: remote media is
+downloaded silently at import, and the schema bump intentionally rejects files
+written by older versions before 1.0.
