@@ -37,7 +37,7 @@ A teljes személyszerkesztőben adjon hozzá szülőket, partnert vagy gyermekek
 
 - **Források**: csatoljon forrásokat egy személyhez (címmel és szerzővel), vagy használjon újra egy meglévő forrást. Minden csatolás egy hivatkozás, és eltávolítható.
 - **Jegyzetek**: egy személyhez csatolt szabad formájú kutatási jegyzetek. Egy jegyzet több rekordhoz is csatolható: használja a **Meglévő jegyzet csatolása** lehetőséget egy másik rekord Jegyzetek szakaszában, majd válassza ki, hogy a szerkesztés mindenhol frissítse-e a megosztott szöveget, vagy csak az aktuális rekordban. A **Leválasztás erről a rekordról** eltávolít egy hivatkozást; a **Törlés mindenhol** eltávolítja a jegyzetet.
-- A tények és nevek saját Források, Jegyzetek és Azonosítók szakaszokkal rendelkeznek a személyszerkesztőn belül; a tényeknek Elérhetőségeik is vannak.
+- A tények és nevek saját Források és Jegyzetek szakaszokkal rendelkeznek a személyszerkesztőn belül; a tényeknek Elérhetőségeik is vannak.
 
 ## Címek
 
@@ -47,7 +47,7 @@ A **Források** nézetben van egy **Címek** szakasz. Itt önálló címeket hoz
 
 A feladatoknak létrehozási dátumuk és egy emlékeztető dátumuk van. A feladat lezárása csak az állapotát változtatja meg; külön befejezési dátum nem kerül mentésre. A legtöbb szerkesztőnek van **Feladatok** szakasza: adjon hozzá ott egy feladatot, és az automatikusan ahhoz a rekordhoz kapcsolódik. Kivétel a feladat- és a beküldő-szerkesztő, a médiakapcsolat sora pedig csak a Források szakaszt tartalmazza: a feladatkártya megőrzi a Jegyzeteket és a Médiát, a beküldő kártyáján nincs Feladatok szakasz, és a médiakapcsolat nem célja feladatoknak. A tények, nevek és hivatkozások saját Feladatok szakasszal rendelkeznek a csatolási panelükön. A **Kapcsolódó** egy feladatot egy vagy több rekordhoz kapcsol a fában — személyhez, családhoz, eseményhez, névhez, forráshoz, hivatkozáshoz, médiához, helyhez, levéltárhoz, címhez vagy műhöz, de nem egy másik feladathoz, beküldőhöz vagy médiakapcsolathoz; hagyja üresen egy szabadon álló feladathoz. A feladat megosztott: bárhol szerkesztve ugyanazt a rekordot frissíti, és egy kapcsolódó rekord törlése helyben hagyja a feladatot. A **Meglévő feladat csatolása** lehetőséggel új feladat létrehozása helyett újra felhasználhat egy megosztott feladatot.
 
-A művek, címek, társítások és családi partner/gyermek kapcsolatok ugyanazokkal a Jegyzetek, Források, Azonosítók, Közreműködők és Feladatok szakaszokkal rendelkeznek, mint a fő entitáslapok. A címeknek Elérhetőségeik is vannak. A feladatok megőrzik a Jegyzeteket és a Médiát, de nincs Forrásuk, Azonosítójuk, Elérhetőségük, Közreműködőjük vagy Feladatuk. A médiakapcsolat csak Forrásokat tartalmaz.
+A művek, címek, társítások és családi partner/gyermek kapcsolatok ugyanazokkal a Jegyzetek, Források, Közreműködők és Feladatok szakaszokkal rendelkeznek, mint a fő entitáslapok. A címeknek Elérhetőségeik is vannak. A feladatok megőrzik a Jegyzeteket és a Médiát, de nincs Forrásuk, Elérhetőségük, Közreműködőjük vagy Feladatuk. A médiakapcsolat csak Forrásokat tartalmaz.
 
 ## Média
 
