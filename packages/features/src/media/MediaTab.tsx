@@ -1,9 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
-import { FileImage, Image as ImageIcon, Paperclip, Trash2 } from 'lucide-react';
+import { FileImage, Paperclip } from 'lucide-react';
 import {
+  isExternalMediaPath,
   isImagePath,
   placeName,
-  type MediaFile,
   type MediaLinkRecord,
   type MediaRecord,
   type SourceRecord,
@@ -21,7 +21,6 @@ import {
   InlineError,
   Input,
   MetadataText,
-  ReorderButtons,
   SectionCard,
   Select,
   Textarea,
@@ -35,13 +34,7 @@ import { EntityTab } from '../sidebar';
 import type { AttachmentsPanelApi } from '../attachments';
 import type { MediaAdminApi } from '../person/types';
 import { nls } from '../nls';
-import {
-  createTaskTargetLabeler,
-  moveItem,
-  type MediaFileFacts,
-  type MediaWithPath,
-  type TaskTargetData,
-} from '@doru/ui/domain';
+import { createTaskTargetLabeler, type MediaFileFacts, type MediaWithPath, type TaskTargetData } from '@doru/ui/domain';
 import styles from './MediaTab.module.css';
 import './MediaTab.css';
 
@@ -53,7 +46,6 @@ type MediaDraftSnapshot = {
   objectType: string;
   description: string;
   keywords: string;
-  fileTitles: Record<string, string>;
 };
 
 type MediaDirtyFields = {
@@ -63,84 +55,7 @@ type MediaDirtyFields = {
   objectType: boolean;
   description: boolean;
   keywords: boolean;
-  files: boolean;
 };
-
-function fileTitlesFrom(files: MediaFile[] | undefined): Record<string, string> {
-  const titles: Record<string, string> = {};
-  for (const file of files ?? []) {
-    titles[file.id] = file.title ?? '';
-  }
-  return titles;
-}
-
-function normalizeTitle(value: string | undefined): string {
-  return (value ?? '').trim();
-}
-
-function sameTitleMaps(left: Record<string, string>, right: Record<string, string>): boolean {
-  const ids = new Set([...Object.keys(left), ...Object.keys(right)]);
-  for (const id of ids) {
-    if (normalizeTitle(left[id]) !== normalizeTitle(right[id])) {
-      return false;
-    }
-  }
-  return true;
-}
-
-function changedFileTitles(base: Record<string, string>, submitted: Record<string, string>): Record<string, string> {
-  const changes: Record<string, string> = {};
-  const ids = new Set([...Object.keys(base), ...Object.keys(submitted)]);
-  for (const id of ids) {
-    if (normalizeTitle(base[id]) !== normalizeTitle(submitted[id])) {
-      changes[id] = submitted[id] ?? '';
-    }
-  }
-  return changes;
-}
-
-function sameFileTitles(files: MediaFile[] | undefined, titles: Record<string, string>): boolean {
-  return sameTitleMaps(fileTitlesFrom(files), titles);
-}
-
-function applyFileTitles(files: MediaFile[] | undefined, titles: Record<string, string>): MediaFile[] {
-  return (files ?? []).map((file) => {
-    if (!Object.hasOwn(titles, file.id)) {
-      return file;
-    }
-    const next: MediaFile = { ...file };
-    const title = titles[file.id]?.trim();
-    if (title !== undefined && title !== '') {
-      next.title = title;
-    } else {
-      delete next.title;
-    }
-    return next;
-  });
-}
-
-/** Keeps local title edits and adopts refreshed titles for untouched files. */
-function mergeFileTitles(
-  current: Record<string, string>,
-  previous: Record<string, string>,
-  refreshed: Record<string, string>,
-): Record<string, string> {
-  const merged: Record<string, string> = {};
-  const ids = new Set([...Object.keys(current), ...Object.keys(previous), ...Object.keys(refreshed)]);
-  for (const id of ids) {
-    const currentTitle = current[id];
-    if (refreshed[id] === undefined) {
-      // The file no longer exists; a stale title must not keep the tab dirty.
-      continue;
-    }
-    if (normalizeTitle(currentTitle) === normalizeTitle(previous[id])) {
-      merged[id] = refreshed[id];
-    } else if (currentTitle !== undefined) {
-      merged[id] = currentTitle;
-    }
-  }
-  return merged;
-}
 
 export function MediaTab({
   entityId,
@@ -199,11 +114,8 @@ function MediaTabBody({
   const [objectType, setObjectType] = useState(record.objectType ?? '');
   const [description, setDescription] = useState(record.description ?? '');
   const [keywords, setKeywords] = useState(record.keywords ?? '');
-  const [expandedFileId, setExpandedFileId] = useState<string | null>(null);
   const [linkTargets, setLinkTargets] = useState<TargetRef[]>([]);
   const [linkError, setLinkError] = useState(false);
-  const [fileTitles, setFileTitles] = useState<Record<string, string>>(() => fileTitlesFrom(record.files));
-  const fileTitlesRef = useRef(fileTitles);
   const targetLabel = createTaskTargetLabeler(targetData);
   const attachMediaToTargets = api.attachMediaToTargets;
   const recordRef = useRef(record);
@@ -228,8 +140,7 @@ function MediaTabBody({
 
   useEffect(() => {
     metadataRef.current = { title, date, place, placeId, objectType, description, keywords };
-    fileTitlesRef.current = fileTitles;
-  }, [title, date, place, placeId, objectType, description, keywords, fileTitles]);
+  }, [title, date, place, placeId, objectType, description, keywords]);
 
   useEffect(() => {
     if (record === recordRef.current) {
@@ -239,8 +150,6 @@ function MediaTabBody({
     recordRef.current = record;
     const submitted = submittedRef.current;
     const dirty = submittedDirtyRef.current;
-    const savedTitles = fileTitlesFrom(savedMetadataRef.current.files);
-    const refreshedTitles = fileTitlesFrom(record.files);
     // A refresh that still carries pre-write values (or any unrelated
     // snapshot) must not replace a draft whose write is still pending; wait
     // until the incoming record reflects the submitted fields.
@@ -251,14 +160,8 @@ function MediaTabBody({
     submittedDirtyRef.current = undefined;
     savedRef.current = record;
     savedMetadataRef.current = record;
-    if (
-      submitted === undefined &&
-      mediaMetadataMatches(metadataRef.current, previous) &&
-      sameTitleMaps(fileTitlesRef.current, savedTitles)
-    ) {
+    if (submitted === undefined && mediaMetadataMatches(metadataRef.current, previous)) {
       baselineRef.current = record;
-      fileTitlesRef.current = refreshedTitles;
-      setFileTitles(refreshedTitles);
       setTitle(record.title ?? '');
       setDate(toDateDraft(record.date));
       setPlace(record.place ?? '');
@@ -309,9 +212,6 @@ function MediaTabBody({
       refreshed.keywords = record.keywords;
       setKeywords(record.keywords ?? '');
     }
-    const mergedTitles = mergeFileTitles(fileTitlesRef.current, savedTitles, refreshedTitles);
-    fileTitlesRef.current = mergedTitles;
-    setFileTitles(mergedTitles);
     baselineRef.current = refreshed;
   }, [record]);
 
@@ -326,7 +226,6 @@ function MediaTabBody({
     base: MediaRecord,
     dirty: MediaDirtyFields,
     submitted: MediaDraftSnapshot,
-    next?: MediaRecord,
   ): MediaRecord => {
     const refreshed: MediaRecord = { ...latest };
     const draft = metadataRef.current;
@@ -335,14 +234,14 @@ function MediaTabBody({
         setTitle(latest.title ?? '');
       }
     } else {
-      refreshed.title = (next ?? base).title;
+      refreshed.title = base.title;
     }
     if (!dirty.date) {
       if (JSON.stringify(draft.date) === JSON.stringify(submitted.date)) {
         setDate(toDateDraft(latest.date));
       }
     } else {
-      refreshed.date = (next ?? base).date;
+      refreshed.date = base.date;
     }
     if (!dirty.place) {
       if (draft.place === submitted.place && draft.placeId === submitted.placeId) {
@@ -350,43 +249,30 @@ function MediaTabBody({
         setPlaceId(latest.placeId ?? '');
       }
     } else {
-      refreshed.place = (next ?? base).place;
-      refreshed.placeId = (next ?? base).placeId;
+      refreshed.place = base.place;
+      refreshed.placeId = base.placeId;
     }
     if (!dirty.objectType) {
       if (draft.objectType === submitted.objectType) {
         setObjectType(latest.objectType ?? '');
       }
     } else {
-      refreshed.objectType = (next ?? base).objectType;
+      refreshed.objectType = base.objectType;
     }
     if (!dirty.description) {
       if (draft.description === submitted.description) {
         setDescription(latest.description ?? '');
       }
     } else {
-      refreshed.description = (next ?? base).description;
+      refreshed.description = base.description;
     }
     if (!dirty.keywords) {
       if (draft.keywords === submitted.keywords) {
         setKeywords(latest.keywords ?? '');
       }
     } else {
-      refreshed.keywords = (next ?? base).keywords;
+      refreshed.keywords = base.keywords;
     }
-    if (!dirty.files || next !== undefined) {
-      const acknowledged =
-        next !== undefined
-          ? { ...fileTitlesFrom(latest.files), ...fileTitlesFrom(next.files) }
-          : fileTitlesFrom(latest.files);
-      const titles = mergeFileTitles(fileTitlesRef.current, submitted.fileTitles, acknowledged);
-      fileTitlesRef.current = titles;
-      setFileTitles(titles);
-    }
-    refreshed.files =
-      dirty.files && next !== undefined
-        ? applyFileTitles(latest.files, changedFileTitles(fileTitlesFrom(base.files), submitted.fileTitles))
-        : latest.files;
     baselineRef.current = refreshed;
     return refreshed;
   };
@@ -406,7 +292,6 @@ function MediaTabBody({
       objectType: submission.objectType.trim() !== baseDraft.objectType,
       description: submission.description.trim() !== baseDraft.description,
       keywords: submission.keywords.trim() !== baseDraft.keywords,
-      files: !sameTitleMaps(submission.fileTitles, baseDraft.fileTitles),
     };
     submittedDirtyRef.current = dirty;
     // Use the latest saved state even while the refreshed prop is pending.
@@ -430,9 +315,6 @@ function MediaTabBody({
     }
     if (submission.keywords.trim() !== baseDraft.keywords) {
       next.keywords = submission.keywords.trim() || undefined;
-    }
-    if (dirty.files) {
-      next.files = applyFileTitles(current.files, changedFileTitles(baseDraft.fileTitles, submission.fileTitles));
     }
     const recordBeforeSave = recordRef.current;
     try {
@@ -464,7 +346,7 @@ function MediaTabBody({
         savedRef.current = next;
         savedMetadataRef.current = next;
       } else {
-        const refreshed = reconcileAfterRefresh(recordRef.current, base, dirty, submission, next);
+        const refreshed = reconcileAfterRefresh(recordRef.current, next, dirty, submission);
         savedRef.current = refreshed;
         savedMetadataRef.current = refreshed;
       }
@@ -482,7 +364,6 @@ function MediaTabBody({
       objectType,
       description,
       keywords,
-      fileTitles: { ...fileTitlesRef.current },
     };
     if (pendingSavesRef.current === 0) {
       queuedRecordRef.current = savedRef.current;
@@ -496,10 +377,7 @@ function MediaTabBody({
       objectType: base.objectType ?? '',
       description: base.description ?? '',
       keywords: base.keywords ?? '',
-      fileTitles: fileTitlesFrom(base.files),
     };
-    const titleChanges = changedFileTitles(baseDraft.fileTitles, submission.fileTitles);
-    const filesDirty = Object.keys(titleChanges).length > 0;
     const desired: MediaRecord = { ...base };
     if (submission.title.trim() !== baseDraft.title) {
       desired.title = submission.title.trim() || undefined;
@@ -520,9 +398,6 @@ function MediaTabBody({
     if (submission.keywords.trim() !== baseDraft.keywords) {
       desired.keywords = submission.keywords.trim() || undefined;
     }
-    if (filesDirty) {
-      desired.files = applyFileTitles(base.files, titleChanges);
-    }
     queuedRecordRef.current = desired;
     pendingSavesRef.current += 1;
     const task: Promise<void> = saveChainRef.current
@@ -536,9 +411,7 @@ function MediaTabBody({
 
   const autoSave = useAutoSaveOnBlur({
     enabled: true,
-    isDirty: () =>
-      !mediaMetadataMatches(metadataRef.current, savedMetadataRef.current) ||
-      !sameFileTitles(savedMetadataRef.current.files, fileTitlesRef.current),
+    isDirty: () => !mediaMetadataMatches(metadataRef.current, savedMetadataRef.current),
     save,
   });
 
@@ -555,31 +428,16 @@ function MediaTabBody({
     deletion.deleteEntity();
   };
 
-  const addFiles = async () => {
-    await api.addMediaFile(record.id);
-  };
-
-  const removeFile = async (file: MediaFile) => {
-    if (!window.confirm(nls.t('features.tree.media.removeFileConfirm'))) {
-      return;
-    }
-    await api.removeMediaFile(record, file);
-  };
-
-  const moveFile = async (index: number, to: number) => {
-    const files = moveItem(record.files ?? [], index, to);
-    await api.updateMedia(record, { ...record, files });
-  };
-
-  const first = record.files?.find((file) => file.absolutePath !== '');
+  const external = isExternalMediaPath(record.path);
+  const hasPreview = !external && record.absolutePath !== '' && isImagePath(record.path);
   return (
     <EntityTab onBlur={autoSave.onBlur}>
       <EntityViewCard
         media={
-          first !== undefined && first.absolutePath !== '' && isImagePath(first.path) ? (
+          hasPreview ? (
             <img
               className="media-tab-preview"
-              src={`doru-media://local/?path=${encodeURIComponent(first.absolutePath)}`}
+              src={`doru-media://local/?path=${encodeURIComponent(record.absolutePath)}`}
               alt={title || record.title || ''}
             />
           ) : (
@@ -587,7 +445,7 @@ function MediaTabBody({
           )
         }
         title={title.trim() || '—'}
-        subtitle={nls.t('features.tree.media.fileCount', record.files?.length ?? 0)}
+        subtitle={record.medium ?? null}
       />
       <AutoSaveError failed={autoSave.failed} retryDisabled={autoSave.pendingDelete} onRetry={autoSave.retry} />
       {deletion.failed ? <InlineError>{nls.t('features.tree.deleteFailed')}</InlineError> : null}
@@ -641,68 +499,14 @@ function MediaTabBody({
         <Field label={nls.t('features.tree.media.description')}>
           <Textarea rows={3} value={description} onChange={(event) => setDescription(event.target.value)} />
         </Field>
-      </SectionCard>
-
-      <SectionCard title={nls.t('features.tree.media.files')}>
-        <ul className="media-file-list">
-          {(record.files ?? []).map((file, index) => (
-            <li key={file.id} className="media-file-item">
-              <div className="media-file-row">
-                {file.absolutePath !== '' && isImagePath(file.path) ? (
-                  <img
-                    className="media-file-thumb"
-                    src={`doru-media://local/?path=${encodeURIComponent(file.absolutePath)}`}
-                    alt={file.title ?? ''}
-                  />
-                ) : (
-                  <ImageIcon size={18} aria-hidden="true" />
-                )}
-                <div className={styles['fileMeta']}>
-                  <span className="media-file-path">{file.path}</span>
-                  <MetadataText className={styles['fileFacts']}>{factsLabel(file.facts)}</MetadataText>
-                </div>
-                <Input
-                  aria-label={nls.t('features.tree.media.fileTitle')}
-                  placeholder={nls.t('features.tree.media.fileTitle')}
-                  value={fileTitles[file.id] ?? file.title ?? ''}
-                  onChange={(event) => setFileTitles((current) => ({ ...current, [file.id]: event.target.value }))}
-                />
-                <span className="media-file-reorder">
-                  <ReorderButtons
-                    upLabel={nls.t('features.tree.reorder.up')}
-                    downLabel={nls.t('features.tree.reorder.down')}
-                    canMoveUp={index > 0}
-                    canMoveDown={index < (record.files?.length ?? 0) - 1}
-                    onMoveUp={() => void moveFile(index, index - 1)}
-                    onMoveDown={() => void moveFile(index, index + 1)}
-                  />
-                </span>
-                <IconButton
-                  size="sm"
-                  label={nls.t('features.tree.attachments.show')}
-                  icon={<Paperclip size={13} aria-hidden="true" />}
-                  onClick={() => setExpandedFileId(expandedFileId === file.id ? null : file.id)}
-                />
-                <Button variant="secondary" size="sm" onClick={() => void removeFile(file)}>
-                  <Trash2 size={13} aria-hidden="true" />
-                  {nls.t('features.tree.media.remove')}
-                </Button>
-              </div>
-              {expandedFileId === file.id && (
-                <AttachmentsPanel
-                  targetType="media_file"
-                  targetId={file.id}
-                  api={attachmentsApi}
-                  sources={sources}
-                  onOpenSource={(sourceId) => api.openSource?.(sourceId)}
-                />
-              )}
-            </li>
-          ))}
-        </ul>
-        <Button variant="secondary" onClick={() => void addFiles()}>
-          {nls.t('features.tree.media.addFiles')}
-        </Button>
+        {external ? (
+          <MetadataText className={styles['fileFacts']}>{factsLabel(undefined)}</MetadataText>
+        ) : (
+          <div className={styles['fileMeta']}>
+            <span className="media-file-path">{record.path}</span>
+            <MetadataText className={styles['fileFacts']}>{factsLabel(record.facts)}</MetadataText>
+          </div>
+        )}
       </SectionCard>
 
       <SectionCard title={nls.t('features.tree.media.links')}>
@@ -910,7 +714,6 @@ function mediaRecordHasSubmission(
     objectType: string;
     description: string;
     keywords: string;
-    fileTitles: Record<string, string>;
   },
   dirty: {
     title: boolean;
@@ -919,7 +722,6 @@ function mediaRecordHasSubmission(
     objectType: boolean;
     description: boolean;
     keywords: boolean;
-    files: boolean;
   },
 ): boolean {
   return (
@@ -928,8 +730,7 @@ function mediaRecordHasSubmission(
     (!dirty.place || (values.place.trim() === (record.place ?? '') && values.placeId === (record.placeId ?? ''))) &&
     (!dirty.objectType || values.objectType.trim() === (record.objectType ?? '')) &&
     (!dirty.description || values.description.trim() === (record.description ?? '')) &&
-    (!dirty.keywords || values.keywords.trim() === (record.keywords ?? '')) &&
-    (!dirty.files || sameTitleMaps(fileTitlesFrom(record.files), values.fileTitles))
+    (!dirty.keywords || values.keywords.trim() === (record.keywords ?? ''))
   );
 }
 

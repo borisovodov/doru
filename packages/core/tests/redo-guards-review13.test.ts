@@ -57,7 +57,7 @@ describe('redo guards for nested attachment targets', () => {
     try {
       service.addPerson(person('P1'));
       service.addSource({ id: 'S1', title: 'Book' });
-      service.addMedia({ id: 'M1', title: 'Photo', targetType: 'person', targetId: 'P1' });
+      service.addMedia({ id: 'M1', path: 'media/a.jpg', title: 'Photo', targetType: 'person', targetId: 'P1' });
       const link = repo.listAttachmentsFor('person', 'P1').mediaLinks[0]!.link;
       service.detachMedia(link);
       service.undo();
@@ -267,7 +267,7 @@ describe('redo guards for nested attachment targets', () => {
     try {
       service.addPerson(person('P1'));
       service.addPerson(person('P2'));
-      service.addMedia({ id: 'M1', title: 'Photo', targetType: 'person', targetId: 'P1' });
+      service.addMedia({ id: 'M1', path: 'media/a.jpg', title: 'Photo', targetType: 'person', targetId: 'P1' });
       const first = repo.listAttachmentsFor('person', 'P1').mediaLinks[0]!;
       repo.addMediaLink('M1', { id: 'L2', mediaId: 'M1', targetType: 'person', targetId: 'P2' });
       service.detachMedia(first.link);
@@ -287,7 +287,7 @@ describe('redo guards for nested attachment targets', () => {
     const { repo } = fixture;
     try {
       service.addPerson(person('P1'));
-      service.addMedia({ id: 'M1', title: 'Photo', targetType: 'person', targetId: 'P1' });
+      service.addMedia({ id: 'M1', path: 'media/a.jpg', title: 'Photo', targetType: 'person', targetId: 'P1' });
       const link = repo.listAttachmentsFor('person', 'P1').mediaLinks[0]!.link;
       service.detachMedia(link);
       service.undo();
@@ -457,23 +457,6 @@ describe('redo guards for nested attachment targets', () => {
     }
   });
 
-  it('blocks media redo when a removed file gained evidence after undo', () => {
-    const { fixture, service } = makeService();
-    const { repo } = fixture;
-    try {
-      service.addSource({ id: 'S1', title: 'Book' });
-      service.addMedia({ id: 'M1', title: 'Photo', files: [{ id: 'MF1', path: 'media/a.jpg' }] });
-      const before = repo.getMedia('M1')!;
-      service.updateMedia(before, { ...before, files: [] });
-      service.undo();
-      repo.insertCitation({ id: 'C1', sourceId: 'S1', targetType: 'media_file', targetId: 'MF1' });
-      expect(repo.listAttachmentsFor('media_file', 'MF1').citations).toHaveLength(1);
-      expect(service.redo().redoBlocked).toBe(true);
-    } finally {
-      cleanupRepo(fixture);
-    }
-  });
-
   it('allows submitter redo when a linked person vanished before undo', () => {
     const { fixture, service } = makeService();
     const { repo } = fixture;
@@ -595,7 +578,7 @@ describe('redo guards for nested attachment targets', () => {
     try {
       service.addPlace({ id: 'PL1', names: [{ id: 'PN1', kind: 'official', position: 0, value: 'A' }] });
       service.addPlace({ id: 'PL2', names: [{ id: 'PN2', kind: 'official', position: 0, value: 'B' }] });
-      service.addMedia({ id: 'M1', title: 'Photo', placeId: 'PL1' });
+      service.addMedia({ id: 'M1', path: 'media/a.jpg', title: 'Photo', placeId: 'PL1' });
       service.deletePlace(repo.getPlace('PL1')!);
       repo.updateMedia({ ...repo.getMedia('M1')!, placeId: 'PL2' });
       service.undo();

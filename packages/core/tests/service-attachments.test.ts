@@ -242,10 +242,16 @@ describe('TreeService attachments', () => {
       );
       service.addNote(note());
 
-      service.addMedia({ id: 'M1', title: 'Scan' });
-      expect(() => service.addMedia({ id: 'M2', title: 'Copy', targetType: 'media_link', targetId: 'ML1' })).toThrow(
-        'A mediaLink cannot target a media_link.',
-      );
+      service.addMedia({ id: 'M1', path: 'media/scan.jpg', title: 'Scan' });
+      expect(() =>
+        service.addMedia({
+          id: 'M2',
+          path: 'media/copy.jpg',
+          title: 'Copy',
+          targetType: 'media_link',
+          targetId: 'ML1',
+        }),
+      ).toThrow('A mediaLink cannot target a media_link.');
       expect(() =>
         service.attachMedia({ id: 'ML2', mediaId: 'M1', targetType: 'media_link', targetId: 'ML1' }),
       ).toThrow('A mediaLink cannot target a media_link.');
@@ -310,7 +316,7 @@ describe('TreeService attachments', () => {
         'A note cannot target a note.',
       );
 
-      service.addMedia({ id: 'M1', links: [] });
+      service.addMedia({ id: 'M1', path: 'media/scan.jpg', links: [] });
       expect(() => service.attachMedia({ id: 'ML1', mediaId: 'M1', targetType: 'note', targetId: 'N1' })).toThrow(
         'A mediaLink cannot target a note.',
       );
@@ -504,28 +510,6 @@ describe('TreeService attachments', () => {
     }
   });
 
-  it('restores attachments of a removed media file on undo', () => {
-    const { fixture, service } = makeService();
-    try {
-      service.addMedia({
-        id: 'M1',
-        files: [
-          { id: 'F1', path: 'media/a.jpg' },
-          { id: 'F2', path: 'media/b.jpg' },
-        ],
-      });
-      service.addNote(note({ id: 'N2', targetType: 'media_file', targetId: 'F1' }));
-      const before = fixture.repo.getMedia('M1')!;
-      service.updateMedia(before, { ...before, files: [{ id: 'F2', path: 'media/b.jpg' }] });
-      expect(fixture.repo.listNotesFor('media_file', 'F1')).toEqual([]);
-
-      service.undo();
-      expect(fixture.repo.listNotesFor('media_file', 'F1').map((entry) => entry.id)).toEqual(['N2']);
-    } finally {
-      cleanupRepo(fixture);
-    }
-  });
-
   it('restores media and its attachments when the last link is detached', () => {
     const { fixture, service } = makeService();
     try {
@@ -705,7 +689,7 @@ describe('TreeService attachments', () => {
     const { fixture, service } = makeService();
     try {
       service.addSubmitter(submitter());
-      service.addMedia({ id: 'M1', title: 'Scan' });
+      service.addMedia({ id: 'M1', path: 'media/scan.jpg', title: 'Scan' });
       service.attachMedia({ id: 'ML1', mediaId: 'M1', targetType: 'submitter', targetId: 'SU1' });
       service.addRecordSubmitter('SU1', 'media', 'M1');
       const link = fixture.repo.listRecordSubmittersFor('media', 'M1')[0]!;

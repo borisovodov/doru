@@ -2,7 +2,7 @@
 
 A Dóru project is a single `.doru` file: a SQLite database branded with
 `application_id = 0x444F5255` ("DORU") and versioned with `user_version`.
-This document is the field-level reference for **schema version 25**. The
+This document is the field-level reference for **schema version 26**. The
 source of truth is [`packages/core/src/db/schema.ts`](../packages/core/src/db/schema.ts);
 the domain shapes that the repositories map onto the rows live in
 [`packages/core/src/model/types.ts`](../packages/core/src/model/types.ts).
@@ -17,7 +17,7 @@ in its README; that guarantee does not extend to the tree database.
 
 ## At a glance
 
-- **46 tables**, **73 indexes**, and no date-delete triggers.
+- **43 tables**, **70 indexes**, and no date-delete triggers.
 - The core genealogy model is `person` → `person_name` / `fact`, with
   `family` joining people through `family_partner` and `family_child`.
 - Dates are normalized into one `date` value table; owner rows reference
@@ -28,8 +28,9 @@ in its README; that guarantee does not extend to the tree database.
   instants; child, link and value rows do not.
 - Notes, citations, media, contacts, contributors, and tasks
   attach through a polymorphic `(target_type, target_id)` pair.
-- Files are not stored in SQLite. `media_file` rows hold project-relative
-  paths; the bytes live in the `media/` folder next to the `.doru` file.
+- Files are not stored in SQLite. A `media` row holds one project-relative
+  path or an external URL; the bytes live in the `media/` folder next to the
+  `.doru` file, or remain an external reference.
 
 ### Diagram legend
 
@@ -55,8 +56,8 @@ in its README; that guarantee does not extend to the tree database.
   only and has no meaning inside Dóru.
 - `position` preserves user-visible order in names, name parts, family
   partners/children, marriage statuses, family witnesses, place names,
-  source and citation template fields, media files and their translations,
-  event-family links, additional places, participants, and address lines.
+  source and citation template fields, event-family links, additional places,
+  participants, and address lines.
 - Boolean-like columns are `INTEGER` with `0`/`1`; flags are stored in
   lowercase where they have a textual form.
 - Enum-like columns have no `CHECK` constraint. The only structural checks are
@@ -725,21 +726,25 @@ the op layer, not by SQLite foreign keys.
 
 ## Media
 
-Media records are metadata containers. File bytes live outside SQLite; a
-media record may have several files, each file may have translated formats,
-and each media record may be linked to several targets.
+A media record is a one-file metadata container. File bytes live outside
+SQLite; the `path` is either a project-relative path under `media/` or an
+external URL. Each media record may be linked to several targets. A GEDCOM
+`OBJE` with several `FILE` rows is split into one media record per file on
+import; `TRAN` is not stored.
 
 ```mermaid
 erDiagram
     media }o--o| place : "place_id"
-    media ||--o{ media_file : "files"
-    media_file ||--o{ media_file_translation : "translated formats"
     media ||--o{ media_link : "links"
 
     media {
         TEXT id PK
         TEXT xref "GEDCOM provenance"
-        TEXT title
+        TEXT title "FILE.TITL or record TITL"
+        TEXT path "NOT NULL, project path or external URL"
+        TEXT medium "FORM.MEDI"
+        TEXT content_type "_CTYP"
+        TEXT text "_TEXT transcription"
         TEXT place_id FK "nullable, SET NULL"
         TEXT place_text "raw place string"
         TEXT object_type "_TYPE: Photo, Sound, Video, Document, ..."
@@ -748,24 +753,6 @@ erDiagram
         TEXT date_id FK "nullable, RESTRICT"
         INTEGER created_at "epoch milliseconds"
         INTEGER updated_at "epoch milliseconds"
-    }
-
-    media_file {
-        TEXT id PK
-        TEXT media_id FK
-        TEXT path "NOT NULL, project-relative path under media/"
-        TEXT title
-        TEXT medium "FORM.MEDI"
-        TEXT content_type "_CTYP"
-        TEXT text "_TEXT transcription"
-        INTEGER position "NOT NULL"
-    }
-
-    media_file_translation {
-        TEXT id PK
-        TEXT media_file_id FK
-        TEXT path "NOT NULL"
-        INTEGER position "NOT NULL"
     }
 
     media_link {
@@ -793,7 +780,9 @@ erDiagram
 ```
 
 A media link is a source-only attachment host: citations may target it, while
-notes, media, contacts, contributors, and tasks may not.
+notes, media, contacts, contributors, and tasks may not. Media-level notes,
+citations, tasks and contributors target `media` directly; there is no
+separate file target.
 
 ## Notes
 
@@ -973,12 +962,12 @@ is no global runtime target list.
 
 | Table | Policy set | Allowed targets |
 |---|---|---|
-| `note` | `NOTE_TARGET_TYPES` | person, family, family_partner, family_child, family_marriage_status, fact, name, name_part, source, citation, media, media_file, place, place_name, place_hierarchy, repository, submitter, address, address_line, association, task, title |
-| `citation` | `CITATION_TARGET_TYPES` | person, family, family_partner, family_child, family_marriage_status, fact, name, name_part, source, citation, media, media_file, media_link, place, place_name, place_hierarchy, repository, submitter, address, address_line, association, title |
-| `media_link` | `MEDIA_LINK_TARGET_TYPES` | person, family, family_partner, family_child, family_marriage_status, fact, name, name_part, source, citation, media, media_file, place, place_name, place_hierarchy, repository, submitter, address, address_line, association, task, title |
+| `note` | `NOTE_TARGET_TYPES` | person, family, family_partner, family_child, family_marriage_status, fact, name, name_part, source, citation, media, place, place_name, place_hierarchy, repository, submitter, address, address_line, association, task, title |
+| `citation` | `CITATION_TARGET_TYPES` | person, family, family_partner, family_child, family_marriage_status, fact, name, name_part, source, citation, media, media_link, place, place_name, place_hierarchy, repository, submitter, address, address_line, association, title |
+| `media_link` | `MEDIA_LINK_TARGET_TYPES` | person, family, family_partner, family_child, family_marriage_status, fact, name, name_part, source, citation, media, place, place_name, place_hierarchy, repository, submitter, address, address_line, association, task, title |
 | `contact` | `CONTACT_TARGET_TYPES` | person, fact, repository, submitter |
-| `task_link` | `TASK_LINK_TARGET_TYPES` | person, family, family_partner, family_child, family_marriage_status, fact, name, name_part, source, citation, media, media_file, place, place_name, place_hierarchy, repository, address, address_line, association, title |
-| `record_submitter` | `RECORD_SUBMITTER_TARGET_TYPES` | person, family, family_partner, family_child, family_marriage_status, fact, name, name_part, source, citation, media, media_file, place, place_name, place_hierarchy, repository, submitter, address, address_line, association, title |
+| `task_link` | `TASK_LINK_TARGET_TYPES` | person, family, family_partner, family_child, family_marriage_status, fact, name, name_part, source, citation, media, place, place_name, place_hierarchy, repository, address, address_line, association, title |
+| `record_submitter` | `RECORD_SUBMITTER_TARGET_TYPES` | person, family, family_partner, family_child, family_marriage_status, fact, name, name_part, source, citation, media, place, place_name, place_hierarchy, repository, submitter, address, address_line, association, title |
 
 `name` refers to the `person_name` table. `family_witness` is deliberately
 absent from every set: it is free text without stable identity. A note record
@@ -1033,7 +1022,7 @@ Most child rows are removed with their parent:
 - `source` → source texts, data events, source repositories, template fields,
   citations.
 - `citation` → citation texts and template fields.
-- `media` → media files and media links; `media_file` → translations.
+- `media` → media links.
 - `note` → none (a note is a leaf annotation).
 - Every target → its notes (notes are owned by one target).
 - `address` → address lines.
@@ -1089,13 +1078,13 @@ edited inside a parent card or through an attachment section.
 | `submitter:` | `submitter`, `submitter_language`, `record_submitter` |
 | `address:` | `address`, `address_line` |
 | `task:` | `task`, `task_link` |
-| `media:` | `media`, `media_file`, `media_file_translation`, `media_link` |
+| `media:` | `media`, `media_link` |
 | `title:` | `title` |
 
 The compact list card is `EntityCard`; the shared editor header is
 `EntityViewCard`; the canvas has its own `PersonCardView`. `Note`,
 `citation`, `association`, `fact`, `date`, person/place name rows,
-family link rows, source child rows, media files/links, contacts,
+family link rows, source child rows, media links, contacts,
 and contributor links do not have their own tabs.
 
 ## Schema evolution

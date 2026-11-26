@@ -1,7 +1,6 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import type { CitationRecord, SourceRecord } from '@doru/core';
 import { isAttachmentTargetAllowed, type AttachmentTargetKind } from '@doru/core/model';
-import { MEDIA_VISIBLE } from '@doru/platform';
 import {
   ContactsSection,
   ContributorsSection,
@@ -71,9 +70,7 @@ export function AttachmentsPanel({
   const availableSections = sections.filter((section) =>
     isAttachmentTargetAllowed(SECTION_TARGET_KIND[section], targetType),
   );
-  const include = new Set(
-    MEDIA_VISIBLE ? availableSections : availableSections.filter((section) => section !== 'media'),
-  );
+  const include = new Set(availableSections);
   const canAddContributor = isAttachmentTargetAllowed('recordSubmitter', targetType);
   const canAddTask = isAttachmentTargetAllowed('taskLink', targetType);
   return (

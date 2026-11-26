@@ -180,12 +180,11 @@ describe('TreeService CRUD integrity', () => {
       });
       service.addMedia({
         id: 'M1',
+        path: 'media/photo.jpg',
         targetType: 'place_name',
         targetId: 'PN1',
-        files: [{ id: 'MF1', path: 'media/photo.jpg' }],
       });
       service.addNote({ id: 'NM1', text: 'media note', targetType: 'media', targetId: 'M1' });
-      service.addNote({ id: 'NM2', text: 'file note', targetType: 'media_file', targetId: 'MF1' });
 
       service.deletePlace(repo.getPlace('PL1')!);
       expect(repo.getMedia('M1')?.links).toEqual([]);
@@ -196,7 +195,6 @@ describe('TreeService CRUD integrity', () => {
         true,
       );
       expect(repo.listNotesFor('media', 'M1').map((entry) => entry.id)).toEqual(['NM1']);
-      expect(repo.listNotesFor('media_file', 'MF1').map((entry) => entry.id)).toEqual(['NM2']);
     } finally {
       cleanupRepo(fixture);
     }
@@ -215,7 +213,7 @@ describe('TreeService CRUD integrity', () => {
       });
       service.addMedia({
         id: 'M1',
-        files: [{ id: 'MF1', path: 'media/photo.jpg' }],
+        path: 'media/photo.jpg',
         links: [
           { id: 'ML1', mediaId: 'M1', targetType: 'place_name', targetId: 'PN1' },
           { id: 'ML2', mediaId: 'M1', targetType: 'place_name', targetId: 'PN2' },
@@ -1005,24 +1003,20 @@ describe('TreeService CRUD integrity', () => {
     }
   });
 
-  it('keeps a later media file when undoing a place deletion', () => {
+  it('keeps a later media edit when undoing a place deletion', () => {
     const { fixture, service } = makeService();
     const { repo } = fixture;
     try {
       service.addPlace({ id: 'PL1', names: [{ id: 'PN1', kind: 'official', position: 0, value: 'Tula' }] });
-      service.addMedia({
-        id: 'M1',
-        placeId: 'PL1',
-        files: [{ id: 'MF1', path: 'media/a.jpg' }],
-      });
+      service.addMedia({ id: 'M1', path: 'media/a.jpg', placeId: 'PL1' });
       service.deletePlace(repo.getPlace('PL1')!);
 
       const media = repo.getMedia('M1')!;
-      repo.updateMedia({ ...media, files: [...(media.files ?? []), { id: 'MF2', path: 'media/b.jpg' }] });
+      repo.updateMedia({ ...media, description: 'Later edit' });
       service.undo();
 
       expect(repo.getMedia('M1')?.placeId).toBe('PL1');
-      expect(repo.getMedia('M1')?.files?.map((file) => file.id)).toEqual(['MF1', 'MF2']);
+      expect(repo.getMedia('M1')?.description).toBe('Later edit');
     } finally {
       cleanupRepo(fixture);
     }
@@ -1297,7 +1291,7 @@ describe('TreeService CRUD integrity', () => {
       expect(service.redo().redoBlocked).toBe(true);
       expect(repo.getPerson('P1')).toBeDefined();
 
-      service.addMedia({ id: 'M1', title: 'Photo', targetType: 'person', targetId: 'P1' });
+      service.addMedia({ id: 'M1', path: 'media/photo.jpg', title: 'Photo', targetType: 'person', targetId: 'P1' });
       service.deleteMedia(repo.getMedia('M1')!);
       service.undo();
       repo.insertNote({ id: 'NM', text: 'media note', targetType: 'media', targetId: 'M1' });

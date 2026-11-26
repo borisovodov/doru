@@ -6,7 +6,6 @@ import type {
   ContactRecord,
   FactRecord,
   FamilyRecord,
-  MediaFile,
   MediaLinkRecord,
   MediaRecord,
   NoteRecord,
@@ -21,15 +20,7 @@ import type {
   TaskTargetLink,
   TitleRecord,
 } from '@doru/core';
-import {
-  addFilesToMedia,
-  addMediaToTarget,
-  addStandaloneMedia,
-  listAllMedia,
-  listMediaForTarget,
-  removeFileFromMedia,
-  removeMediaFiles,
-} from './media';
+import { addMediaToTarget, addStandaloneMedia, listAllMedia, listMediaForTarget, removeMediaFile } from './media';
 import { ensureRuntime } from './runtime';
 
 /**
@@ -571,21 +562,11 @@ export function registerTreeIpc(): void {
     },
   );
 
-  ipcMain.handle('tree:addMediaFile', async (_event, options: { projectPath: string; mediaId: string }) =>
-    addFilesToMedia(options.projectPath, options.mediaId),
-  );
-
-  ipcMain.handle(
-    'tree:removeMediaFile',
-    async (_event, options: { projectPath: string; media: MediaRecord; file: MediaFile }) =>
-      removeFileFromMedia(options.projectPath, options.media, options.file),
-  );
-
   ipcMain.handle('tree:deleteMedia', async (_event, options: { projectPath: string; media: MediaRecord }) => {
     const { runtime } = await ensureRuntime(options.projectPath);
     const current = runtime.service.getMedia(options.media.id) ?? options.media;
     const state = runtime.service.deleteMedia(current);
-    await removeMediaFiles(options.projectPath, current);
+    await removeMediaFile(options.projectPath, current);
     return state;
   });
 

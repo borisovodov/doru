@@ -139,7 +139,7 @@ export function buildGedcomDataset(repo: TreeRepository): GedcomDataset {
   const submitters = repo.listSubmitters();
   const titles = repo.listTitles();
   const places = repo.listPlaces();
-  const media = repo.listAllMedia().filter((entry) => (entry.files ?? []).length > 0);
+  const media = repo.listAllMedia().filter((entry) => entry.path !== '');
   const firstSubmitter = submitters[0];
   // Only free-standing tasks become top-level `_TODO` records. Person and
   // family targets carry embedded structures; tasks whose targets have no
@@ -147,6 +147,21 @@ export function buildGedcomDataset(repo: TreeRepository): GedcomDataset {
   // omitted. In particular, Dóru does not write `_TODO.REPO`, so a task whose
   // only target is a repository disappears from the export.
   const tasks = repo.listTasks().filter((task) => task.targets.length === 0);
+
+  // Reserve every retained xref first: a split media card without its own
+  // xref may be visited before the card that kept the original identifier.
+  for (const xref of [
+    ...persons.map((record) => record.xref),
+    ...families.map((record) => record.xref),
+    ...sources.map((record) => record.xref),
+    ...repositories.map((record) => record.xref),
+    ...submitters.map((record) => record.xref),
+    ...titles.map((record) => record.xref),
+    ...places.map((record) => record.xref),
+    ...media.map((record) => record.xref),
+  ]) {
+    xrefs.reserve(xref);
+  }
 
   for (const person of persons) {
     xrefs.assign('I', person.id, person.xref);
@@ -868,20 +883,39 @@ function withSpouseFamilies(
 // ---------------------------------------------------------------------------
 
 const MIME_BY_EXTENSION = new Map<string, string>([
+  ['bmp', 'image/bmp'],
   ['gif', 'image/gif'],
   ['heic', 'image/heic'],
   ['jpeg', 'image/jpeg'],
   ['jpg', 'image/jpeg'],
+  ['mp3', 'audio/mpeg'],
+  ['mp4', 'video/mp4'],
+  ['ogg', 'audio/ogg'],
   ['pdf', 'application/pdf'],
   ['png', 'image/png'],
+  ['svg', 'image/svg+xml'],
   ['tif', 'image/tiff'],
   ['tiff', 'image/tiff'],
+  ['txt', 'text/plain'],
+  ['wav', 'audio/wav'],
+  ['webm', 'video/webm'],
   ['webp', 'image/webp'],
 ]);
 
 function mediaMime(path: string): string {
-  const dot = path.lastIndexOf('.');
-  const extension = dot === -1 ? '' : path.slice(dot + 1).toLowerCase();
+  let pathname = path.replaceAll('\\', '/');
+  if (/^(?:https?|ftp|file):\/\//i.test(pathname)) {
+    try {
+      pathname = new URL(pathname).pathname;
+    } catch {
+      // Keep the raw string for malformed URLs; the extension lookup below
+      // falls back to application/octet-stream.
+    }
+  } else {
+    pathname = pathname.split(/[?#]/)[0] ?? pathname;
+  }
+  const dot = pathname.lastIndexOf('.');
+  const extension = dot === -1 ? '' : pathname.slice(dot + 1).toLowerCase();
   return MIME_BY_EXTENSION.get(extension) ?? 'application/octet-stream';
 }
 
@@ -905,32 +939,27 @@ function buildMediaRecord(media: MediaRecord, repo: TreeRepository, xrefs: Xrefs
   return {
     tag: 'OBJE',
     xref: xrefs.of(media.id),
-    ...(media.title !== undefined ? { title: media.title } : {}),
     ...(date !== undefined ? { date } : {}),
     ...(place !== undefined && place !== '' ? { place } : {}),
     ...(media.objectType !== undefined ? { objectType: media.objectType } : {}),
     ...(media.description !== undefined ? { description: media.description } : {}),
     ...(media.keywords !== undefined ? { keywords: media.keywords } : {}),
-    files: (media.files ?? []).map((file) => ({
-      payload: normalizeMediaPath(file.path),
-      form: {
-        payload: mediaMime(file.path),
-        ...(file.medium !== undefined ? { medium: { payload: file.medium as import('@doru/gedcom').MediaEnum } } : {}),
+    files: [
+      {
+        payload: normalizeMediaPath(media.path),
+        form: {
+          payload: mediaMime(media.path),
+          ...(media.medium !== undefined
+            ? { medium: { payload: media.medium as import('@doru/gedcom').MediaEnum } }
+            : {}),
+        },
+        ...(media.title !== undefined ? { title: media.title } : {}),
+        ...(media.contentType !== undefined ? { contentType: media.contentType } : {}),
+        ...(media.text !== undefined ? { text: media.text } : {}),
       },
-      ...(file.title !== undefined ? { title: file.title } : {}),
-      ...(file.contentType !== undefined ? { contentType: file.contentType } : {}),
-      ...(file.text !== undefined ? { text: file.text } : {}),
-      ...(file.translations !== undefined && file.translations.length > 0
-        ? {
-            translations: file.translations.map((translation) => ({
-              payload: normalizeMediaPath(translation.path),
-              form: { payload: mediaMime(translation.path) },
-            })),
-          }
-        : {}),
-    })),
+    ],
     ...withCitationList(repo, 'media', media.id, xrefs),
-    ...withNoteTargets(repo, mediaNoteTargets(media)),
+    ...withNoteTargets(repo, [{ targetType: 'media', targetId: media.id }]),
     ...withSubmitterLinks(repo, 'media', media.id, xrefs),
   };
 }
@@ -968,7 +997,7 @@ function withMediaLinks(
 ): { media?: MultimediaLink[] } {
   const links = repo
     .listMediaLinksFor(targetType, targetId)
-    .filter((entry) => (entry.media.files ?? []).length > 0)
+    .filter((entry) => entry.media.path !== '')
     .map((entry) => {
       const { citations } = withCitationList(repo, 'media_link', entry.link.id, xrefs);
       return {
@@ -1097,10 +1126,9 @@ interface NoteTarget {
 
 /**
  * Notes on targets that have no GEDCOM note slot of their own (name parts and
- * variants, place names and hierarchy links, address lines, media files) are
- * emitted on the nearest enclosing standard NOTE slot. Import attaches them
- * back to that parent, so the note text round-trips but the fine-grained
- * target does not.
+ * variants, place names and hierarchy links, address lines) are emitted on the
+ * nearest enclosing standard NOTE slot. Import attaches them back to that
+ * parent, so the note text round-trips but the fine-grained target does not.
  */
 function withNoteTargets(repo: TreeRepository, targets: readonly NoteTarget[]): { notes: NoteStructure[] } {
   return { notes: targets.flatMap((target) => withNoteList(repo, target.targetType, target.targetId).notes) };
@@ -1126,13 +1154,6 @@ function addressNoteTargets(address: AddressRecord): NoteTarget[] {
   return [
     { targetType: 'address', targetId: address.id },
     ...address.lines.map((line) => ({ targetType: 'address_line', targetId: line.id })),
-  ];
-}
-
-function mediaNoteTargets(media: MediaRecord): NoteTarget[] {
-  return [
-    { targetType: 'media', targetId: media.id },
-    ...(media.files ?? []).map((file) => ({ targetType: 'media_file', targetId: file.id })),
   ];
 }
 
@@ -1685,6 +1706,13 @@ class Xrefs {
   private readonly byId = new Map<string, string>();
   private readonly used = new Set<string>();
   private readonly counters = new Map<string, number>();
+
+  /** Marks a retained identifier as unavailable for generated xrefs. */
+  reserve(existing: string | undefined): void {
+    if (existing !== undefined && existing !== '') {
+      this.used.add(existing);
+    }
+  }
 
   assign(prefix: string, id: string, existing: string | undefined): string {
     if (existing !== undefined && existing !== '') {

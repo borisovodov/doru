@@ -86,12 +86,12 @@ describe('buildGedcomDataset', () => {
     }
   });
 
-  it('skips media links whose media has no files', () => {
+  it('skips media links whose media has no path', () => {
     const fixture = makeRepo();
     try {
       const { repo } = fixture;
       repo.insertPerson({ id: 'P1', names: [], sex: 'U', facts: [] });
-      repo.insertMedia({ id: 'M1', title: 'Fileless', targetType: 'person', targetId: 'P1' });
+      repo.insertMedia({ id: 'M1', path: '', title: 'Fileless', targetType: 'person', targetId: 'P1' });
 
       const dataset = buildGedcomDataset(repo);
       expect(dataset.records.some((record) => record.tag === 'OBJE')).toBe(false);
@@ -149,7 +149,7 @@ describe('buildGedcomDataset', () => {
         ],
       });
       repo.insertRepository({ id: 'R1', name: 'Archive', addressId: 'AD1' });
-      repo.insertMedia({ id: 'M1', files: [{ id: 'MF1', path: 'media/a.jpg' }] });
+      repo.insertMedia({ id: 'M1', path: 'media/a.jpg' });
 
       const notes = [
         { targetType: 'name_part', targetId: 'NP1', text: 'name part note' },
@@ -157,7 +157,7 @@ describe('buildGedcomDataset', () => {
         { targetType: 'place_name', targetId: 'PN1', text: 'place name note' },
         { targetType: 'place_hierarchy', targetId: 'PH1', text: 'place hierarchy note' },
         { targetType: 'address_line', targetId: 'AL1', text: 'address line note' },
-        { targetType: 'media_file', targetId: 'MF1', text: 'media file note' },
+        { targetType: 'media', targetId: 'M1', text: 'media note' },
       ];
       for (const note of notes) {
         repo.insertNote({
@@ -303,6 +303,25 @@ describe('buildGedcomDataset', () => {
       expect(xrefs).toContain('@I1@');
       // The fresh xref skipped the used @I1@.
       expect(xrefs).toContain('@I2@');
+    } finally {
+      cleanupRepo(fixture);
+    }
+  });
+
+  it('reserves retained media xrefs before allocating split-card xrefs', () => {
+    const fixture = makeRepo();
+    try {
+      const { repo } = fixture;
+      // The generated card sorts before the card that kept @O1@.
+      repo.insertMedia({ id: 'A', path: 'media/a.jpg' });
+      repo.insertMedia({ id: 'B', xref: '@O1@', path: 'media/b.jpg' });
+
+      const dataset = buildGedcomDataset(repo);
+      const xrefs = dataset.records.filter((record) => record.tag === 'OBJE').map((record) => record.xref);
+      expect(xrefs).toHaveLength(2);
+      expect(new Set(xrefs).size).toBe(2);
+      expect(xrefs).toContain('@O1@');
+      expect(xrefs).toContain('@O2@');
     } finally {
       cleanupRepo(fixture);
     }

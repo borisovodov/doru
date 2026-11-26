@@ -1,5 +1,5 @@
 ---
-source-hash: bd745f4dc593
+source-hash: 162b59a48ae2
 ---
 
 # Praca z drzewem
@@ -78,14 +78,9 @@ Dzieła, adresy, powiązania i relacje partner/dziecko w rodzinach mają te same
 
 ## Multimedia
 
-Zdjęcia to zwykłe pliki w folderze `media/` obok projektu. Dodawaj je z osoby,
-rodziny, źródła, miejsca, repozytorium, nadawcy, dzieła, zadania lub adresu;
-w sekcji **Powiązane z** na karcie multimediów możesz dołączyć istniejący rekord do innych celów.
-Kliknij podgląd, aby otworzyć kartę multimediów, gdzie możesz edytować tytuł,
-zarządzać plikami i edytować metadane powiązania, takie jak podpis, kolejność,
-znacznik główny i znacznik wykluczenia.
+Zdjęcia to zwykłe pliki w folderze `media/` obok projektu. Dodawaj je z osoby, rodziny, źródła, miejsca, archiwum, zgłaszającego, dzieła, zadania lub adresu; sekcja **Powiązane z** na karcie multimediów pozwala dołączyć istniejący rekord do dodatkowych celów. Każda karta multimediów zawiera dokładnie jeden plik. Kliknij podgląd, aby otworzyć kartę multimediów, gdzie możesz edytować tytuł i metadane powiązania, takie jak podpis, kolejność, oznaczenie głównego i oznaczenie wykluczenia.
 
-Rekord multimediów można powiązać z kilkoma celami. **Odłącz od tego rekordu** pojawia się tylko wtedy, gdy multimedia są powiązane z kilkoma celami; usuwa jedno powiązanie. **Usuń multimedia** usuwa rekord i kopie jego plików. Usunięcie rekordu docelowego usuwa tylko jego powiązania, więc rekord multimediów może pozostać bez powiązań.
+Rekord multimediów można powiązać z kilkoma celami. **Odłącz od tego rekordu** pojawia się tylko wtedy, gdy multimedia są powiązane z kilkoma celami; usuwa jedno powiązanie. **Usuń multimedia** usuwa rekord i kopię jego pliku. Usunięcie rekordu docelowego usuwa tylko jego powiązania, więc rekord multimediów może pozostać bez powiązań. Multimedia zaimportowane z GEDCOM `OBJE` z kilkoma plikami stają się osobną kartą dla każdego pliku; alternatywne formaty `TRAN` nie są importowane.
 
 ## Kolejność
 

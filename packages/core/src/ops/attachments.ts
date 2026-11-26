@@ -258,7 +258,6 @@ export function attachMediaOp(
   link: MediaLinkRecord,
   media?: MediaRecord,
   attachments?: AttachmentsSnapshot,
-  fileAttachments: NestedAttachments[] = [],
   linkAttachments?: AttachmentsSnapshot,
 ): Op {
   return {
@@ -272,9 +271,6 @@ export function attachMediaOp(
           restoreMedia(ctx, media);
           if (attachments !== undefined) {
             ctx.repo.restoreAttachments(attachments);
-          }
-          for (const nested of fileAttachments) {
-            ctx.repo.restoreAttachments(nested.attachments);
           }
         }
         if (linkAttachments !== undefined) {
@@ -325,7 +321,6 @@ export function detachMediaOp(
   link: MediaLinkRecord,
   media?: MediaRecord,
   attachments?: AttachmentsSnapshot,
-  fileAttachments: NestedAttachments[] = [],
   linkAttachments?: AttachmentsSnapshot,
 ): Op {
   let mediaBaseline = media;
@@ -340,9 +335,6 @@ export function detachMediaOp(
           const restoredLinks = restoreMedia(ctx, media);
           if (attachments !== undefined) {
             ctx.repo.restoreAttachments(attachments);
-          }
-          for (const nested of fileAttachments) {
-            ctx.repo.restoreAttachments(nested.attachments);
           }
           if (linkAttachments !== undefined && restoredLinks.has(link.id)) {
             ctx.repo.restoreAttachments(linkAttachments);
@@ -384,11 +376,7 @@ export function detachMediaOp(
       if (attachments !== undefined && !attachmentsMatch(ctx, 'media', link.mediaId, attachments)) {
         return false;
       }
-      return fileAttachments.every(
-        (nested) =>
-          !ctx.repo.hasMediaFile(nested.targetId) ||
-          attachmentsMatch(ctx, nested.targetType, nested.targetId, nested.attachments),
-      );
+      return true;
     },
   };
 }

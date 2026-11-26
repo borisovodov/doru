@@ -1,5 +1,5 @@
 ---
-source-hash: bd745f4dc593
+source-hash: 162b59a48ae2
 ---
 
 # Lavorare con l'albero
@@ -80,14 +80,9 @@ Opere, indirizzi, associazioni e collegamenti partner/figlio delle famiglie hann
 
 ## Media
 
-Le foto sono normali file nella cartella `media/` accanto al progetto.
-Aggiungile da una persona, famiglia, fonte, luogo, archivio, mittente, opera,
-attività o indirizzo; la sezione **Collegato a** della scheda media consente di collegare un record esistente ad altre destinazioni. Fai clic su un'anteprima per aprire la scheda
-media, dove puoi modificare il titolo, gestire i file e modificare i metadati
-del collegamento come la didascalia, la sequenza, il contrassegno principale e
-quello di esclusione.
+Le foto sono normali file nella cartella `media/` accanto al progetto. Aggiungile da una persona, famiglia, fonte, luogo, archivio, mittente, opera, attività o indirizzo; la sezione **Correlato a** della scheda media consente di collegare un record esistente ad altri destinatari. Ogni scheda media contiene esattamente un file. Fai clic su un’anteprima per aprire la scheda media, dove puoi modificare il titolo e i metadati del collegamento, come didascalia, ordine, indicatore principale e indicatore di esclusione.
 
-Un record media può essere collegato a più destinazioni. **Scollega da questo record** compare solo quando il media è collegato a più destinazioni; rimuove un collegamento. **Elimina media** rimuove il record e le copie dei suoi file. L'eliminazione di un record di destinazione rimuove solo i suoi collegamenti, quindi un record media può rimanere senza collegamenti.
+Un record media può essere collegato a più destinatari. **Scollega da questo record** compare solo quando il media è collegato a più destinatari; rimuove un collegamento. **Elimina media** rimuove il record e la copia del file. L’eliminazione di un record di destinazione rimuove solo i suoi collegamenti, quindi un record media può restare senza collegamenti. Un media importato da un `OBJE` GEDCOM con più file diventa una scheda per ogni file; i formati alternativi `TRAN` non vengono importati.
 
 ## Ordinamento
 

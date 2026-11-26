@@ -1,5 +1,5 @@
 ---
-source-hash: bd745f4dc593
+source-hash: 162b59a48ae2
 ---
 
 # Arbeiten mit dem Stammbaum
@@ -82,15 +82,9 @@ Werke, Adressen, Assoziationen und Partner-/Kind-Verknüpfungen von Familien hab
 
 ## Medien
 
-Fotos sind gewöhnliche Dateien im Ordner `media/` neben dem Projekt. Fügen Sie sie
-von einer Person, Familie, Quelle, einem Ort, einem Archiv, einem Einsender, einem Werk,
-einer Aufgabe oder Adresse hinzu; im Abschnitt **Verknüpft mit** des Medien-Tabs
-können Sie einen vorhandenen Datensatz an weitere Ziele anhängen. Klicken Sie auf eine
-Vorschau, um den Medien-Tab zu öffnen, in dem Sie den Titel bearbeiten, Dateien
-verwalten und Link-Metadaten wie Bildunterschrift, Reihenfolge, Primärmarkierung
-und Ausschlussmarkierung bearbeiten können.
+Fotos sind gewöhnliche Dateien im Ordner `media/` neben dem Projekt. Fügen Sie sie von einer Person, Familie, Quelle, einem Ort, Archiv, Einsender, Werk, einer Aufgabe oder Adresse hinzu; im Abschnitt **Verknüpft mit** des Medien-Tabs können Sie einen vorhandenen Datensatz an weitere Ziele anhängen. Jede Medienkarte enthält genau eine Datei. Klicken Sie auf eine Vorschau, um den Medien-Tab zu öffnen, in dem Sie den Titel und Link-Metadaten wie Bildunterschrift, Reihenfolge, Primärmarkierung und Ausschlussmarkierung bearbeiten können.
 
-Ein Mediendatensatz kann mit mehreren Zielen verknüpft werden. **Von diesem Datensatz lösen** wird nur angezeigt, wenn das Medium mit mehreren Zielen verknüpft ist; es entfernt eine Verknüpfung. **Medien löschen** entfernt den Datensatz und seine Dateikopien. Das Löschen eines Ziel-Datensatzes entfernt nur seine Verknüpfungen, sodass ein Mediendatensatz ohne Verknüpfungen bestehen bleiben kann.
+Ein Mediendatensatz kann mit mehreren Zielen verknüpft werden. **Von diesem Datensatz lösen** erscheint nur, wenn das Medium mit mehreren Zielen verknüpft ist; es entfernt eine Verknüpfung. **Medien löschen** entfernt den Datensatz und seine Dateikopie. Das Löschen eines Ziel-Datensatzes entfernt nur seine Verknüpfungen, sodass ein Mediendatensatz ohne Verknüpfungen bestehen bleiben kann. Ein aus einem GEDCOM-`OBJE` mit mehreren Dateien importiertes Medium wird zu einer Karte pro Datei; alternative `TRAN`-Formate werden nicht importiert.
 
 ## Reihenfolge
 

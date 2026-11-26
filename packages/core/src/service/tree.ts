@@ -28,7 +28,7 @@ import { partsFromFlat } from '../db/nameRepo';
 import {
   collectNameIds,
   collectNamePartIds,
-  isProjectMediaPath,
+  isVisibleMedia,
   normalizeTaskPriority,
   normalizeTaskStatus,
   stampNewRecord,
@@ -253,9 +253,7 @@ export class TreeService {
       counts[personId] = {
         notes: this.repo.listNotesFor('person', personId).length,
         sources: this.repo.listCitationsFor('person', personId).length,
-        media: this.repo
-          .listMediaFor('person', personId)
-          .filter((media) => (media.files ?? []).some((file) => isProjectMediaPath(file.path))).length,
+        media: this.repo.listMediaFor('person', personId).filter(isVisibleMedia).length,
       };
     }
     return counts;
@@ -1088,6 +1086,9 @@ export class TreeService {
         'xref',
         'title',
         'path',
+        'medium',
+        'contentType',
+        'text',
         'date',
         'place',
         'placeId',
@@ -1102,54 +1103,10 @@ export class TreeService {
           (merged as unknown as Record<string, unknown>)[key] = after[key];
         }
       }
-      if (JSON.stringify(after.files) !== JSON.stringify(before.files)) {
-        if (after.files === undefined) {
-          delete merged.files;
-        } else {
-          const beforeFiles = new Map((before.files ?? []).map((file) => [file.id, file]));
-          const afterIds = new Set(after.files.map((file) => file.id));
-          const currentFiles = new Map((current.files ?? []).map((file) => [file.id, file]));
-          const files: NonNullable<MediaRecord['files']> = [];
-          for (const file of after.files) {
-            const previous = beforeFiles.get(file.id);
-            if (previous !== undefined && JSON.stringify(previous) === JSON.stringify(file)) {
-              // Unchanged in this edit: keep a concurrent metadata change.
-              files.push(currentFiles.get(file.id) ?? file);
-            } else {
-              files.push(file);
-            }
-          }
-          for (const file of current.files ?? []) {
-            if (!beforeFiles.has(file.id) && !afterIds.has(file.id)) {
-              files.push(file);
-            }
-          }
-          merged.files = files.length > 0 ? files : undefined;
-        }
-      }
-      const pathChanged = before.path !== after.path;
       if (sameRecordContent(current, merged)) {
         return undefined;
       }
-      const pathMatch =
-        merged.path !== undefined ? (current.files ?? []).find((file) => file.path === merged.path) : undefined;
-      const writtenFiles =
-        after.files !== undefined
-          ? (merged.files ?? [])
-          : (merged.files ??
-            (pathChanged && merged.path !== undefined
-              ? [{ id: pathMatch?.id ?? crypto.randomUUID(), path: merged.path }]
-              : pathMatch !== undefined
-                ? [pathMatch]
-                : []));
-      const remaining = new Set(writtenFiles.map((file) => file.id));
-      const removedFiles = (current.files ?? []).filter((file) => !remaining.has(file.id));
-      const fileAttachments = removedFiles.map((file) => ({
-        targetType: 'media_file',
-        targetId: file.id,
-        attachments: this.repo.listAttachmentsFor('media_file', file.id),
-      }));
-      return updateMediaOp(current, stampRecordEdit(current, merged, now), fileAttachments);
+      return updateMediaOp(current, stampRecordEdit(current, merged, now));
     });
   }
 
@@ -1160,17 +1117,12 @@ export class TreeService {
         return undefined;
       }
       const attachments = this.repo.listAttachmentsFor('media', current.id);
-      const fileAttachments = (current.files ?? []).map((file) => ({
-        targetType: 'media_file',
-        targetId: file.id,
-        attachments: this.repo.listAttachmentsFor('media_file', file.id),
-      }));
       const linkAttachments = (current.links ?? []).map((link) => ({
         targetType: 'media_link',
         targetId: link.id,
         attachments: this.repo.listAttachmentsFor('media_link', link.id),
       }));
-      return deleteMediaOp(current, attachments, fileAttachments, linkAttachments);
+      return deleteMediaOp(current, attachments, linkAttachments);
     });
   }
 
@@ -1184,12 +1136,7 @@ export class TreeService {
         return undefined;
       }
       const attachments = this.repo.listAttachmentsFor('media', link.mediaId);
-      const fileAttachments = (media?.files ?? []).map((file) => ({
-        targetType: 'media_file',
-        targetId: file.id,
-        attachments: this.repo.listAttachmentsFor('media_file', file.id),
-      }));
-      return attachMediaOp(link, media, attachments, fileAttachments);
+      return attachMediaOp(link, media, attachments);
     });
   }
 
@@ -1234,13 +1181,8 @@ export class TreeService {
         return undefined;
       }
       const attachments = this.repo.listAttachmentsFor('media', link.mediaId);
-      const fileAttachments = (media.files ?? []).map((file) => ({
-        targetType: 'media_file',
-        targetId: file.id,
-        attachments: this.repo.listAttachmentsFor('media_file', file.id),
-      }));
       const linkAttachments = this.repo.listAttachmentsFor('media_link', stored.id);
-      return detachMediaOp(stored, media, attachments, fileAttachments, linkAttachments);
+      return detachMediaOp(stored, media, attachments, linkAttachments);
     });
   }
 

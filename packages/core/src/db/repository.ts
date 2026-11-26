@@ -157,7 +157,6 @@ export interface TreeRepository {
   listMediaLinksFor(targetType: string, targetId: string): Array<{ media: MediaRecord; link: MediaLinkRecord }>;
   /** True when this link id already exists, without hydrating its target. */
   hasMediaLink(id: string): boolean;
-  hasMediaFile(id: string): boolean;
   updateMediaLink(link: MediaLinkRecord): void;
   removeMediaLink(id: string): boolean;
   removeMediaLinkOnly(id: string): boolean;
@@ -788,19 +787,8 @@ export class SqliteTreeRepository implements TreeRepository {
   }
 
   updateMedia(media: MediaRecord): void {
-    // The row update and the cleanup of removed files must commit together:
-    // a cleanup failure must not leave the new record saved.
     this.transactions.run(() => {
-      const before = this.media.getMedia(media.id);
       this.media.updateMedia(media);
-      // Read the files the writer actually kept: when `files` is omitted the
-      // repository derives the row from `path` and may retain the existing id.
-      const remaining = new Set((this.media.getMedia(media.id)?.files ?? []).map((file) => file.id));
-      for (const file of before?.files ?? []) {
-        if (!remaining.has(file.id)) {
-          this.deleteAttachmentsFor('media_file', file.id);
-        }
-      }
     });
   }
 
@@ -814,9 +802,6 @@ export class SqliteTreeRepository implements TreeRepository {
       this.deleteAttachmentsFor('media', id);
       for (const link of media?.links ?? []) {
         this.deleteAttachmentsFor('media_link', link.id);
-      }
-      for (const file of media?.files ?? []) {
-        this.deleteAttachmentsFor('media_file', file.id);
       }
       return this.media.deleteMedia(id);
     });
@@ -834,10 +819,6 @@ export class SqliteTreeRepository implements TreeRepository {
     return this.media.hasLink(id);
   }
 
-  hasMediaFile(id: string): boolean {
-    return this.media.hasFile(id);
-  }
-
   updateMediaLink(link: MediaLinkRecord): void {
     this.media.updateMediaLink(link);
   }
@@ -845,14 +826,10 @@ export class SqliteTreeRepository implements TreeRepository {
   removeMediaLink(id: string): boolean {
     return this.transactions.run(() => {
       const mediaId = this.media.getMediaIdForLink(id);
-      const media = mediaId !== undefined ? this.media.getMedia(mediaId) : undefined;
       this.deleteAttachmentsFor('media_link', id);
       const removed = this.media.removeMediaLink(id);
       if (removed && mediaId !== undefined && this.media.getMedia(mediaId) === undefined) {
         this.deleteAttachmentsFor('media', mediaId);
-        for (const file of media?.files ?? []) {
-          this.deleteAttachmentsFor('media_file', file.id);
-        }
       }
       return removed;
     });
@@ -1174,13 +1151,6 @@ export class SqliteTreeRepository implements TreeRepository {
         targetId: media.id,
         attachments: this.collectAttachments('media', media.id, state),
       })),
-      mediaFileAttachments: linkedMedia.flatMap((media) =>
-        (media.files ?? []).map((file) => ({
-          targetType: 'media_file',
-          targetId: file.id,
-          attachments: this.collectAttachments('media_file', file.id, state),
-        })),
-      ),
       mediaLinkAttachments: mediaLinks.map((entry) => ({
         targetType: 'media_link',
         targetId: entry.link.id,
@@ -1221,10 +1191,6 @@ export class SqliteTreeRepository implements TreeRepository {
       if (!this.media.hasMedia(media.id)) {
         this.markRemoved('media', media.id);
         this.deleteAttachmentsForInternal('media', media.id, visited);
-        for (const file of media.files ?? []) {
-          this.markRemoved('media_file', file.id);
-          this.deleteAttachmentsForInternal('media_file', file.id, visited);
-        }
       }
     }
     this.attachments.deleteAllFor(targetType, targetId);
@@ -1289,17 +1255,7 @@ export class SqliteTreeRepository implements TreeRepository {
       }
     }
     for (const nested of snapshot.mediaAttachments) {
-      if (restoredMedia.has(nested.targetId)) {
-        this.restoreAttachmentsInternal(nested.attachments, visitedFiles);
-      }
-    }
-    for (const nested of snapshot.mediaFileAttachments) {
-      if (
-        (removed.size === 0 || removed.has(`media_file\u0000${nested.targetId}`)) &&
-        this.media.hasFile(nested.targetId) &&
-        !visitedFiles.has(nested.attachments)
-      ) {
-        visitedFiles.add(nested.attachments);
+      if (restoredMedia.has(nested.targetId) || this.media.hasMedia(nested.targetId)) {
         this.restoreAttachmentsInternal(nested.attachments, visitedFiles);
       }
     }
@@ -1381,12 +1337,7 @@ export class SqliteTreeRepository implements TreeRepository {
       }
       visited.add(node);
       this.snapshotMarkers.set(node, frame);
-      for (const nested of [
-        ...node.citationAttachments,
-        ...node.mediaAttachments,
-        ...node.mediaFileAttachments,
-        ...node.mediaLinkAttachments,
-      ]) {
+      for (const nested of [...node.citationAttachments, ...node.mediaAttachments, ...node.mediaLinkAttachments]) {
         visit(nested.attachments);
       }
     };

@@ -9,14 +9,6 @@ const scan: MediaWithPath = {
   title: 'Ivanovka register scan',
   path: 'media/ivanovka-register-scan.pdf',
   absolutePath: '/demo/ivanovka-register-scan.pdf',
-  files: [
-    {
-      id: 'MF1',
-      path: 'media/ivanovka-register-scan.pdf',
-      absolutePath: '/demo/ivanovka-register-scan.pdf',
-      title: 'Page 42',
-    },
-  ],
 };
 
 const portrait: MediaWithPath = {
@@ -24,13 +16,6 @@ const portrait: MediaWithPath = {
   title: 'Portrait of Anna Ivanova',
   path: 'media/anna-portrait.pdf',
   absolutePath: '/demo/anna-portrait.pdf',
-  files: [
-    {
-      id: 'MF2',
-      path: 'media/anna-portrait.pdf',
-      absolutePath: '/demo/anna-portrait.pdf',
-    },
-  ],
   links: [
     {
       id: 'ML1',
@@ -53,13 +38,6 @@ const excluded: MediaWithPath = {
   title: 'Damaged duplicate',
   path: 'media/damaged-duplicate.pdf',
   absolutePath: '/demo/damaged-duplicate.pdf',
-  files: [
-    {
-      id: 'MF3',
-      path: 'media/damaged-duplicate.pdf',
-      absolutePath: '/demo/damaged-duplicate.pdf',
-    },
-  ],
   links: [
     {
       id: 'ML2',

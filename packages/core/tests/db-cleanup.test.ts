@@ -4,7 +4,7 @@ import { OpQueue } from '../src/ops/op';
 import { cleanupRepo, makeRepo } from './helpers';
 
 describe('db cleanup paths', () => {
-  it('restores file evidence for a snapshot captured outside a transaction', () => {
+  it('restores media evidence for a snapshot captured outside a transaction', () => {
     const fixture = makeRepo();
     try {
       const { repo } = fixture;
@@ -12,17 +12,16 @@ describe('db cleanup paths', () => {
       repo.insertMedia({
         id: 'M1',
         path: 'media/a.jpg',
-        files: [{ id: 'MF1', path: 'media/a.jpg' }],
         targetType: 'person',
         targetId: 'P1',
       });
-      repo.insertNote({ id: 'N1', text: 'file note', targetType: 'media_file', targetId: 'MF1' });
+      repo.insertNote({ id: 'N1', text: 'media note', targetType: 'media', targetId: 'M1' });
       const snapshot = repo.listAttachmentsFor('person', 'P1');
-      repo.deleteAttachmentsFor('media_file', 'MF1');
-      expect(repo.listAttachmentsFor('media_file', 'MF1').notes).toEqual([]);
+      repo.deleteAttachmentsFor('media', 'M1');
+      expect(repo.listAttachmentsFor('media', 'M1').notes).toEqual([]);
 
       repo.restoreAttachments(snapshot);
-      expect(repo.listAttachmentsFor('media_file', 'MF1').notes.map((note) => note.id)).toEqual(['N1']);
+      expect(repo.listAttachmentsFor('media', 'M1').notes.map((note) => note.id)).toEqual(['N1']);
     } finally {
       cleanupRepo(fixture);
     }
@@ -158,7 +157,9 @@ describe('db cleanup paths', () => {
   it('rejects updating a media record that no longer exists', () => {
     const fixture = makeRepo();
     try {
-      expect(() => fixture.repo.updateMedia({ id: 'M404', title: 'Gone' })).toThrow(/no longer exists/);
+      expect(() => fixture.repo.updateMedia({ id: 'M404', path: 'media/gone.jpg', title: 'Gone' })).toThrow(
+        /no longer exists/,
+      );
       expect(fixture.repo.getMedia('M404')).toBeUndefined();
     } finally {
       cleanupRepo(fixture);

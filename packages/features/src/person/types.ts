@@ -7,7 +7,6 @@ import type {
   ContactRecord,
   FactRecord,
   FamilyRecord,
-  MediaFile,
   MediaLinkRecord,
   MediaRecord,
   NoteRecord,
@@ -41,8 +40,6 @@ export interface MediaAdminApi extends MediaTargetApi {
   /** Opens a source from a media attachment link. */
   openSource?: ((sourceId: string) => void) | undefined;
   updateMedia(before: MediaRecord, after: MediaRecord): Promise<void>;
-  addMediaFile(mediaId: string): Promise<void>;
-  removeMediaFile(media: MediaRecord, file: MediaFile): Promise<void>;
   updateMediaLink(before: MediaLinkRecord, after: MediaLinkRecord): Promise<void>;
 }
 

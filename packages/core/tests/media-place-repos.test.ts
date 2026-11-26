@@ -10,7 +10,7 @@ describe('media repo edge cases', () => {
     try {
       const { repo } = fixture;
       repo.insertMedia({ id: 'M1', path: 'media/a.jpg', title: 'Photo', targetType: 'person', targetId: 'P1' });
-      repo.updateMedia({ id: 'M1', xref: '@M1@', title: 'Renamed' });
+      repo.updateMedia({ ...repo.getMedia('M1')!, xref: '@M1@', title: 'Renamed' });
       expect(repo.getMedia('M1')).toMatchObject({ title: 'Renamed', xref: '@M1@' });
 
       const links = repo.listAttachmentsFor('person', 'P1').mediaLinks;
@@ -30,6 +30,7 @@ describe('media repo edge cases', () => {
       repo.insertPlace({ id: 'PL1', names: [{ id: 'PN1', kind: 'official', position: 0, value: 'Moscow' }] });
       repo.insertMedia({
         id: 'M1',
+        path: 'media/a.jpg',
         title: 'Portrait',
         place: 'Moscow',
         placeId: 'PL1',
@@ -73,56 +74,8 @@ describe('media repo edge cases', () => {
       expect(repo.getMedia('M1')).toMatchObject({ title: 'New', description: 'Concurrent' });
 
       const beforePath = repo.getMedia('M1')!;
-      service.updateMedia(beforePath, { ...beforePath, path: 'media/b.jpg', files: undefined });
+      service.updateMedia(beforePath, { ...beforePath, path: 'media/b.jpg' });
       expect(repo.getMedia('M1')?.path).toBe('media/b.jpg');
-    } finally {
-      cleanupRepo(fixture);
-    }
-  });
-
-  it('includes a restored self-file link in the media redo baseline', () => {
-    const fixture = makeRepo();
-    try {
-      const { repo } = fixture;
-      repo.insertPerson({ id: 'P1', names: [], sex: 'U', facts: [] });
-      repo.insertMedia({
-        id: 'M1',
-        path: 'media/a.jpg',
-        files: [{ id: 'MF1', path: 'media/a.jpg' }],
-        targetType: 'person',
-        targetId: 'P1',
-      });
-      repo.addMediaLink('M1', { id: 'ML1', mediaId: 'M1', targetType: 'media_file', targetId: 'MF1' });
-      const service = new TreeService(repo, new OpQueue());
-      service.deleteMedia(repo.getMedia('M1')!);
-      service.undo();
-      expect(repo.getMedia('M1')?.links?.map((link) => link.id)).toContain('ML1');
-      expect(service.redo().redoBlocked).toBeUndefined();
-      expect(repo.getMedia('M1')).toBeUndefined();
-    } finally {
-      cleanupRepo(fixture);
-    }
-  });
-
-  it('preserves a concurrently added media file when one file is renamed', () => {
-    const fixture = makeRepo();
-    try {
-      const { repo } = fixture;
-      repo.insertMedia({ id: 'M1', title: 'Photo', files: [{ id: 'F1', path: 'media/a.jpg' }] });
-      const before = repo.getMedia('M1')!;
-      repo.updateMedia({
-        ...before,
-        files: [...before.files!, { id: 'F2', path: 'media/b.jpg' }],
-      });
-      const service = new TreeService(repo, new OpQueue());
-      service.updateMedia(before, {
-        ...before,
-        files: [{ ...before.files![0]!, title: 'Renamed' }],
-      });
-      expect(repo.getMedia('M1')?.files).toEqual([
-        expect.objectContaining({ id: 'F1', title: 'Renamed' }),
-        expect.objectContaining({ id: 'F2' }),
-      ]);
     } finally {
       cleanupRepo(fixture);
     }
@@ -167,7 +120,7 @@ describe('media repo edge cases', () => {
     }
   });
 
-  it('round-trips historical fields, file metadata, translations and link citations', () => {
+  it('round-trips historical fields, file metadata and link citations', () => {
     const fixture = makeRepo();
     try {
       const { repo, store } = fixture;
@@ -175,7 +128,11 @@ describe('media repo edge cases', () => {
       repo.insertSource({ id: 'S1', title: 'Source' });
       repo.insertMedia({
         id: 'M1',
-        title: 'Portrait',
+        path: 'media/a.jpg',
+        title: 'File title',
+        medium: 'photograph',
+        contentType: 'person',
+        text: 'Transcription',
         date: { quality: 'exact', component: { year: 1900 } },
         place: 'Moscow',
         placeId: 'PL1',
@@ -184,22 +141,15 @@ describe('media repo edge cases', () => {
         keywords: 'family, portrait',
         targetType: 'person',
         targetId: 'P1',
-        files: [
-          {
-            id: 'F1',
-            path: 'media/a.jpg',
-            title: 'File title',
-            medium: 'photograph',
-            contentType: 'person',
-            text: 'Transcription',
-            translations: [{ id: 'T1', path: 'media/a.png', position: 0 }],
-          },
-        ],
       });
 
       const read = repo.getMedia('M1')!;
       expect(read).toMatchObject({
-        title: 'Portrait',
+        title: 'File title',
+        path: 'media/a.jpg',
+        medium: 'photograph',
+        contentType: 'person',
+        text: 'Transcription',
         place: 'Moscow',
         placeId: 'PL1',
         objectType: 'Photo',
@@ -207,24 +157,14 @@ describe('media repo edge cases', () => {
         keywords: 'family, portrait',
       });
       expect(read.date).toMatchObject({ quality: 'exact', component: { year: 1900 } });
-      expect(read.files?.[0]).toMatchObject({
-        id: 'F1',
-        path: 'media/a.jpg',
-        title: 'File title',
-        medium: 'photograph',
-        contentType: 'person',
-        text: 'Transcription',
-        translations: [{ id: 'T1', path: 'media/a.png', position: 0 }],
-      });
 
       const link = repo.listAttachmentsFor('person', 'P1').mediaLinks[0]!.link;
       repo.insertCitation({ id: 'C1', sourceId: 'S1', targetType: 'media_link', targetId: link.id });
       expect(repo.listCitationRecordsFor('media_link', link.id).map((citation) => citation.id)).toEqual(['C1']);
       expect(repo.listAttachmentsFor('person', 'P1').mediaLinkAttachments[0]?.attachments.citations).toHaveLength(1);
 
-      repo.updateMedia({ id: 'M1', title: 'Renamed' });
+      repo.updateMedia({ ...repo.getMedia('M1')!, title: 'Renamed', date: undefined });
       expect(repo.getMedia('M1')?.date).toBeUndefined();
-      expect(repo.getMedia('M1')?.files).toEqual([]);
       expect((store.db.prepare('SELECT COUNT(*) AS n FROM date').get() as { n: number }).n).toBe(0);
 
       repo.deleteAttachmentsFor('person', 'P1');

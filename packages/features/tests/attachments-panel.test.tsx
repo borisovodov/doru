@@ -32,7 +32,7 @@ function sectionVisible(title: string): boolean {
 }
 
 describe('AttachmentsPanel target policy', () => {
-  it('shows only notes on a task (media is feature-hidden)', () => {
+  it('shows only notes on a task', () => {
     renderUi(panel('task'));
 
     expect(sectionVisible(nls.t('features.tree.notes.title'))).toBe(true);
@@ -150,8 +150,8 @@ describe('AttachmentsPanel contacts', () => {
     const candidate = {
       id: 'M2',
       title: 'Portrait of Anna',
+      path: 'media/anna.jpg',
       absolutePath: '/demo/anna.jpg',
-      files: [{ id: 'MF2', path: 'media/anna.jpg', absolutePath: '/demo/anna.jpg' }],
     };
     renderUi(
       <MediaSection
@@ -187,8 +187,8 @@ describe('AttachmentsPanel contacts', () => {
     const item: MediaWithPath = {
       id: 'M1',
       title: 'Portrait of Anna',
+      path: 'media/anna.jpg',
       absolutePath: '/demo/anna.jpg',
-      files: [{ id: 'MF1', path: 'media/anna.jpg', absolutePath: '/demo/anna.jpg' }],
       links: [ownerLink, otherLink],
     };
     const detachMedia = vi.fn(async () => undefined);
@@ -231,8 +231,8 @@ describe('AttachmentsPanel contacts', () => {
     const item: MediaWithPath = {
       id: 'M1',
       title: 'Portrait of Anna',
+      path: 'media/anna.jpg',
       absolutePath: '/demo/anna.jpg',
-      files: [{ id: 'MF1', path: 'media/anna.jpg', absolutePath: '/demo/anna.jpg' }],
       links: [ownerLink],
     };
     renderUi(
@@ -254,5 +254,34 @@ describe('AttachmentsPanel contacts', () => {
 
     await screen.findByRole('button', { name: nls.t('features.tree.media.delete') });
     expect(screen.queryByRole('button', { name: nls.t('features.tree.media.detach') })).not.toBeInTheDocument();
+  });
+
+  it('renders external media as a silent placeholder', async () => {
+    const item: MediaWithPath = {
+      id: 'M1',
+      title: 'Remote portrait',
+      path: 'https://example.com/anna.jpg',
+      absolutePath: '',
+    };
+    renderUi(
+      <MediaSection
+        targetType="person"
+        targetId="P1"
+        media={[item]}
+        api={{
+          getMediaFor: async () => [item],
+          getAllMedia: async () => [item],
+          addMediaToTarget: async () => undefined,
+          attachMedia: async () => undefined,
+          detachMedia: async () => undefined,
+          deleteMedia: async () => undefined,
+        }}
+        refresh={async () => undefined}
+        onOpenMedia={vi.fn()}
+      />,
+    );
+
+    expect(await screen.findByText('Remote portrait')).toBeInTheDocument();
+    expect(document.querySelector('img')).toBeNull();
   });
 });

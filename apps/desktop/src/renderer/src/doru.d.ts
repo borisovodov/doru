@@ -5,7 +5,6 @@ import type {
   ContactRecord,
   FactRecord,
   FamilyRecord,
-  MediaFile,
   MediaLinkRecord,
   MediaRecord,
   NoteRecord,
@@ -204,8 +203,6 @@ declare global {
       addMedia(projectPath: string, targetType: string, targetId: string): Promise<MediaWithPath[]>;
       addStandaloneMedia(projectPath: string): Promise<MediaWithPath[]>;
       updateMedia(projectPath: string, before: MediaRecord, after: MediaRecord): Promise<UndoRedoState>;
-      addMediaFile(projectPath: string, mediaId: string): Promise<MediaWithPath | undefined>;
-      removeMediaFile(projectPath: string, media: MediaRecord, file: MediaFile): Promise<MediaWithPath | undefined>;
       deleteMedia(projectPath: string, media: MediaRecord): Promise<UndoRedoState>;
       attachMedia(projectPath: string, link: MediaLinkRecord): Promise<UndoRedoState>;
       attachMediaToTargets(projectPath: string, mediaId: string, targets: TargetRef[]): Promise<UndoRedoState>;

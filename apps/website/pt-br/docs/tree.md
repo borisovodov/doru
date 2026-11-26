@@ -1,5 +1,5 @@
 ---
-source-hash: bd745f4dc593
+source-hash: 162b59a48ae2
 ---
 
 # Trabalhando com a árvore
@@ -79,13 +79,9 @@ Obras, endereços, associações e vínculos de parceiro/filho das famílias tê
 
 ## Mídia
 
-As fotos são arquivos comuns na pasta `media/` ao lado do projeto. Adicione-as
-a partir de uma pessoa, família, fonte, lugar, repositório, submetedor, obra,
-tarefa ou endereço; a seção **Relacionado a** da aba de mídia permite anexar um registro existente a outros destinos. Clique em uma prévia para abrir a aba de mídia, onde
-você pode editar o título, gerenciar os arquivos e editar metadados do vínculo,
-como a legenda, a sequência, o sinalizador principal e o de exclusão.
+As fotos são arquivos comuns na pasta `media/` ao lado do projeto. Adicione-as a partir de uma pessoa, família, fonte, lugar, repositório, submetedor, obra, tarefa ou endereço; a seção **Relacionado a** da aba de mídia permite anexar um registro existente a outros destinos. Cada cartão de mídia contém exatamente um arquivo. Clique em uma prévia para abrir a aba de mídia, onde você pode editar o título e os metadados do vínculo, como legenda, sequência, sinalizador principal e sinalizador de exclusão.
 
-Um registro de mídia pode ser vinculado a vários destinos. **Desvincular deste registro** aparece apenas quando a mídia está vinculada a vários destinos; remove um vínculo. **Excluir mídia** remove o registro e as cópias dos seus arquivos. Excluir um registro de destino remove apenas seus vínculos, então um registro de mídia pode permanecer sem vínculos.
+Um registro de mídia pode ser vinculado a vários destinos. **Desvincular deste registro** aparece apenas quando a mídia está vinculada a vários destinos; remove um vínculo. **Excluir mídia** remove o registro e a cópia do seu arquivo. Excluir um registro de destino remove apenas seus vínculos, então um registro de mídia pode permanecer sem vínculos. Uma mídia importada de um `OBJE` GEDCOM com vários arquivos se torna um cartão por arquivo; formatos alternativos `TRAN` não são importados.
 
 ## Ordenação
 

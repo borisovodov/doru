@@ -291,12 +291,7 @@ export function attachmentsMatch(
         return;
       }
       records.set(key, JSON.stringify(direct(node)));
-      for (const nested of [
-        ...node.citationAttachments,
-        ...node.mediaAttachments,
-        ...node.mediaFileAttachments,
-        ...node.mediaLinkAttachments,
-      ]) {
+      for (const nested of [...node.citationAttachments, ...node.mediaAttachments, ...node.mediaLinkAttachments]) {
         const childKey = `${nested.targetType}\u0000${nested.targetId}`;
         edges.push(`${key}>${childKey}`);
         walk(nested.attachments, childKey);
@@ -357,8 +352,6 @@ export function attachmentTargetExists(ctx: MutationContext, targetType: string,
       return ctx.repo.getPlace(targetId) !== undefined;
     case 'media':
       return ctx.repo.getMedia(targetId) !== undefined;
-    case 'media_file':
-      return ctx.repo.hasMediaFile(targetId);
     case 'media_link':
       return ctx.repo.hasMediaLink(targetId);
     case 'task':

@@ -186,10 +186,10 @@ writes inline `NOTE` structures and never emits `SNOTE` records or pointers.
 The note-link table and the split/attach/detach operations are gone.
 
 Some note targets have no GEDCOM note slot of their own: name parts and name
-variants, place names and hierarchy links, address lines, and media files.
-Their notes are emitted on the nearest enclosing standard NOTE slot (`NAME`,
-`_PLAC`, `ADDR`, `OBJE`). Import attaches them back to that parent, so the
-text round-trips but the fine-grained target does not.
+variants, place names and hierarchy links, and address lines. Their notes are
+emitted on the nearest enclosing standard NOTE slot (`NAME`, `_PLAC`, `ADDR`).
+Import attaches them back to that parent, so the text round-trips but the
+fine-grained target does not.
 
 ## Contacts belong to their GEDCOM owner
 
@@ -333,25 +333,30 @@ belong to, which keeps the sidebar focused on records with their own tabs.
 
 ## GEDCOM media
 
-Media metadata and links are always imported. GEDZIP bytes are copied into
-the project's `media/` folder; plain GEDCOM `FILE` paths are copied when the
-referenced file is reachable on the importing machine. Unresolvable paths
-stay external references in the database and are hidden from the UI. Export
-offers GEDCOM 7.0 (`.ged`, paths only) and GEDZIP (`.gdz`, bundled files);
-the choice lives in the Export tab, not in a save-dialog filter.
+Dóru models one media card as exactly one file. A GEDCOM `OBJE` with several
+`FILE` rows is split into one card per file on import; the record metadata,
+notes, citations, submitters, links and link citations are duplicated onto
+every card. The first card keeps the original `xref`, the others receive fresh
+export identifiers. `TRAN` is ignored. GEDZIP bytes and reachable local
+`FILE` paths are copied into the project's `media/` folder. Plain `http(s)`
+URLs are downloaded silently with protocol, size, timeout and private-address
+limits; a failed download keeps the URL in `media.path` and the UI shows a
+silent generic placeholder. Export offers GEDCOM 7.0 (`.ged`, paths only) and
+GEDZIP (`.gdz`, bundled local files); the choice lives in the Export tab, not
+in a save-dialog filter.
 
-The database stores only historical/GEDCOM metadata: the record title,
+The database stores historical/GEDCOM metadata on the media row: title,
 `_DATE`, `_PLAC`, `_TYPE`, `_DSCR` and `_KEYS`, plus the file's `MEDI`,
-`_CTYP`, `_TEXT` and `TRAN` rows. Technical facts — MIME type, byte size
-and image dimensions — are derived from the file in the main process and
-never persisted; EXIF metadata is neither derived nor stored. A moved or
-replaced file therefore reports fresh facts, and a missing file reports none
-instead of stale values. `FORM` is synthesized
-from the file path on export; `TRAN` is written only for GEDCOM 7.0. Sources
-and notes attach to the media record (`media`); vendor `SOUR` lines under an
-`OBJE` link attach to the link (`media_link`) and are editable in the media
-tab. A media link is a source-only nested row: citations may target it, while
-notes, media, contacts, contributors, and tasks may not.
+`_CTYP` and `_TEXT`. Technical facts — MIME type, byte size and image
+dimensions — are derived from the file in the main process and never
+persisted; EXIF metadata is neither derived nor stored. A moved or replaced
+file therefore reports fresh facts, and a missing file reports none instead of
+stale values. `FORM` is synthesized from the file path on export. Sources and
+notes attach to the media card (`media`); vendor `SOUR` lines under an `OBJE`
+link attach to the link (`media_link`) and are editable in the media tab. A
+media link is a source-only nested row: citations may target it, while notes,
+media, contacts, contributors, and tasks may not. There is no separate
+`media_file` attachment target.
 
 ## API stability before 1.0.0
 

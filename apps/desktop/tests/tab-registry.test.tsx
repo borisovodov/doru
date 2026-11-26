@@ -14,7 +14,7 @@ const context: TabLabelContext = {
   tasks: [{ id: 't1', text: 'Check the census', targets: [] }],
   titles: [],
   media: [
-    { id: 'm1', title: 'Portrait', absolutePath: '/tmp/portrait.jpg' },
+    { id: 'm1', title: 'Portrait', path: 'media/portrait.jpg', absolutePath: '/tmp/portrait.jpg' },
     { id: 'm2', path: 'photos/census.jpg', absolutePath: '/tmp/census.jpg' },
   ],
 };

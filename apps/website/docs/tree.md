@@ -95,14 +95,16 @@ has Sources only.
 Photos are ordinary files in the `media/` folder next to the project. Add them
 from a person, family, source, place, repository, submitter, title, task or
 address; the media tab's **Related to** section lets you attach an existing
-record to additional targets. Click a preview to open the media tab, where you
-can edit the title, manage files and edit link metadata such as the caption,
-sequence, primary flag and exclusion flag.
+record to additional targets. Each media card holds exactly one file. Click a
+preview to open the media tab, where you can edit the title and edit link
+metadata such as the caption, sequence, primary flag and exclusion flag.
 
 A media record can be linked to several targets. **Detach from this record**
 appears only when the media is linked to several targets; it removes one link.
-**Delete media** removes the record and its file copies. Deleting a target
+**Delete media** removes the record and its file copy. Deleting a target
 record removes only its links, so a media record can remain without links.
+Media imported from a GEDCOM `OBJE` with several files becomes one card per
+file; `TRAN` alternative formats are not imported.
 
 ## Ordering
 

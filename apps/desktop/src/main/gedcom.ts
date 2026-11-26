@@ -18,6 +18,7 @@ import {
   type GedzipMediaEntry,
 } from '@doru/gedcom';
 import { NodeFileSystem } from './filesystem';
+import { downloadRemoteMedia, isDownloadableMediaUrl, isExternalMediaUrl, remoteMediaExtension } from './mediaDownload';
 import { resolveImportFile, resolveMediaPath } from './mediaPaths';
 import { log } from './log';
 import { nls } from './nls';
@@ -28,19 +29,109 @@ import { bindingOf, openProjectInWindow } from './windows';
 
 const fs = new NodeFileSystem();
 
+const REMOTE_MEDIA_CONCURRENCY = 4;
+const REMOTE_MEDIA_TOTAL_LIMIT = 500 * 1024 * 1024;
+const REMOTE_MEDIA_FILE_LIMIT = 100 * 1024 * 1024;
+const REMOTE_MEDIA_MAX_URLS = 1000;
+const REMOTE_MEDIA_TOTAL_TIME_MS = 10 * 60_000;
+const REMOTE_MEDIA_FILE_TIMEOUT_MS = 30_000;
+
+/** The log surface used while copying media; injectable for tests. */
+export interface GedcomMediaLogger {
+  info(...args: unknown[]): void;
+  warn(...args: unknown[]): void;
+}
+
+/** Injectable seams for unit tests; production uses the defaults. */
+export interface GedcomMediaDependencies {
+  download?: typeof downloadRemoteMedia | undefined;
+  write?: ((path: string, contents: Uint8Array) => Promise<void>) | undefined;
+  logger?: GedcomMediaLogger | undefined;
+}
+
+/** Keeps credentials, query tokens and fragments out of the import log. */
+function redactMediaUrl(value: string): string {
+  try {
+    const url = new URL(value);
+    return `${url.protocol}//${url.host}/…`;
+  } catch {
+    return 'invalid media URL';
+  }
+}
+
+/** A log-safe failure category: never a message, URL, stack or cause. */
+function mediaFailureCategory(error: unknown): string {
+  if (error instanceof Error) {
+    if (error.name === 'AbortError' || error.name === 'TimeoutError') {
+      return error.name;
+    }
+    const code = (error as { code?: unknown }).code;
+    if (typeof code === 'string' && /^[A-Z0-9_]{1,64}$/.test(code)) {
+      return code;
+    }
+  }
+  return 'download failed';
+}
+
+/**
+ * Maps items with bounded concurrency, preserving the input order. After the
+ * first failure no new items are assigned; active workers finish before the
+ * first error is rethrown, so callers can safely tear down shared state.
+ */
+async function mapWithConcurrency<T>(
+  items: readonly T[],
+  limit: number,
+  map: (item: T, shouldStop: () => boolean) => Promise<void>,
+): Promise<void> {
+  let nextIndex = 0;
+  const status: { failed: boolean; hasFailure: boolean; failure: unknown } = {
+    failed: false,
+    hasFailure: false,
+    failure: undefined,
+  };
+  const workers = Array.from({ length: Math.min(limit, items.length) }, async () => {
+    while (!status.failed) {
+      const index = nextIndex;
+      nextIndex += 1;
+      const item = items[index];
+      if (item === undefined) {
+        return;
+      }
+      try {
+        await map(item, () => status.failed);
+      } catch (error) {
+        if (!status.hasFailure) {
+          status.hasFailure = true;
+          status.failure = error;
+        }
+        status.failed = true;
+        return;
+      }
+    }
+  });
+  await Promise.all(workers);
+  if (status.hasFailure) {
+    throw status.failure instanceof Error ? status.failure : new Error(String(status.failure));
+  }
+}
+
 /** Copies GEDCOM media into the project folder and maps FILE paths to them. */
-async function prepareGedcomMedia(
+export async function prepareGedcomMedia(
   dataset: GedcomDataset,
   entries: GedzipMediaEntry[] | undefined,
   sourcePath: string,
   tempDir: string,
+  dependencies: GedcomMediaDependencies = {},
 ): Promise<Map<string, string>> {
+  const download = dependencies.download ?? downloadRemoteMedia;
+  const write = dependencies.write ?? ((path: string, contents: Uint8Array) => fs.writeBinary(path, contents));
+  const logger = dependencies.logger ?? log;
   const paths = new Map<string, string>();
   const mediaDir = join(tempDir, MEDIA_DIR_NAME);
   await fs.mkdir(mediaDir);
-  const store = async (contents: Uint8Array, original: string): Promise<void> => {
-    const name = `${randomUUID()}${extname(original) || '.bin'}`;
-    await fs.writeBinary(join(mediaDir, name), contents);
+  const store = async (contents: Uint8Array, original: string, extension?: string): Promise<void> => {
+    const name = `${randomUUID()}${extension ?? (extname(original) || '.bin')}`;
+    await write(join(mediaDir, name), contents);
     paths.set(original, `${MEDIA_DIR_NAME}/${name}`);
   };
   if (entries !== undefined) {
@@ -49,49 +140,150 @@ async function prepareGedcomMedia(
         await store(entry.contents, entry.name);
       }
     }
-    return paths;
   }
+
+  let remoteBytes = 0;
+  let reservedBytes = 0;
+  let remoteDownloaded = 0;
+  let remoteFailed = 0;
+  let remoteDeadline = 0;
+  const budgetWaiters: Array<() => void> = [];
+  const notifyBudgetReleased = (): void => {
+    for (const wake of budgetWaiters.splice(0)) {
+      wake();
+    }
+  };
+  const storeRemote = async (original: string, shouldStop: () => boolean): Promise<void> => {
+    if (paths.has(original) || shouldStop()) {
+      return;
+    }
+    let reserved = 0;
+    let remainingTime = 0;
+    for (;;) {
+      if (shouldStop()) {
+        return;
+      }
+      const available = REMOTE_MEDIA_TOTAL_LIMIT - remoteBytes;
+      if (available <= 0) {
+        remoteFailed += 1;
+        logger.warn('gedcom import: remote media skipped, total size limit reached');
+        return;
+      }
+      const remaining = available - reservedBytes;
+      const wanted = Math.min(REMOTE_MEDIA_FILE_LIMIT, available);
+      if (remaining >= wanted) {
+        remainingTime = remoteDeadline - Date.now();
+        if (remainingTime <= 0) {
+          remoteFailed += 1;
+          logger.warn('gedcom import: remote media skipped, total time limit reached');
+          return;
+        }
+        reserved = wanted;
+        break;
+      }
+      if (remoteDeadline <= Date.now()) {
+        remoteFailed += 1;
+        logger.warn('gedcom import: remote media skipped, total time limit reached');
+        return;
+      }
+      // Other workers hold the remaining budget: wait for a release instead
+      // of discarding a URL that may still fit.
+      await new Promise<void>((resolve) => budgetWaiters.push(resolve));
+    }
+    reservedBytes += reserved;
+    let downloaded: Awaited<ReturnType<typeof download>>;
+    try {
+      downloaded = await download(original, {
+        maxBytes: reserved,
+        timeoutMs: Math.min(REMOTE_MEDIA_FILE_TIMEOUT_MS, remainingTime),
+      });
+    } catch (error) {
+      remoteFailed += 1;
+      logger.warn('gedcom import: could not download media URL', redactMediaUrl(original), mediaFailureCategory(error));
+      return;
+    } finally {
+      reservedBytes -= reserved;
+      notifyBudgetReleased();
+    }
+    // Project-write failures are not per-payload and must propagate.
+    remoteBytes += downloaded.bytes.byteLength;
+    await store(downloaded.bytes, original, remoteMediaExtension(downloaded.contentType, original));
+    remoteDownloaded += 1;
+  };
+
+  const storeReachable = async (original: string): Promise<void> => {
+    if (original === '' || paths.has(original)) {
+      return;
+    }
+    let contents: Uint8Array | undefined;
+    try {
+      // A GEDCOM from another person may name any readable file: only
+      // payloads whose canonical path stays beside the source file may be
+      // imported.
+      const candidate = resolve(dirname(sourcePath), original);
+      const safe = await resolveImportFile(dirname(sourcePath), candidate);
+      if (safe === null) {
+        logger.warn('gedcom import: skipped media outside the source folder', original);
+        return;
+      }
+      if (!(await fs.exists(safe)) || !(await stat(safe)).isFile()) {
+        return;
+      }
+      contents = await fs.readBinary(safe);
+      if ((await resolveImportFile(dirname(sourcePath), candidate)) !== safe) {
+        return;
+      }
+    } catch (error) {
+      // Unreadable payloads stay external and hidden; they must not abort
+      // the whole import.
+      logger.warn('gedcom import: could not read media payload', original, error);
+      return;
+    }
+    // Project-write failures are not per-payload and must propagate.
+    await store(contents, original);
+  };
+
+  const remoteUrls = new Set<string>();
+  const localPaths = new Set<string>();
   for (const record of dataset.records) {
     if (record.tag !== 'OBJE') {
       continue;
     }
-    const storeReachable = async (original: string): Promise<void> => {
-      if (original === '' || paths.has(original)) {
-        return;
-      }
-      let contents: Uint8Array | undefined;
-      try {
-        // A GEDCOM from another person may name any readable file: only
-        // payloads whose canonical path stays beside the source file may be
-        // imported.
-        const candidate = resolve(dirname(sourcePath), original);
-        const safe = await resolveImportFile(dirname(sourcePath), candidate);
-        if (safe === null) {
-          log.warn('gedcom import: skipped media outside the source folder', original);
-          return;
-        }
-        if (!(await fs.exists(safe)) || !(await stat(safe)).isFile()) {
-          return;
-        }
-        contents = await fs.readBinary(safe);
-        if ((await resolveImportFile(dirname(sourcePath), candidate)) !== safe) {
-          return;
-        }
-      } catch (error) {
-        // Unreadable payloads stay external and hidden; they must not abort
-        // the whole import.
-        log.warn('gedcom import: could not read media payload', original, error);
-        return;
-      }
-      // Project-write failures are not per-payload and must propagate.
-      await store(contents, original);
-    };
     for (const file of record.files) {
-      await storeReachable(file.payload);
-      for (const translation of file.translations ?? []) {
-        await storeReachable(translation.payload);
+      const payload = file.payload;
+      if (payload === '' || paths.has(payload)) {
+        continue;
+      }
+      if (isDownloadableMediaUrl(payload)) {
+        remoteUrls.add(payload);
+      } else if (isExternalMediaUrl(payload)) {
+        // ftp:// and file:// stay external references.
+        logger.warn('gedcom import: external media URL left as a reference', redactMediaUrl(payload));
+      } else if (entries === undefined) {
+        // A GEDZIP must bundle its local files. Never copy a same-named file
+        // from beside the archive on the strength of an archive-supplied path.
+        localPaths.add(payload);
       }
     }
+  }
+  for (const original of localPaths) {
+    await storeReachable(original);
+  }
+  remoteDeadline = Date.now() + REMOTE_MEDIA_TOTAL_TIME_MS;
+  const urls = [...remoteUrls];
+  const cappedUrls = urls.slice(0, REMOTE_MEDIA_MAX_URLS);
+  const skippedUrls = urls.length - cappedUrls.length;
+  if (skippedUrls > 0) {
+    remoteFailed += skippedUrls;
+    logger.warn('gedcom import: remote media skipped, URL count limit reached', { skipped: skippedUrls });
+  }
+  await mapWithConcurrency(cappedUrls, REMOTE_MEDIA_CONCURRENCY, storeRemote);
+  if (remoteDownloaded > 0 || remoteFailed > 0) {
+    logger.info('gedcom import: remote media', {
+      downloaded: remoteDownloaded,
+      failed: remoteFailed,
+      bytes: remoteBytes,
+    });
   }
   return paths;
 }
@@ -181,12 +373,7 @@ export async function exportGedcom(
         }
       };
       for (const media of repo.listAllMedia()) {
-        for (const file of media.files ?? []) {
-          await appendFile(file.path);
-          for (const translation of file.translations ?? []) {
-            await appendFile(translation.path);
-          }
-        }
+        await appendFile(media.path);
       }
       result = serializeGedzip({ dataset, mediaFiles });
     } else {

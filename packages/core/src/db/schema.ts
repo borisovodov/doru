@@ -51,10 +51,10 @@ export const DORU_APPLICATION_ID = 0x444f5255;
  * Bumped whenever the schema changes. There are no migrations before 1.0.0:
  * a newer version may simply not understand files written by older ones
  * (the store refuses to open them with a loud error). This schema uses
- * version 25, above every version written by an earlier build (the old model
+ * version 26, above every version written by an earlier build (the old model
  * reached 18), so the open guard cannot mistake an old file for this one.
  */
-export const SCHEMA_VERSION = 25;
+export const SCHEMA_VERSION = 26;
 
 export const SCHEMA_SQL = `
 CREATE TABLE IF NOT EXISTS person (
@@ -386,17 +386,21 @@ CREATE TABLE IF NOT EXISTS citation_template_field (
   position INTEGER NOT NULL
 );
 
--- Media: records with file rows and links. File bytes live in the media/
--- folder next to the .doru file, never in the database. Historical GEDCOM
--- metadata (date, place, object type, description, keywords) is stored on
--- the media row; medium, content type and transcription text live on the
--- file rows, and translated files in media_file_translation. MIME, size and
--- dimensions are derived from the file itself.
+-- Media: one record, one file, many links. File bytes live in the media/
+-- folder next to the .doru file, never in the database. path is either a
+-- project-relative path under that folder or an external URL. Historical
+-- GEDCOM metadata (date, place, object type, description, keywords) and the
+-- file metadata (medium, content type, transcription) live on this row. MIME,
+-- size and dimensions are derived from the file itself.
 
 CREATE TABLE IF NOT EXISTS media (
   id TEXT PRIMARY KEY,
   xref TEXT,
   title TEXT,
+  path TEXT NOT NULL,     -- project-relative path or external URL
+  medium TEXT,            -- FORM.MEDI
+  content_type TEXT,      -- _CTYP
+  text TEXT,              -- _TEXT transcription
   place_id TEXT REFERENCES place(id) ON DELETE SET NULL,
   place_text TEXT,
   object_type TEXT,       -- _TYPE: Photo | Sound | Video | Document ...
@@ -405,25 +409,6 @@ CREATE TABLE IF NOT EXISTS media (
   date_id TEXT REFERENCES date(id) ON DELETE RESTRICT,
   created_at INTEGER,
   updated_at INTEGER
-);
-
-CREATE TABLE IF NOT EXISTS media_file (
-  id TEXT PRIMARY KEY,
-  media_id TEXT NOT NULL REFERENCES media(id) ON DELETE CASCADE,
-  path TEXT NOT NULL,
-  title TEXT,
-  medium TEXT,            -- FORM.MEDI
-  content_type TEXT,      -- _CTYP
-  text TEXT,              -- _TEXT transcription
-  position INTEGER NOT NULL
-);
-
--- TRAN: the same media content in another digital format.
-CREATE TABLE IF NOT EXISTS media_file_translation (
-  id TEXT PRIMARY KEY,
-  media_file_id TEXT NOT NULL REFERENCES media_file(id) ON DELETE CASCADE,
-  path TEXT NOT NULL,
-  position INTEGER NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS media_link (
@@ -625,8 +610,6 @@ CREATE INDEX IF NOT EXISTS idx_citation_source ON citation(source_id);
 CREATE INDEX IF NOT EXISTS idx_citation_target ON citation(target_type, target_id);
 CREATE INDEX IF NOT EXISTS idx_citation_text_citation ON citation_text(citation_id);
 CREATE INDEX IF NOT EXISTS idx_citation_template_field_citation ON citation_template_field(citation_id);
-CREATE INDEX IF NOT EXISTS idx_media_file_media ON media_file(media_id, position);
-CREATE INDEX IF NOT EXISTS idx_media_file_translation_file ON media_file_translation(media_file_id, position);
 CREATE INDEX IF NOT EXISTS idx_media_link_media ON media_link(media_id);
 CREATE INDEX IF NOT EXISTS idx_media_link_target ON media_link(target_type, target_id);
 CREATE INDEX IF NOT EXISTS idx_submitter_language ON submitter_language(submitter_id);

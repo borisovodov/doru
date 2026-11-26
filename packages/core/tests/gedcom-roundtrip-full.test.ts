@@ -82,7 +82,7 @@ describe('buildGedcomDataset kitchen sink', () => {
         const media = target.repo.listAllMedia();
         expect(media).toHaveLength(1);
         expect(media[0]?.title).toBe('Portrait');
-        expect(media[0]?.files?.[0]?.path).toBe('media/photo.jpg');
+        expect(media[0]?.path).toBe('media/photo.jpg');
         expect(target.repo.listMediaFor('person', ivan!.id)).toHaveLength(1);
 
         const tasks = target.repo.listTasks();
