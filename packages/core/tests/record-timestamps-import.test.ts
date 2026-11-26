@@ -177,8 +177,8 @@ describe('GEDCOM import timestamps', () => {
       });
       expect(notes.find((entry) => entry.text === 'Inline note')).toMatchObject({
         targetType: 'person',
-        createdAt: expect.any(Number),
-        updatedAt: expect.any(Number),
+        createdAt: IMPORT_TIME,
+        updatedAt: IMPORT_TIME,
       });
       const place = fixture.repo.listPlaces().find((entry) => entry.names.some((name) => name.value === 'Moscow'))!;
       expect(place).toMatchObject({ createdAt: local(2015, 1, 1), updatedAt: local(2015, 1, 1) });
