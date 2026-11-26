@@ -98,8 +98,9 @@ exported as `NOTE`, not as the vendor `TEXT` tag.
 `EXID`), the 5.5.1-only `AFN`/`RFN`/`RIN` fields and every vendor identity
 field, but the tree mapping ignores all of them. Dóru has no identifier
 table, no identifier attachment, and no identifier editor; export never
-writes identifier tags. The parser-level model and tests remain in the
-format package, which is storage-free by design.
+writes `UID`, `EXID`, `REFN`, `AFN`, `RFN`, `RIN` or `_GOV` tags. Record
+`xref`s remain provenance for GEDCOM pointers. The parser-level model and
+tests remain in the format package, which is storage-free by design.
 
 ## GEDCOM task repositories, categories, localities, titles, and types
 

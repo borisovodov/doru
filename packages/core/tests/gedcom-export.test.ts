@@ -24,6 +24,14 @@ describe('buildGedcomDataset', () => {
           '1 AFN 123',
           '1 RFN 456',
           '1 RIN 789',
+          '1 SOUR @S1@',
+          '2 REFN citation-ref',
+          '0 @S1@ SOUR',
+          '1 TITL Parish register',
+          '1 REFN source-ref',
+          '0 @L1@ _LOC',
+          '1 NAME Tula',
+          '1 _GOV RU-TUL',
           '0 TRLR',
         ].join('\n'),
       ),
@@ -41,7 +49,7 @@ describe('buildGedcomDataset', () => {
         if (!serialized.ok) {
           continue;
         }
-        expect(serialized.value).not.toMatch(/^[0-9]+ (?:UID|EXID|REFN|_UID|AFN|RFN|RIN)(?: |\r?$)/m);
+        expect(serialized.value).not.toMatch(/^[0-9]+ (?:UID|EXID|REFN|_UID|AFN|RFN|RIN|_GOV)(?: |\r?$)/m);
       }
     } finally {
       cleanupRepo(fixture);

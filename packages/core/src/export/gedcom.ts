@@ -1038,7 +1038,6 @@ function buildCitation(
       ? { qualityAssessment: { tag: '_QUAL' as const, source: row.qualityAssessment } }
       : {}),
     ...(row.reference !== undefined ? { reference: row.reference } : {}),
-    ...(row.referenceNumber !== undefined ? { referenceNumber: row.referenceNumber } : {}),
     ...(row.abbreviation !== undefined ? { abbreviation: row.abbreviation } : {}),
     ...(row.footnote !== undefined ? { footnote: row.footnote } : {}),
     ...(row.verified === true ? { verified: true } : {}),
@@ -1500,7 +1499,6 @@ function buildPlaceRecord(place: PlaceRecord, repo: TreeRepository, xrefs: Xrefs
     ...(place.form !== undefined ? { form: place.form.join(', ') } : {}),
     ...(place.abbreviation !== undefined ? { abbreviation: place.abbreviation } : {}),
     ...(place.preposition !== undefined ? { preposition: place.preposition } : {}),
-    ...(place.govId !== undefined ? { govId: place.govId } : {}),
     ...(place.maidenhead !== undefined ? { maidenhead: place.maidenhead } : {}),
     ...(place.placeType !== undefined ? { types: [{ type: place.placeType }] } : {}),
     ...(place.latitude !== undefined && place.longitude !== undefined

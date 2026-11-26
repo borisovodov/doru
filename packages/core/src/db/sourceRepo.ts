@@ -40,7 +40,6 @@ interface CitationRow {
   name: string | null;
   quality_assessment: string | null;
   reference: string | null;
-  reference_number: string | null;
   abbreviation: string | null;
   footnote: string | null;
   verified: number;
@@ -217,8 +216,8 @@ export class SourceRepo {
         .prepare(
           `INSERT INTO citation (id, source_id, target_type, target_id, description, page, quality,
              confidence, event, role, phrase, www, name, quality_assessment, reference,
-             reference_number, abbreviation, footnote, verified, assessment, found_by, date_id)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+             abbreviation, footnote, verified, assessment, found_by, date_id)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         )
         .run(...citationParams(citation), dateId);
       this.replaceCitationDetails(citation);
@@ -238,7 +237,7 @@ export class SourceRepo {
         .prepare(
           `UPDATE citation SET source_id = ?, target_type = ?, target_id = ?, description = ?, page = ?,
              quality = ?, confidence = ?, event = ?, role = ?, phrase = ?, www = ?,
-             name = ?, quality_assessment = ?, reference = ?, reference_number = ?, abbreviation = ?,
+             name = ?, quality_assessment = ?, reference = ?, abbreviation = ?,
              footnote = ?, verified = ?, assessment = ?, found_by = ?, date_id = ?
            WHERE id = ?`,
         )
@@ -487,7 +486,6 @@ export class SourceRepo {
       name: row.name ?? undefined,
       qualityAssessment: row.quality_assessment ?? undefined,
       reference: row.reference ?? undefined,
-      referenceNumber: row.reference_number ?? undefined,
       abbreviation: row.abbreviation ?? undefined,
       footnote: row.footnote ?? undefined,
       verified: row.verified === 1 ? true : undefined,
@@ -520,7 +518,7 @@ const sourceSelect = `SELECT id, xref, title, abbreviation, author, publication,
 
 const citationSelect = `SELECT id, source_id, target_type, target_id, description, page, quality,
   confidence, event, role, phrase, www, name, quality_assessment, reference,
-  reference_number, abbreviation, footnote, verified, assessment, found_by, date_id
+  abbreviation, footnote, verified, assessment, found_by, date_id
   FROM citation`;
 
 function sourceDataEventReservations(rows: Array<{ id: string; date_id: string | null }>): DateReservations {
@@ -588,7 +586,6 @@ function citationParams(citation: CitationRecord): Array<string | number | null>
     citation.name ?? null,
     citation.qualityAssessment ?? null,
     citation.reference ?? null,
-    citation.referenceNumber ?? null,
     citation.abbreviation ?? null,
     citation.footnote ?? null,
     citation.verified ? 1 : 0,

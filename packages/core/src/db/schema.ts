@@ -223,7 +223,6 @@ CREATE TABLE IF NOT EXISTS place (
   form TEXT,
   abbreviation TEXT,
   preposition TEXT,
-  gov_id TEXT,
   maidenhead TEXT,
   place_type TEXT
 );
@@ -357,7 +356,6 @@ CREATE TABLE IF NOT EXISTS citation (
   name TEXT,
   quality_assessment TEXT,
   reference TEXT,
-  reference_number TEXT,
   abbreviation TEXT,
   footnote TEXT,
   verified INTEGER NOT NULL DEFAULT 0,

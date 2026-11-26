@@ -44,7 +44,6 @@ describe('placeToDraft / placeDraftToRecord', () => {
       form: ['city', 'region', 'country'],
       abbreviation: 'TUL',
       preposition: 'in',
-      govId: 'RU-TUL',
       maidenhead: 'KO91',
       placeType: 'city',
       names: [
@@ -77,7 +76,6 @@ describe('placeToDraft / placeDraftToRecord', () => {
       form: 'city, region, country',
       abbreviation: 'TUL',
       preposition: 'in',
-      govId: 'RU-TUL',
       maidenhead: 'KO91',
       placeType: 'city',
       hierarchy: [{ id: 'H1', parentId: 'PL2', type: 'poli' }],

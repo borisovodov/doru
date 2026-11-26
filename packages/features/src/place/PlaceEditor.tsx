@@ -253,9 +253,6 @@ export function PlaceEditor({
           <Field label={nls.t('features.tree.place.preposition')}>
             <Input value={draft.preposition} onChange={(event) => set({ preposition: event.target.value })} />
           </Field>
-          <Field label={nls.t('features.tree.place.govId')}>
-            <Input value={draft.govId} onChange={(event) => set({ govId: event.target.value })} />
-          </Field>
           <Field label={nls.t('features.tree.place.maidenhead')}>
             <Input value={draft.maidenhead} onChange={(event) => set({ maidenhead: event.target.value })} />
           </Field>

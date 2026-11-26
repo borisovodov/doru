@@ -513,7 +513,6 @@ export interface PlaceRecord {
   form?: string[] | undefined;
   abbreviation?: string | undefined;
   preposition?: string | undefined;
-  govId?: string | undefined;
   maidenhead?: string | undefined;
   placeType?: string | undefined;
   names: PlaceName[];
@@ -614,8 +613,6 @@ export interface CitationRecord {
   qualityAssessment?: string | undefined;
   /** A cross-reference to another citation (vendor `_CREF`). */
   reference?: string | undefined;
-  /** The citation reference number (REFN). */
-  referenceNumber?: string | undefined;
   abbreviation?: string | undefined;
   footnote?: string | undefined;
   verified?: boolean | undefined;

@@ -1627,7 +1627,6 @@ function importCitation(citation: SourceCitation, targetType: string, targetId: 
             .join(' / ') || undefined
         : undefined,
     reference: citation.reference,
-    referenceNumber: citation.referenceNumber,
     abbreviation: citation.abbreviation,
     footnote: citation.footnote,
     verified: citation.verified,
@@ -2093,7 +2092,6 @@ function importPlaceRecords(records: GedcomRecord[], ctx: ImportContext): void {
       ...(record.form !== undefined ? { form: record.form.split(',') } : {}),
       ...(record.abbreviation !== undefined ? { abbreviation: record.abbreviation } : {}),
       ...(record.preposition !== undefined ? { preposition: record.preposition } : {}),
-      ...(record.govId !== undefined ? { govId: record.govId } : {}),
       ...(record.maidenhead !== undefined ? { maidenhead: record.maidenhead } : {}),
       ...(record.types !== undefined && record.types.length > 0 ? { placeType: record.types[0]?.type } : {}),
       names,

@@ -23,7 +23,6 @@ export interface CitationDraft {
   name: string;
   qualityAssessment: string;
   reference: string;
-  referenceNumber: string;
   abbreviation: string;
   footnote: string;
   verified: boolean;
@@ -51,7 +50,6 @@ export function citationToDraft(citation: CitationRecord): CitationDraft {
     name: citation.name ?? '',
     qualityAssessment: citation.qualityAssessment ?? '',
     reference: citation.reference ?? '',
-    referenceNumber: citation.referenceNumber ?? '',
     abbreviation: citation.abbreviation ?? '',
     footnote: citation.footnote ?? '',
     verified: citation.verified === true,
@@ -90,7 +88,6 @@ export function citationDraftToRecord(draft: CitationDraft, existing?: CitationR
     name: draft.name.trim() || undefined,
     qualityAssessment: draft.qualityAssessment.trim() || undefined,
     reference: draft.reference.trim() || undefined,
-    referenceNumber: draft.referenceNumber.trim() || undefined,
     abbreviation: draft.abbreviation.trim() || undefined,
     footnote: draft.footnote.trim() || undefined,
     verified: draft.verified || undefined,

@@ -113,7 +113,6 @@ describe('schema v3 extra structures', () => {
         form: ['city', 'region', 'country'],
         abbreviation: 'TUL',
         preposition: 'in',
-        govId: 'RU-TUL',
         maidenhead: 'KO91',
         placeType: 'city',
         names: [
@@ -163,7 +162,6 @@ describe('schema v3 extra structures', () => {
         name: 'citation name',
         qualityAssessment: 'high',
         reference: 'CREF-1',
-        referenceNumber: 'REFN-1',
         abbreviation: 'Reg.',
         footnote: 'see register',
         verified: true,
@@ -175,7 +173,6 @@ describe('schema v3 extra structures', () => {
         form: ['city', 'region', 'country'],
         abbreviation: 'TUL',
         preposition: 'in',
-        govId: 'RU-TUL',
         maidenhead: 'KO91',
         placeType: 'city',
       });
@@ -208,7 +205,6 @@ describe('schema v3 extra structures', () => {
         name: 'citation name',
         qualityAssessment: 'high',
         reference: 'CREF-1',
-        referenceNumber: 'REFN-1',
         abbreviation: 'Reg.',
         footnote: 'see register',
         verified: true,

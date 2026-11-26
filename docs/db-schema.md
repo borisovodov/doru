@@ -475,7 +475,6 @@ erDiagram
         TEXT form "jurisdiction type list"
         TEXT abbreviation
         TEXT preposition
-        TEXT gov_id
         TEXT maidenhead
         TEXT place_type
     }
@@ -650,7 +649,6 @@ erDiagram
         TEXT name
         TEXT quality_assessment
         TEXT reference "vendor _CREF"
-        TEXT reference_number "REFN"
         TEXT abbreviation
         TEXT footnote
         INTEGER verified "NOT NULL, default 0"
