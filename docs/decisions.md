@@ -249,9 +249,9 @@ every task edit, and `remind_at` is the single user-chosen reminder instant.
 Closing a task only changes its status; there is no separate completion
 timestamp. Link changes do not count as edits. The UI uses a date-and-time
 control, not the GEDCOM date editor. Import maps a complete exact
-`_TODO.CHAN` to `updated_at`; when it is absent, `updated_at` follows
-`created_at`, which falls back to the import instant when no GEDCOM task date
-is usable.
+`_TODO.CHAN` to `updated_at`, raised to `created_at` when earlier; when it is
+absent, `updated_at` follows `created_at`. `created_at` uses a complete exact
+task date, otherwise the import instant.
 
 GEDCOM task dates are imported only when they are complete exact dates:
 My Family Tree's encoded `DDMMYYYY` text in the record form, and exact GEDCOM

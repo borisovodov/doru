@@ -92,6 +92,9 @@ const GEDCOM = [
   '1 _TCDT 2010-01-01',
   '1 CHAN',
   '2 DATE 2 FEB 2020',
+  '0 _TODO Change only',
+  '1 CHAN',
+  '2 DATE 2 FEB 2020',
   '0 TRLR',
 ].join('\n');
 
@@ -192,6 +195,11 @@ describe('GEDCOM import timestamps', () => {
       expect(task).toMatchObject({
         createdAt: local(2010, 1, 1),
         updatedAt: local(2020, 2, 2),
+      });
+      const changeOnly = fixture.repo.listTasks().find((entry) => entry.text === 'Change only')!;
+      expect(changeOnly).toMatchObject({
+        createdAt: IMPORT_TIME,
+        updatedAt: IMPORT_TIME,
       });
     } finally {
       cleanupRepo(fixture);

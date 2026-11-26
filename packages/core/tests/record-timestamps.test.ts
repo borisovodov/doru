@@ -146,6 +146,21 @@ describe('record timestamps', () => {
     }
   });
 
+  it('does not stamp a source update that changes no content', () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(FIRST);
+    const { fixture, service } = makeService();
+    try {
+      service.addSource(source('S1'));
+      vi.setSystemTime(SECOND);
+      const stored = fixture.repo.getSource('S1')!;
+      service.updateSource(stored, { ...stored });
+      expect(fixture.repo.getSource('S1')).toMatchObject({ createdAt: FIRST, updatedAt: FIRST });
+    } finally {
+      cleanupRepo(fixture);
+    }
+  });
+
   it('moves the owner edit instant with add, update and delete of a fact, including undo', () => {
     vi.useFakeTimers();
     vi.setSystemTime(FIRST);

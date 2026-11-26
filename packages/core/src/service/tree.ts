@@ -14,6 +14,7 @@ import type {
   PersonRecord,
   PlaceRecord,
   RecordSubmitterLink,
+  RecordTimestamps,
   RepositoryRecord,
   SourceRecord,
   SubmitterRecord,
@@ -144,6 +145,17 @@ function assertTargetAllowed(kind: AttachmentTargetKind, targetType: string): vo
   if (!isAttachmentTargetAllowed(kind, targetType)) {
     throw new Error(`A ${kind} cannot target a ${targetType}.`);
   }
+}
+
+/**
+ * Compares record content while ignoring the operational timestamps. An
+ * autosave that leaves every field unchanged must not move `updatedAt` or
+ * create an undo entry.
+ */
+function sameRecordContent<T extends RecordTimestamps>(left: T, right: T): boolean {
+  const { createdAt: _leftCreatedAt, updatedAt: _leftUpdatedAt, ...leftContent } = left;
+  const { createdAt: _rightCreatedAt, updatedAt: _rightUpdatedAt, ...rightContent } = right;
+  return JSON.stringify(leftContent) === JSON.stringify(rightContent);
 }
 
 /**
@@ -313,6 +325,9 @@ export class TreeService {
       // it, so facts/names added by another writer survive a stale draft.
       const current = this.repo.getPerson(before.id) ?? before;
       const merged = this.mergePersonEdit(before, after, current);
+      if (sameRecordContent(current, merged)) {
+        return undefined;
+      }
       const removed: NestedAttachments[] = [];
       const nextNames = new Set(collectNameIds(merged.names));
       for (const nameId of collectNameIds(current.names)) {
@@ -690,6 +705,9 @@ export class TreeService {
       // Validate against the graph inside the write transaction: another
       // connection must not close a cycle between the check and the write.
       this.assertFamilyAcyclic(candidate);
+      if (sameRecordContent(current, candidate)) {
+        return undefined;
+      }
       const removed = this.removedLinkAttachments(current, candidate);
       const oldPartners = this.partnerIds(current);
       const nextPartners = this.partnerIds(candidate);
@@ -771,6 +789,9 @@ export class TreeService {
   updatePlace(before: PlaceRecord, after: PlaceRecord): UndoRedoState {
     return this.applyAfterCommit(() => {
       const current = this.repo.getPlace(before.id) ?? before;
+      if (sameRecordContent(current, after)) {
+        return undefined;
+      }
       const removed = this.removedPlaceChildAttachments(current, after);
       return updatePlaceOp(current, stampRecordEdit(current, after, Date.now()), removed);
     });
@@ -861,6 +882,9 @@ export class TreeService {
   updateSource(before: SourceRecord, after: SourceRecord): UndoRedoState {
     return this.applyAfterCommit(() => {
       const current = this.repo.getSource(before.id) ?? before;
+      if (sameRecordContent(current, after)) {
+        return undefined;
+      }
       return updateSourceOp(current, stampRecordEdit(current, after, Date.now()));
     });
   }
@@ -945,16 +969,20 @@ export class TreeService {
   // --- facts, notes, media ---------------------------------------------------
 
   addFact(fact: FactRecord): UndoRedoState {
-    const now = Date.now();
-    return this.apply(addFactOp(fact, this.factOwnerStamps([fact], now)));
+    return this.applyAfterCommit(() => {
+      const now = Date.now();
+      return addFactOp(fact, this.factOwnerStamps([fact], now));
+    });
   }
 
   updateFact(before: FactRecord, after: FactRecord): UndoRedoState {
     if (sameRecord(before, after)) {
       return this.historyState();
     }
-    const now = Date.now();
-    return this.apply(updateFactOp(before, after, this.factOwnerStamps([before, after], now)));
+    return this.applyAfterCommit(() => {
+      const now = Date.now();
+      return updateFactOp(before, after, this.factOwnerStamps([before, after], now));
+    });
   }
 
   deleteFact(fact: FactRecord): UndoRedoState {
@@ -1095,6 +1123,9 @@ export class TreeService {
         }
       }
       const pathChanged = before.path !== after.path;
+      if (sameRecordContent(current, merged)) {
+        return undefined;
+      }
       const pathMatch =
         merged.path !== undefined ? (current.files ?? []).find((file) => file.path === merged.path) : undefined;
       const writtenFiles =
@@ -1245,6 +1276,9 @@ export class TreeService {
   updateRepository(before: RepositoryRecord, after: RepositoryRecord): UndoRedoState {
     return this.applyAfterCommit(() => {
       const current = this.repo.getRepository(before.id) ?? before;
+      if (sameRecordContent(current, after)) {
+        return undefined;
+      }
       return updateRepositoryOp(current, stampRecordEdit(current, after, Date.now()));
     });
   }
@@ -1273,6 +1307,9 @@ export class TreeService {
   updateSubmitter(before: SubmitterRecord, after: SubmitterRecord): UndoRedoState {
     return this.applyAfterCommit(() => {
       const current = this.repo.getSubmitter(before.id) ?? before;
+      if (sameRecordContent(current, after)) {
+        return undefined;
+      }
       return updateSubmitterOp(current, stampRecordEdit(current, after, Date.now()));
     });
   }
@@ -1347,6 +1384,9 @@ export class TreeService {
   updateAddress(before: AddressRecord, after: AddressRecord): UndoRedoState {
     return this.applyAfterCommit(() => {
       const current = this.repo.getAddress(before.id) ?? before;
+      if (sameRecordContent(current, after)) {
+        return undefined;
+      }
       const removed = this.removedAddressLineAttachments(current, after);
       return updateAddressOp(current, stampRecordEdit(current, after, Date.now()), removed);
     });
@@ -1501,6 +1541,9 @@ export class TreeService {
   updateTitle(before: TitleRecord, after: TitleRecord): UndoRedoState {
     return this.applyAfterCommit(() => {
       const current = this.repo.getTitle(before.id) ?? before;
+      if (sameRecordContent(current, after)) {
+        return undefined;
+      }
       return updateTitleOp(current, stampRecordEdit(current, after, Date.now()));
     });
   }

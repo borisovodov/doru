@@ -1404,10 +1404,9 @@ function importGedcomTodoRecord(record: GedcomTodoRecord, ctx: ImportContext): v
   // open and medium rather than lingering in the database.
   const id = crypto.randomUUID();
   const repository = taskRepositoryTarget(id, record.repository, ctx);
-  const times = importedTimes(
-    [parseTaskTextDate(record.createdDate)],
+  const times = importedTaskTimes(
+    parseTaskTextDate(record.createdDate),
     [exactDateToTimestamp(record.changed)],
-    [],
     record.extensions,
     ctx.importedAt,
   );
@@ -1600,9 +1599,12 @@ function importedTimes(
   const extensionCreation = extensionTimestamps(extensions, CREATION_TIMESTAMP_TAGS);
   const extensionChange = extensionTimestamps(extensions, CHANGE_TIMESTAMP_TAGS);
   const rootChange = maxDefined(rootChangeValues) ?? maxDefined(extensionChange);
-  const earliestTypedChange = minDefined([...rootChangeValues, ...factChangeValues]);
+  const earliestRootChange = minDefined(rootChangeValues) ?? minDefined(extensionChange);
   const createdAt =
-    typedCreation ?? minDefined(extensionCreation) ?? earliestTypedChange ?? minDefined(extensionChange) ?? importedAt;
+    typedCreation ??
+    minDefined(extensionCreation) ??
+    minDefined([earliestRootChange, ...factChangeValues]) ??
+    importedAt;
   const updatedAt = maxDefined([rootChange, ...factChangeValues]) ?? createdAt;
   return { createdAt, updatedAt: Math.max(createdAt, updatedAt) };
 }
@@ -1619,6 +1621,24 @@ function importedRecordTimes(
     sources.extensions,
     ctx.importedAt,
   );
+}
+
+/**
+ * Tasks keep their own creation policy: a complete exact GEDCOM task date,
+ * or the import instant. A CHAN only sets the edit instant and is clamped to
+ * creation, so it never masquerades as a creation date.
+ */
+function importedTaskTimes(
+  creationDate: number | undefined,
+  changeValues: ReadonlyArray<number | undefined>,
+  extensions: ReadonlyArray<ExtensionStructure> | undefined,
+  importedAt: number,
+): ImportedRecordTimes {
+  const extensionCreation = extensionTimestamps(extensions, CREATION_TIMESTAMP_TAGS);
+  const extensionChange = extensionTimestamps(extensions, CHANGE_TIMESTAMP_TAGS);
+  const createdAt = creationDate ?? minDefined(extensionCreation) ?? importedAt;
+  const updatedAt = maxDefined([...changeValues, ...extensionChange]) ?? createdAt;
+  return { createdAt, updatedAt: Math.max(createdAt, updatedAt) };
 }
 
 function parseEncodedTaskDate(text: string): number | undefined {
@@ -1770,12 +1790,9 @@ function importGedcomTodoStructure(
   if (repository !== undefined) {
     targets.push(repository);
   }
-  const times = importedTimes(
-    [
-      parseTaskTextDate(structure.createdDate),
+  const times = importedTaskTimes(
+    parseTaskTextDate(structure.createdDate) ??
       dateValueToTimestamp(mapDate(structure.date), structure.date?.interpreted),
-    ],
-    [],
     [],
     structure.extensions,
     ctx.importedAt,

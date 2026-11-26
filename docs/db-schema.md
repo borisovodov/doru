@@ -939,8 +939,9 @@ complete exact `CHAN`), and `remind_at` is the single user-chosen reminder
 instant. Closing a task only changes its status; the schema has no completion
 timestamp. Import accepts complete exact dates only (including My Family
 Tree's encoded `DDMMYYYY` record slots); partial, approximate, range, or
-otherwise unparseable values are not used as task dates, and the general
-record timestamp fallback applies.
+otherwise unparseable values are not used as task dates. Without a usable
+creation date, `created_at` is the import instant; a usable `CHAN` sets
+`updated_at` but never moves it before `created_at`.
 
 The GEDCOM `TODO` `REPO` slot is parsed by `@doru/gedcom` and imported as a
 repository target (`task_link`), not as a direct column. The `_CAT`, `_LOCL`,
