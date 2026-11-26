@@ -67,6 +67,9 @@ function createCanvasController(
 
   const zoomBehavior: ZoomBehavior<HTMLDivElement, unknown> = zoom<HTMLDivElement, unknown>()
     .scaleExtent([config.minZoom, config.maxZoom])
+    // Keep clicks inside the same 4px tolerance as the card drag gesture.
+    // Without this, d3 suppresses a click on any 1px pointer movement.
+    .clickDistance(4)
     .extent(() => [
       [0, 0],
       [root.clientWidth, root.clientHeight],
@@ -182,14 +185,15 @@ function createCanvasController(
   };
 
   const onWheel = (event: WheelEvent): void => {
+    const zoomModifier = event.ctrlKey || event.metaKey;
     if (event.target instanceof Element && event.target.closest('[data-canvas-no-wheel]')) {
-      if (event.ctrlKey) {
+      if (zoomModifier) {
         event.preventDefault();
       }
       return;
     }
     const currentZoom = store.getSnapshot().zoom;
-    if (event.ctrlKey && config.zoomOnPinch) {
+    if (zoomModifier && config.zoomOnPinch) {
       event.preventDefault();
       selection.interrupt();
       const point = pointer(event, root);

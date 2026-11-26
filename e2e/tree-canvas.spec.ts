@@ -210,6 +210,40 @@ test('the canvas does not emit ResizeObserver loop or attribution warnings', asy
   await app.close();
 });
 
+test('a card click tolerates tiny pointer movement and the platform zoom modifier zooms', async () => {
+  const project = join(mkdtempSync(join(tmpdir(), 'doru-canvas-click-e2e-')), 'family.doru');
+  const { app, page } = await launchApp({ project });
+  await seedFamilyTree(page, project);
+  await page.reload();
+  const ivan = page.getByRole('group', { name: 'Ivan Ivanov', exact: true });
+  await expect(ivan).toBeVisible({ timeout: 20_000 });
+
+  // A normal click often moves the pointer by a pixel. It must still select
+  // the card rather than being swallowed by the canvas pan gesture.
+  const box = await ivan.boundingBox();
+  const x = box!.x + box!.width / 2;
+  const y = box!.y + box!.height / 2;
+  await page.mouse.move(x, y);
+  await page.mouse.down();
+  await page.mouse.move(x + 1, y);
+  await page.mouse.up();
+  await expect(page.getByRole('button', { name: 'Edit' })).toBeVisible();
+
+  // React Flow treated Meta as the zoom modifier on macOS; the canvas keeps
+  // that behaviour while Ctrl remains the modifier on other platforms.
+  const zoomModifier = process.platform === 'darwin' ? 'Meta' : 'Control';
+  const before = await ivan.boundingBox();
+  await page.mouse.move(800, 450);
+  await page.keyboard.down(zoomModifier);
+  await page.mouse.wheel(0, -120);
+  await page.keyboard.up(zoomModifier);
+  await page.waitForTimeout(300);
+  const after = await ivan.boundingBox();
+  expect(after!.width).toBeGreaterThan(before!.width);
+
+  await app.close();
+});
+
 test('an empty tree shows an unfilled card that edits in place', async () => {
   const project = join(mkdtempSync(join(tmpdir(), 'doru-empty-e2e-')), 'family.doru');
   const { app, page } = await launchApp({ project });

@@ -40,7 +40,7 @@ viewport store.
 - `d3-zoom` owns drag-panning and touch input.
 - A custom wheel handler gives the trackpad model:
   - two-finger scroll pans;
-  - ctrl+wheel or pinch zooms around the pointer;
+  - Ctrl+wheel (Cmd+wheel on macOS) or pinch zooms around the pointer;
   - double-click zoom is disabled.
 - `CanvasProvider` creates a tiny `useSyncExternalStore` viewport store.
   `CanvasWorld` is updated imperatively through a ref; `CanvasBackground` and
