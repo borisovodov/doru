@@ -382,7 +382,7 @@ export function FactEditor({
             </Select>
             <IconButton
               size="sm"
-              label={nls.t('features.tree.fact.additionalPlaces')}
+              label={nls.t('features.tree.fact.additionalPlaces.remove')}
               icon={<Unlink size={13} aria-hidden="true" />}
               onClick={() => set({ additionalPlaceIds: draft.additionalPlaceIds.filter((_, i) => i !== index) })}
             />

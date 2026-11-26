@@ -237,6 +237,7 @@
   "features.tree.events.typeField": "Typ",
   "features.tree.exportGedcom": "Eksportuj GEDCOM…",
   "features.tree.fact.additionalPlaces": "Additional places",
+  "features.tree.fact.additionalPlaces.remove": "Usuń dodatkowe miejsce",
   "features.tree.fact.addressLink": "Adres",
   "features.tree.fact.addressLink.none": "Brak",
   "features.tree.fact.adoptedBy": "Adoptowany przez",

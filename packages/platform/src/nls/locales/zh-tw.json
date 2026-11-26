@@ -237,6 +237,7 @@
   "features.tree.events.typeField": "類型",
   "features.tree.exportGedcom": "匯出 GEDCOM…",
   "features.tree.fact.additionalPlaces": "Additional places",
+  "features.tree.fact.additionalPlaces.remove": "刪除附加地點",
   "features.tree.fact.addressLink": "地址",
   "features.tree.fact.addressLink.none": "無",
   "features.tree.fact.adoptedBy": "收養人",

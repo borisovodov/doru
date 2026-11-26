@@ -237,6 +237,7 @@
   "features.tree.events.typeField": "Tür",
   "features.tree.exportGedcom": "GEDCOM dışa aktar…",
   "features.tree.fact.additionalPlaces": "Additional places",
+  "features.tree.fact.additionalPlaces.remove": "Ek konumu kaldır",
   "features.tree.fact.addressLink": "Adres",
   "features.tree.fact.addressLink.none": "Yok",
   "features.tree.fact.adoptedBy": "Evlat edinen",

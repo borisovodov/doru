@@ -237,6 +237,7 @@
   "features.tree.events.typeField": "Тип",
   "features.tree.exportGedcom": "Експортиране на GEDCOM…",
   "features.tree.fact.additionalPlaces": "Additional places",
+  "features.tree.fact.additionalPlaces.remove": "Премахване на допълнително място",
   "features.tree.fact.addressLink": "Адрес",
   "features.tree.fact.addressLink.none": "Няма",
   "features.tree.fact.adoptedBy": "Осиновен от",

@@ -237,6 +237,7 @@
   "features.tree.events.typeField": "Тип",
   "features.tree.exportGedcom": "Экспорт GEDCOM…",
   "features.tree.fact.additionalPlaces": "Дополнительные места",
+  "features.tree.fact.additionalPlaces.remove": "Удалить дополнительное место",
   "features.tree.fact.addressLink": "Адрес",
   "features.tree.fact.addressLink.none": "Нет",
   "features.tree.fact.adoptedBy": "Кто усыновил",

@@ -237,6 +237,7 @@
   "features.tree.events.typeField": "Típus",
   "features.tree.exportGedcom": "GEDCOM exportálása…",
   "features.tree.fact.additionalPlaces": "Additional places",
+  "features.tree.fact.additionalPlaces.remove": "További hely eltávolítása",
   "features.tree.fact.addressLink": "Cím",
   "features.tree.fact.addressLink.none": "Nincs",
   "features.tree.fact.adoptedBy": "Örökbefogadó",

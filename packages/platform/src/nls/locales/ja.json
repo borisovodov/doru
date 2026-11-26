@@ -237,6 +237,7 @@
   "features.tree.events.typeField": "種類",
   "features.tree.exportGedcom": "GEDCOM をエクスポート…",
   "features.tree.fact.additionalPlaces": "Additional places",
+  "features.tree.fact.additionalPlaces.remove": "追加の場所を削除",
   "features.tree.fact.addressLink": "住所",
   "features.tree.fact.addressLink.none": "なし",
   "features.tree.fact.adoptedBy": "養親",
