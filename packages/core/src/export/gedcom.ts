@@ -226,7 +226,7 @@ function buildPerson(person: PersonRecord, repo: TreeRepository, xrefs: Xrefs): 
       attributes.push(mapped.structure);
     }
   }
-  const contacts = withContacts(repo, 'person', person.id);
+  const { www: websites, ...contacts } = withContacts(repo, 'person', person.id);
   const addressRecord = person.addressId !== undefined ? repo.getAddress(person.addressId) : undefined;
   const submitterLinks = repo.listRecordSubmittersFor('person', person.id);
   const ancestorInterests = submitterLinks
@@ -245,6 +245,7 @@ function buildPerson(person: PersonRecord, repo: TreeRepository, xrefs: Xrefs): 
     ...(attributes.length > 0 ? { attributes } : {}),
     ...(nonEvents.length > 0 ? { nonEvents } : {}),
     ...contacts,
+    ...(websites?.[0] !== undefined ? { url: websites[0] } : {}),
     ...(addressRecord !== undefined ? { address: buildAddress(addressRecord, repo) } : {}),
     ...withCitationList(repo, 'person', person.id, xrefs),
     ...withNoteList(repo, 'person', person.id),
@@ -634,6 +635,9 @@ function buildSubmitter(
   xrefs: Xrefs,
 ): GedcomRecord {
   const address = submitter.addressId !== undefined ? repo.getAddress(submitter.addressId) : undefined;
+  const handles = repo.listContactsFor('submitter', submitter.id);
+  const skype = handles.find((contact) => contact.kind === 'skype')?.value;
+  const jabber = handles.find((contact) => contact.kind === 'jabber')?.value;
   return {
     tag: 'SUBM',
     xref: xrefs.of(submitter.id),
@@ -641,6 +645,8 @@ function buildSubmitter(
     ...(address !== undefined ? { address: buildAddress(address, repo) } : {}),
     ...(submitter.languages !== undefined && submitter.languages.length > 0 ? { languages: submitter.languages } : {}),
     ...withContacts(repo, 'submitter', submitter.id),
+    ...(skype !== undefined ? { skypeId: skype } : {}),
+    ...(jabber !== undefined ? { jabberId: jabber } : {}),
     ...withNoteList(repo, 'submitter', submitter.id),
     ...withSubmitterLinks(repo, 'submitter', submitter.id, xrefs),
   };
@@ -980,16 +986,17 @@ function withContacts(
   repo: TreeRepository,
   targetType: string,
   targetId: string,
-): { email?: string[]; phone?: string[]; fax?: string[]; url?: string; www?: string[] } {
+): { email?: string[]; phone?: string[]; fax?: string[]; www?: string[] } {
   const contacts = repo.listContactsFor(targetType, targetId);
   const ofKind = (kind: string): string[] =>
     contacts.filter((contact) => contact.kind === kind).map((contact) => contact.value);
+  // `url` is the legacy kind; the canonical spelling is `www` (the GEDCOM tag).
+  const websites = [...ofKind('www'), ...ofKind('url')];
   return {
     ...(ofKind('email').length > 0 ? { email: ofKind('email') } : {}),
     ...(ofKind('phone').length > 0 ? { phone: ofKind('phone') } : {}),
     ...(ofKind('fax').length > 0 ? { fax: ofKind('fax') } : {}),
-    ...(ofKind('url').length > 0 ? { url: ofKind('url')[0] } : {}),
-    ...(ofKind('www').length > 0 ? { www: ofKind('www') } : {}),
+    ...(websites.length > 0 ? { www: websites } : {}),
   };
 }
 
@@ -1425,7 +1432,6 @@ function buildAddress(
     ...(address.postalCode !== undefined ? { postalCode: address.postalCode } : {}),
     ...(address.country !== undefined ? { country: address.country } : {}),
     ...withNoteTargets(repo, addressNoteTargets(address)),
-    ...withContacts(repo, 'address', address.id),
   };
 }
 

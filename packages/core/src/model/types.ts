@@ -809,7 +809,7 @@ export interface SubmitterRecord extends RecordTimestamps {
  * A contact detail on a target that GEDCOM can carry one for (see
  * `CONTACT_TARGET_TYPES` in `targetPolicy.ts`). `kind` is deliberately open:
  * every kind is offered on every supported target, and unknown values survive
- * a round trip.
+ * a round trip. `www` is the canonical website kind; `url` is a legacy alias.
  */
 export interface ContactRecord {
   id: string;

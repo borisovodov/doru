@@ -902,7 +902,7 @@ erDiagram
         TEXT id PK
         TEXT target_type "NOT NULL, polymorphic target"
         TEXT target_id "NOT NULL, UUID"
-        TEXT kind "NOT NULL: email, phone, fax, url, www"
+        TEXT kind "NOT NULL: email, phone, fax, www, skype, jabber (url = legacy alias)"
         TEXT value "NOT NULL"
     }
 
@@ -976,7 +976,7 @@ is no global runtime target list.
 | `note` | `NOTE_TARGET_TYPES` | person, family, family_partner, family_child, family_marriage_status, fact, name, name_part, source, citation, media, media_file, place, place_name, place_hierarchy, repository, submitter, address, address_line, association, task, title |
 | `citation` | `CITATION_TARGET_TYPES` | person, family, family_partner, family_child, family_marriage_status, fact, name, name_part, source, citation, media, media_file, media_link, place, place_name, place_hierarchy, repository, submitter, address, address_line, association, title |
 | `media_link` | `MEDIA_LINK_TARGET_TYPES` | person, family, family_partner, family_child, family_marriage_status, fact, name, name_part, source, citation, media, media_file, place, place_name, place_hierarchy, repository, submitter, address, address_line, association, task, title |
-| `contact` | `CONTACT_TARGET_TYPES` | person, fact, address, repository, submitter |
+| `contact` | `CONTACT_TARGET_TYPES` | person, fact, repository, submitter |
 | `task_link` | `TASK_LINK_TARGET_TYPES` | person, family, family_partner, family_child, family_marriage_status, fact, name, name_part, source, citation, media, media_file, place, place_name, place_hierarchy, repository, address, address_line, association, title |
 | `record_submitter` | `RECORD_SUBMITTER_TARGET_TYPES` | person, family, family_partner, family_child, family_marriage_status, fact, name, name_part, source, citation, media, media_file, place, place_name, place_hierarchy, repository, submitter, address, address_line, association, title |
 
@@ -999,14 +999,16 @@ therefore has no sources section, and `TreeService` rejects a citation whose
 target type is `task`. `media_link` is a valid citation target.
 
 A `contact` row exists only on a target GEDCOM can carry contact details for:
-`person`, `fact`, `address`, `repository`, or `submitter`. Addresses carry
-`PHON`/`EMAIL`/`FAX`/`WWW` in 5.5.x; event details and the `REPO`/`SUBM`
-records carry them in 7.0; direct `INDI` contact spellings are a vendor
-extension Dóru keeps on a person. `kind` stays open (`email`, `phone`, `fax`,
-`url`, `www`, or an unknown value), and the same kinds are offered on every
-supported target. `TreeService` rejects a contact on any other target; the
-table itself remains polymorphic and cannot enforce the rule with a foreign
-key.
+`person`, `fact`, `repository`, or `submitter`. Event details and the
+`REPO`/`SUBM` records carry `PHON`/`EMAIL`/`FAX`/`WWW` in 7.0; 5.5.x keeps
+them inside the address block, so the importer hoists those rows onto the
+address owner and the 5.5.1 serializer merges them back into the address.
+Direct `INDI` contact spellings are a vendor extension Dóru keeps on a person.
+`kind` stays open (`email`, `phone`, `fax`, `www`, `skype`, `jabber`, an
+unknown value, or the legacy `url` alias for `www`), and the same kinds are
+offered on every supported target. `TreeService` rejects a contact on any
+other target; the table itself remains polymorphic and cannot enforce the rule
+with a foreign key.
 
 `media_link` is a source-only attachment host: only citations may target it.
 It cannot own notes, media, contacts, contributors, or tasks, and

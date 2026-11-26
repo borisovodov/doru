@@ -92,14 +92,15 @@ decisions about what we deliberately do **not** build, see
   attachment rows; the matching inverse restores the captured snapshot.
   A citation never targets a task: a source backs a genealogical assertion,
   while a task is a work item that asserts nothing. Contacts are likewise
-  limited to the targets GEDCOM carries them for: person, fact, address,
-  repository and submitter. A note is a leaf annotation owned by exactly one
-  record, so citations, media links, contributors and tasks may not point at
-  one. GEDCOM shared notes are copied per target on import;
-  export writes every note as an inline `NOTE` and never emits `SNOTE`.
-  GEDCOM `NOTE.SOUR`/`SNOTE.SOUR` is parsed by the format package but dropped
-  by the tree mapping. Tasks are shared through `task_link`: deleting one
-  target removes only its link, never the task or its attachments.
+  limited to the targets GEDCOM carries them for: person, fact, repository and
+  submitter. Address contacts are hoisted onto their owner, because an address
+  is a postal container rather than a contact owner. A note is a leaf
+  annotation owned by exactly one record, so citations, media links,
+  contributors and tasks may not point at one. GEDCOM shared notes are copied
+  per target on import; export writes every note as an inline `NOTE` and never
+  emits `SNOTE`. GEDCOM `NOTE.SOUR`/`SNOTE.SOUR` is parsed by the format package
+  but dropped by the tree mapping. Tasks are shared through `task_link`:
+  deleting one target removes only its link, never the task or its attachments.
 
 ## GEDCOM
 

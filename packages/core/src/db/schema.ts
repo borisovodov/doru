@@ -492,14 +492,15 @@ CREATE TABLE IF NOT EXISTS address_line (
 
 -- Contacts: the universal polymorphic attachment table.
 
--- Contacts target only person, fact, address, repository and submitter:
--- GEDCOM keeps PHON/EMAIL/FAX/WWW on addresses, event details and those
--- records. The rule lives in TreeService because target_type is polymorphic.
+-- Contacts target only person, fact, repository and submitter. GEDCOM keeps
+-- PHON/EMAIL/FAX/WWW on event details and those records in 7.0; 5.5.x address
+-- contacts are hoisted onto the owning record. The rule lives in TreeService
+-- because target_type is polymorphic.
 CREATE TABLE IF NOT EXISTS contact (
   id TEXT PRIMARY KEY,
   target_type TEXT NOT NULL,
   target_id TEXT NOT NULL,
-  kind TEXT NOT NULL,        -- email | phone | fax | url | www
+  kind TEXT NOT NULL,        -- email | phone | fax | www | skype | jabber (url = legacy alias)
   value TEXT NOT NULL
 );
 

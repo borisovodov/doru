@@ -10,7 +10,7 @@ import type { ContactRecord } from '@doru/core';
 import { nls } from '../../nls';
 import './AttachmentsSection.css';
 
-const CONTACT_KINDS = ['email', 'phone', 'fax', 'url', 'www'] as const;
+const CONTACT_KINDS = ['email', 'phone', 'fax', 'www', 'skype', 'jabber'] as const;
 
 /** Localized labels for the known contact kinds (unknown kinds show verbatim). */
 function contactKindLabel(kind: string): string {
@@ -20,6 +20,8 @@ function contactKindLabel(kind: string): string {
     fax: nls.t('features.tree.contacts.kind.fax'),
     url: nls.t('features.tree.contacts.kind.url'),
     www: nls.t('features.tree.contacts.kind.www'),
+    skype: nls.t('features.tree.contacts.kind.skype'),
+    jabber: nls.t('features.tree.contacts.kind.jabber'),
   };
   return labels[kind] ?? kind;
 }
@@ -57,7 +59,7 @@ export function ContactsSection({
 
   const startEdit = (contact: ContactRecord) => {
     setEditingId(contact.id);
-    setEditKind(contact.kind);
+    setEditKind(contact.kind === 'url' ? 'www' : contact.kind);
     setEditValue(contact.value);
   };
 
@@ -83,8 +85,8 @@ export function ContactsSection({
                       {nls.t(`features.tree.contacts.kind.${entry}`)}
                     </option>
                   ))}
-                  {!(CONTACT_KINDS as readonly string[]).includes(contact.kind) && (
-                    <option value={contact.kind}>{contact.kind}</option>
+                  {!(CONTACT_KINDS as readonly string[]).includes(contact.kind) && contact.kind !== 'url' && (
+                    <option value={contact.kind}>{contactKindLabel(contact.kind)}</option>
                   )}
                 </Select>
                 <Input
