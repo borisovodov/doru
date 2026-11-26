@@ -26,14 +26,26 @@ function applyOwnerStamps(ctx: MutationContext, stamps: readonly FactOwnerStamp[
   }
 }
 
+function ownerTimestamp(ctx: MutationContext, stamp: FactOwnerStamp): number | undefined {
+  return stamp.targetType === 'person'
+    ? ctx.repo.getPerson(stamp.targetId)?.updatedAt
+    : ctx.repo.getFamily(stamp.targetId)?.updatedAt;
+}
+
 function ownerStampsMatch(ctx: MutationContext, stamps: readonly FactOwnerStamp[]): boolean {
-  return stamps.every((stamp) => {
-    const current =
-      stamp.targetType === 'person'
-        ? ctx.repo.getPerson(stamp.targetId)?.updatedAt
-        : ctx.repo.getFamily(stamp.targetId)?.updatedAt;
-    return current === stamp.before;
-  });
+  return stamps.every((stamp) => ownerTimestamp(ctx, stamp) === stamp.before);
+}
+
+/**
+ * Undo restores the captured stamp only when the owner still has the edit
+ * instant this operation wrote. A newer external edit stays untouched.
+ */
+function restoreOwnerStamps(ctx: MutationContext, stamps: readonly FactOwnerStamp[]): void {
+  for (const stamp of stamps) {
+    if (ownerTimestamp(ctx, stamp) === stamp.after) {
+      applyOwnerStamps(ctx, [stamp], 'before');
+    }
+  }
 }
 
 export function addFactOp(fact: FactRecord, ownerStamps: readonly FactOwnerStamp[] = []): Op {
@@ -49,7 +61,7 @@ export function addFactOp(fact: FactRecord, ownerStamps: readonly FactOwnerStamp
     },
     inverse(ctx) {
       ctx.repo.deleteFact(fact.id);
-      applyOwnerStamps(ctx, ownerStamps, 'before');
+      restoreOwnerStamps(ctx, ownerStamps);
     },
   };
 }
@@ -66,7 +78,7 @@ export function updateFactOp(before: FactRecord, after: FactRecord, ownerStamps:
     },
     inverse(ctx) {
       ctx.repo.updateFact(before);
-      applyOwnerStamps(ctx, ownerStamps, 'before');
+      restoreOwnerStamps(ctx, ownerStamps);
     },
     redoSafe(ctx) {
       const current = ctx.repo.getFact(before.id);
@@ -102,8 +114,8 @@ export function deleteFactOp(
           baseline = ctx.repo.getFact(fact.id) ?? fact;
           ctx.repo.restoreAttachments(attachments);
           attachmentBaseline = ctx.repo.listAttachmentsFor('fact', fact.id);
+          restoreOwnerStamps(ctx, ownerStamps);
         }
-        applyOwnerStamps(ctx, ownerStamps, 'before');
       },
       snapshots: [attachments],
     },

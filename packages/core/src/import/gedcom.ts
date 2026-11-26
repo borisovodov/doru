@@ -1407,6 +1407,7 @@ function importGedcomTodoRecord(record: GedcomTodoRecord, ctx: ImportContext): v
   const times = importedTimes(
     [parseTaskTextDate(record.createdDate)],
     [exactDateToTimestamp(record.changed)],
+    [],
     record.extensions,
     ctx.importedAt,
   );
@@ -1583,22 +1584,26 @@ function extensionTimestamps(
 }
 
 /**
- * Typed fields win. Generic extensions are the second priority and are only
- * consulted when the record has no typed creation/change stamp at all.
+ * Typed fields win over an equivalent extension tag. Root change stamps are
+ * resolved first, then combined with fact changes; a typed fact change never
+ * suppresses an unrelated root extension change. Generic extensions are the
+ * second priority for the root itself.
  */
 function importedTimes(
   creationValues: ReadonlyArray<number | undefined>,
-  changeValues: ReadonlyArray<number | undefined>,
+  rootChangeValues: ReadonlyArray<number | undefined>,
+  factChangeValues: ReadonlyArray<number | undefined>,
   extensions: ReadonlyArray<ExtensionStructure> | undefined,
   importedAt: number,
 ): ImportedRecordTimes {
   const typedCreation = minDefined(creationValues);
-  const earliestTypedChange = minDefined(changeValues);
   const extensionCreation = extensionTimestamps(extensions, CREATION_TIMESTAMP_TAGS);
   const extensionChange = extensionTimestamps(extensions, CHANGE_TIMESTAMP_TAGS);
+  const rootChange = maxDefined(rootChangeValues) ?? maxDefined(extensionChange);
+  const earliestTypedChange = minDefined([...rootChangeValues, ...factChangeValues]);
   const createdAt =
     typedCreation ?? minDefined(extensionCreation) ?? earliestTypedChange ?? minDefined(extensionChange) ?? importedAt;
-  const updatedAt = maxDefined(changeValues) ?? maxDefined(extensionChange) ?? createdAt;
+  const updatedAt = maxDefined([rootChange, ...factChangeValues]) ?? createdAt;
   return { createdAt, updatedAt: Math.max(createdAt, updatedAt) };
 }
 
@@ -1609,7 +1614,8 @@ function importedRecordTimes(
 ): ImportedRecordTimes {
   return importedTimes(
     [exactDateToTimestamp(sources.creationDate), parseRecordTimestampText(sources.createdAt)],
-    [exactDateToTimestamp(sources.changeDate), parseRecordTimestampText(sources.updatedAt), ...extraChanges],
+    [exactDateToTimestamp(sources.changeDate), parseRecordTimestampText(sources.updatedAt)],
+    extraChanges,
     sources.extensions,
     ctx.importedAt,
   );
@@ -1769,6 +1775,7 @@ function importGedcomTodoStructure(
       parseTaskTextDate(structure.createdDate),
       dateValueToTimestamp(mapDate(structure.date), structure.date?.interpreted),
     ],
+    [],
     [],
     structure.extensions,
     ctx.importedAt,

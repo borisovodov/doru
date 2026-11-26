@@ -380,20 +380,15 @@ export class TreeService {
       if (current === undefined) {
         return undefined;
       }
-      const now = Date.now();
       const links = this.repo.listFamiliesForPerson(current.id).map((family) => ({
         before: family,
-        after: stampRecordEdit(
-          family,
-          {
-            ...family,
-            partners: family.partners.filter((id) => id !== current.id),
-            children: family.children.filter((id) => id !== current.id),
-            partnerLinks: family.partnerLinks?.filter((link) => link.personId !== current.id),
-            childLinks: family.childLinks?.filter((link) => link.childId !== current.id),
-          },
-          now,
-        ),
+        after: {
+          ...family,
+          partners: family.partners.filter((id) => id !== current.id),
+          children: family.children.filter((id) => id !== current.id),
+          partnerLinks: family.partnerLinks?.filter((link) => link.personId !== current.id),
+          childLinks: family.childLinks?.filter((link) => link.childId !== current.id),
+        },
       }));
       const attachments = this.repo.listAttachmentsFor('person', current.id);
       const nested: NestedAttachments[] = [];
@@ -955,6 +950,9 @@ export class TreeService {
   }
 
   updateFact(before: FactRecord, after: FactRecord): UndoRedoState {
+    if (sameRecord(before, after)) {
+      return this.historyState();
+    }
     const now = Date.now();
     return this.apply(updateFactOp(before, after, this.factOwnerStamps([before, after], now)));
   }

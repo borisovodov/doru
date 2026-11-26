@@ -1,7 +1,9 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { parse } from '@doru/gedcom';
 import { importGedcomDataset } from '../src/import/gedcom';
 import { cleanupRepo, makeRepo } from './helpers';
+
+const IMPORT_TIME = Date.UTC(2026, 0, 1, 0, 0, 0);
 
 const GEDCOM = [
   '0 HEAD',
@@ -110,6 +112,8 @@ describe('GEDCOM import timestamps', () => {
     if (!parsed.ok || parsed.value.kind !== 'dataset') {
       throw new Error('fixture failed to parse');
     }
+    vi.useFakeTimers();
+    vi.setSystemTime(IMPORT_TIME);
     const fixture = makeRepo();
     try {
       importGedcomDataset(parsed.value.dataset, fixture.repo);
@@ -127,8 +131,10 @@ describe('GEDCOM import timestamps', () => {
       expect(vendor.updatedAt).toBe(local(2019, 9, 13, 14, 21, 5));
 
       const address = fixture.repo.listAddresses()[0]!;
-      expect(partial.createdAt).toBe(address.createdAt);
-      expect(partial.updatedAt).toBe(address.updatedAt);
+      expect(partial.createdAt).toBe(IMPORT_TIME);
+      expect(partial.updatedAt).toBe(IMPORT_TIME);
+      expect(address.createdAt).toBe(IMPORT_TIME);
+      expect(address.updatedAt).toBe(IMPORT_TIME);
 
       const family = fixture.repo.listFamilies()[0]!;
       expect(family).toMatchObject({
@@ -189,6 +195,7 @@ describe('GEDCOM import timestamps', () => {
       });
     } finally {
       cleanupRepo(fixture);
+      vi.useRealTimers();
     }
   });
 });

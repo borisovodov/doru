@@ -181,6 +181,29 @@ describe('record timestamps', () => {
     }
   });
 
+  it('does not stamp an unchanged fact and keeps a newer owner stamp on undo', () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(FIRST);
+    const { fixture, service } = makeService();
+    try {
+      service.addPerson(person('P1'));
+      vi.setSystemTime(SECOND);
+      service.addFact({ id: 'FACT1', personId: 'P1', tag: 'BIRT', value: 'first' });
+
+      vi.setSystemTime(THIRD);
+      const stored = fixture.repo.getFact('FACT1')!;
+      service.updateFact(stored, stored);
+      expect(service.getPerson('P1')).toMatchObject({ createdAt: FIRST, updatedAt: SECOND });
+
+      fixture.repo.setPersonUpdatedAt('P1', FOURTH);
+      service.undo();
+      expect(service.getPerson('P1')).toMatchObject({ createdAt: FIRST, updatedAt: FOURTH });
+      expect(fixture.repo.getFact('FACT1')).toBeUndefined();
+    } finally {
+      cleanupRepo(fixture);
+    }
+  });
+
   it('does not move the host edit instant for notes, citations, media or task links', () => {
     vi.useFakeTimers();
     vi.setSystemTime(FIRST);
@@ -231,6 +254,13 @@ describe('record timestamps', () => {
       service.undo();
       expect(fixture.repo.getFamily(created.id)).toMatchObject({ createdAt: FIRST, updatedAt: FIRST });
       expect(service.getPerson('P4')).toBeUndefined();
+
+      vi.setSystemTime(THIRD);
+      service.deletePerson(service.getPerson('P3')!);
+      expect(fixture.repo.getFamily(created.id)).toMatchObject({ createdAt: FIRST, updatedAt: FIRST });
+      service.undo();
+      expect(fixture.repo.getFamily(created.id)).toMatchObject({ createdAt: FIRST, updatedAt: FIRST });
+      expect(service.getPerson('P3')).toBeDefined();
     } finally {
       cleanupRepo(fixture);
     }
