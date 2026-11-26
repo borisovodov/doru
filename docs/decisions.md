@@ -185,6 +185,12 @@ GEDCOM shared notes are copied to every referencing target on import; export
 writes inline `NOTE` structures and never emits `SNOTE` records or pointers.
 The note-link table and the split/attach/detach operations are gone.
 
+Some note targets have no GEDCOM note slot of their own: name parts and name
+variants, place names and hierarchy links, address lines, and media files.
+Their notes are emitted on the nearest enclosing standard NOTE slot (`NAME`,
+`_PLAC`, `ADDR`, `OBJE`). Import attaches them back to that parent, so the
+text round-trips but the fine-grained target does not.
+
 ## Contacts are limited to their GEDCOM positions
 
 `PHON`, `EMAIL`, `FAX` and `WWW` are not universal record fields. GEDCOM

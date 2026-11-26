@@ -117,6 +117,70 @@ describe('buildGedcomDataset', () => {
     }
   });
 
+  it('exports notes on sub-targets through their enclosing NOTE slot', () => {
+    const fixture = makeRepo();
+    try {
+      const { repo } = fixture;
+      repo.insertPlace({ id: 'PL2', names: [{ id: 'PN2', value: 'Russia', position: 0 }] });
+      repo.insertPlace({
+        id: 'PL1',
+        names: [{ id: 'PN1', value: 'Moscow', position: 0 }],
+        hierarchy: [{ id: 'PH1', parentId: 'PL2' }],
+      });
+      repo.insertAddress({ id: 'AD1', lines: [{ id: 'AL1', value: '1 Main Street' }] });
+      repo.insertPerson({
+        id: 'P1',
+        sex: 'U',
+        facts: [],
+        names: [
+          {
+            id: 'N1',
+            given: 'Ivan',
+            parts: [{ id: 'NP1', kind: 'given', value: 'Ivan', position: 0 }],
+            variants: [
+              {
+                id: 'NV1',
+                kind: 'translation',
+                language: 'ru',
+                parts: [{ id: 'NVP1', kind: 'given', value: 'Иван', position: 0 }],
+              },
+            ],
+          },
+        ],
+      });
+      repo.insertRepository({ id: 'R1', name: 'Archive', addressId: 'AD1' });
+      repo.insertMedia({ id: 'M1', files: [{ id: 'MF1', path: 'media/a.jpg' }] });
+
+      const notes = [
+        { targetType: 'name_part', targetId: 'NP1', text: 'name part note' },
+        { targetType: 'name', targetId: 'NV1', text: 'name variant note' },
+        { targetType: 'place_name', targetId: 'PN1', text: 'place name note' },
+        { targetType: 'place_hierarchy', targetId: 'PH1', text: 'place hierarchy note' },
+        { targetType: 'address_line', targetId: 'AL1', text: 'address line note' },
+        { targetType: 'media_file', targetId: 'MF1', text: 'media file note' },
+      ];
+      for (const note of notes) {
+        repo.insertNote({
+          id: `N_${note.targetId}`,
+          text: note.text,
+          targetType: note.targetType,
+          targetId: note.targetId,
+        });
+      }
+
+      const serialized = serializeGedcom70(buildGedcomDataset(repo));
+      expect(serialized.ok).toBe(true);
+      if (!serialized.ok) {
+        return;
+      }
+      for (const note of notes) {
+        expect(serialized.value).toContain(note.text);
+      }
+    } finally {
+      cleanupRepo(fixture);
+    }
+  });
+
   it('round-trips persons, facts, dates, families, sources, citations and notes', () => {
     const fixture = makeRepo();
     try {

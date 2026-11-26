@@ -53,6 +53,7 @@ import type {
   PlaceRecord,
   SourceRecord,
   TaskRecord,
+  AddressRecord,
 } from '../model/types';
 
 /**
@@ -405,7 +406,7 @@ function buildName(name: PersonName, repo: TreeRepository, xrefs: Xrefs): Person
       ? { romanized: variantStructures.filter((variant) => variant.kind === 'romanized').map(buildNameVariation) }
       : {}),
     ...withCitationList(repo, 'name', name.id, xrefs),
-    ...withNoteList(repo, 'name', name.id),
+    ...withNoteTargets(repo, nameNoteTargets(name)),
     ...withMediaLinks(repo, 'name', name.id, xrefs),
   };
 }
@@ -922,7 +923,7 @@ function buildMediaRecord(media: MediaRecord, repo: TreeRepository, xrefs: Xrefs
         : {}),
     })),
     ...withCitationList(repo, 'media', media.id, xrefs),
-    ...withNoteList(repo, 'media', media.id),
+    ...withNoteTargets(repo, mediaNoteTargets(media)),
     ...withSubmitterLinks(repo, 'media', media.id, xrefs),
   };
 }
@@ -1079,6 +1080,52 @@ function withNoteList(repo: TreeRepository, targetType: string, targetId: string
     payload: note.text,
   }));
   return { notes };
+}
+
+interface NoteTarget {
+  targetType: string;
+  targetId: string;
+}
+
+/**
+ * Notes on targets that have no GEDCOM note slot of their own (name parts and
+ * variants, place names and hierarchy links, address lines, media files) are
+ * emitted on the nearest enclosing standard NOTE slot. Import attaches them
+ * back to that parent, so the note text round-trips but the fine-grained
+ * target does not.
+ */
+function withNoteTargets(repo: TreeRepository, targets: readonly NoteTarget[]): { notes: NoteStructure[] } {
+  return { notes: targets.flatMap((target) => withNoteList(repo, target.targetType, target.targetId).notes) };
+}
+
+function nameNoteTargets(name: PersonName): NoteTarget[] {
+  return [
+    { targetType: 'name', targetId: name.id },
+    ...(name.parts ?? []).map((part) => ({ targetType: 'name_part', targetId: part.id })),
+    ...(name.variants ?? []).flatMap((variant) => nameNoteTargets(variant)),
+  ];
+}
+
+function placeNoteTargets(place: PlaceRecord): NoteTarget[] {
+  return [
+    { targetType: 'place', targetId: place.id },
+    ...place.names.map((name) => ({ targetType: 'place_name', targetId: name.id })),
+    ...(place.hierarchy ?? []).map((link) => ({ targetType: 'place_hierarchy', targetId: link.id })),
+  ];
+}
+
+function addressNoteTargets(address: AddressRecord): NoteTarget[] {
+  return [
+    { targetType: 'address', targetId: address.id },
+    ...address.lines.map((line) => ({ targetType: 'address_line', targetId: line.id })),
+  ];
+}
+
+function mediaNoteTargets(media: MediaRecord): NoteTarget[] {
+  return [
+    { targetType: 'media', targetId: media.id },
+    ...(media.files ?? []).map((file) => ({ targetType: 'media_file', targetId: file.id })),
+  ];
 }
 
 function withSubmitterLinks(
@@ -1377,7 +1424,7 @@ function buildAddress(
     ...(address.state !== undefined ? { state: address.state } : {}),
     ...(address.postalCode !== undefined ? { postalCode: address.postalCode } : {}),
     ...(address.country !== undefined ? { country: address.country } : {}),
-    ...withNoteList(repo, 'address', address.id),
+    ...withNoteTargets(repo, addressNoteTargets(address)),
     ...withContacts(repo, 'address', address.id),
   };
 }
@@ -1486,7 +1533,7 @@ function buildPlaceRecord(place: PlaceRecord, repo: TreeRepository, xrefs: Xrefs
     ...(postalCodes.length > 0 ? { postalCodes } : {}),
     ...(place.verified === true ? { extensions: [{ tag: '_VERI', payload: 'Y', children: [] }] } : {}),
     ...withCitationList(repo, 'place', place.id, xrefs),
-    ...withNoteList(repo, 'place', place.id),
+    ...withNoteTargets(repo, placeNoteTargets(place)),
     ...withMediaLinks(repo, 'place', place.id, xrefs),
   };
 }
