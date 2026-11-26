@@ -1,5 +1,5 @@
 ---
-source-hash: b425b67199c0
+source-hash: aebd48e967fb
 ---
 
 # Ağaçla çalışma
@@ -36,8 +36,7 @@ Tam kişi düzenleyicisinde ebeveyn, partner veya çocuk ekleyin. Mevcut bir ki�
 ## Kaynaklar ve notlar
 
 - **Kaynaklar**: bir kişiye kaynak ekleyin (başlık ve yazarla) veya mevcut bir kaynağı yeniden kullanın. Her ekleme bir atıftır ve kaldırılabilir.
-- **Notlar**: bir kişiye eklenen serbest biçimli araştırma notları. Bir not birkaç kayda eklenebilir: başka bir kaydın Notlar bölümünde **Mevcut notu ekle**'yi kullanın, ardından bir düzenlemenin paylaşılan metni her yerde mi yoksa yalnızca geçerli kayıtta mı güncelleyeceğini seçin. **Bu kayıttan ayır** bir bağlantıyı kaldırır; **Her yerde sil** notu kaldırır.
-- Olgular ve adlar, kişi düzenleyicisi içinde kendi Kaynaklar ve Notlar bölümlerine sahiptir; olguların ayrıca İletişim bilgileri vardır.
+- **Notlar**: bir kişiye eklenen serbest biçimli araştırma notları. Her not tek bir kayda aittir: o kaydın Notlar bölümünde ekleyin, düzenleyin veya silin. İçe aktarılan bir GEDCOM dosyasındaki paylaşılan not, ona başvuran her kayda kopyalanır.
 
 ## Adresler
 

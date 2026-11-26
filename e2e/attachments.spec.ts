@@ -37,22 +37,21 @@ test('attachments, addresses and task fields round-trip through the desktop IPC'
 
       await window.doru.addNote(project, {
         id: 'AN3',
-        text: 'shared note',
+        text: 'person note',
         targetType: 'person',
         targetId: 'I1',
       });
-      const link = { id: 'AL1', targetType: 'family', targetId: 'F1' };
-      await window.doru.attachNote(project, 'AN3', link);
+      await window.doru.addNote(project, {
+        id: 'AN4',
+        text: 'family note',
+        targetType: 'family',
+        targetId: 'F1',
+      });
+      if ((await window.doru.listNotes(project, 'person', 'I1')).length !== 1) {
+        throw new Error('person note missing');
+      }
       if ((await window.doru.listNotes(project, 'family', 'F1')).length !== 1) {
-        throw new Error('shared note missing');
-      }
-      const shared = (await window.doru.listNotes(project, 'person', 'I1')).find((note) => note.id === 'AN3');
-      if (shared === undefined) {
-        throw new Error('shared note projection missing');
-      }
-      await window.doru.detachNote(project, shared, link);
-      if ((await window.doru.listNotes(project, 'family', 'F1')).length !== 0) {
-        throw new Error('shared note detached');
+        throw new Error('family note missing');
       }
 
       await window.doru.addAddress(project, {

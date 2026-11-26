@@ -282,7 +282,6 @@ function FamilyTabBody({
   );
   const {
     notes: familyNotes,
-    allNotes,
     citations: familyCitations,
     submitters,
     contributors,
@@ -421,24 +420,13 @@ function FamilyTabBody({
         )}
       />
       <NotesSection
-        targetType="family"
-        targetId={record.id}
         notes={familyNotes}
-        availableNotes={allNotes}
         onAdd={async (text) => {
           await api.addNote({ id: crypto.randomUUID(), text, targetType: 'family', targetId: record.id });
           await refreshAttachments();
         }}
         onUpdate={async (before, after) => {
           await api.updateNote(before, after);
-          await refreshAttachments();
-        }}
-        onAttach={async (noteId) => {
-          await api.attachNote(noteId, { id: crypto.randomUUID(), targetType: 'family', targetId: record.id });
-          await refreshAttachments();
-        }}
-        onDetach={async (note, link) => {
-          await api.detachNote(note, link);
           await refreshAttachments();
         }}
         onDelete={async (note) => {

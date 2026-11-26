@@ -36,7 +36,6 @@ const targetData = {
 function attachmentsStub(overrides: Partial<AttachmentsPanelApi> = {}): AttachmentsPanelApi {
   return stubApi<AttachmentsPanelApi>({
     getNotes: async () => [],
-    getAllNotes: async () => [],
     getCitations: async () => [],
     getContacts: async () => [],
     getSubmitters: async () => [],

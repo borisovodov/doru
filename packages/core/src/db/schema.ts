@@ -33,7 +33,8 @@
  *   (`place_name` rows, one jurisdiction per row).
  * - Notes, citations and media attach to their targets through a
  *   `(target_type, target_id)` pair — the polymorphic attachment shape, kept
- *   plain so SQLite needs no polymorphic FK tricks.
+ *   plain so SQLite needs no polymorphic FK tricks. A note stores its target
+ *   directly; there is no separate note-link row.
  * - There are no search index tables yet: person search scans the stored
  *   name parts until the dedicated search layer lands.
  * - Family children and partners carry a `position` so their order is stable
@@ -257,22 +258,16 @@ CREATE TABLE IF NOT EXISTS place_postal_code (
   date_id TEXT REFERENCES date(id) ON DELETE RESTRICT
 );
 
--- Notes: shared or inline. A note is one text row; note_link attaches it to
--- any target (inline notes have exactly one link, shared notes several).
+-- Notes: a leaf annotation owned by exactly one target. Shared GEDCOM
+-- notes are copied per target on import, and export writes inline NOTE.
 
 CREATE TABLE IF NOT EXISTS note (
   id TEXT PRIMARY KEY,
   text TEXT NOT NULL,
-  created_at INTEGER,
-  updated_at INTEGER
-);
-
-CREATE TABLE IF NOT EXISTS note_link (
-  id TEXT PRIMARY KEY,
-  note_id TEXT NOT NULL REFERENCES note(id) ON DELETE CASCADE,
   target_type TEXT NOT NULL,
   target_id TEXT NOT NULL,
-  UNIQUE (note_id, target_type, target_id)
+  created_at INTEGER,
+  updated_at INTEGER
 );
 
 -- Sources: the full source model plus its sub-rows.
@@ -596,8 +591,7 @@ CREATE INDEX IF NOT EXISTS idx_family_witness_family ON family_witness(family_id
 CREATE INDEX IF NOT EXISTS idx_fact_place_fact ON fact_place(fact_id);
 CREATE INDEX IF NOT EXISTS idx_fact_age_fact ON fact_age(fact_id);
 CREATE INDEX IF NOT EXISTS idx_fact_participant_fact ON fact_participant(fact_id, position);
-CREATE INDEX IF NOT EXISTS idx_note_link_note ON note_link(note_id);
-CREATE INDEX IF NOT EXISTS idx_note_link_target ON note_link(target_type, target_id);
+CREATE INDEX IF NOT EXISTS idx_note_target ON note(target_type, target_id);
 CREATE INDEX IF NOT EXISTS idx_source_text_source ON source_text(source_id);
 CREATE INDEX IF NOT EXISTS idx_source_data_event_source ON source_data_event(source_id);
 CREATE INDEX IF NOT EXISTS idx_source_repository_source ON source_repository(source_id);

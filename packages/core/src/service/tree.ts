@@ -9,7 +9,6 @@ import type {
   FamilyRecord,
   MediaLinkRecord,
   MediaRecord,
-  NoteLinkRecord,
   NoteRecord,
   PersonName,
   PersonRecord,
@@ -45,7 +44,6 @@ import {
   updateMediaLinkOp,
   addNoteOp,
   addPersonOp,
-  attachNoteOp,
   addPlaceOp,
   addRelativeOp,
   addRepositoryOp,
@@ -79,9 +77,7 @@ import {
   deleteTitleOp,
   detachCitationOp,
   detachMediaOp,
-  detachNoteOp,
   reparentOp,
-  splitNoteOp,
   updateAddressOp,
   updateAssociationOp,
   updateCitationOp,
@@ -949,83 +945,20 @@ export class TreeService {
   }
 
   addNote(note: NoteRecord): UndoRedoState {
-    if (note.targetType !== undefined) {
-      assertTargetAllowed('noteLink', note.targetType);
+    if (!note.targetType || !note.targetId) {
+      throw new Error('A note must have a target.');
     }
-    for (const link of note.links ?? []) {
-      assertTargetAllowed('noteLink', link.targetType);
-    }
+    assertTargetAllowed('note', note.targetType);
     const now = Date.now();
     return this.apply(addNoteOp({ ...note, createdAt: note.createdAt ?? now, updatedAt: now }));
   }
 
-  /**
-   * Updates a note. Editing a note that is attached to several places from
-   * one of them splits it (copy-on-write): a new note with the edited text
-   * takes the context's link, the shared text stays untouched.
-   */
-  updateNote(before: NoteRecord, after: NoteRecord, context?: NoteLinkRecord): UndoRedoState {
+  /** Updates the note text; the owning target never changes. */
+  updateNote(before: NoteRecord, after: NoteRecord): UndoRedoState {
     const stored = this.repo.getNote(before.id);
     const current = stored ?? before;
-    const links = current.links ?? [];
     const now = Date.now();
-    if (context !== undefined) {
-      // A note whose last link was detached no longer exists; a stale editor
-      // must not recreate it from its old snapshot.
-      if (stored === undefined) {
-        return this.historyState();
-      }
-      const matching = links.find(
-        (link) => link.targetType === context.targetType && link.targetId === context.targetId,
-      );
-      // A stale editor must not silently rewrite the shared note for the
-      // links that still exist after the context link was detached.
-      if (matching === undefined) {
-        return this.historyState();
-      }
-      if (links.length > 1) {
-        const copy: NoteRecord = {
-          ...after,
-          id: crypto.randomUUID(),
-          createdAt: now,
-          updatedAt: now,
-          links: [matching],
-        };
-        return this.apply(splitNoteOp(current.id, copy, matching));
-      }
-    }
-    return this.apply(updateNoteOp(current, { ...after, createdAt: current.createdAt, updatedAt: now }));
-  }
-
-  /** Attaches an existing note to another target (makes it shared). */
-  attachNote(noteId: string, link: NoteLinkRecord): UndoRedoState {
-    assertTargetAllowed('noteLink', link.targetType);
-    return this.applyAfterCommit(() => {
-      const current = this.repo.getNote(noteId);
-      const alreadyLinked = current?.links?.some(
-        (entry) => entry.targetType === link.targetType && entry.targetId === link.targetId,
-      );
-      if (alreadyLinked) {
-        return undefined;
-      }
-      return attachNoteOp(noteId, link);
-    });
-  }
-
-  /**
-   * Removes one context link. Detaching the last link deletes the note; the
-   * op keeps the note and its attachments for undo.
-   */
-  detachNote(note: NoteRecord, link: NoteLinkRecord): UndoRedoState {
-    return this.applyAfterCommit(() => {
-      const current = this.repo.getNote(note.id);
-      const storedLink = current?.links?.find((entry) => entry.id === link.id);
-      if (current === undefined || storedLink === undefined) {
-        return undefined;
-      }
-      const attachments = this.repo.listAttachmentsFor('note', current.id);
-      return detachNoteOp(current, storedLink, attachments);
-    });
+    return this.apply(updateNoteOp(current, { ...current, text: after.text, updatedAt: now }));
   }
 
   deleteNote(note: NoteRecord): UndoRedoState {
@@ -1034,8 +967,7 @@ export class TreeService {
       if (current === undefined) {
         return undefined;
       }
-      const attachments = this.repo.listAttachmentsFor('note', current.id);
-      return deleteNoteOp(current, attachments);
+      return deleteNoteOp(current);
     });
   }
 

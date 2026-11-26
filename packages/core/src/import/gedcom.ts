@@ -111,7 +111,7 @@ interface ImportContext {
   repositoryIds: Map<string, string>;
   submitterIds: Map<string, string>;
   titleIds: Map<string, string>;
-  noteIds: Map<string, string>;
+  noteTexts: Map<string, string>;
   /** Dedupe of places by their joined name within this import. */
   placeIds: Map<string, string>;
   /** Place names that resolve to more than one distinct row. */
@@ -181,7 +181,7 @@ export function importGedcomDataset(
     repositoryIds: new Map(),
     submitterIds: new Map(),
     titleIds: new Map(),
-    noteIds: new Map(),
+    noteTexts: new Map(),
     placeIds: new Map(),
     ambiguousPlaceNames: new Set(),
     placeCardIds: new Map(),
@@ -407,6 +407,11 @@ function importAddress(address: AddressStructure, ctx: ImportContext): string {
 // Shared notes
 // ---------------------------------------------------------------------------
 
+/**
+ * GEDCOM NOTE/SNOTE records are shared by references. Dóru has no shared
+ * notes: remember the text by xref and copy it into a fresh note for every
+ * target that references it. Unreferenced records are dropped.
+ */
 function importSharedNotes(records: GedcomRecord[], ctx: ImportContext): void {
   for (const record of records) {
     if (record.tag !== 'NOTE' && record.tag !== 'SNOTE') {
@@ -419,15 +424,7 @@ function importSharedNotes(records: GedcomRecord[], ctx: ImportContext): void {
     if (note.xref === undefined) {
       continue;
     }
-    const id = crypto.randomUUID();
-    ctx.noteIds.set(note.xref, id);
-    const now = Date.now();
-    ctx.repo.insertNote({
-      id,
-      text: note.payload,
-      createdAt: now,
-      updatedAt: now,
-    });
+    ctx.noteTexts.set(note.xref, note.payload);
   }
 }
 
@@ -1666,25 +1663,28 @@ function importNotes(
   targetId: string,
   ctx: ImportContext,
 ): void {
+  const copied = new Set<string>();
   for (const structure of structures ?? []) {
-    if ('note' in structure) {
-      // A reference to a shared NOTE/SNOTE record.
-      const noteId = ctx.noteIds.get(structure.note);
-      if (noteId === undefined) {
-        continue;
-      }
-      ctx.repo.addNoteLink(noteId, { id: crypto.randomUUID(), targetType, targetId });
+    const text = 'note' in structure ? ctx.noteTexts.get(structure.note) : structure.payload;
+    if (text === undefined) {
       continue;
     }
-    const note = structure;
-    const id = crypto.randomUUID();
+    // A repeated reference to the same shared note on the same target is
+    // one annotation: GEDCOM dedupes the pointer, Dóru dedupes the copy.
+    if ('note' in structure) {
+      if (copied.has(structure.note)) {
+        continue;
+      }
+      copied.add(structure.note);
+    }
     const now = Date.now();
     ctx.repo.insertNote({
-      id,
-      text: note.payload,
+      id: crypto.randomUUID(),
+      text,
+      targetType,
+      targetId,
       createdAt: now,
       updatedAt: now,
-      links: [{ id: crypto.randomUUID(), targetType, targetId }],
     });
   }
 }

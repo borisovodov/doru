@@ -1,5 +1,5 @@
 ---
-source-hash: b425b67199c0
+source-hash: aebd48e967fb
 ---
 
 # Práce se stromem
@@ -58,12 +58,7 @@ rodiny nebo smazání rodiny je jeden klik.
 
 - **Prameny**: připojte k osobě prameny (s názvem a autorem) nebo znovu
   použijte existující pramen. Každá příloha je citace a lze ji odebrat.
-- **Poznámky**: volné výzkumné poznámky připojené k osobě. Poznámka může být
-  připojena k několika záznamům: použijte **Připojit existující poznámku** v
-  sekci Poznámky jiného záznamu a poté zvolte, zda má úprava aktualizovat
-  sdílený text všude, nebo jen aktuální záznam. **Odpojit od tohoto záznamu**
-  odebere jedno propojení; **Smazat všude** poznámku odstraní.
-- Události a jména mají v editoru osoby vlastní sekce Prameny a Poznámky; události mají také Kontakty.
+- **Poznámky**: volné výzkumné poznámky připojené k osobě. Každá poznámka patří jednomu záznamu: přidejte, upravte nebo smažte ji v sekci Poznámky daného záznamu. Sdílená poznámka z importovaného souboru GEDCOM se zkopíruje ke každému záznamu, který na ni odkazuje.
 
 ## Adresy
 

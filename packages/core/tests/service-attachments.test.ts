@@ -69,7 +69,7 @@ const address = (overrides: Partial<AddressRecord> = {}): AddressRecord => ({
 });
 
 describe('TreeService attachments', () => {
-  it('adds, splits, updates and deletes notes with undo', () => {
+  it('adds, updates and deletes notes with undo', () => {
     const { fixture, service } = makeService();
     try {
       service.addNote(note());
@@ -89,41 +89,26 @@ describe('TreeService attachments', () => {
     }
   });
 
-  it('stamps note creation, edits and split copies, but not link changes', () => {
+  it('stamps note creation and edits, and keeps the owning target', () => {
     const { fixture, service } = makeService();
     try {
       vi.useFakeTimers();
       vi.setSystemTime(1_700_000_000_000);
       service.addNote(note());
       expect(fixture.repo.getNote('N1')).toMatchObject({
+        targetType: 'person',
+        targetId: 'P1',
         createdAt: 1_700_000_000_000,
         updatedAt: 1_700_000_000_000,
       });
 
       vi.setSystemTime(1_700_000_100_000);
       const stored = fixture.repo.getNote('N1')!;
-      service.updateNote(stored, { ...stored, text: 'Edited note' });
-      expect(fixture.repo.getNote('N1')).toMatchObject({
-        createdAt: 1_700_000_000_000,
-        updatedAt: 1_700_000_100_000,
-      });
-
-      vi.setSystemTime(1_700_000_200_000);
-      service.attachNote('N1', { id: 'L2', targetType: 'family', targetId: 'F1' });
-      expect(fixture.repo.getNote('N1')?.updatedAt).toBe(1_700_000_100_000);
-
-      vi.setSystemTime(1_700_000_300_000);
-      const shared = fixture.repo.getNote('N1')!;
-      const personLink = shared.links!.find((link) => link.targetType === 'person')!;
-      service.updateNote(shared, { ...shared, text: 'Split edit' }, personLink);
-
-      const split = fixture.repo.listNotes().find((entry) => entry.text === 'Split edit')!;
-      expect(split).toMatchObject({
-        createdAt: 1_700_000_300_000,
-        updatedAt: 1_700_000_300_000,
-      });
+      service.updateNote(stored, { ...stored, text: 'Edited note', targetType: 'family', targetId: 'F1' });
       expect(fixture.repo.getNote('N1')).toMatchObject({
         text: 'Edited note',
+        targetType: 'person',
+        targetId: 'P1',
         createdAt: 1_700_000_000_000,
         updatedAt: 1_700_000_100_000,
       });
@@ -133,136 +118,11 @@ describe('TreeService attachments', () => {
     }
   });
 
-  it('ignores a stale context edit after its link is detached', () => {
-    const { fixture, service } = makeService();
-    try {
-      const shared: NoteRecord = {
-        id: 'N1',
-        text: 'shared',
-        links: [
-          { id: 'L1', targetType: 'person', targetId: 'P1' },
-          { id: 'L2', targetType: 'person', targetId: 'P2' },
-        ],
-      };
-      fixture.repo.insertNote(shared);
-      const stored = fixture.repo.getNote('N1')!;
-      const p1 = stored.links!.find((link) => link.targetId === 'P1')!;
-      service.detachNote(stored, p1);
-
-      service.updateNote(stored, { ...stored, text: 'stale edit' }, p1);
-
-      expect(fixture.repo.getNote('N1')?.text).toBe('shared');
-      expect(fixture.repo.listNotes().map((note) => note.text)).toEqual(['shared']);
-    } finally {
-      cleanupRepo(fixture);
-    }
-  });
-
-  it('does not recreate a deleted shared note from a stale context edit', () => {
-    const { fixture, service } = makeService();
-    try {
-      const shared: NoteRecord = {
-        id: 'N1',
-        text: 'shared',
-        links: [
-          { id: 'L1', targetType: 'person', targetId: 'P1' },
-          { id: 'L2', targetType: 'person', targetId: 'P2' },
-        ],
-      };
-      fixture.repo.insertNote(shared);
-      const stored = fixture.repo.getNote('N1')!;
-      service.detachNote(
-        stored,
-        stored.links!.find((link) => link.targetId === 'P1')!,
-      );
-      const remaining = fixture.repo.getNote('N1')!;
-      service.detachNote(remaining, remaining.links![0]!);
-      expect(fixture.repo.getNote('N1')).toBeUndefined();
-
-      service.updateNote(stored, { ...stored, text: 'stale edit' }, stored.links![0]);
-
-      expect(fixture.repo.getNote('N1')).toBeUndefined();
-      expect(fixture.repo.listNotes()).toEqual([]);
-    } finally {
-      cleanupRepo(fixture);
-    }
-  });
-
-  it('splits a shared note edited from one of its contexts', () => {
-    const { fixture, service } = makeService();
-    try {
-      const shared: NoteRecord = {
-        id: 'N1',
-        text: 'shared',
-        links: [
-          { id: 'L1', targetType: 'person', targetId: 'P1' },
-          { id: 'L2', targetType: 'person', targetId: 'P2' },
-        ],
-      };
-      fixture.repo.insertNote(shared);
-
-      const after: NoteRecord = { id: 'N1', text: 'edited for P1', links: shared.links };
-      service.updateNote(shared, after, { id: 'L1', targetType: 'person', targetId: 'P1' });
-
-      const notes = fixture.repo.listNotes();
-      expect(notes.map((entry) => entry.text).sort()).toEqual(['edited for P1', 'shared']);
-      const copy = notes.find((entry) => entry.text === 'edited for P1')!;
-      expect(copy.id).not.toBe('N1');
-
-      service.undo();
-      expect(fixture.repo.listNotes().map((entry) => entry.text)).toEqual(['shared']);
-      expect(fixture.repo.listNotesFor('person', 'P1').map((entry) => entry.id)).toEqual(['N1']);
-    } finally {
-      cleanupRepo(fixture);
-    }
-  });
-
-  it('attaches and detaches a shared note with undo', () => {
-    const { fixture, service } = makeService();
-    try {
-      service.addNote(note());
-      const link = { id: 'L2', targetType: 'family', targetId: 'F1' };
-      service.attachNote('N1', link);
-      const shared = fixture.repo.getNote('N1')!;
-      expect(shared.links).toEqual(
-        expect.arrayContaining([
-          expect.objectContaining({ targetType: 'family', targetId: 'F1' }),
-          expect.objectContaining({ targetType: 'person', targetId: 'P1' }),
-        ]),
-      );
-
-      service.detachNote(shared, link);
-      expect(fixture.repo.listNotesFor('family', 'F1')).toEqual([]);
-      expect(fixture.repo.getNote('N1')?.links?.map((entry) => entry.targetId)).toEqual(['P1']);
-
-      const last = fixture.repo.getNote('N1')!;
-      service.detachNote(last, last.links![0]!);
-      expect(fixture.repo.getNote('N1')).toBeUndefined();
-      service.undo();
-      expect(fixture.repo.getNote('N1')?.links?.map((entry) => entry.targetId)).toEqual(['P1']);
-    } finally {
-      cleanupRepo(fixture);
-    }
-  });
-
-  it('keeps one note link when the same target is attached twice', () => {
-    const { fixture, service } = makeService();
-    try {
-      service.addNote(note());
-      service.attachNote('N1', { id: 'L2', targetType: 'family', targetId: 'F1' });
-      service.attachNote('N1', { id: 'L3', targetType: 'person', targetId: 'P1' });
-      service.attachNote('N1', { id: 'L4', targetType: 'person', targetId: 'P1' });
-
-      expect(fixture.repo.getNote('N1')?.links).toHaveLength(2);
-      expect(fixture.repo.listNotesFor('person', 'P1')).toHaveLength(1);
-
-      // The duplicate attaches are not undo entries: one undo removes the family link.
-      service.undo();
-      expect(fixture.repo.listNotesFor('family', 'F1')).toEqual([]);
-      expect(fixture.repo.listNotesFor('person', 'P1')).toHaveLength(1);
-    } finally {
-      cleanupRepo(fixture);
-    }
+  it('requires a target for a note', () => {
+    const { service } = makeService();
+    expect(() => service.addNote({ id: 'N1', text: 'orphan', targetType: '', targetId: '' })).toThrow(
+      'A note must have a target.',
+    );
   });
 
   it('restores attachments on facts and names when a person is deleted', () => {
@@ -364,12 +224,9 @@ describe('TreeService attachments', () => {
     const { fixture, service } = makeService();
     try {
       expect(() => service.addNote(note({ targetType: 'media_link', targetId: 'ML1' }))).toThrow(
-        'A noteLink cannot target a media_link.',
+        'A note cannot target a media_link.',
       );
       service.addNote(note());
-      expect(() => service.attachNote('N1', { id: 'L2', targetType: 'media_link', targetId: 'ML1' })).toThrow(
-        'A noteLink cannot target a media_link.',
-      );
 
       service.addMedia({ id: 'M1', title: 'Scan' });
       expect(() => service.addMedia({ id: 'M2', title: 'Copy', targetType: 'media_link', targetId: 'ML1' })).toThrow(
@@ -435,11 +292,8 @@ describe('TreeService attachments', () => {
         }),
       ).toThrow('A taskLink cannot target a note.');
 
-      expect(() => service.attachNote('N1', { id: 'L2', targetType: 'note', targetId: 'N2' })).toThrow(
-        'A noteLink cannot target a note.',
-      );
       expect(() => service.addNote(note({ id: 'N2', targetType: 'note', targetId: 'N1' }))).toThrow(
-        'A noteLink cannot target a note.',
+        'A note cannot target a note.',
       );
 
       service.addMedia({ id: 'M1', links: [] });
@@ -999,10 +853,7 @@ describe('TreeService attachments', () => {
       }
       service.attachSource('S1', 'person', 'P1');
       const [citation] = fixture.repo.listCitationRecordsFor('person', 'P1');
-      service.addNote({
-        ...note(),
-        links: [{ id: 'NL1', targetType: 'citation', targetId: citation!.id }],
-      });
+      service.addNote({ ...note(), targetType: 'citation', targetId: citation!.id });
       expect(fixture.repo.listNotesFor('citation', citation!.id).map((entry) => entry.id)).toEqual(['N1']);
 
       service.detachCitation(citation!.id);

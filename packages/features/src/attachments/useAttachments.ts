@@ -4,7 +4,6 @@ import type { CitationRecord, ContactRecord, NoteRecord, RecordSubmitterLink, Su
 /** The read methods every entity editor needs for its attachment sections. */
 export interface AttachmentApi {
   getNotes(targetType: string, targetId: string): Promise<NoteRecord[]>;
-  getAllNotes(): Promise<NoteRecord[]>;
   getCitations(targetType: string, targetId: string): Promise<CitationRecord[]>;
   getContacts(targetType: string, targetId: string): Promise<ContactRecord[]>;
 }
@@ -33,7 +32,6 @@ export interface SubmitterAttachmentApi extends AttachmentApi, ContributorApi {}
 
 export interface AttachmentData {
   notes: NoteRecord[];
-  allNotes: NoteRecord[];
   citations: CitationRecord[];
   contacts: ContactRecord[];
   submitters: SubmitterRecord[];
@@ -42,7 +40,6 @@ export interface AttachmentData {
 
 const emptyAttachments = (): AttachmentData => ({
   notes: [],
-  allNotes: [],
   citations: [],
   contacts: [],
   submitters: [],
@@ -79,9 +76,8 @@ export function useAttachments(
     if (targetId === undefined) {
       return emptyAttachments();
     }
-    const [notes, allNotes, citations, contacts] = await Promise.all([
+    const [notes, citations, contacts] = await Promise.all([
       api.getNotes(targetType, targetId),
-      api.getAllNotes(),
       api.getCitations(targetType, targetId),
       api.getContacts(targetType, targetId),
     ]);
@@ -89,7 +85,6 @@ export function useAttachments(
       return {
         ...emptyAttachments(),
         notes,
-        allNotes,
         citations,
         contacts,
       };
@@ -101,7 +96,6 @@ export function useAttachments(
     ]);
     return {
       notes,
-      allNotes,
       citations,
       contacts,
       submitters,

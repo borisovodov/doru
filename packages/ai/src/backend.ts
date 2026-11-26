@@ -119,11 +119,16 @@ export class TreeMcpBackend {
     if (!text) {
       throw new Error('notes_write requires "text"');
     }
+    const targetType = args['targetType'];
+    const targetId = args['targetId'];
+    if (typeof targetType !== 'string' || typeof targetId !== 'string') {
+      throw new Error('notes_write requires "targetType" and "targetId"');
+    }
     const note = {
       id: crypto.randomUUID(),
       text,
-      targetType: args['targetType'] as string | undefined,
-      targetId: args['targetId'] as string | undefined,
+      targetType,
+      targetId,
     };
     this.service.addNote(note);
     return { ok: true, id: note.id };

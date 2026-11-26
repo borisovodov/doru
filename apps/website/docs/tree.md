@@ -55,13 +55,10 @@ Removing a person from a family or deleting a family is one click.
 
 - **Sources**: attach sources to a person (with a title and author) or reuse
   an existing source. Each attachment is a citation and can be removed.
-- **Notes**: free-form research notes attached to a person. A note can be
-  attached to several records: use **Attach existing note** in another
-  record's Notes section, then choose whether an edit should update the
-  shared text everywhere or only the current record. **Detach from this
-  record** removes one link; **Delete everywhere** removes the note.
-- Facts and names carry their own Sources and Notes sections
-  inside the person editor; facts also have Contacts.
+- **Notes**: free-form research notes attached to a person. Every note belongs
+  to one record: add, edit or delete it in that record's Notes section. A
+  shared note from an imported GEDCOM file is copied to each record that
+  references it.
 
 ## Addresses
 

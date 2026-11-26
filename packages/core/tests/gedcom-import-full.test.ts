@@ -275,7 +275,7 @@ describe('importGedcomDataset (phase 4)', () => {
       expect(birth.place).toBe('Moscow, Russia');
       expect(birth.participants).toEqual([expect.objectContaining({ value: 'Witness Name', role: 'WITN' })]);
 
-      // Shared notes keep their link again.
+      // The shared GEDCOM note is copied onto the person again.
       expect(second.repo.listNotesFor('person', ivan.id).map((note) => note.text)).toContain('shared note text');
 
       // Sources, citations and the family survive.

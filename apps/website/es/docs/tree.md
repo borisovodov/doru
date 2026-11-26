@@ -1,5 +1,5 @@
 ---
-source-hash: b425b67199c0
+source-hash: aebd48e967fb
 ---
 
 # Trabajar con el árbol
@@ -63,13 +63,7 @@ familia es un clic.
 
 - **Fuentes**: adjunta fuentes a una persona (con un título y un autor) o
   reutiliza una fuente existente. Cada vínculo es una cita y se puede eliminar.
-- **Notas**: notas de investigación de formato libre adjuntas a una persona. Una
-  nota puede estar adjunta a varios registros: usa **Adjuntar nota existente** en
-  la sección Notas de otro registro y luego elige si una edición debe actualizar
-  el texto compartido en todas partes o solo en el registro actual. **Desvincular
-  de este registro** elimina un enlace; **Eliminar en todas partes** elimina la
-  nota.
-- Los hechos y los nombres llevan sus propias secciones de Fuentes y Notas dentro del editor de la persona; los hechos también tienen Contactos.
+- **Notas**: notas de investigación de formato libre adjuntas a una persona. Cada nota pertenece a un solo registro: añádela, edítala o elimínala en la sección Notas de ese registro. Una nota compartida de un archivo GEDCOM importado se copia a cada registro que la referencia.
 
 ## Direcciones
 

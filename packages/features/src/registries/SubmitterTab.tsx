@@ -136,7 +136,6 @@ function SubmitterTabBody({
   const targetId = (lastSaved ?? record)?.id;
   const {
     notes: submitterNotes,
-    allNotes,
     citations: submitterCitations,
     contacts,
     submitters: contributorOptions,
@@ -382,24 +381,13 @@ function SubmitterTabBody({
             )}
           />
           <NotesSection
-            targetType="submitter"
-            targetId={targetId}
             notes={submitterNotes}
-            availableNotes={allNotes}
             onAdd={async (text) => {
               await api.addNote({ id: crypto.randomUUID(), text, targetType: 'submitter', targetId });
               await refreshAttachments();
             }}
             onUpdate={async (before, after) => {
               await api.updateNote(before, after);
-              await refreshAttachments();
-            }}
-            onAttach={async (noteId) => {
-              await api.attachNote(noteId, { id: crypto.randomUUID(), targetType: 'submitter', targetId });
-              await refreshAttachments();
-            }}
-            onDetach={async (note, link) => {
-              await api.detachNote(note, link);
               await refreshAttachments();
             }}
             onDelete={async (note) => {

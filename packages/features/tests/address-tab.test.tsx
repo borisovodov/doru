@@ -11,7 +11,6 @@ const record: AddressRecord = { id: 'A1', lines: [{ id: 'AL1', value: 'Main stre
 function apiStub(overrides: Partial<RegistriesEditorApi>): RegistriesEditorApi {
   return stubApi<RegistriesEditorApi>({
     getNotes: async () => [],
-    getAllNotes: async () => [],
     getCitations: async () => [],
     getContacts: async () => [],
     getSubmitters: async () => [],

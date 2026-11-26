@@ -1,5 +1,5 @@
 ---
-source-hash: b425b67199c0
+source-hash: aebd48e967fb
 ---
 
 # Praca z drzewem
@@ -60,12 +60,7 @@ osoby z rodziny albo usunięcie rodziny to jedno kliknięcie.
 
 - **Źródła**: dołączaj źródła do osoby (z tytułem i autorem) lub używaj
   ponownie istniejącego źródła. Każde dołączenie to cytat i można je usunąć.
-- **Notatki**: swobodne notatki badawcze dołączone do osoby. Notatkę można
-  dołączyć do kilku rekordów: użyj **Dołącz istniejącą notatkę** w sekcji
-  Notatki innego rekordu, a następnie wybierz, czy edycja ma zaktualizować
-  wspólny tekst wszędzie, czy tylko bieżący rekord. **Odłącz od tego rekordu**
-  usuwa jedno powiązanie; **Usuń wszędzie** usuwa notatkę.
-- Wydarzenia i imiona mają własne sekcje Źródła i Notatki w edytorze osoby; wydarzenia mają także Kontakty.
+- **Notatki**: swobodne notatki badawcze dołączone do osoby. Każda notatka należy do jednego rekordu: dodaj ją, edytuj lub usuń w sekcji Notatki tego rekordu. Współdzielona notatka z zaimportowanego pliku GEDCOM jest kopiowana do każdego rekordu, który ją odwołuje.
 
 ## Adresy
 

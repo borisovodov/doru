@@ -169,7 +169,6 @@ function SourceTabBody({
   const attachSourceToTargets = api.attachSourceToTargets;
   const {
     notes: sourceNotes,
-    allNotes,
     citations: sourceCitations,
     submitters,
     contributors,
@@ -396,24 +395,13 @@ function SourceTabBody({
                 )}
               />
               <NotesSection
-                targetType="source"
-                targetId={targetId}
                 notes={sourceNotes}
-                availableNotes={allNotes}
                 onAdd={async (text) => {
                   await api.addNote({ id: crypto.randomUUID(), text, targetType: 'source', targetId });
                   await refreshAttachments();
                 }}
                 onUpdate={async (before, after) => {
                   await api.updateNote(before, after);
-                  await refreshAttachments();
-                }}
-                onAttach={async (noteId) => {
-                  await api.attachNote(noteId, { id: crypto.randomUUID(), targetType: 'source', targetId });
-                  await refreshAttachments();
-                }}
-                onDetach={async (note, link) => {
-                  await api.detachNote(note, link);
                   await refreshAttachments();
                 }}
                 onDelete={async (note) => {

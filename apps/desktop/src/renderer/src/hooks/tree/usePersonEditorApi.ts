@@ -29,7 +29,6 @@ export function usePersonEditorApi(
       },
       getNotes: (targetType, targetId) =>
         projectPath ? window.doru.listNotes(projectPath, targetType, targetId) : Promise.resolve([]),
-      getAllNotes: () => (projectPath ? window.doru.listNotes(projectPath) : Promise.resolve([])),
       addNote: async (note) => {
         if (!projectPath) {
           return;
@@ -37,25 +36,11 @@ export function usePersonEditorApi(
         await window.doru.addNote(projectPath, note);
         await refreshTree().catch(() => undefined);
       },
-      updateNote: async (before, after, context) => {
+      updateNote: async (before, after) => {
         if (!projectPath) {
           return;
         }
-        await window.doru.updateNote(projectPath, before, after, context);
-        await refreshTree().catch(() => undefined);
-      },
-      attachNote: async (noteId, link) => {
-        if (!projectPath) {
-          return;
-        }
-        await window.doru.attachNote(projectPath, noteId, link);
-        await refreshTree().catch(() => undefined);
-      },
-      detachNote: async (note, link) => {
-        if (!projectPath) {
-          return;
-        }
-        await window.doru.detachNote(projectPath, note, link);
+        await window.doru.updateNote(projectPath, before, after);
         await refreshTree().catch(() => undefined);
       },
       deleteNote: async (note) => {

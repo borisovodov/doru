@@ -9,8 +9,8 @@
  * visibility read these sets; there is no second allowed-target list.
  */
 
-/** Targets a note link may point at. */
-export const NOTE_LINK_TARGET_TYPES = [
+/** Targets a note may point at. */
+export const NOTE_TARGET_TYPES = [
   'person',
   'family',
   'family_partner',
@@ -145,7 +145,7 @@ export const RECORD_SUBMITTER_TARGET_TYPES = [
 
 /** Every polymorphic attachment family, keyed by its link kind. */
 export const ATTACHMENT_TARGET_TYPES = {
-  noteLink: NOTE_LINK_TARGET_TYPES,
+  note: NOTE_TARGET_TYPES,
   citation: CITATION_TARGET_TYPES,
   mediaLink: MEDIA_LINK_TARGET_TYPES,
   contact: CONTACT_TARGET_TYPES,

@@ -124,6 +124,9 @@ describe('TreeMcpBackend coverage', () => {
 
       await expect(backend.invoke('sources_add', {})).rejects.toThrow('requires a "title"');
       await expect(backend.invoke('notes_write', {})).rejects.toThrow('requires "text"');
+      await expect(backend.invoke('notes_write', { text: 'a note' })).rejects.toThrow(
+        'requires "targetType" and "targetId"',
+      );
 
       const source = (await backend.invoke('sources_add', {
         title: 'The Book',

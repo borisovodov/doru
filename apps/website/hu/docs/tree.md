@@ -1,5 +1,5 @@
 ---
-source-hash: b425b67199c0
+source-hash: aebd48e967fb
 ---
 
 # A családfa használata
@@ -36,8 +36,7 @@ A teljes személyszerkesztőben adjon hozzá szülőket, partnert vagy gyermekek
 ## Források és jegyzetek
 
 - **Források**: csatoljon forrásokat egy személyhez (címmel és szerzővel), vagy használjon újra egy meglévő forrást. Minden csatolás egy hivatkozás, és eltávolítható.
-- **Jegyzetek**: egy személyhez csatolt szabad formájú kutatási jegyzetek. Egy jegyzet több rekordhoz is csatolható: használja a **Meglévő jegyzet csatolása** lehetőséget egy másik rekord Jegyzetek szakaszában, majd válassza ki, hogy a szerkesztés mindenhol frissítse-e a megosztott szöveget, vagy csak az aktuális rekordban. A **Leválasztás erről a rekordról** eltávolít egy hivatkozást; a **Törlés mindenhol** eltávolítja a jegyzetet.
-- A tények és nevek saját Források és Jegyzetek szakaszokkal rendelkeznek a személyszerkesztőn belül; a tényeknek Elérhetőségeik is vannak.
+- **Jegyzetek**: egy személyhez csatolt szabad formájú kutatási jegyzetek. Minden jegyzet egyetlen rekordhoz tartozik: a rekord Jegyzetek szakaszában adhatja hozzá, szerkesztheti vagy törölheti. Az importált GEDCOM-fájl megosztott jegyzetét minden hivatkozó rekordhoz átmásoljuk.
 
 ## Címek
 

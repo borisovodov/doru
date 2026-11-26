@@ -1,43 +1,30 @@
 import { Button } from '../../atoms/button/Button';
 import { EmptyText } from '../../atoms/feedback/EmptyText';
-import { InlineError } from '../../atoms/feedback/InlineError';
 import { IconButton } from '../../atoms/icon-button/IconButton';
 import { Textarea } from '../../atoms/form/Textarea';
-import { AttachExisting } from '../../patterns/attach-existing/AttachExisting';
 import { SectionCard } from '../../patterns/section-card/SectionCard';
 import { useState } from 'react';
-import { Pencil, Trash2, X } from 'lucide-react';
-import type { NoteLinkRecord, NoteRecord } from '@doru/core';
+import { Pencil, Trash2 } from 'lucide-react';
+import type { NoteRecord } from '@doru/core';
 import { nls } from '../../nls';
 import styles from './NotesSection.module.css';
 
 /**
- * The person's notes with inline editing. Editing a shared note updates the
- * text for every record it is attached to. The edit form covers the note text.
+ * The person's notes with inline editing. A note is owned by exactly one
+ * record: editing changes its text, deleting removes it from that record.
  */
 export function NotesSection({
-  targetType,
-  targetId,
   notes,
-  availableNotes = [],
   onAdd,
   onUpdate,
-  onAttach,
-  onDetach,
   onDelete,
 }: {
-  targetType: string;
-  targetId: string;
   notes: NoteRecord[];
-  availableNotes?: NoteRecord[];
   onAdd: (text: string) => Promise<void>;
   onUpdate: (before: NoteRecord, after: NoteRecord) => Promise<void>;
-  onAttach?: ((noteId: string) => Promise<void>) | undefined;
-  onDetach?: ((note: NoteRecord, link: NoteLinkRecord) => Promise<void>) | undefined;
   onDelete: (note: NoteRecord) => Promise<void>;
 }) {
   const [draft, setDraft] = useState('');
-  const [attachError, setAttachError] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editText, setEditText] = useState('');
 
@@ -50,19 +37,10 @@ export function NotesSection({
     setDraft('');
   };
 
-  const attach = async (noteId: string) => {
-    setAttachError(false);
-    await onAttach?.(noteId);
-  };
-
   const startEdit = (note: NoteRecord) => {
     setEditingId(note.id);
     setEditText(note.text);
   };
-
-  const attachableNotes = availableNotes.filter(
-    (note) => !(note.links ?? []).some((link) => link.targetType === targetType && link.targetId === targetId),
-  );
 
   const saveEdit = async (note: NoteRecord) => {
     const text = editText.trim();
@@ -96,44 +74,16 @@ export function NotesSection({
               ) : (
                 <div className={styles['notesRow']}>
                   <span className={styles['notesText']}>{note.text}</span>
-                  {(note.links?.length ?? 0) > 1 && (
-                    <span className={styles['notesMeta']}>{nls.t('features.tree.notes.shared')}</span>
-                  )}
                   <IconButton
                     size="sm"
                     label={nls.t('features.tree.notes.edit')}
                     icon={<Pencil size={13} aria-hidden="true" />}
                     onClick={() => startEdit(note)}
                   />
-                  {(note.links?.length ?? 0) > 1 && onDetach !== undefined && (
-                    <IconButton
-                      size="sm"
-                      label={nls.t('features.tree.notes.detach')}
-                      icon={<X size={13} aria-hidden="true" />}
-                      onClick={() => {
-                        const link = note.links?.find(
-                          (entry) => entry.targetType === targetType && entry.targetId === targetId,
-                        );
-                        if (link !== undefined) {
-                          void onDetach(note, link);
-                        }
-                      }}
-                    />
-                  )}
                   <IconButton
                     size="sm"
-                    label={
-                      (note.links?.length ?? 0) > 1
-                        ? nls.t('features.tree.notes.deleteEverywhere')
-                        : nls.t('features.tree.notes.remove')
-                    }
-                    icon={
-                      (note.links?.length ?? 0) > 1 ? (
-                        <Trash2 size={13} aria-hidden="true" />
-                      ) : (
-                        <X size={13} aria-hidden="true" />
-                      )
-                    }
+                    label={nls.t('features.tree.notes.remove')}
+                    icon={<Trash2 size={13} aria-hidden="true" />}
                     onClick={() => void onDelete(note)}
                   />
                 </div>
@@ -141,19 +91,6 @@ export function NotesSection({
             </li>
           ))}
         </ul>
-      )}
-      {attachError ? <InlineError>{nls.t('features.tree.autosaveFailed')}</InlineError> : null}
-      {onAttach !== undefined && (
-        <AttachExisting
-          label={nls.t('features.tree.notes.attachExisting')}
-          actionLabel={nls.t('features.tree.notes.attach')}
-          options={attachableNotes.map((note) => ({
-            id: note.id,
-            label: note.text.length > 60 ? `${note.text.slice(0, 60)}…` : note.text,
-          }))}
-          onAttach={attach}
-          onError={() => setAttachError(true)}
-        />
       )}
       <div className={styles['notesAdd']}>
         <Textarea

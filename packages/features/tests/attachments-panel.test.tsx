@@ -9,7 +9,6 @@ import { renderUi, stubApi } from '../../../test/ui/harness';
 function apiStub(overrides: Partial<AttachmentsPanelApi> = {}): AttachmentsPanelApi {
   return stubApi<AttachmentsPanelApi>({
     getNotes: async () => [],
-    getAllNotes: async () => [],
     getCitations: async () => [],
     getContacts: async () => [],
     getSubmitters: async () => [],

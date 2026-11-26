@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { NoteRecord, PersonRecord } from '../src/model/types';
+import type { PersonRecord } from '../src/model/types';
 import { OpQueue, TreeService } from '../src';
 import { cleanupRepo, flatPerson, makeRepo } from './helpers';
 
@@ -12,48 +12,7 @@ function service(fixture: ReturnType<typeof makeRepo>): TreeService {
 }
 
 describe('Phase 2: notes', () => {
-  it('splits a shared note when edited from one of its contexts', () => {
-    const fixture = makeRepo();
-    try {
-      const svc = service(fixture);
-      const repo = fixture.repo;
-      repo.insertPerson(person('P1'));
-      repo.insertPerson(person('P2'));
-
-      const shared: NoteRecord = {
-        id: 'N1',
-        text: 'shared text',
-        links: [
-          { id: 'L1', targetType: 'person', targetId: 'P1' },
-          { id: 'L2', targetType: 'person', targetId: 'P2' },
-        ],
-      };
-      repo.insertNote(shared);
-
-      // Editing from P1's context must not rewrite the shared text.
-      svc.updateNote(
-        repo.getNote('N1')!,
-        { id: 'N1', text: 'only for P1' },
-        { id: 'L1', targetType: 'person', targetId: 'P1' },
-      );
-
-      const p1Notes = repo.listNotesFor('person', 'P1');
-      const p2Notes = repo.listNotesFor('person', 'P2');
-      expect(p1Notes.map((note) => note.text)).toEqual(['only for P1']);
-      expect(p2Notes.map((note) => note.text)).toEqual(['shared text']);
-      expect(repo.getNote('N1')?.text).toBe('shared text');
-
-      // One undo step returns the single shared note everywhere.
-      svc.undo();
-      expect(repo.listNotesFor('person', 'P1').map((note) => note.text)).toEqual(['shared text']);
-      expect(repo.listNotesFor('person', 'P2').map((note) => note.text)).toEqual(['shared text']);
-      expect(repo.listNotes()).toHaveLength(1);
-    } finally {
-      cleanupRepo(fixture);
-    }
-  });
-
-  it('updates a single-context note in place', () => {
+  it('updates a note in place', () => {
     const fixture = makeRepo();
     try {
       const svc = service(fixture);
@@ -61,13 +20,9 @@ describe('Phase 2: notes', () => {
       repo.insertPerson(person('P1'));
       repo.insertNote({ id: 'N1', text: 'old', targetType: 'person', targetId: 'P1' });
 
-      svc.updateNote(
-        repo.getNote('N1')!,
-        { id: 'N1', text: 'new' },
-        { id: 'L1', targetType: 'person', targetId: 'P1' },
-      );
+      svc.updateNote(repo.getNote('N1')!, { ...repo.getNote('N1')!, text: 'new' });
       expect(repo.getNote('N1')?.text).toBe('new');
-      expect(repo.listNotes()).toHaveLength(1);
+      expect(repo.listNotesFor('person', 'P1')).toEqual([expect.objectContaining({ id: 'N1', text: 'new' })]);
     } finally {
       cleanupRepo(fixture);
     }

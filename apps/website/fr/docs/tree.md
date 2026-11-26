@@ -1,5 +1,5 @@
 ---
-source-hash: b425b67199c0
+source-hash: aebd48e967fb
 ---
 
 # Travailler avec l'arbre
@@ -63,13 +63,7 @@ famille se fait en un clic.
 - **Sources** : attachez des sources à une personne (avec un titre et un auteur) ou
   réutilisez une source existante. Chaque attachement est une citation et peut
   être supprimé.
-- **Notes** : notes de recherche libre attachées à une personne. Une note peut être
-  attachée à plusieurs enregistrements : utilisez **Attacher une note existante**
-  dans la section Notes d'un autre enregistrement, puis choisissez si une
-  modification doit mettre à jour le texte partagé partout ou seulement
-  l'enregistrement courant. **Détacher de cet enregistrement** supprime un lien ;
-  **Supprimer partout** supprime la note.
-- Les faits et les noms portent leurs propres sections Sources et Notes dans l'éditeur de personne ; les faits ont aussi des Contacts.
+- **Notes** : notes de recherche libres attachées à une personne. Chaque note appartient à un seul enregistrement : ajoutez-la, modifiez-la ou supprimez-la dans la section Notes de cet enregistrement. Une note partagée d'un fichier GEDCOM importé est copiée pour chaque enregistrement qui la référence.
 
 ## Adresses
 

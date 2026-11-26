@@ -183,7 +183,7 @@ describe('importGedcomDataset media', () => {
 });
 
 describe('importGedcomDataset duplicate note references', () => {
-  it('links a shared note once when it is referenced twice', () => {
+  it('copies a shared note once per target when it is referenced twice', () => {
     const fixture = makeRepo();
     try {
       const text = [
@@ -203,6 +203,36 @@ describe('importGedcomDataset duplicate note references', () => {
       const notes = fixture.repo.listNotesFor('person', person.id);
       expect(notes).toHaveLength(1);
       expect(notes[0]?.text).toBe('Shared note text');
+    } finally {
+      cleanupRepo(fixture);
+    }
+  });
+
+  it('copies a shared note to every target that references it', () => {
+    const fixture = makeRepo();
+    try {
+      const text = [
+        '0 HEAD',
+        '1 GEDC',
+        '2 VERS 7.0',
+        '0 @I1@ INDI',
+        '1 NAME Ivan /Petrov/',
+        '1 SNOTE @N1@',
+        '0 @I2@ INDI',
+        '1 NAME Maria /Petrova/',
+        '1 SNOTE @N1@',
+        '0 @N1@ SNOTE Shared note text',
+        '0 TRLR',
+      ].join('\n');
+      importGedcomDataset(parseDataset(text), fixture.repo);
+
+      const [first, second] = fixture.repo.listAllPersons();
+      const firstNotes = fixture.repo.listNotesFor('person', first!.id);
+      const secondNotes = fixture.repo.listNotesFor('person', second!.id);
+      expect(firstNotes.map((note) => note.text)).toEqual(['Shared note text']);
+      expect(secondNotes.map((note) => note.text)).toEqual(['Shared note text']);
+      expect(firstNotes[0]?.id).not.toBe(secondNotes[0]?.id);
+      expect(fixture.repo.listNotes()).toHaveLength(2);
     } finally {
       cleanupRepo(fixture);
     }
@@ -360,9 +390,8 @@ describe('importGedcomDataset', () => {
       const family = fixture.repo.listFamilies()[0]!;
       const childLink = family.childLinks?.[0];
       expect(childLink).toBeDefined();
-      expect(
-        fixture.repo.listAttachmentsFor('family_child', childLink!.id).noteLinks.map((link) => link.note.id),
-      ).toEqual([note.id]);
+      expect(fixture.repo.listNotesFor('family_child', childLink!.id).map((entry) => entry.id)).toEqual([note.id]);
+      expect(note).toMatchObject({ targetType: 'family_child', targetId: childLink!.id });
     } finally {
       cleanupRepo(fixture);
     }
@@ -382,6 +411,9 @@ describe('importGedcomDataset', () => {
       '1 TITL Parish register',
       '0 @U1@ SUBM',
       '1 NAME Ivan Petrov',
+      '0 @I1@ INDI',
+      '1 NAME Ivan /Petrov/',
+      '1 SNOTE @N1@',
       '0 TRLR',
     ].join('\n');
     const result = parse(new TextEncoder().encode(gedcom));

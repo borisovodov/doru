@@ -8,7 +8,6 @@ import type {
   MediaFile,
   MediaLinkRecord,
   MediaRecord,
-  NoteLinkRecord,
   NoteRecord,
   PersonRecord,
   PlaceRecord,
@@ -115,14 +114,7 @@ declare global {
         personIds: string[],
       ): Promise<Record<string, { notes: number; sources: number; media: number }>>;
       addNote(projectPath: string, note: NoteRecord): Promise<UndoRedoState>;
-      updateNote(
-        projectPath: string,
-        before: NoteRecord,
-        after: NoteRecord,
-        context?: NoteLinkRecord,
-      ): Promise<UndoRedoState>;
-      attachNote(projectPath: string, noteId: string, link: NoteLinkRecord): Promise<UndoRedoState>;
-      detachNote(projectPath: string, note: NoteRecord, link: NoteLinkRecord): Promise<UndoRedoState>;
+      updateNote(projectPath: string, before: NoteRecord, after: NoteRecord): Promise<UndoRedoState>;
       deleteNote(projectPath: string, note: NoteRecord): Promise<UndoRedoState>;
       getFamilies(projectPath: string): Promise<FamilyRecord[]>;
       addFamily(projectPath: string, family: FamilyRecord): Promise<UndoRedoState>;

@@ -5,7 +5,6 @@ import type {
   ContactRecord,
   MediaLinkRecord,
   MediaRecord,
-  NoteLinkRecord,
   NoteRecord,
   RepositoryRecord,
   RecordSubmitterLink,
@@ -55,7 +54,7 @@ export function addNoteOp(note: NoteRecord): Op {
       (ctx) => ctx.repo.insertNote(note),
       (ctx) => ctx.repo.deleteNote(note.id),
     ),
-    change: { targetType: 'note', targetId: note.id, kind: 'created' },
+    change: { targetType: note.targetType, targetId: note.targetId, kind: 'changed' },
   };
 }
 
@@ -66,7 +65,7 @@ export function updateNoteOp(before: NoteRecord, after: NoteRecord): Op {
       'note.update',
       (ctx) => ctx.repo.updateNote(after),
       (ctx) => ctx.repo.updateNote(before),
-      { targetType: 'note', targetId: before.id, kind: 'changed' },
+      { targetType: before.targetType, targetId: before.targetId, kind: 'changed' },
       (ctx) => {
         const current = ctx.repo.getNote(before.id);
         return current !== undefined && sameRecord(current, before);
@@ -75,114 +74,15 @@ export function updateNoteOp(before: NoteRecord, after: NoteRecord): Op {
   };
 }
 
-/**
- * The split-on-edit semantics for shared notes: editing a note from one of
- * its contexts creates a copy for that context instead of rewriting the
- * shared text. `after` is the new note (with the edited text), `link` is the
- * context link moved from `originalId` to it. Undo deletes the copy and
- * returns the link.
- */
-export function splitNoteOp(originalId: string, after: NoteRecord, link: NoteLinkRecord): Op {
-  return op(
-    crypto.randomUUID(),
-    'note.splitEdit',
-    (ctx) => {
-      ctx.repo.removeNoteLink(link.id);
-      ctx.repo.insertNote(after);
-    },
-    (ctx) => {
-      ctx.repo.deleteNote(after.id);
-      ctx.repo.addNoteLink(originalId, link);
-    },
-    { targetType: 'note', targetId: after.id, kind: 'created' },
-  );
-}
-
-export function deleteNoteOp(note: NoteRecord, attachments: AttachmentsSnapshot): Op {
-  const owner = note.links?.[0];
+export function deleteNoteOp(note: NoteRecord): Op {
   return op(
     crypto.randomUUID(),
     'note.delete',
     (ctx) => ctx.repo.deleteNote(note.id),
-    (ctx) => {
-      ctx.repo.insertNote(note);
-      ctx.repo.restoreAttachments(attachments);
-    },
-    owner !== undefined
-      ? { targetType: owner.targetType, targetId: owner.targetId, kind: 'changed' }
-      : { targetType: 'note', targetId: note.id, kind: 'changed' },
-    (ctx) =>
-      ctx.repo.getNote(note.id) !== undefined &&
-      sameRecord(ctx.repo.getNote(note.id), note) &&
-      attachmentsMatch(ctx, 'note', note.id, attachments),
+    (ctx) => ctx.repo.insertNote(note),
+    { targetType: note.targetType, targetId: note.targetId, kind: 'changed' },
+    (ctx) => ctx.repo.getNote(note.id) !== undefined && sameRecord(ctx.repo.getNote(note.id), note),
   );
-}
-
-/** Attaches an existing note to another target (shared-note semantics). */
-export function attachNoteOp(noteId: string, link: NoteLinkRecord): Op {
-  return op(
-    crypto.randomUUID(),
-    'note.attach',
-    (ctx) => ctx.repo.addNoteLink(noteId, link),
-    (ctx) => {
-      ctx.repo.removeNoteLink(link.id);
-    },
-    { targetType: link.targetType, targetId: link.targetId, kind: 'changed' },
-  );
-}
-
-/**
- * Removes one note link. The last link deletes the note row; the operation
- * keeps the note and its attachments so undo restores both even when the
- * note is shared and the link is not the last one.
- */
-export function detachNoteOp(note: NoteRecord, link: NoteLinkRecord, attachments?: AttachmentsSnapshot): Op {
-  let storedNote = note;
-  let removedEvidence = false;
-  let attachmentBaseline = attachments ?? emptyAttachments();
-  return {
-    ...op(
-      crypto.randomUUID(),
-      'note.detach',
-      (ctx) => {
-        const current = ctx.repo.getNote(note.id);
-        if (current === undefined || !(current.links ?? []).some((entry) => entry.id === link.id)) {
-          return;
-        }
-        // Keep the live note for undo: the editor's copy may be stale.
-        storedNote = current;
-        ctx.repo.removeNoteLink(link.id);
-        if (ctx.repo.getNote(note.id) === undefined && attachments !== undefined) {
-          ctx.repo.deleteAttachmentsFor('note', note.id);
-          removedEvidence = true;
-        }
-      },
-      (ctx) => {
-        if (ctx.repo.getNote(note.id) === undefined) {
-          ctx.repo.insertNote(storedNote);
-          if (removedEvidence && attachments !== undefined) {
-            ctx.repo.restoreAttachments(attachments);
-            attachmentBaseline = ctx.repo.listAttachmentsFor('note', note.id);
-          }
-        } else {
-          ctx.repo.addNoteLink(note.id, storedNote.links?.find((entry) => entry.id === link.id) ?? link);
-        }
-      },
-      { targetType: link.targetType, targetId: link.targetId, kind: 'changed' },
-      (ctx) => {
-        const current = ctx.repo.getNote(note.id);
-        const liveLink = current?.links?.find((entry) => entry.id === link.id);
-        if (current === undefined || liveLink === undefined) {
-          return false;
-        }
-        // Removing a non-last link leaves the note and its evidence intact.
-        if ((current.links?.length ?? 0) > 1) {
-          return true;
-        }
-        return sameRecord(current, storedNote) && attachmentsMatch(ctx, 'note', note.id, attachmentBaseline);
-      },
-    ),
-  };
 }
 
 // --- sources -----------------------------------------------------------------
