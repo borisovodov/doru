@@ -63,6 +63,9 @@ export function addFactOp(fact: FactRecord, ownerStamps: readonly FactOwnerStamp
       ctx.repo.deleteFact(fact.id);
       restoreOwnerStamps(ctx, ownerStamps);
     },
+    redoSafe(ctx) {
+      return ctx.repo.getFact(fact.id) === undefined && ownerStampsMatch(ctx, ownerStamps);
+    },
   };
 }
 

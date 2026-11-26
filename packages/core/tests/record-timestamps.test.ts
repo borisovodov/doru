@@ -199,6 +199,11 @@ describe('record timestamps', () => {
       service.undo();
       expect(service.getPerson('P1')).toMatchObject({ createdAt: FIRST, updatedAt: FOURTH });
       expect(fixture.repo.getFact('FACT1')).toBeUndefined();
+
+      const redo = service.redo();
+      expect(redo.redoBlocked).toBe(true);
+      expect(fixture.repo.getFact('FACT1')).toBeUndefined();
+      expect(service.getPerson('P1')).toMatchObject({ createdAt: FIRST, updatedAt: FOURTH });
     } finally {
       cleanupRepo(fixture);
     }
