@@ -185,9 +185,16 @@ export function usePointerDrag(options: PointerDragOptions = {}): PointerDragRes
       if (state === null || state.pointerId !== event.pointerId) {
         return;
       }
+      if (state.moved) {
+        // The last pointermove can be coalesced into pointerup. Resolve the
+        // final position here so the drop target uses the release coordinates.
+        const current = canvas.clientToWorld({ x: event.clientX, y: event.clientY });
+        state.dx = current.x - state.startWorldX;
+        state.dy = current.y - state.startWorldY;
+      }
       finish(false);
     },
-    [finish],
+    [canvas, finish],
   );
 
   const onPointerCancel = useCallback(
