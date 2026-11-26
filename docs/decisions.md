@@ -358,13 +358,12 @@ reports fresh facts, and a missing file reports none instead of stale values.
 `FORM` is synthesized from the file path on export.
 
 Sources and notes attach to the media card (`media`), never to a link row.
-Citations written under an `OBJE` link are dropped on import and not written on
-export; an inline 5.5.1 `NOTE` under the link is hoisted onto the media record,
-while a pointer-form link note has no slot and is dropped. A media link stores
-only the crop and the primary flag; it is not an attachment target at all. The
-GEDCOM parser still reads the link-level display fields (`CROP`, `_PRIM`,
-`_SCBK`, `_SSHOW`, `_THUM`, `_SEQ`, `_EXCL`, `_CAPT`) so `@doru/gedcom` stays
-faithful, but the tree keeps only `crop` and `primary`.
+An inline 5.5.1 `NOTE` or `SOUR` under the link is hoisted onto the media
+record; a pointer-form link note or citation has no slot and is dropped. A
+media link stores only the crop and the primary flag; it is not an attachment
+target at all. The GEDCOM parser still reads the link-level display fields
+(`CROP`, `_PRIM`, `_SCBK`, `_SSHOW`, `_THUM`, `_SEQ`, `_EXCL`, `_CAPT`) so
+`@doru/gedcom` stays faithful, but the tree keeps only `crop` and `primary`.
 
 ## API stability before 1.0.0
 

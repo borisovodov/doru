@@ -134,8 +134,6 @@ interface ImportContext {
   noteTexts: Map<string, ImportedSharedNote>;
   /** Dedupe of places by their joined name within this import. */
   placeIds: Map<string, string>;
-  /** Place names that resolve to more than one distinct row. */
-  ambiguousPlaceNames: Set<string>;
   /** Place-card xref → place id. */
   placeCardIds: Map<string, string>;
   /** Place id → parent links resolved after all cards are imported. */
@@ -204,7 +202,6 @@ export function importGedcomDataset(
     titleIds: new Map(),
     noteTexts: new Map(),
     placeIds: new Map(),
-    ambiguousPlaceNames: new Set(),
     placeCardIds: new Map(),
     placeParents: new Map(),
     mediaIds: new Map(),
@@ -2282,10 +2279,7 @@ function importPlaceRecords(records: GedcomRecord[], ctx: ImportContext): void {
       .map((name) => name.value);
     const joined = official.length > 0 ? official.join(', ') : record.payload;
     const rememberPlace = (name: string): void => {
-      const existing = ctx.placeIds.get(name);
-      if (existing !== undefined && existing !== id) {
-        ctx.ambiguousPlaceNames.add(name);
-      } else {
+      if (!ctx.placeIds.has(name)) {
         ctx.placeIds.set(name, id);
       }
     };
@@ -2423,10 +2417,7 @@ function importPlace(place: PlaceStructure, ctx: ImportContext): string | undefi
   });
   importCitations(place.citations, 'place', id, ctx);
   importNotes(place.notes, 'place', id, ctx);
-  const existingPlace = ctx.placeIds.get(joined);
-  if (existingPlace !== undefined && existingPlace !== id) {
-    ctx.ambiguousPlaceNames.add(joined);
-  } else {
+  if (!ctx.placeIds.has(joined)) {
     ctx.placeIds.set(joined, id);
   }
   return id;

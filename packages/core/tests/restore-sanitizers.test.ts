@@ -287,7 +287,7 @@ describe('undo restore sanitizers', () => {
       const { repo } = fixture;
       const ctx = context(fixture);
       repo.insertPerson({ id: 'P1', names: [], sex: 'U', facts: [] });
-      const restored = restoreMedia(ctx, {
+      restoreMedia(ctx, {
         id: 'M1',
         path: 'media/m1.jpg',
         title: 'Photo',
@@ -296,16 +296,14 @@ describe('undo restore sanitizers', () => {
           { id: 'L2', mediaId: 'M1', targetType: 'person', targetId: 'missing' },
         ],
       });
-      expect([...restored]).toEqual(['L1']);
       expect(repo.getMedia('M1')?.links?.map((link) => link.id)).toEqual(['L1']);
 
-      const noLinks = restoreMedia(ctx, {
+      restoreMedia(ctx, {
         id: 'M2',
         path: 'media/m2.jpg',
         title: 'Standalone',
         links: [{ id: 'L3', mediaId: 'M2', targetType: 'person', targetId: 'missing' }],
       });
-      expect([...noLinks]).toEqual([]);
       expect(repo.getMedia('M2')?.links).toEqual([]);
 
       restoreTask(ctx, {

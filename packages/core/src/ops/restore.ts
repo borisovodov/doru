@@ -143,12 +143,10 @@ export function restoreFamily(ctx: MutationContext, family: FamilyRecord): void 
   ctx.repo.insertFamily(clean);
 }
 
-export function restoreMedia(ctx: MutationContext, media: MediaRecord): Set<string> {
+export function restoreMedia(ctx: MutationContext, media: MediaRecord): void {
   const clean: MediaRecord = { ...media };
-  const links = (media.links ?? []).filter((link) => attachmentTargetExists(ctx, link.targetType, link.targetId));
-  clean.links = links;
+  clean.links = (media.links ?? []).filter((link) => attachmentTargetExists(ctx, link.targetType, link.targetId));
   ctx.repo.insertMedia(clean);
-  return new Set(links.map((link) => link.id));
 }
 
 export function restoreSource(ctx: MutationContext, source: SourceRecord): void {
