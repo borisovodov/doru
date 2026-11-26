@@ -81,7 +81,7 @@ function mediaFailureCategory(error: unknown): string {
 async function mapWithConcurrency<T>(
   items: readonly T[],
   limit: number,
-  map: (item: T) => Promise<void>,
+  map: (item: T, shouldStop: () => boolean) => Promise<void>,
 ): Promise<void> {
   let nextIndex = 0;
   const status: { failed: boolean; hasFailure: boolean; failure: unknown } = {
@@ -98,7 +98,7 @@ async function mapWithConcurrency<T>(
         return;
       }
       try {
-        await map(item);
+        await map(item, () => status.failed);
       } catch (error) {
         if (!status.hasFailure) {
           status.hasFailure = true;
@@ -147,23 +147,48 @@ export async function prepareGedcomMedia(
   let remoteDownloaded = 0;
   let remoteFailed = 0;
   let remoteDeadline = 0;
-  const storeRemote = async (original: string): Promise<void> => {
-    if (paths.has(original)) {
+  const budgetWaiters: Array<() => void> = [];
+  const notifyBudgetReleased = (): void => {
+    for (const wake of budgetWaiters.splice(0)) {
+      wake();
+    }
+  };
+  const storeRemote = async (original: string, shouldStop: () => boolean): Promise<void> => {
+    if (paths.has(original) || shouldStop()) {
       return;
     }
-    const remaining = REMOTE_MEDIA_TOTAL_LIMIT - remoteBytes - reservedBytes;
-    if (remaining <= 0) {
-      remoteFailed += 1;
-      logger.warn('gedcom import: remote media skipped, total size limit reached');
-      return;
+    let reserved = 0;
+    let remainingTime = 0;
+    for (;;) {
+      if (shouldStop()) {
+        return;
+      }
+      const available = REMOTE_MEDIA_TOTAL_LIMIT - remoteBytes;
+      if (available <= 0) {
+        remoteFailed += 1;
+        logger.warn('gedcom import: remote media skipped, total size limit reached');
+        return;
+      }
+      const remaining = available - reservedBytes;
+      if (remaining > 0) {
+        remainingTime = remoteDeadline - Date.now();
+        if (remainingTime <= 0) {
+          remoteFailed += 1;
+          logger.warn('gedcom import: remote media skipped, total time limit reached');
+          return;
+        }
+        reserved = Math.min(REMOTE_MEDIA_FILE_LIMIT, remaining);
+        break;
+      }
+      if (remoteDeadline <= Date.now()) {
+        remoteFailed += 1;
+        logger.warn('gedcom import: remote media skipped, total time limit reached');
+        return;
+      }
+      // Other workers hold the remaining budget: wait for a release instead
+      // of discarding a URL that may still fit.
+      await new Promise<void>((resolve) => budgetWaiters.push(resolve));
     }
-    const remainingTime = remoteDeadline - Date.now();
-    if (remainingTime <= 0) {
-      remoteFailed += 1;
-      logger.warn('gedcom import: remote media skipped, total time limit reached');
-      return;
-    }
-    const reserved = Math.min(REMOTE_MEDIA_FILE_LIMIT, remaining);
     reservedBytes += reserved;
     let downloaded: Awaited<ReturnType<typeof download>>;
     try {
@@ -177,6 +202,7 @@ export async function prepareGedcomMedia(
       return;
     } finally {
       reservedBytes -= reserved;
+      notifyBudgetReleased();
     }
     // Project-write failures are not per-payload and must propagate.
     remoteBytes += downloaded.bytes.byteLength;

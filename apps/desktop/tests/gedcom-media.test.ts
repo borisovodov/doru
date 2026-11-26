@@ -74,6 +74,28 @@ describe('prepareGedcomMedia', () => {
     expect(paths.size).toBe(5);
   });
 
+  it('retries URLs that only failed the budget check because of reservations', async () => {
+    const dir = await makeTempDir();
+    const sizes = [100, 100, 1, 1, 1, 1, 1].map((megabytes) => megabytes * 1024 * 1024);
+    const urls = sizes.map((_, index) => `https://example.com/${index}.jpg`);
+    const download = vi.fn(async (url: string) => {
+      const index = urls.indexOf(url);
+      return {
+        bytes: { byteLength: sizes[index] ?? 0 } as unknown as Uint8Array,
+        finalUrl: url,
+      };
+    });
+
+    const paths = await prepareGedcomMedia(datasetWithFiles(urls), undefined, join(dir, 'tree.ged'), dir, {
+      download,
+      write: vi.fn(async () => undefined),
+      logger: makeLogger(),
+    });
+
+    expect(download).toHaveBeenCalledTimes(7);
+    expect(paths.size).toBe(7);
+  });
+
   it('keeps the URL as an external reference and does not log download errors', async () => {
     const dir = await makeTempDir();
     const logger = makeLogger();

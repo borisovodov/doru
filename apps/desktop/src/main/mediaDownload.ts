@@ -154,10 +154,11 @@ function timeoutError(): Error {
   return new Error('remote media download timed out');
 }
 
-function raceWithSignal<T>(promise: Promise<T>, signal: AbortSignal): Promise<T> {
+function raceWithSignal<T>(start: () => Promise<T>, signal: AbortSignal): Promise<T> {
   if (signal.aborted) {
     return Promise.reject(timeoutError());
   }
+  const promise = start();
   return new Promise<T>((resolve, reject) => {
     const onAbort = (): void => reject(timeoutError());
     signal.addEventListener('abort', onAbort, { once: true });
@@ -185,7 +186,7 @@ async function resolvePublicHost(hostname: string, signal: AbortSignal): Promise
   }
   // The OS resolver is separate from fetch, so the download deadline must
   // cover the lookup as well as the request and response body.
-  const addresses = await raceWithSignal(lookup(host, { all: true, order: 'verbatim' }), signal);
+  const addresses = await raceWithSignal(() => lookup(host, { all: true, order: 'verbatim' }), signal);
   if (addresses.length === 0) {
     throw new Error('remote media host did not resolve');
   }

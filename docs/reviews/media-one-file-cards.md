@@ -110,7 +110,9 @@ were fixed:
   written because undici can include the full URL, including credentials, in
   its message.
 - The per-file deadline now covers DNS resolution as well as the fetch and
-  response body.
+  response body, and an already-expired deadline skips the lookup entirely.
+- A URL that finds only reserved budget is deferred and retried after a
+  reservation is released, instead of being marked failed permanently.
 - A GEDZIP import copies only bundled entries; an unmatched local `FILE` path
   is left as an external reference instead of copying a same-named file from
   beside the archive.
