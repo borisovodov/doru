@@ -2218,6 +2218,7 @@ function importMediaLinks(
         object: string;
         crop?: { top?: number; left?: number; height?: number; width?: number } | undefined;
         primary?: boolean | undefined;
+        excludeFromDiagrams?: boolean | undefined;
       }>
     | undefined,
   targetType: string,
@@ -2233,7 +2234,9 @@ function importMediaLinks(
         targetType,
         targetId,
         ...(link.crop !== undefined ? { crop: link.crop } : {}),
-        ...(link.primary !== undefined ? { primary: link.primary } : {}),
+        // An excluded link must not become a tree-card portrait (the UI no
+        // longer stores the exclusion flag, so drop the primary mark here).
+        ...(link.primary === true && link.excludeFromDiagrams !== true ? { primary: true } : {}),
       });
     }
   }

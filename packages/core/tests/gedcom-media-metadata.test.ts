@@ -106,6 +106,35 @@ describe('media metadata', () => {
     }
   });
 
+  it('does not mark an excluded media link as primary', () => {
+    const fixture = makeRepo();
+    try {
+      const parsed = parseDataset(
+        [
+          '0 HEAD',
+          '1 GEDC',
+          '2 VERS 5.5.1',
+          '1 SUBM @U1@',
+          '0 @U1@ SUBM',
+          '0 @I1@ INDI',
+          '1 NAME One /Test/',
+          '1 OBJE',
+          '2 FILE photos/a.jpg',
+          '2 FORM jpg',
+          '2 _PRIM Y',
+          '2 _EXCL Y',
+          '0 TRLR',
+        ].join('\n'),
+      );
+      importGedcomDataset(parsed, fixture.repo);
+      const person = fixture.repo.listAllPersons()[0]!;
+      const link = fixture.repo.listAttachmentsFor('person', person.id).mediaLinks[0]!.link;
+      expect(link.primary).toBeUndefined();
+    } finally {
+      cleanupRepo(fixture);
+    }
+  });
+
   it('imports the media title and date and drops the historical metadata', () => {
     const fixture = makeRepo();
     try {
