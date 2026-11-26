@@ -67,11 +67,12 @@ component fits, add one to the library with a gallery demo instead.
 
 ## Action icons
 
-- `Trash2` deletes the stored record and its owned attachments. Undo
-  restores the record where the operation has an inverse.
+- `Trash2` deletes the record and its owned attachments. A draft row that
+  will become a record (an address line, place name, marriage status) uses
+  the same icon. Undo restores the record where the operation has an inverse.
 - `X` detaches a link from the current record while the linked record
-  survives, or removes an unsaved row from a form. Close and cancel controls
-  also use `X`.
+  survives, or removes a form-only row that never becomes a record. Close and
+  cancel controls also use `X`.
 - The tooltip names the outcome: `Delete …`, `Detach …`,
   `Remove … from this record`, or `Unlink`.
 
