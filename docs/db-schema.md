@@ -1006,9 +1006,11 @@ address owner and the 5.5.1 serializer merges them back into the address.
 Direct `INDI` contact spellings are a vendor extension Dóru keeps on a person.
 `kind` stays open (`email`, `phone`, `fax`, `www`, `skype`, `jabber`, an
 unknown value, or the legacy `url` alias for `www`), and the same kinds are
-offered on every supported target. `TreeService` rejects a contact on any
-other target; the table itself remains polymorphic and cannot enforce the rule
-with a foreign key.
+offered on every supported target. `skype` and `jabber` are project-only on
+`person`, `fact` and `repository`: only `submitter` rows have a GEDCOM output
+path (`_SKYPEID`/`_JABBERID`). `TreeService` rejects a contact on any other
+target; the table itself remains polymorphic and cannot enforce the rule with
+a foreign key.
 
 `media_link` is a source-only attachment host: only citations may target it.
 It cannot own notes, media, contacts, contributors, or tasks, and
