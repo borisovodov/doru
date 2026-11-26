@@ -224,6 +224,35 @@ describe('record timestamps', () => {
     }
   });
 
+  it('stamps the stored fact owner when the caller carries a stale before record', () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(FIRST);
+    const { fixture, service } = makeService();
+    try {
+      service.addPerson(person('A'));
+      service.addPerson(person('B'));
+      service.addPerson(person('C'));
+      vi.setSystemTime(SECOND);
+      service.addFact({ id: 'FACT1', personId: 'B', tag: 'BIRT', value: 'first' });
+
+      vi.setSystemTime(THIRD);
+      const stored = fixture.repo.getFact('FACT1')!;
+      service.updateFact({ ...stored, personId: 'A' }, { ...stored, personId: 'C' });
+
+      expect(fixture.repo.getPerson('A')?.updatedAt).toBe(FIRST);
+      expect(fixture.repo.getPerson('B')?.updatedAt).toBe(THIRD);
+      expect(fixture.repo.getPerson('C')?.updatedAt).toBe(THIRD);
+      expect(fixture.repo.getFact('FACT1')?.personId).toBe('C');
+
+      service.undo();
+      expect(fixture.repo.getFact('FACT1')?.personId).toBe('B');
+      expect(fixture.repo.getPerson('B')?.updatedAt).toBe(SECOND);
+      expect(fixture.repo.getPerson('C')?.updatedAt).toBe(FIRST);
+    } finally {
+      cleanupRepo(fixture);
+    }
+  });
+
   it('does not move the host edit instant for notes, citations, media or task links', () => {
     vi.useFakeTimers();
     vi.setSystemTime(FIRST);

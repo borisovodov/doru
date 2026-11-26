@@ -1637,7 +1637,7 @@ function importedTaskTimes(
   const extensionCreation = extensionTimestamps(extensions, CREATION_TIMESTAMP_TAGS);
   const extensionChange = extensionTimestamps(extensions, CHANGE_TIMESTAMP_TAGS);
   const createdAt = creationDate ?? minDefined(extensionCreation) ?? importedAt;
-  const updatedAt = maxDefined([...changeValues, ...extensionChange]) ?? createdAt;
+  const updatedAt = maxDefined(changeValues) ?? maxDefined(extensionChange) ?? createdAt;
   return { createdAt, updatedAt: Math.max(createdAt, updatedAt) };
 }
 

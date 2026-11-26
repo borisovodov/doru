@@ -980,8 +980,13 @@ export class TreeService {
       return this.historyState();
     }
     return this.applyAfterCommit(() => {
+      const stored = this.repo.getFact(before.id);
+      const current = stored ?? before;
+      if (sameRecord(current, after)) {
+        return undefined;
+      }
       const now = Date.now();
-      return updateFactOp(before, after, this.factOwnerStamps([before, after], now));
+      return updateFactOp(current, after, this.factOwnerStamps([current, after], now));
     });
   }
 
