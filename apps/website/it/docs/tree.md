@@ -1,5 +1,5 @@
 ---
-source-hash: aebd48e967fb
+source-hash: 2e99cfb11221
 ---
 
 # Lavorare con l'albero
@@ -87,7 +87,7 @@ media, dove puoi modificare il titolo, gestire i file e modificare i metadati
 del collegamento come la didascalia, la sequenza, il contrassegno principale e
 quello di esclusione.
 
-Un record media può essere collegato a più destinazioni. **Scollega da questo record** rimuove un collegamento e elimina il record quando era l'ultimo; **Elimina media** rimuove il record e le copie dei suoi file. L'eliminazione di un record di destinazione rimuove solo i suoi collegamenti, quindi un record media condiviso può rimanere senza collegamenti.
+Un record media può essere collegato a più destinazioni. **Scollega da questo record** compare solo quando il media è collegato a più destinazioni; rimuove un collegamento. **Elimina media** rimuove il record e le copie dei suoi file. L'eliminazione di un record di destinazione rimuove solo i suoi collegamenti, quindi un record media può rimanere senza collegamenti.
 
 ## Ordinamento
 

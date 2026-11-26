@@ -1,5 +1,5 @@
 ---
-source-hash: aebd48e967fb
+source-hash: 2e99cfb11221
 ---
 
 # Praca z drzewem
@@ -85,7 +85,7 @@ Kliknij podgląd, aby otworzyć kartę multimediów, gdzie możesz edytować tyt
 zarządzać plikami i edytować metadane powiązania, takie jak podpis, kolejność,
 znacznik główny i znacznik wykluczenia.
 
-Rekord multimediów można powiązać z kilkoma celami. **Odłącz od tego rekordu** usuwa jedno powiązanie i usuwa rekord, jeśli było ostatnie; **Usuń multimedia** usuwa rekord i kopie jego plików. Usunięcie rekordu docelowego usuwa tylko jego powiązania, więc współdzielony rekord multimediów może pozostać bez powiązań.
+Rekord multimediów można powiązać z kilkoma celami. **Odłącz od tego rekordu** pojawia się tylko wtedy, gdy multimedia są powiązane z kilkoma celami; usuwa jedno powiązanie. **Usuń multimedia** usuwa rekord i kopie jego plików. Usunięcie rekordu docelowego usuwa tylko jego powiązania, więc rekord multimediów może pozostać bez powiązań.
 
 ## Kolejność
 

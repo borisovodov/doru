@@ -1,5 +1,5 @@
 ---
-source-hash: aebd48e967fb
+source-hash: 2e99cfb11221
 ---
 
 # Arbeiten mit dem Stammbaum
@@ -90,7 +90,7 @@ Vorschau, um den Medien-Tab zu öffnen, in dem Sie den Titel bearbeiten, Dateien
 verwalten und Link-Metadaten wie Bildunterschrift, Reihenfolge, Primärmarkierung
 und Ausschlussmarkierung bearbeiten können.
 
-Ein Mediendatensatz kann mit mehreren Zielen verknüpft werden. **Von diesem Datensatz lösen** entfernt eine Verknüpfung und löscht den Datensatz, wenn es die letzte war; **Medien löschen** entfernt den Datensatz und seine Dateikopien. Das Löschen eines Ziel-Datensatzes entfernt nur seine Verknüpfungen, sodass ein geteilter Mediendatensatz ohne Verknüpfungen bestehen bleiben kann.
+Ein Mediendatensatz kann mit mehreren Zielen verknüpft werden. **Von diesem Datensatz lösen** wird nur angezeigt, wenn das Medium mit mehreren Zielen verknüpft ist; es entfernt eine Verknüpfung. **Medien löschen** entfernt den Datensatz und seine Dateikopien. Das Löschen eines Ziel-Datensatzes entfernt nur seine Verknüpfungen, sodass ein Mediendatensatz ohne Verknüpfungen bestehen bleiben kann.
 
 ## Reihenfolge
 

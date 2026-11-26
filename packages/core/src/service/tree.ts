@@ -956,9 +956,11 @@ export class TreeService {
   /** Updates the note text; the owning target never changes. */
   updateNote(before: NoteRecord, after: NoteRecord): UndoRedoState {
     const stored = this.repo.getNote(before.id);
-    const current = stored ?? before;
+    if (stored === undefined) {
+      return this.historyState();
+    }
     const now = Date.now();
-    return this.apply(updateNoteOp(current, { ...current, text: after.text, updatedAt: now }));
+    return this.apply(updateNoteOp(stored, { ...stored, text: after.text, updatedAt: now }));
   }
 
   deleteNote(note: NoteRecord): UndoRedoState {

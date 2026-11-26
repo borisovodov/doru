@@ -1,5 +1,5 @@
 ---
-source-hash: aebd48e967fb
+source-hash: 2e99cfb11221
 ---
 
 # Ağaçla çalışma
@@ -52,7 +52,7 @@ Eserler, adresler, ilişkilendirmeler ve aile partner/çocuk bağlantıları, an
 
 Fotoğraflar, projenin yanındaki `media/` klasöründeki sıradan dosyalardır. Bunları bir kişi, aile, kaynak, yer, depo, gönderen, eser, görev veya adresten ekleyin; medya sekmesindeki **İlgili** bölümünde mevcut bir kaydı ek hedeflere bağlayabilirsiniz. Medya sekmesini açmak için bir önizlemeye tıklayın; burada başlığı düzenleyebilir, dosyaları yönetebilir ve altyazı, sıra, birincil bayrağı ve dışlama bayrağı gibi bağlantı meta verilerini düzenleyebilirsiniz.
 
-Bir medya kaydı birkaç hedefe bağlanabilir. **Bu kayıttan ayır** bir bağlantıyı kaldırır ve son bağlantıysa kaydı siler; **Medyayı sil** kaydı ve dosya kopyalarını kaldırır. Bir hedef kaydı silmek yalnızca bağlantılarını kaldırır, bu nedenle paylaşılan bir medya kaydı bağlantısız kalabilir.
+Bir medya kaydı birkaç hedefe bağlanabilir. **Bu kayıttan ayır** yalnızca medya birkaç hedefe bağlıysa görünür; bir bağlantıyı kaldırır. **Medyayı sil** kaydı ve dosya kopyalarını kaldırır. Bir hedef kaydı silmek yalnızca bağlantılarını kaldırır, bu nedenle bir medya kaydı bağlantısız kalabilir.
 
 ## Sıralama
 

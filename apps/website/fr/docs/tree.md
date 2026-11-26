@@ -1,5 +1,5 @@
 ---
-source-hash: aebd48e967fb
+source-hash: 2e99cfb11221
 ---
 
 # Travailler avec l'arbre
@@ -89,11 +89,7 @@ pour ouvrir l'onglet média, où vous pouvez modifier le titre, gérer les fichi
 et modifier les métadonnées de lien comme la légende, la séquence, l'indicateur
 principal et l'indicateur d'exclusion.
 
-Un enregistrement média peut être lié à plusieurs cibles. **Détacher de cet
-enregistrement** supprime un lien et supprime l'enregistrement lorsqu'il était le
-dernier ; **Supprimer le média** supprime l'enregistrement et ses copies de
-fichiers. Supprimer un enregistrement cible ne supprime que ses liens, de sorte
-qu'un média partagé peut rester sans lien.
+Un enregistrement média peut être lié à plusieurs cibles. **Détacher de cet enregistrement** n'apparaît que lorsque le média est lié à plusieurs cibles ; il retire un lien. **Supprimer le média** supprime l'enregistrement et les copies de ses fichiers. Supprimer un enregistrement cible ne retire que ses liens, donc un enregistrement média peut rester sans liens.
 
 ## Ordre
 

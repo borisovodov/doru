@@ -89,6 +89,20 @@ describe('TreeService attachments', () => {
     }
   });
 
+  it('ignores a stale note update after the note is deleted', () => {
+    const { fixture, service } = makeService();
+    try {
+      service.addNote(note());
+      const stored = fixture.repo.getNote('N1')!;
+      service.deleteNote(stored);
+
+      expect(() => service.updateNote(stored, { ...stored, text: 'stale edit' })).not.toThrow();
+      expect(fixture.repo.getNote('N1')).toBeUndefined();
+    } finally {
+      cleanupRepo(fixture);
+    }
+  });
+
   it('stamps note creation and edits, and keeps the owning target', () => {
     const { fixture, service } = makeService();
     try {

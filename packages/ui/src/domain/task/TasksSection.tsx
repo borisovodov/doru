@@ -10,9 +10,10 @@ import { IconButton } from '../../atoms/icon-button/IconButton';
 import { Textarea } from '../../atoms/form/Textarea';
 import { AttachExisting } from '../../patterns/attach-existing/AttachExisting';
 import { SectionCard } from '../../patterns/section-card/SectionCard';
+import { cx } from '../../lib/cx';
 import { nls } from '../../nls';
 import { formatTimestamp } from '../format/format';
-import './TasksSection.css';
+import styles from './TasksSection.module.css';
 
 /** The task operations an entity editor needs for one target. */
 export interface TasksSectionApi {
@@ -150,21 +151,19 @@ export function TasksSection({
     <SectionCard title={nls.t('features.tasks.title')}>
       {sorted.length === 0 && <EmptyText>{nls.t('features.tasks.empty')}</EmptyText>}
       {actionError ? <InlineError>{nls.t('features.tree.autosaveFailed')}</InlineError> : null}
-      <ul className="tasks-section-list">
+      <ul className={styles['list']}>
         {sorted.map((task) => (
-          <li key={task.id} className="tasks-section-item">
-            <div className="tasks-section-row">
+          <li key={task.id} className={styles['item']}>
+            <div className={styles['row']}>
               <button
                 type="button"
-                className="tasks-section-open"
+                className={styles['open']}
                 aria-label={nls.t('features.tasks.open')}
                 disabled={api.openTask === undefined}
                 onClick={() => api.openTask?.(task.id)}
               >
-                <span className={task.status === 'closed' ? 'tasks-section-text closed' : 'tasks-section-text'}>
-                  {task.text}
-                </span>
-                <span className="tasks-section-meta">
+                <span className={cx(styles['text'], task.status === 'closed' && styles['closed'])}>{task.text}</span>
+                <span className={styles['meta']}>
                   <Chip variant="neutral">{statusLabel(task.status)}</Chip>
                   <Chip variant="neutral">{priorityLabel(task.priority)}</Chip>
                   {task.remindAt !== undefined && <Chip variant="neutral">{formatTimestamp(task.remindAt)}</Chip>}
@@ -187,7 +186,7 @@ export function TasksSection({
         ))}
       </ul>
       {canAdd && (
-        <div className="tasks-section-add">
+        <div className={styles['add']}>
           <Textarea
             rows={2}
             value={draft}

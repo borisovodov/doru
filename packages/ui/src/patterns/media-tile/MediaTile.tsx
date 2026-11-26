@@ -4,15 +4,13 @@ import { IconButton } from '../../atoms/icon-button/IconButton';
 import { cx } from '../../lib/cx';
 import styles from './MediaTile.module.css';
 
-export interface MediaTileProps {
+interface MediaTileBaseProps {
   src: string;
   alt: string;
   onOpen?: () => void;
   openLabel?: string;
   onRemove?: () => void;
   removeLabel?: string;
-  onDetach?: () => void;
-  detachLabel?: string;
   badge?: string;
   muted?: boolean;
   className?: string;
@@ -20,21 +18,15 @@ export interface MediaTileProps {
   fallback?: ReactNode;
 }
 
+type MediaTileDetachProps = { onDetach: () => void; detachLabel: string };
+type MediaTileNoDetachProps = { onDetach?: undefined; detachLabel?: undefined };
+
+export type MediaTileProps = MediaTileBaseProps & (MediaTileDetachProps | MediaTileNoDetachProps);
+
 /** A square media thumbnail with optional open and remove actions. */
-export function MediaTile({
-  src,
-  alt,
-  onOpen,
-  openLabel,
-  onRemove,
-  removeLabel,
-  onDetach,
-  detachLabel,
-  badge,
-  muted,
-  className,
-  fallback,
-}: MediaTileProps) {
+export function MediaTile(props: MediaTileProps) {
+  const { src, alt, onOpen, openLabel, onRemove, removeLabel, badge, muted, className, fallback } = props;
+  const detach = props.onDetach !== undefined ? { onClick: props.onDetach, label: props.detachLabel } : undefined;
   const image =
     src !== '' ? (
       <img src={src} alt={alt} loading="lazy" />
@@ -54,15 +46,15 @@ export function MediaTile({
         image
       )}
       {badge !== undefined ? <span className={styles['badge']}>{badge}</span> : null}
-      {onDetach !== undefined || onRemove !== undefined ? (
+      {detach !== undefined || onRemove !== undefined ? (
         <span className={styles['actions']}>
-          {onDetach !== undefined ? (
+          {detach !== undefined ? (
             <IconButton
               className={styles['action']}
               size="sm"
-              label={detachLabel ?? 'Detach'}
+              label={detach.label}
               icon={<X size={13} aria-hidden="true" />}
-              onClick={onDetach}
+              onClick={detach.onClick}
             />
           ) : null}
           {onRemove !== undefined ? (

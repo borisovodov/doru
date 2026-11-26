@@ -100,9 +100,9 @@ can edit the title, manage files and edit link metadata such as the caption,
 sequence, primary flag and exclusion flag.
 
 A media record can be linked to several targets. **Detach from this record**
-removes one link and deletes the record when it was the last one; **Delete
-media** removes the record and its file copies. Deleting a target record
-removes only its links, so a shared media record can remain without links.
+appears only when the media is linked to several targets; it removes one link.
+**Delete media** removes the record and its file copies. Deleting a target
+record removes only its links, so a media record can remain without links.
 
 ## Ordering
 

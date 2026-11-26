@@ -1,5 +1,5 @@
 ---
-source-hash: aebd48e967fb
+source-hash: 2e99cfb11221
 ---
 
 # Trabalhando com a árvore
@@ -85,7 +85,7 @@ tarefa ou endereço; a seção **Relacionado a** da aba de mídia permite anexar
 você pode editar o título, gerenciar os arquivos e editar metadados do vínculo,
 como a legenda, a sequência, o sinalizador principal e o de exclusão.
 
-Um registro de mídia pode ser vinculado a vários destinos. **Desvincular deste registro** remove um vínculo e exclui o registro quando era o último; **Excluir mídia** remove o registro e as cópias dos seus arquivos. Excluir um registro de destino remove apenas seus vínculos, então um registro de mídia compartilhado pode permanecer sem vínculos.
+Um registro de mídia pode ser vinculado a vários destinos. **Desvincular deste registro** aparece apenas quando a mídia está vinculada a vários destinos; remove um vínculo. **Excluir mídia** remove o registro e as cópias dos seus arquivos. Excluir um registro de destino remove apenas seus vínculos, então um registro de mídia pode permanecer sem vínculos.
 
 ## Ordenação
 

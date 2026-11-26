@@ -1,5 +1,5 @@
 ---
-source-hash: aebd48e967fb
+source-hash: 2e99cfb11221
 ---
 
 # Trabajar con el árbol
@@ -88,7 +88,7 @@ un registro existente a destinos adicionales. Haz clic en una vista previa para 
 puedes editar el título, gestionar archivos y editar metadatos del enlace como la
 leyenda, la secuencia, la marca de principal y la marca de exclusión.
 
-Un registro multimedia puede estar vinculado a varios destinos. **Desvincular de este registro** elimina un enlace y borra el registro cuando era el último; **Eliminar multimedia** elimina el registro y sus copias de archivos. Eliminar un registro de destino elimina solo sus enlaces, así que un registro multimedia compartido puede quedar sin enlaces.
+Un registro multimedia puede estar vinculado a varios destinos. **Desvincular de este registro** aparece solo cuando el elemento multimedia está vinculado a varios destinos; elimina un enlace. **Eliminar multimedia** elimina el registro y sus copias de archivos. Eliminar un registro de destino elimina solo sus enlaces, así que un registro multimedia puede quedar sin enlaces.
 
 ## Orden
 

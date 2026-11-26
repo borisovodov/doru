@@ -1,5 +1,5 @@
 ---
-source-hash: aebd48e967fb
+source-hash: 2e99cfb11221
 ---
 
 # Práce se stromem
@@ -83,7 +83,7 @@ na náhled otevřete kartu médií, kde můžete upravit název, spravovat soubo
 upravit metadata propojení, jako je popisek, pořadí, označení hlavní a
 označení vyloučení.
 
-Mediální záznam lze propojit s několika cíli. **Odpojit od tohoto záznamu** odebere jedno propojení a smaže záznam, pokud bylo poslední; **Smazat médium** odstraní záznam a kopie jeho souborů. Smazání cílového záznamu odstraní pouze jeho propojení, takže sdílený mediální záznam může zůstat bez propojení.
+Mediální záznam lze propojit s několika cíli. **Odpojit od tohoto záznamu** se zobrazí pouze tehdy, když je médium propojeno s několika cíli; odebere jedno propojení. **Smazat médium** odstraní záznam a kopie jeho souborů. Smazání cílového záznamu odstraní pouze jeho propojení, takže mediální záznam může zůstat bez propojení.
 
 ## Řazení
 
