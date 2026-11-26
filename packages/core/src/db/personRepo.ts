@@ -21,6 +21,8 @@ export interface PersonRow {
   sex: Sex;
   deathStatus?: 'alive' | 'dead' | undefined;
   addressId?: string | undefined;
+  createdAt?: number | undefined;
+  updatedAt?: number | undefined;
 }
 
 interface PersonDbRow {
@@ -29,6 +31,8 @@ interface PersonDbRow {
   sex: string | null;
   death_status: string | null;
   address_id: string | null;
+  created_at: number | null;
+  updated_at: number | null;
 }
 
 export class PersonRepo {
@@ -40,16 +44,37 @@ export class PersonRepo {
   insertPerson(person: PersonRow): void {
     this.transactions.run(() => {
       this.db
-        .prepare('INSERT INTO person (id, xref, sex, death_status, address_id) VALUES (?, ?, ?, ?, ?)')
-        .run(person.id, person.xref ?? null, person.sex, person.deathStatus ?? null, person.addressId ?? null);
+        .prepare(
+          'INSERT INTO person (id, xref, sex, death_status, address_id, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)',
+        )
+        .run(
+          person.id,
+          person.xref ?? null,
+          person.sex,
+          person.deathStatus ?? null,
+          person.addressId ?? null,
+          person.createdAt ?? null,
+          person.updatedAt ?? null,
+        );
     });
   }
 
   updatePerson(person: PersonRow): void {
     this.transactions.run(() => {
       this.db
-        .prepare('UPDATE person SET xref = ?, sex = ?, death_status = ?, address_id = ? WHERE id = ?')
-        .run(person.xref ?? null, person.sex, person.deathStatus ?? null, person.addressId ?? null, person.id);
+        .prepare(
+          `UPDATE person SET xref = ?, sex = ?, death_status = ?, address_id = ?,
+             created_at = ?, updated_at = ? WHERE id = ?`,
+        )
+        .run(
+          person.xref ?? null,
+          person.sex,
+          person.deathStatus ?? null,
+          person.addressId ?? null,
+          person.createdAt ?? null,
+          person.updatedAt ?? null,
+          person.id,
+        );
     });
   }
 
@@ -57,10 +82,15 @@ export class PersonRepo {
     this.db.prepare('UPDATE person SET address_id = ? WHERE id = ? AND address_id IS NULL').run(addressId ?? null, id);
   }
 
+  /** Bumps the aggregate edit instant without rewriting names or facts. */
+  setUpdatedAt(id: string, updatedAt: number | undefined): void {
+    this.db.prepare('UPDATE person SET updated_at = ? WHERE id = ?').run(updatedAt ?? null, id);
+  }
+
   getPerson(id: string): PersonRow | undefined {
-    const row = this.db.prepare('SELECT id, xref, sex, death_status, address_id FROM person WHERE id = ?').get(id) as
-      | PersonDbRow
-      | undefined;
+    const row = this.db
+      .prepare('SELECT id, xref, sex, death_status, address_id, created_at, updated_at FROM person WHERE id = ?')
+      .get(id) as PersonDbRow | undefined;
     return row ? toPerson(row) : undefined;
   }
 
@@ -88,7 +118,7 @@ export class PersonRepo {
       return matched.slice(offset, offset + limit).map(toPerson);
     }
     const params: Array<string | number> = [];
-    let sql = 'SELECT p.id, p.xref, p.sex, p.death_status, p.address_id FROM person p';
+    let sql = 'SELECT p.id, p.xref, p.sex, p.death_status, p.address_id, p.created_at, p.updated_at FROM person p';
     if (query.sex) {
       sql += ' WHERE p.sex = ?';
       params.push(query.sex);
@@ -101,7 +131,7 @@ export class PersonRepo {
   /** Every person row in id order, optionally limited to one sex. */
   private listPersonRows(sex: Sex | undefined): PersonDbRow[] {
     const sql =
-      'SELECT p.id, p.xref, p.sex, p.death_status, p.address_id FROM person p' +
+      'SELECT p.id, p.xref, p.sex, p.death_status, p.address_id, p.created_at, p.updated_at FROM person p' +
       (sex ? ' WHERE p.sex = ?' : '') +
       ' ORDER BY p.id';
     const rows = this.db.prepare(sql).all(...(sex ? [sex] : [])) as unknown as PersonDbRow[];
@@ -138,7 +168,7 @@ export class PersonRepo {
 
   listAllPersons(): PersonRow[] {
     const rows = this.db
-      .prepare('SELECT id, xref, sex, death_status, address_id FROM person ORDER BY id')
+      .prepare('SELECT id, xref, sex, death_status, address_id, created_at, updated_at FROM person ORDER BY id')
       .all() as unknown as PersonDbRow[];
     return rows.map(toPerson);
   }
@@ -164,5 +194,7 @@ function toPerson(row: PersonDbRow): PersonRow {
     sex: (row.sex ?? 'U') as Sex,
     deathStatus: row.death_status === 'alive' || row.death_status === 'dead' ? row.death_status : undefined,
     addressId: row.address_id ?? undefined,
+    createdAt: row.created_at ?? undefined,
+    updatedAt: row.updated_at ?? undefined,
   };
 }

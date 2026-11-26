@@ -99,7 +99,7 @@ describe('place ops', () => {
       expect(fixture.repo.listFactsForPerson('P1')[0]?.place).toBe('Moscow');
 
       service.undo();
-      expect(service.getPlace('PL1')).toEqual(moscow);
+      expect(service.getPlace('PL1')).toMatchObject(moscow);
       expect(fixture.repo.listFactsForPerson('P1')[0]?.placeId).toBe('PL1');
     } finally {
       cleanupRepo(fixture);

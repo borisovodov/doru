@@ -9,6 +9,41 @@ export * from './targetPolicy';
 export type Sex = 'M' | 'F' | 'X' | 'U';
 
 // ---------------------------------------------------------------------------
+// Record timestamps
+// ---------------------------------------------------------------------------
+
+/**
+ * Operational timestamps shared by the top-level record roots. They are
+ * Dóru-local epoch-millisecond instants, not genealogical dates and not a
+ * change log: `createdAt` records the first write (the GEDCOM creation date
+ * when import can parse one, otherwise the import instant), and `updatedAt`
+ * the last edit of the aggregate's own content. Attachment and link changes
+ * do not update it.
+ */
+export interface RecordTimestamps {
+  /** Creation instant, epoch milliseconds. */
+  createdAt?: number | undefined;
+  /** Last content edit instant, epoch milliseconds. */
+  updatedAt?: number | undefined;
+}
+
+/**
+ * Stamps a new record. An explicit `createdAt` is kept (GEDCOM import and
+ * undo restore pass one); `updatedAt` always starts at `now`.
+ */
+export function stampNewRecord<T extends RecordTimestamps>(record: T, now: number): T {
+  return { ...record, createdAt: record.createdAt ?? now, updatedAt: now };
+}
+
+/**
+ * Stamps an edit: the stored creation instant survives, the edit instant is
+ * always the application's clock rather than a caller-supplied value.
+ */
+export function stampRecordEdit<T extends RecordTimestamps>(before: T, after: T, now: number): T {
+  return { ...after, createdAt: before.createdAt, updatedAt: now };
+}
+
+// ---------------------------------------------------------------------------
 // Dates
 // ---------------------------------------------------------------------------
 
@@ -386,7 +421,7 @@ export interface FactParticipant {
 }
 
 /** A user-defined fact type (custom event/attribute definitions). */
-export interface PersonRecord {
+export interface PersonRecord extends RecordTimestamps {
   id: string;
   /** Identifier assigned by a GEDCOM import; provenance only. */
   xref?: string | undefined;
@@ -449,7 +484,7 @@ export interface FamilyMarriageStatus {
   placeId?: string | undefined;
 }
 
-export interface FamilyRecord {
+export interface FamilyRecord extends RecordTimestamps {
   id: string;
   /** Identifier assigned by a GEDCOM import; provenance only. */
   xref?: string | undefined;
@@ -503,7 +538,7 @@ export interface PlaceName {
   abbreviationType?: string | undefined;
 }
 
-export interface PlaceRecord {
+export interface PlaceRecord extends RecordTimestamps {
   id: string;
   xref?: string | undefined;
   latitude?: number | undefined;
@@ -553,7 +588,7 @@ export interface SourceText {
   language?: string | undefined;
 }
 
-export interface SourceRecord {
+export interface SourceRecord extends RecordTimestamps {
   id: string;
   /** Identifier assigned by a GEDCOM import; provenance only. */
   xref?: string | undefined;
@@ -682,7 +717,7 @@ export interface MediaLinkRecord {
  * A media record with its files and links. `path`, `targetType`, `targetId`
  * and `title` are projections of the first file/link, kept for the renderer.
  */
-export interface MediaRecord {
+export interface MediaRecord extends RecordTimestamps {
   id: string;
   /** Identifier assigned by a GEDCOM import; provenance only. */
   xref?: string | undefined;
@@ -742,7 +777,7 @@ export interface AddressLine {
   value: string;
 }
 
-export interface AddressRecord {
+export interface AddressRecord extends RecordTimestamps {
   id: string;
   lines: AddressLine[];
   city?: string | undefined;
@@ -751,14 +786,14 @@ export interface AddressRecord {
   country?: string | undefined;
 }
 
-export interface RepositoryRecord {
+export interface RepositoryRecord extends RecordTimestamps {
   id: string;
   xref?: string | undefined;
   name: string;
   addressId?: string | undefined;
 }
 
-export interface SubmitterRecord {
+export interface SubmitterRecord extends RecordTimestamps {
   id: string;
   xref?: string | undefined;
   name: string;
@@ -988,7 +1023,7 @@ export interface TaskRecord {
 }
 
 /** A bibliographic work (GEDCOM 7.0 TITL record), cited by sources. */
-export interface TitleRecord {
+export interface TitleRecord extends RecordTimestamps {
   id: string;
   xref?: string | undefined;
   name?: string | undefined;

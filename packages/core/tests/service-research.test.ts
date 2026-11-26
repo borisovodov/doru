@@ -247,16 +247,16 @@ describe('TreeService research layer', () => {
     const { fixture, service } = makeService();
     try {
       service.addTitle(title());
-      expect(fixture.repo.listTitles()).toEqual([title()]);
+      expect(fixture.repo.listTitles()).toMatchObject([title()]);
 
       const after = title({ author: 'Ivan Petrov' });
       service.updateTitle(title(), after);
-      expect(fixture.repo.listTitles()).toEqual([after]);
+      expect(fixture.repo.listTitles()).toMatchObject([after]);
 
       service.deleteTitle(after);
       expect(fixture.repo.listTitles()).toEqual([]);
       service.undo();
-      expect(fixture.repo.listTitles()).toEqual([after]);
+      expect(fixture.repo.listTitles()).toMatchObject([after]);
     } finally {
       cleanupRepo(fixture);
     }

@@ -26,6 +26,10 @@
  *   `ON DELETE RESTRICT`; the repositories delete the date rows together
  *   with their owner (there are no delete triggers). Ordering is derived in
  *   TypeScript from the date components. See `model/types.ts`.
+ * - Top-level record roots carry Dóru-local `created_at`/`updated_at`
+ *   epoch-millisecond instants. They are operational provenance, not
+ *   genealogical dates and not a change log: child and link rows have no
+ *   timestamps, and attachment changes do not move the root's edit instant.
  * - Names are normalized into `person_name` rows plus `name_part` piece rows
  *   (any number of given names, surnames, …). The flat pieces exposed by the
  *   model (given, surname, …) are projections of the parts.
@@ -58,7 +62,9 @@ CREATE TABLE IF NOT EXISTS person (
   xref TEXT,
   sex TEXT,
   death_status TEXT,    -- alive | dead
-  address_id TEXT REFERENCES address(id) ON DELETE SET NULL
+  address_id TEXT REFERENCES address(id) ON DELETE SET NULL,
+  created_at INTEGER,
+  updated_at INTEGER
 );
 
 CREATE TABLE IF NOT EXISTS person_name (
@@ -100,7 +106,9 @@ CREATE TABLE IF NOT EXISTS family (
   union_kind TEXT,
   union_status TEXT,
   marriage_begin_status TEXT,
-  marriage_end_status TEXT
+  marriage_end_status TEXT,
+  created_at INTEGER,
+  updated_at INTEGER
 );
 
 CREATE TABLE IF NOT EXISTS family_partner (
@@ -225,7 +233,9 @@ CREATE TABLE IF NOT EXISTS place (
   abbreviation TEXT,
   preposition TEXT,
   maidenhead TEXT,
-  place_type TEXT
+  place_type TEXT,
+  created_at INTEGER,
+  updated_at INTEGER
 );
 
 CREATE TABLE IF NOT EXISTS place_name (
@@ -290,7 +300,9 @@ CREATE TABLE IF NOT EXISTS source (
   subsequent_citation_format TEXT, -- _SUBQ
   bibliography TEXT,        -- _BIBL
   data_note TEXT,
-  publication_date_id TEXT REFERENCES date(id) ON DELETE RESTRICT
+  publication_date_id TEXT REFERENCES date(id) ON DELETE RESTRICT,
+  created_at INTEGER,
+  updated_at INTEGER
 );
 
 CREATE TABLE IF NOT EXISTS source_text (
@@ -390,7 +402,9 @@ CREATE TABLE IF NOT EXISTS media (
   object_type TEXT,       -- _TYPE: Photo | Sound | Video | Document ...
   description TEXT,       -- _DSCR
   keywords TEXT,          -- _KEYS
-  date_id TEXT REFERENCES date(id) ON DELETE RESTRICT
+  date_id TEXT REFERENCES date(id) ON DELETE RESTRICT,
+  created_at INTEGER,
+  updated_at INTEGER
 );
 
 CREATE TABLE IF NOT EXISTS media_file (
@@ -434,14 +448,18 @@ CREATE TABLE IF NOT EXISTS repository (
   id TEXT PRIMARY KEY,
   xref TEXT,
   name TEXT NOT NULL,
-  address_id TEXT REFERENCES address(id) ON DELETE SET NULL
+  address_id TEXT REFERENCES address(id) ON DELETE SET NULL,
+  created_at INTEGER,
+  updated_at INTEGER
 );
 
 CREATE TABLE IF NOT EXISTS submitter (
   id TEXT PRIMARY KEY,
   xref TEXT,
   name TEXT NOT NULL,
-  address_id TEXT REFERENCES address(id) ON DELETE SET NULL
+  address_id TEXT REFERENCES address(id) ON DELETE SET NULL,
+  created_at INTEGER,
+  updated_at INTEGER
 );
 
 CREATE TABLE IF NOT EXISTS submitter_language (
@@ -460,7 +478,9 @@ CREATE TABLE IF NOT EXISTS record_submitter (
 
 CREATE TABLE IF NOT EXISTS address (
   id TEXT PRIMARY KEY,
-  city TEXT, state TEXT, postal_code TEXT, country TEXT
+  city TEXT, state TEXT, postal_code TEXT, country TEXT,
+  created_at INTEGER,
+  updated_at INTEGER
 );
 
 CREATE TABLE IF NOT EXISTS address_line (
@@ -564,7 +584,9 @@ CREATE TABLE IF NOT EXISTS title (
   name TEXT,
   author TEXT, publisher TEXT, series TEXT, abbreviation TEXT,
   repository_id TEXT REFERENCES repository(id) ON DELETE SET NULL,
-  call_number TEXT, sequence INTEGER
+  call_number TEXT, sequence INTEGER,
+  created_at INTEGER,
+  updated_at INTEGER
 );
 
 -- Regular lookup indexes only; search indexes are not part of the schema yet.

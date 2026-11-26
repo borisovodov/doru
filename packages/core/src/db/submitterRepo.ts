@@ -27,8 +27,15 @@ export class SubmitterRepo {
 
   insertSubmitter(submitter: SubmitterRecord): void {
     this.db
-      .prepare('INSERT INTO submitter (id, xref, name, address_id) VALUES (?, ?, ?, ?)')
-      .run(submitter.id, submitter.xref ?? null, submitter.name, submitter.addressId ?? null);
+      .prepare('INSERT INTO submitter (id, xref, name, address_id, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)')
+      .run(
+        submitter.id,
+        submitter.xref ?? null,
+        submitter.name,
+        submitter.addressId ?? null,
+        submitter.createdAt ?? null,
+        submitter.updatedAt ?? null,
+      );
     for (const language of submitter.languages ?? []) {
       this.db
         .prepare('INSERT INTO submitter_language (submitter_id, language) VALUES (?, ?)')
@@ -38,8 +45,15 @@ export class SubmitterRepo {
 
   updateSubmitter(submitter: SubmitterRecord): void {
     this.db
-      .prepare('UPDATE submitter SET xref = ?, name = ?, address_id = ? WHERE id = ?')
-      .run(submitter.xref ?? null, submitter.name, submitter.addressId ?? null, submitter.id);
+      .prepare('UPDATE submitter SET xref = ?, name = ?, address_id = ?, created_at = ?, updated_at = ? WHERE id = ?')
+      .run(
+        submitter.xref ?? null,
+        submitter.name,
+        submitter.addressId ?? null,
+        submitter.createdAt ?? null,
+        submitter.updatedAt ?? null,
+        submitter.id,
+      );
     this.db.prepare('DELETE FROM submitter_language WHERE submitter_id = ?').run(submitter.id);
     for (const language of submitter.languages ?? []) {
       this.db
@@ -55,8 +69,17 @@ export class SubmitterRepo {
   }
 
   getSubmitter(id: string): SubmitterRecord | undefined {
-    const row = this.db.prepare('SELECT id, xref, name, address_id FROM submitter WHERE id = ?').get(id) as
-      | { id: string; xref: string | null; name: string; address_id: string | null }
+    const row = this.db
+      .prepare('SELECT id, xref, name, address_id, created_at, updated_at FROM submitter WHERE id = ?')
+      .get(id) as
+      | {
+          id: string;
+          xref: string | null;
+          name: string;
+          address_id: string | null;
+          created_at: number | null;
+          updated_at: number | null;
+        }
       | undefined;
     if (!row) {
       return undefined;
@@ -69,6 +92,8 @@ export class SubmitterRepo {
       xref: row.xref ?? undefined,
       name: row.name,
       addressId: row.address_id ?? undefined,
+      createdAt: row.created_at ?? undefined,
+      updatedAt: row.updated_at ?? undefined,
     };
     if (languages.length > 0) {
       submitter.languages = languages.map((entry) => entry.language);

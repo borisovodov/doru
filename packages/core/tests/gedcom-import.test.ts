@@ -601,12 +601,13 @@ describe('importGedcomDataset', () => {
       const phrase = fixture.repo.listTasks().find((task) => task.text === 'Phrase task')!;
       const expanded = fixture.repo.listTasks().find((task) => task.text === 'Expanded UTC date')!;
       const early = fixture.repo.listTasks().find((task) => task.text === 'Early UTC date')!;
-      expect(invalid.createdAt).toBeUndefined();
-      expect(bce.createdAt).toBeUndefined();
-      expect(interpreted.createdAt).toBeUndefined();
+      expect(invalid.createdAt).toBeTypeOf('number');
+      const fallback = invalid.createdAt;
+      expect(bce.createdAt).toBe(fallback);
+      expect(interpreted.createdAt).toBe(fallback);
       expect(phrase.createdAt).toBe(new Date(2026, 0, 3).getTime());
-      expect(expanded.createdAt).toBeUndefined();
-      expect(early.createdAt).toBeUndefined();
+      expect(expanded.createdAt).toBe(fallback);
+      expect(early.createdAt).toBe(fallback);
       expect(leap.createdAt).toBe(new Date(2024, 1, 29).getTime());
       expect(encoded.createdAt).toBe(new Date(2012, 1, 14).getTime());
       expect(secondEncoded.createdAt).toBe(new Date(2011, 7, 15).getTime());

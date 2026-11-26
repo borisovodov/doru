@@ -22,6 +22,8 @@ interface SourceRow {
   bibliography: string | null;
   data_note: string | null;
   publication_date_id: string | null;
+  created_at: number | null;
+  updated_at: number | null;
 }
 
 interface CitationRow {
@@ -66,8 +68,9 @@ export class SourceRepo {
         .prepare(
           `INSERT INTO source (id, xref, title, abbreviation, author, publication,
              medium, url, access_date, confidence, pub_place_text, agency, title_id,
-             certainty, subsequent_citation_format, bibliography, data_note, publication_date_id)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+             certainty, subsequent_citation_format, bibliography, data_note,
+             created_at, updated_at, publication_date_id)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         )
         .run(...sourceParams(source), publicationDateId);
       this.replaceSourceDetails(source);
@@ -96,7 +99,7 @@ export class SourceRepo {
           `UPDATE source SET xref = ?, title = ?, abbreviation = ?, author = ?, publication = ?,
              medium = ?, url = ?, access_date = ?, confidence = ?, pub_place_text = ?,
              agency = ?, title_id = ?, certainty = ?, subsequent_citation_format = ?, bibliography = ?,
-             data_note = ?, publication_date_id = ?
+             data_note = ?, created_at = ?, updated_at = ?, publication_date_id = ?
            WHERE id = ?`,
         )
         .run(...sourceParams(source).slice(1), prepared.ids[0] ?? null, source.id);
@@ -415,6 +418,8 @@ export class SourceRepo {
       subsequentCitationFormat: row.subsequent_citation_format ?? undefined,
       bibliography: row.bibliography ?? undefined,
       dataNote: row.data_note ?? undefined,
+      createdAt: row.created_at ?? undefined,
+      updatedAt: row.updated_at ?? undefined,
     };
     if (texts.length > 0) {
       source.texts = texts.map((text) => ({
@@ -513,7 +518,8 @@ export class SourceRepo {
 
 const sourceSelect = `SELECT id, xref, title, abbreviation, author, publication,
   medium, url, access_date, confidence, pub_place_text, agency, title_id,
-  certainty, subsequent_citation_format, bibliography, data_note, publication_date_id
+  certainty, subsequent_citation_format, bibliography, data_note,
+  created_at, updated_at, publication_date_id
   FROM source`;
 
 const citationSelect = `SELECT id, source_id, target_type, target_id, description, page, quality,
@@ -566,6 +572,8 @@ function sourceParams(source: SourceRecord): Array<string | number | null> {
     source.subsequentCitationFormat ?? null,
     source.bibliography ?? null,
     source.dataNote ?? null,
+    source.createdAt ?? null,
+    source.updatedAt ?? null,
   ];
 }
 

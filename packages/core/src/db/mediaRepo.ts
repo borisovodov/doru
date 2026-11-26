@@ -13,6 +13,8 @@ interface MediaRow {
   description: string | null;
   keywords: string | null;
   date_id: string | null;
+  created_at: number | null;
+  updated_at: number | null;
 }
 
 interface FileRow {
@@ -58,7 +60,8 @@ interface LinkRow {
  * The flat `path`/`targetType`/`targetId` on the model are projections of
  * the first file and the first link.
  */
-const MEDIA_COLUMNS = `id, xref, title, place_id, place_text, object_type, description, keywords, date_id`;
+const MEDIA_COLUMNS = `id, xref, title, place_id, place_text, object_type, description, keywords,
+  date_id, created_at, updated_at`;
 
 export class MediaRepo {
   constructor(
@@ -73,8 +76,9 @@ export class MediaRepo {
       const dateId = media.date !== undefined ? this.dates.create(media.date) : null;
       this.db
         .prepare(
-          `INSERT INTO media (id, xref, title, place_id, place_text, object_type, description, keywords, date_id)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          `INSERT INTO media (id, xref, title, place_id, place_text, object_type, description, keywords,
+             created_at, updated_at, date_id)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         )
         .run(...mediaParams(media), dateId);
       this.replaceFiles(media);
@@ -94,7 +98,8 @@ export class MediaRepo {
       this.db
         .prepare(
           `UPDATE media SET xref = ?, title = ?, place_id = ?, place_text = ?,
-             object_type = ?, description = ?, keywords = ?, date_id = ? WHERE id = ?`,
+             object_type = ?, description = ?, keywords = ?, created_at = ?, updated_at = ?,
+             date_id = ? WHERE id = ?`,
         )
         .run(...mediaParams(media).slice(1), prepared.ids[0] ?? null, media.id);
       this.dates.deleteMany(prepared.obsolete);
@@ -353,6 +358,8 @@ export class MediaRepo {
       ...(row.object_type !== null ? { objectType: row.object_type } : {}),
       ...(row.description !== null ? { description: row.description } : {}),
       ...(row.keywords !== null ? { keywords: row.keywords } : {}),
+      createdAt: row.created_at ?? undefined,
+      updatedAt: row.updated_at ?? undefined,
       path: firstFile?.path,
       targetType: firstLink?.target_type,
       targetId: firstLink?.target_id,
@@ -400,6 +407,8 @@ function mediaParams(media: MediaRecord): Array<string | number | null> {
     media.objectType ?? null,
     media.description ?? null,
     media.keywords ?? null,
+    media.createdAt ?? null,
+    media.updatedAt ?? null,
   ];
 }
 

@@ -10,6 +10,8 @@ import type {
 import type {
   AddressStructure,
   AgeStructure,
+  ChangeDate,
+  CreationDate,
   DateExactStructure,
   DatePeriodStructure,
   DateStructure,
@@ -79,6 +81,11 @@ import type {
  *   stores no GEDCOM identifiers at all.
  * - source citations on notes (`NOTE.SOUR`/`SNOTE.SOUR`): a note is not an
  *   attachment target in the tree.
+ *
+ * Record timestamps are the exception to the "wire metadata is dropped" rule:
+ * structured `CREA`/`CHAN` and the known vendor `_CREAT`/`_CREA`/`_CRE`/`_UPD`
+ * spellings fill the root's `createdAt`/`updatedAt` when they carry a complete
+ * exact date. The values stay Dóru-local and are never written back.
  * Whole dropped vendor record types are counted into `droppedStructures`;
  * HEAD/SUBN, SCHMA and raw extension/unknown structures are wire metadata
  * and are not counted.
@@ -99,8 +106,20 @@ export interface GedcomImportResult {
   droppedStructures: number;
 }
 
+/**
+ * A shared GEDCOM note's text plus the source record's timestamps, copied to
+ * every target that references it.
+ */
+interface ImportedSharedNote {
+  text: string;
+  createdAt: number;
+  updatedAt: number;
+}
+
 interface ImportContext {
   repo: TreeRepository;
+  /** One instant shared by every GEDCOM row the import creates. */
+  importedAt: number;
   personIds: Map<string, string>;
   familyIds: Map<string, string>;
   sourceIds: Map<string, string>;
@@ -111,7 +130,7 @@ interface ImportContext {
   repositoryIds: Map<string, string>;
   submitterIds: Map<string, string>;
   titleIds: Map<string, string>;
-  noteTexts: Map<string, string>;
+  noteTexts: Map<string, ImportedSharedNote>;
   /** Dedupe of places by their joined name within this import. */
   placeIds: Map<string, string>;
   /** Place names that resolve to more than one distinct row. */
@@ -173,6 +192,7 @@ export function importGedcomDataset(
 ): GedcomImportResult {
   const ctx: ImportContext = {
     repo,
+    importedAt: Date.now(),
     personIds: new Map(),
     familyIds: new Map(),
     sourceIds: new Map(),
@@ -266,6 +286,8 @@ function importRepositories(records: GedcomRecord[], ctx: ImportContext): void {
       fax?: string[];
       www?: string[];
       submitters?: string[];
+      creationDate?: CreationDate;
+      changeDate?: ChangeDate;
     };
     const id = crypto.randomUUID();
     if (repository.xref !== undefined) {
@@ -275,7 +297,13 @@ function importRepositories(records: GedcomRecord[], ctx: ImportContext): void {
     if (repository.address) {
       addressId = importAddress(repository.address, ctx);
     }
-    ctx.repo.insertRepository({ id, xref: repository.xref, name: repository.name, addressId });
+    ctx.repo.insertRepository({
+      id,
+      xref: repository.xref,
+      name: repository.name,
+      addressId,
+      ...importedRecordTimes(repository, ctx),
+    });
     importNotes(repository.notes, 'repository', id, ctx);
     importContacts(
       'repository',
@@ -309,6 +337,8 @@ function importSubmitters(records: GedcomRecord[], ctx: ImportContext): void {
       fax?: string[];
       www?: string[];
       submitters?: string[];
+      creationDate?: CreationDate;
+      changeDate?: ChangeDate;
     };
     const id = crypto.randomUUID();
     if (submitter.xref !== undefined) {
@@ -324,6 +354,7 @@ function importSubmitters(records: GedcomRecord[], ctx: ImportContext): void {
       name: submitter.name,
       addressId,
       languages: submitter.languages,
+      ...importedRecordTimes(submitter, ctx),
     });
     importNotes(submitter.notes, 'submitter', id, ctx);
     importContacts(
@@ -363,6 +394,7 @@ function importTitles(records: GedcomRecord[], ctx: ImportContext): void {
       repositoryId: title.repository ? ctx.repositoryIds.get(title.repository) : undefined,
       callNumber: title.callNumber,
       sequence: numericSequence(title.sequenceNumber),
+      ...importedRecordTimes(title, ctx),
     });
   }
 }
@@ -387,6 +419,8 @@ function importAddress(address: AddressStructure, ctx: ImportContext): string {
     state: address.state,
     postalCode: address.postalCode,
     country: address.country,
+    createdAt: ctx.importedAt,
+    updatedAt: ctx.importedAt,
   });
   importContacts(
     'address',
@@ -420,11 +454,13 @@ function importSharedNotes(records: GedcomRecord[], ctx: ImportContext): void {
     const note = record as unknown as {
       xref?: string;
       payload: string;
+      creationDate?: CreationDate;
+      changeDate?: ChangeDate;
     };
     if (note.xref === undefined) {
       continue;
     }
-    ctx.noteTexts.set(note.xref, note.payload);
+    ctx.noteTexts.set(note.xref, { text: note.payload, ...importedRecordTimes(note, ctx) });
   }
 }
 
@@ -515,6 +551,7 @@ function importSources(records: GedcomRecord[], ctx: ImportContext): number {
         name: field.name,
         ...(field.value !== undefined ? { value: field.value } : {}),
       })),
+      ...importedRecordTimes(source, ctx),
     });
     importNotes(source.notes, 'source', id, ctx);
     importMediaLinks(source.media, 'source', id, ctx);
@@ -607,6 +644,7 @@ function importPerson(record: GedcomIndividualRecord, ctx: ImportContext): void 
       date: mapDatePeriod(nonEvent.date),
     });
   }
+  const factChanges = factStructures.map((structure) => exactDateToTimestamp(structure.detail?.changeDate));
   ctx.repo.insertPerson({
     id,
     xref: record.xref,
@@ -617,6 +655,7 @@ function importPerson(record: GedcomIndividualRecord, ctx: ImportContext): void 
         ? { deathStatus: 'alive' as const }
         : {}),
     ...(record.address !== undefined ? { addressId: importAddress(record.address, ctx) } : {}),
+    ...importedRecordTimes(record, ctx, factChanges),
     names,
     facts,
   });
@@ -1069,6 +1108,9 @@ function importFamily(record: GedcomFamilyRecord, ctx: ImportContext): void {
     },
     source: status,
   }));
+  const factChanges = [...(record.events ?? []), ...(record.attributes ?? [])].map((structure) =>
+    exactDateToTimestamp(structure.detail?.detail?.changeDate),
+  );
   ctx.repo.insertFamily({
     id,
     xref: record.xref,
@@ -1079,6 +1121,7 @@ function importFamily(record: GedcomFamilyRecord, ctx: ImportContext): void {
     marriageBeginStatus: record.marriageBeginningStatus,
     marriageEndStatus: record.marriageEndingStatus,
     witnesses: record.witnesses,
+    ...importedRecordTimes(record, ctx, factChanges),
     marriageStatuses: marriageStatuses.map((entry) => entry.mapped),
     partners: partnerLinks.map((link) => link.personId),
     children: childLinks.map((link) => link.childId),
@@ -1357,14 +1400,18 @@ function importGedcomTodoRecord(record: GedcomTodoRecord, ctx: ImportContext): v
   // open and medium rather than lingering in the database.
   const id = crypto.randomUUID();
   const repository = taskRepositoryTarget(id, record.repository, ctx);
+  const times = resolveImportedTimes(
+    [parseTaskTextDate(record.createdDate)],
+    [exactDateToTimestamp(record.changed)],
+    ctx.importedAt,
+  );
   ctx.repo.insertTask({
     id,
     text: record.payload || '',
     targets: repository === undefined ? [] : [repository],
     priority: normalizeTaskPriority(record.priority),
     status: normalizeTaskStatus(record.status),
-    createdAt: parseTaskTextDate(record.createdDate),
-    updatedAt: Date.now(),
+    ...times,
     remindAt: parseTaskTextDate(record.reminderDate) ?? parseTaskTextDate(record.scheduledDate),
   });
 }
@@ -1379,7 +1426,129 @@ function parseTaskTextDate(text: string | undefined): number | undefined {
   if (text === undefined || text.trim() === '') {
     return undefined;
   }
-  return parseEncodedTaskDate(text.trim()) ?? parseIsoTaskDate(text.trim());
+  return parseEncodedTaskDate(text.trim()) ?? parseIsoTimestamp(text.trim());
+}
+
+/**
+ * The GEDCOM timestamp sources of one record. `creationDate`/`changeDate` are
+ * the structured CREA/CHAN blocks; the text fields are the vendor `_CREAT`/
+ * `_UPD` spellings, whose wire format is undocumented.
+ */
+interface RecordTimestampSources {
+  creationDate?: CreationDate | undefined;
+  createdAt?: string | undefined;
+  changeDate?: ChangeDate | undefined;
+  updatedAt?: string | undefined;
+}
+
+interface ImportedRecordTimes {
+  createdAt: number;
+  updatedAt: number;
+}
+
+/** A structured CHANGE_DATE/CREATION_DATE date, or undefined when incomplete. */
+function exactDateToTimestamp(structure: ChangeDate | CreationDate | undefined): number | undefined {
+  return structure === undefined ? undefined : dateValueToTimestamp(mapDateExact(structure.date));
+}
+
+/**
+ * Parses the known vendor timestamp spellings: ISO 8601, a GEDCOM date with
+ * an optional time and GMT offset (`13 SEP 2019 14:21:05`,
+ * `4 JUN 2024 08:12:27 GMT -0500`), and the compact `YYYYMMDD` form. Unknown
+ * text is dropped rather than guessed.
+ */
+function parseRecordTimestampText(text: string | undefined): number | undefined {
+  if (text === undefined || text.trim() === '') {
+    return undefined;
+  }
+  const trimmed = text.trim();
+  return parseIsoTimestamp(trimmed) ?? parseGedcomTimestampText(trimmed) ?? parseCompactTimestamp(trimmed);
+}
+
+function parseGedcomTimestampText(text: string): number | undefined {
+  const match =
+    /^(\d{1,2})\s+([A-Za-z]{3})\s+(\d{4})(?:\s+(\d{1,2}):(\d{2})(?::(\d{2}))?(?:\s+GMT\s*([+-])(\d{2}):?(\d{2}))?)?$/i.exec(
+      text,
+    );
+  if (match === null) {
+    return undefined;
+  }
+  const day = Number(match[1]);
+  const month = GREGORIAN_MONTH_NUMBERS[match[2]?.toUpperCase() ?? ''];
+  const year = Number(match[3]);
+  if (month === undefined) {
+    return undefined;
+  }
+  const hour = match[4] !== undefined ? Number(match[4]) : 0;
+  const minute = match[5] !== undefined ? Number(match[5]) : 0;
+  const second = match[6] !== undefined ? Number(match[6]) : 0;
+  if (match[7] === undefined) {
+    return localTimestamp(year, month, day, hour, minute, second);
+  }
+  const offset = (match[7] === '-' ? -1 : 1) * (Number(match[8]) * 60 + Number(match[9]));
+  const wall = localTimestamp(year, month, day, hour, minute, second, true);
+  if (wall === undefined) {
+    return undefined;
+  }
+  const timestamp = wall - offset * 60_000;
+  return isSupportedInstant(timestamp) ? timestamp : undefined;
+}
+
+function parseCompactTimestamp(text: string): number | undefined {
+  const match = /^(\d{4})(\d{2})(\d{2})$/.exec(text);
+  if (match === null) {
+    return undefined;
+  }
+  return localTimestamp(Number(match[1]), Number(match[2]), Number(match[3]), 0, 0);
+}
+
+function minDefined(values: ReadonlyArray<number | undefined>): number | undefined {
+  let result: number | undefined;
+  for (const value of values) {
+    if (value !== undefined && (result === undefined || value < result)) {
+      result = value;
+    }
+  }
+  return result;
+}
+
+function maxDefined(values: ReadonlyArray<number | undefined>): number | undefined {
+  let result: number | undefined;
+  for (const value of values) {
+    if (value !== undefined && (result === undefined || value > result)) {
+      result = value;
+    }
+  }
+  return result;
+}
+
+/**
+ * Resolves a record's pair from every known stamp. Creation is the earliest
+ * known creation date; when GEDCOM has none, the earliest change date is the
+ * lower bound ("known since"). Edit is the latest change date; when GEDCOM
+ * has none, the record is treated as unedited since creation. Import time is
+ * used only when the file carries no usable stamp.
+ */
+function resolveImportedTimes(
+  creationValues: ReadonlyArray<number | undefined>,
+  changeValues: ReadonlyArray<number | undefined>,
+  importedAt: number,
+): ImportedRecordTimes {
+  const createdAt = minDefined(creationValues) ?? minDefined(changeValues) ?? importedAt;
+  const updatedAt = maxDefined(changeValues) ?? createdAt;
+  return { createdAt, updatedAt: Math.max(createdAt, updatedAt) };
+}
+
+function importedRecordTimes(
+  sources: RecordTimestampSources,
+  ctx: ImportContext,
+  extraChanges: ReadonlyArray<number | undefined> = [],
+): ImportedRecordTimes {
+  return resolveImportedTimes(
+    [exactDateToTimestamp(sources.creationDate), parseRecordTimestampText(sources.createdAt)],
+    [exactDateToTimestamp(sources.changeDate), parseRecordTimestampText(sources.updatedAt), ...extraChanges],
+    ctx.importedAt,
+  );
 }
 
 function parseEncodedTaskDate(text: string): number | undefined {
@@ -1391,7 +1560,7 @@ function parseEncodedTaskDate(text: string): number | undefined {
   return localTimestamp(Number(match[3]), Number(match[2]), Number(match[1]), 0, 0);
 }
 
-function parseIsoTaskDate(text: string): number | undefined {
+function parseIsoTimestamp(text: string): number | undefined {
   const match =
     /^(\d{4})-(\d{2})-(\d{2})(?:[T ](\d{2}):(\d{2})(?::(\d{2})(?:\.(\d{1,9}))?)?(Z|[+-]\d{2}:?\d{2})?)?$/.exec(text);
   if (match === null) {
@@ -1425,19 +1594,19 @@ function parseIsoTaskDate(text: string): number | undefined {
   ) {
     return undefined;
   }
-  return isExportableTaskInstant(timestamp) ? timestamp : undefined;
+  return isSupportedInstant(timestamp) ? timestamp : undefined;
 }
 
 /**
  * `toISOString()` writes an expanded year (`+010000`) outside 0000-9999,
  * which the anchored task-date parser cannot read back.
  */
-function isExportableTaskInstant(timestamp: number): boolean {
+function isSupportedInstant(timestamp: number): boolean {
   const year = new Date(timestamp).getUTCFullYear();
   return year >= 0 && year <= 9999;
 }
 
-function taskDateValueToTimestamp(date: DateValue | undefined, interpreted = false): number | undefined {
+function dateValueToTimestamp(date: DateValue | undefined, interpreted = false): number | undefined {
   if (interpreted || date === undefined || date.quality !== 'exact') {
     return undefined;
   }
@@ -1511,7 +1680,7 @@ function localTimestamp(
     return undefined;
   }
   const timestamp = value.getTime();
-  return isExportableTaskInstant(timestamp) ? timestamp : undefined;
+  return isSupportedInstant(timestamp) ? timestamp : undefined;
 }
 
 function importGedcomTodoStructure(
@@ -1531,17 +1700,22 @@ function importGedcomTodoStructure(
   if (repository !== undefined) {
     targets.push(repository);
   }
+  const times = resolveImportedTimes(
+    [
+      parseTaskTextDate(structure.createdDate),
+      dateValueToTimestamp(mapDate(structure.date), structure.date?.interpreted),
+    ],
+    [],
+    ctx.importedAt,
+  );
   const mapped: TaskRecord = {
     id,
     text: structure.payload ?? structure.description ?? '',
     targets,
     priority: normalizeTaskPriority(structure.priority),
     status: normalizeTaskStatus(structure.status),
-    createdAt:
-      parseTaskTextDate(structure.createdDate) ??
-      taskDateValueToTimestamp(mapDate(structure.date), structure.date?.interpreted),
-    updatedAt: Date.now(),
-    remindAt: taskDateValueToTimestamp(mapDate(structure.reminderDate), structure.reminderDate?.interpreted),
+    ...times,
+    remindAt: dateValueToTimestamp(mapDate(structure.reminderDate), structure.reminderDate?.interpreted),
   };
   ctx.repo.insertTask(mapped);
   importNotes(structure.notes, 'task', mapped.id, ctx);
@@ -1665,26 +1839,34 @@ function importNotes(
 ): void {
   const copied = new Set<string>();
   for (const structure of structures ?? []) {
-    const text = 'note' in structure ? ctx.noteTexts.get(structure.note) : structure.payload;
-    if (text === undefined) {
-      continue;
-    }
-    // A repeated reference to the same shared note on the same target is
-    // one annotation: GEDCOM dedupes the pointer, Dóru dedupes the copy.
     if ('note' in structure) {
+      const shared = ctx.noteTexts.get(structure.note);
+      if (shared === undefined) {
+        continue;
+      }
+      // A repeated reference to the same shared note on the same target is
+      // one annotation: GEDCOM dedupes the pointer, Dóru dedupes the copy.
       if (copied.has(structure.note)) {
         continue;
       }
       copied.add(structure.note);
+      ctx.repo.insertNote({
+        id: crypto.randomUUID(),
+        text: shared.text,
+        targetType,
+        targetId,
+        createdAt: shared.createdAt,
+        updatedAt: shared.updatedAt,
+      });
+      continue;
     }
-    const now = Date.now();
     ctx.repo.insertNote({
       id: crypto.randomUUID(),
-      text,
+      text: structure.payload,
       targetType,
       targetId,
-      createdAt: now,
-      updatedAt: now,
+      createdAt: ctx.importedAt,
+      updatedAt: ctx.importedAt,
     });
   }
 }
@@ -1943,6 +2125,7 @@ function importMediaRecords(records: GedcomRecord[], ctx: ImportContext): void {
       ...(record.objectType !== undefined ? { objectType: record.objectType } : {}),
       ...(record.description !== undefined ? { description: record.description } : {}),
       ...(record.keywords !== undefined ? { keywords: record.keywords } : {}),
+      ...importedRecordTimes(record, ctx),
       files,
     });
     if (record.place !== undefined) {
@@ -2098,6 +2281,7 @@ function importPlaceRecords(records: GedcomRecord[], ctx: ImportContext): void {
       ...(record.postalCodes !== undefined && record.postalCodes.length > 0
         ? { postalCodes: mapPostalCodes(record.postalCodes) }
         : {}),
+      ...importedRecordTimes(record, ctx),
     });
     importCitations(record.citations, 'place', id, ctx);
     importNotes(record.notes, 'place', id, ctx);
@@ -2201,6 +2385,8 @@ function importPlace(place: PlaceStructure, ctx: ImportContext): string | undefi
     ...(place.postalCodes !== undefined && place.postalCodes.length > 0
       ? { postalCodes: mapPostalCodes(place.postalCodes) }
       : {}),
+    createdAt: ctx.importedAt,
+    updatedAt: ctx.importedAt,
   });
   importCitations(place.citations, 'place', id, ctx);
   importNotes(place.notes, 'place', id, ctx);

@@ -12,6 +12,8 @@ interface FamilyRow {
   union_status: string | null;
   marriage_begin_status: string | null;
   marriage_end_status: string | null;
+  created_at: number | null;
+  updated_at: number | null;
 }
 
 interface PartnerRow {
@@ -59,7 +61,7 @@ export class FamilyRepo {
     this.transactions.run(() => {
       this.db
         .prepare(`INSERT INTO family (id, xref, preferred, same_sex, union_kind, union_status,
-        marriage_begin_status, marriage_end_status) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`)
+        marriage_begin_status, marriage_end_status, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`)
         .run(...familyParams(family));
       this.replaceLinks(family, new Map(), undefined, new Map());
       this.replaceDetails(family, new Map());
@@ -70,7 +72,8 @@ export class FamilyRepo {
     this.transactions.run(() => {
       this.db
         .prepare(`UPDATE family SET xref = ?, preferred = ?, same_sex = ?, union_kind = ?,
-        union_status = ?, marriage_begin_status = ?, marriage_end_status = ? WHERE id = ?`)
+        union_status = ?, marriage_begin_status = ?, marriage_end_status = ?,
+        created_at = ?, updated_at = ? WHERE id = ?`)
         .run(...familyParams(family).slice(1), family.id);
       const existingPartners = this.listPartnerRows(family.id);
       const existingChildren = this.listChildRows(family.id);
@@ -92,7 +95,7 @@ export class FamilyRepo {
   getFamily(id: string): FamilyRecord | undefined {
     const row = this.db
       .prepare(`SELECT id, xref, preferred, same_sex, union_kind, union_status,
-        marriage_begin_status, marriage_end_status FROM family WHERE id = ?`)
+        marriage_begin_status, marriage_end_status, created_at, updated_at FROM family WHERE id = ?`)
       .get(id) as FamilyRow | undefined;
     return row ? this.hydrate(row) : undefined;
   }
@@ -102,6 +105,11 @@ export class FamilyRepo {
     this.db
       .prepare('UPDATE family_marriage_status SET place_id = ? WHERE id = ? AND place_id IS NULL')
       .run(placeId ?? null, statusId);
+  }
+
+  /** Bumps the aggregate edit instant without rewriting partner or child links. */
+  setUpdatedAt(id: string, updatedAt: number | undefined): void {
+    this.db.prepare('UPDATE family SET updated_at = ? WHERE id = ?').run(updatedAt ?? null, id);
   }
 
   deleteFamily(id: string): boolean {
@@ -123,7 +131,7 @@ export class FamilyRepo {
   listFamilies(): FamilyRecord[] {
     const rows = this.db
       .prepare(`SELECT id, xref, preferred, same_sex, union_kind, union_status,
-        marriage_begin_status, marriage_end_status FROM family ORDER BY id`)
+        marriage_begin_status, marriage_end_status, created_at, updated_at FROM family ORDER BY id`)
       .all() as unknown as FamilyRow[];
     return rows.map((row) => this.hydrate(row));
   }
@@ -133,7 +141,7 @@ export class FamilyRepo {
     const rows = this.db
       .prepare(
         `SELECT f.id, f.xref, f.preferred, f.same_sex, f.union_kind, f.union_status,
-           f.marriage_begin_status, f.marriage_end_status FROM family f
+           f.marriage_begin_status, f.marriage_end_status, f.created_at, f.updated_at FROM family f
          WHERE EXISTS (SELECT 1 FROM family_partner p WHERE p.family_id = f.id AND p.person_id = ?)
             OR EXISTS (SELECT 1 FROM family_child c WHERE c.family_id = f.id AND c.child_id = ?)
          ORDER BY f.id`,
@@ -237,6 +245,8 @@ export class FamilyRepo {
       unionStatus: row.union_status ?? undefined,
       marriageBeginStatus: row.marriage_begin_status ?? undefined,
       marriageEndStatus: row.marriage_end_status ?? undefined,
+      createdAt: row.created_at ?? undefined,
+      updatedAt: row.updated_at ?? undefined,
       partners: partners.map((link) => link.person_id),
       children: children.filter((link) => link.status !== 'disproven').map((link) => link.child_id),
       partnerLinks: partners.map((link) => ({
@@ -364,6 +374,8 @@ function familyParams(family: FamilyRecord): Array<string | number | null> {
     family.unionStatus ?? null,
     family.marriageBeginStatus ?? null,
     family.marriageEndStatus ?? null,
+    family.createdAt ?? null,
+    family.updatedAt ?? null,
   ];
 }
 

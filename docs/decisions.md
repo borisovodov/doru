@@ -248,7 +248,8 @@ stored as epoch-millisecond integers: `created_at`, `updated_at`, and
 every task edit, and `remind_at` is the single user-chosen reminder instant.
 Closing a task only changes its status; there is no separate completion
 timestamp. Link changes do not count as edits. The UI uses a date-and-time
-control, not the GEDCOM date editor.
+control, not the GEDCOM date editor. Import maps a complete exact
+`_TODO.CHAN` to `updated_at`; otherwise it uses the import instant.
 
 GEDCOM task dates are imported only when they are complete exact dates:
 My Family Tree's encoded `DDMMYYYY` text in the record form, and exact GEDCOM
@@ -258,14 +259,42 @@ map to `remind_at`, with `_TSDT` as a fallback. `_CDATE` is dropped together
 with the completion timestamp. Partial, approximate, range, or otherwise
 unparseable task dates are dropped rather than inventing an instant.
 
+## Record timestamps are aggregate-level
+
+Top-level record roots (`person`, `family`, `source`, `media`, `place`,
+`repository`, `submitter`, `address`, `title`, plus `note` and `task`) keep
+Dóru-local epoch-millisecond `created_at`/`updated_at` instants. They are
+operational provenance, not genealogical dates. `created_at` is set once;
+`updated_at` changes only when the aggregate's own content changes. Child
+rows, link rows, attachment links and `date` values have no timestamps of
+their own.
+
+Editing a person's names or facts moves the person's instant even when the
+fact is saved through its own operation. Family partner/child links, media
+files, place names/hierarchy and source texts belong to their roots. Adding a
+note, citation, media link, task link, identifier, contact or contributor does
+not move the host's instant, and neither does the reference cleanup performed
+when another record is deleted. Undo restores the previous instants; redo
+restores the edit's.
+
+GEDCOM import fills these instants from the file when possible:
+`CREA`/`_CREAT`/`_CREA`/`_CRE` for creation, `CHAN`/`_UPD` and the latest fact
+`CHAN` for editing. Only complete exact dates are accepted; partial,
+approximate, range, BCE and unparseable text are dropped. When GEDCOM has no
+creation stamp, the earliest known change date is used as a lower bound. With
+no usable stamp at all, both instants are the import instant. The values stay
+Dóru-local: `CHAN.NOTE`, `CHAN._WT_USER`, `CHAN.SOUR` and change history are
+ignored, and export does not synthesize `CHAN` or `CREA`. The UI does not
+display these fields.
+
 ## No persistent change log
 
-There is no `change_log` table and no `CHAN`/`CREA` mapping. Undo/redo is an
-in-memory op queue; the database does not persist who changed what. Per-record
-`created_at`/`updated_at` instants on notes and tasks are not a change log:
-they only record the first and last write of that row.
-This keeps the document model minimal and avoids duplicating GEDCOM's weakly
-typed change stamps. Revisit only when the product needs a real audit or
+There is no `change_log` table. GEDCOM `CHAN`/`CREA` dates are read only to
+fill a root's first/last instants; the change notes, users, citations and
+history inside those blocks are dropped, and multiple changes are not stored.
+Undo/redo is an in-memory op queue; the database does not persist who changed
+what. This keeps the document model minimal and avoids duplicating GEDCOM's
+weakly typed change stamps. Revisit only when the product needs a real audit or
 history feature.
 
 ## Free-text family witnesses

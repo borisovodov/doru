@@ -138,8 +138,9 @@ export class ResearchRepo {
   insertTitle(title: TitleRecord): void {
     this.db
       .prepare(
-        `INSERT INTO title (id, xref, name, author, publisher, series, abbreviation, repository_id, call_number, sequence)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        `INSERT INTO title (id, xref, name, author, publisher, series, abbreviation, repository_id, call_number, sequence,
+           created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       )
       .run(...titleParams(title));
   }
@@ -151,7 +152,7 @@ export class ResearchRepo {
     this.db
       .prepare(
         `UPDATE title SET xref = ?, name = ?, author = ?, publisher = ?, series = ?, abbreviation = ?,
-           repository_id = ?, call_number = ?, sequence = ? WHERE id = ?`,
+           repository_id = ?, call_number = ?, sequence = ?, created_at = ?, updated_at = ? WHERE id = ?`,
       )
       .run(...titleParams(title).slice(1), title.id);
   }
@@ -169,7 +170,7 @@ export class ResearchRepo {
   getTitle(id: string): TitleRecord | undefined {
     const row = this.db
       .prepare(
-        'SELECT id, xref, name, author, publisher, series, abbreviation, repository_id, call_number, sequence FROM title WHERE id = ?',
+        'SELECT id, xref, name, author, publisher, series, abbreviation, repository_id, call_number, sequence, created_at, updated_at FROM title WHERE id = ?',
       )
       .get(id) as TitleRow | undefined;
     return row === undefined ? undefined : rowToTitle(row);
@@ -178,7 +179,7 @@ export class ResearchRepo {
   listTitles(): TitleRecord[] {
     const rows = this.db
       .prepare(
-        'SELECT id, xref, name, author, publisher, series, abbreviation, repository_id, call_number, sequence FROM title ORDER BY id',
+        'SELECT id, xref, name, author, publisher, series, abbreviation, repository_id, call_number, sequence, created_at, updated_at FROM title ORDER BY id',
       )
       .all() as unknown as TitleRow[];
     return rows.map(rowToTitle);
@@ -213,6 +214,8 @@ interface TitleRow {
   repository_id: string | null;
   call_number: string | null;
   sequence: number | null;
+  created_at: number | null;
+  updated_at: number | null;
 }
 
 const taskSelect = `SELECT task.id, task.text, task.priority, task.status,
@@ -252,6 +255,8 @@ function titleParams(title: TitleRecord): Array<string | number | null> {
     title.repositoryId ?? null,
     title.callNumber ?? null,
     title.sequence ?? null,
+    title.createdAt ?? null,
+    title.updatedAt ?? null,
   ];
 }
 
@@ -267,5 +272,7 @@ function rowToTitle(row: TitleRow): TitleRecord {
     repositoryId: row.repository_id ?? undefined,
     callNumber: row.call_number ?? undefined,
     sequence: row.sequence ?? undefined,
+    createdAt: row.created_at ?? undefined,
+    updatedAt: row.updated_at ?? undefined,
   };
 }

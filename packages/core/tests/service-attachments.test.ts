@@ -727,29 +727,29 @@ describe('TreeService attachments', () => {
     const { fixture, service } = makeService();
     try {
       service.addRepository(repository());
-      expect(fixture.repo.listRepositories()).toEqual([repository()]);
+      expect(fixture.repo.listRepositories()).toMatchObject([repository()]);
       const afterRepo = repository({ name: 'City Archive' });
       service.updateRepository(repository(), afterRepo);
       expect(fixture.repo.getRepository('RP1')?.name).toBe('City Archive');
       service.deleteRepository(afterRepo);
       expect(fixture.repo.listRepositories()).toEqual([]);
       service.undo();
-      expect(fixture.repo.listRepositories()).toEqual([afterRepo]);
+      expect(fixture.repo.listRepositories()).toMatchObject([afterRepo]);
 
       service.addSubmitter(submitter());
-      expect(fixture.repo.listSubmitters()).toEqual([submitter()]);
+      expect(fixture.repo.listSubmitters()).toMatchObject([submitter()]);
       const afterSubmitter = submitter({ name: 'Maria Ivanova' });
       service.updateSubmitter(submitter(), afterSubmitter);
       expect(fixture.repo.getSubmitter('SU1')?.name).toBe('Maria Ivanova');
       service.deleteSubmitter(afterSubmitter);
       expect(fixture.repo.listSubmitters()).toEqual([]);
       service.undo();
-      expect(fixture.repo.listSubmitters()).toEqual([afterSubmitter]);
+      expect(fixture.repo.listSubmitters()).toMatchObject([afterSubmitter]);
 
       service.addAddress(address());
-      expect(fixture.repo.getAddress('AD1')).toEqual(address());
-      expect(fixture.repo.listAddresses()).toEqual([address()]);
-      expect(service.listAddresses()).toEqual([address()]);
+      expect(fixture.repo.getAddress('AD1')).toMatchObject(address());
+      expect(fixture.repo.listAddresses()).toMatchObject([address()]);
+      expect(service.listAddresses()).toMatchObject([address()]);
       const afterAddress = address({ city: 'Berlin' });
       service.updateAddress(address(), afterAddress);
       expect(fixture.repo.getAddress('AD1')?.city).toBe('Berlin');
