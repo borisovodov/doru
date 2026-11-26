@@ -111,8 +111,9 @@ were fixed:
   its message.
 - The per-file deadline now covers DNS resolution as well as the fetch and
   response body, and an already-expired deadline skips the lookup entirely.
-- A URL that finds only reserved budget is deferred and retried after a
-  reservation is released, instead of being marked failed permanently.
+- A URL that finds only reserved budget, or a partial per-file cap held back
+  by reservations, is deferred and retried after a release instead of being
+  marked failed permanently.
 - A GEDZIP import copies only bundled entries; an unmatched local `FILE` path
   is left as an external reference instead of copying a same-named file from
   beside the archive.

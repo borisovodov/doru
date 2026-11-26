@@ -4,6 +4,7 @@ import { join } from 'node:path';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { parseGedcom70, type GedcomDataset } from '@doru/gedcom';
 import { prepareGedcomMedia } from '../src/main/gedcom';
+import type { RemoteMediaOptions } from '../src/main/mediaDownload';
 
 const encoder = new TextEncoder();
 const tempDirs: string[] = [];
@@ -94,6 +95,32 @@ describe('prepareGedcomMedia', () => {
 
     expect(download).toHaveBeenCalledTimes(7);
     expect(paths.size).toBe(7);
+  });
+
+  it('waits for a full per-file cap instead of starting with the partial remainder', async () => {
+    const dir = await makeTempDir();
+    const sizes = [100, 99, 1, 1, 1, 50].map((megabytes) => megabytes * 1024 * 1024);
+    const urls = sizes.map((_, index) => `https://example.com/${index}.jpg`);
+    const download = vi.fn(async (url: string, options?: RemoteMediaOptions) => {
+      const index = urls.indexOf(url);
+      const size = sizes[index] ?? 0;
+      if (size > (options?.maxBytes ?? size)) {
+        throw new Error('remote media file exceeds the size limit');
+      }
+      return {
+        bytes: { byteLength: size } as unknown as Uint8Array,
+        finalUrl: url,
+      };
+    });
+
+    const paths = await prepareGedcomMedia(datasetWithFiles(urls), undefined, join(dir, 'tree.ged'), dir, {
+      download,
+      write: vi.fn(async () => undefined),
+      logger: makeLogger(),
+    });
+
+    expect(download).toHaveBeenCalledTimes(6);
+    expect(paths.size).toBe(6);
   });
 
   it('keeps the URL as an external reference and does not log download errors', async () => {

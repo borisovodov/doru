@@ -170,14 +170,15 @@ export async function prepareGedcomMedia(
         return;
       }
       const remaining = available - reservedBytes;
-      if (remaining > 0) {
+      const wanted = Math.min(REMOTE_MEDIA_FILE_LIMIT, available);
+      if (remaining >= wanted) {
         remainingTime = remoteDeadline - Date.now();
         if (remainingTime <= 0) {
           remoteFailed += 1;
           logger.warn('gedcom import: remote media skipped, total time limit reached');
           return;
         }
-        reserved = Math.min(REMOTE_MEDIA_FILE_LIMIT, remaining);
+        reserved = wanted;
         break;
       }
       if (remoteDeadline <= Date.now()) {
