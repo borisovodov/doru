@@ -87,31 +87,6 @@ export const MEDIA_LINK_TARGET_TYPES = [
   'title',
 ] as const;
 
-/** Targets an external identifier may point at. */
-export const IDENTIFIER_TARGET_TYPES = [
-  'person',
-  'family',
-  'family_partner',
-  'family_child',
-  'family_marriage_status',
-  'fact',
-  'name',
-  'name_part',
-  'source',
-  'citation',
-  'media',
-  'media_file',
-  'place',
-  'place_name',
-  'place_hierarchy',
-  'repository',
-  'submitter',
-  'address',
-  'address_line',
-  'association',
-  'title',
-] as const;
-
 /**
  * Targets that can own contact details. GEDCOM keeps PHON, EMAIL, FAX and WWW
  * inside addresses (5.5.x), on event details and on the REPO and SUBM records
@@ -173,7 +148,6 @@ export const ATTACHMENT_TARGET_TYPES = {
   noteLink: NOTE_LINK_TARGET_TYPES,
   citation: CITATION_TARGET_TYPES,
   mediaLink: MEDIA_LINK_TARGET_TYPES,
-  identifier: IDENTIFIER_TARGET_TYPES,
   contact: CONTACT_TARGET_TYPES,
   taskLink: TASK_LINK_TARGET_TYPES,
   recordSubmitter: RECORD_SUBMITTER_TARGET_TYPES,

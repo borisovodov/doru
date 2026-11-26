@@ -1,5 +1,5 @@
 ---
-source-hash: 99b1e27e511c
+source-hash: b425b67199c0
 ---
 
 # Travailler avec l'arbre
@@ -69,7 +69,7 @@ famille se fait en un clic.
   modification doit mettre à jour le texte partagé partout ou seulement
   l'enregistrement courant. **Détacher de cet enregistrement** supprime un lien ;
   **Supprimer partout** supprime la note.
-- Les faits et les noms portent leurs propres sections Sources, Notes et Identifiants dans l'éditeur de personne ; les faits ont aussi des Contacts.
+- Les faits et les noms portent leurs propres sections Sources et Notes dans l'éditeur de personne ; les faits ont aussi des Contacts.
 
 ## Adresses
 
@@ -84,7 +84,7 @@ modifier une adresse sur place.
 
 Les tâches ont une date de création et une date de rappel. Fermer une tâche ne change que son statut ; aucune date d'achèvement distincte n'est enregistrée. La plupart des éditeurs ont une section **Tâches** : ajoutez-y une tâche et elle est automatiquement liée à cet enregistrement. Les éditeurs de tâche et de soumetteur font exception, et une ligne de lien multimédia n'a que la section Sources : la fiche d'une tâche conserve Notes et Médias, celle d'un soumetteur n'a pas de section Tâches, et un lien multimédia n'est pas une cible de tâches. Les faits, noms et citations portent leur propre section Tâches dans leur panneau de pièces jointes. **Lié à** relie une tâche à un ou plusieurs enregistrements de l'arbre — une personne, une famille, un événement, un nom, une source, une citation, un média, un lieu, un dépôt, une adresse ou une œuvre, mais pas une autre tâche, un soumetteur ou un lien multimédia ; laissez-le vide pour une tâche indépendante. Une tâche est partagée : la modifier n'importe où met à jour le même enregistrement, et supprimer un enregistrement lié laisse la tâche en place. Utilisez **Joindre une tâche existante** pour réutiliser une tâche partagée au lieu d'en créer une nouvelle.
 
-Les œuvres, adresses, associations et liens partenaire/enfant d'une famille ont les mêmes sections Notes, Sources, Identifiants, Contributeurs et Tâches que les onglets de l'entité principale. Les adresses ont aussi des Contacts. Les tâches conservent Notes et Médias, mais n'ont ni Sources, ni Identifiants, ni Contacts, ni Contributeurs, ni Tâches. Un lien multimédia n'a que Sources.
+Les œuvres, adresses, associations et liens partenaire/enfant d'une famille ont les mêmes sections Notes, Sources, Contributeurs et Tâches que les onglets de l'entité principale. Les adresses ont aussi des Contacts. Les tâches conservent Notes et Médias, mais n'ont ni Sources, ni Contacts, ni Contributeurs, ni Tâches. Un lien multimédia n'a que Sources.
 
 ## Médias
 

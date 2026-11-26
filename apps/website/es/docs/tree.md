@@ -1,5 +1,5 @@
 ---
-source-hash: 99b1e27e511c
+source-hash: b425b67199c0
 ---
 
 # Trabajar con el árbol
@@ -69,7 +69,7 @@ familia es un clic.
   el texto compartido en todas partes o solo en el registro actual. **Desvincular
   de este registro** elimina un enlace; **Eliminar en todas partes** elimina la
   nota.
-- Los hechos y los nombres llevan sus propias secciones de Fuentes, Notas e Identificadores dentro del editor de la persona; los hechos también tienen Contactos.
+- Los hechos y los nombres llevan sus propias secciones de Fuentes y Notas dentro del editor de la persona; los hechos también tienen Contactos.
 
 ## Direcciones
 
@@ -83,7 +83,7 @@ de esos registros. El selector de dirección de un hecho también tiene las acci
 
 Las tareas tienen una fecha de creación y una fecha de recordatorio. Cerrar una tarea solo cambia su estado; no se guarda una fecha de finalización aparte. La mayoría de los editores tiene una sección **Tareas**: añade allí una tarea y se vincula automáticamente a ese registro. Las excepciones son el editor de tareas y el editor de remitentes, y una fila de vínculo multimedia solo tiene la sección Fuentes: la tarjeta de una tarea conserva Notas y Multimedia, la de un remitente no tiene sección Tareas, y un vínculo multimedia no es destino de tareas. Los hechos, nombres y citas llevan su propia sección Tareas en su panel de elementos adjuntos. **Relacionado con** vincula una tarea con uno o varios registros del árbol — una persona, familia, evento, nombre, fuente, cita, multimedia, lugar, repositorio, dirección u obra, pero no con otra tarea, un remitente o un vínculo multimedia; déjalo vacío para una tarea independiente. Una tarea es compartida: editarla en cualquier lugar actualiza el mismo registro y eliminar un registro relacionado deja la tarea en su sitio. Usa **Adjuntar una tarea existente** para reutilizar una tarea compartida en lugar de crear una nueva.
 
-Las obras, direcciones, asociaciones y enlaces de pareja/hijo de una familia tienen las mismas secciones Notas, Fuentes, Identificadores, Contribuyentes y Tareas que las pestañas de la entidad principal. Las direcciones también tienen Contactos. Las tareas conservan Notas y Multimedia, pero no tienen Fuentes, Identificadores, Contactos, Contribuyentes ni Tareas. Un vínculo multimedia solo tiene Fuentes.
+Las obras, direcciones, asociaciones y enlaces de pareja/hijo de una familia tienen las mismas secciones Notas, Fuentes, Contribuyentes y Tareas que las pestañas de la entidad principal. Las direcciones también tienen Contactos. Las tareas conservan Notas y Multimedia, pero no tienen Fuentes, Contactos, Contribuyentes ni Tareas. Un vínculo multimedia solo tiene Fuentes.
 
 ## Multimedia
 

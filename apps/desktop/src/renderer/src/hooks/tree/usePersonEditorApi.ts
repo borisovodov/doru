@@ -217,26 +217,6 @@ export function usePersonEditorApi(
         }
         await window.doru.deleteMedia(projectPath, media);
       },
-      getIdentifiers: (targetType, targetId) =>
-        projectPath ? window.doru.getIdentifiers(projectPath, targetType, targetId) : Promise.resolve([]),
-      addIdentifier: async (identifier) => {
-        if (!projectPath) {
-          return;
-        }
-        await window.doru.addIdentifier(projectPath, identifier);
-      },
-      deleteIdentifier: async (identifier) => {
-        if (!projectPath) {
-          return;
-        }
-        await window.doru.deleteIdentifier(projectPath, identifier);
-      },
-      updateIdentifier: async (before, after) => {
-        if (!projectPath) {
-          return;
-        }
-        await window.doru.updateIdentifier(projectPath, before, after);
-      },
       getContacts: (targetType, targetId) =>
         projectPath ? window.doru.getContacts(projectPath, targetType, targetId) : Promise.resolve([]),
       addContact: async (contact) => {

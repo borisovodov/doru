@@ -11,7 +11,6 @@ import type {
   ContactRecord,
   FactRecord,
   FamilyRecord,
-  IdentifierRecord,
   NoteRecord,
   PersonRecord,
   RecordSubmitterLink,
@@ -24,7 +23,7 @@ import { nls } from '../nls';
 import '../sidebar/sidebar.css';
 import { AssociationsSection } from '@doru/ui/domain';
 import { AliasesSection } from '@doru/ui/domain';
-import { ContactsSection, IdentifiersSection } from '@doru/ui/domain';
+import { ContactsSection } from '@doru/ui/domain';
 import { ContributorsSection } from '@doru/ui/domain';
 import { DateEditor } from '@doru/ui/domain';
 import { FactsSection } from '@doru/ui/domain';
@@ -86,7 +85,6 @@ export function PersonEditor({
   const [citations, setCitations] = useState<CitationRecord[]>([]);
   const [facts, setFacts] = useState<FactRecord[]>([]);
   const [media, setMedia] = useState<MediaWithPath[]>([]);
-  const [identifiers, setIdentifiers] = useState<IdentifierRecord[]>([]);
   const [contacts, setContacts] = useState<ContactRecord[]>([]);
   const [places, setPlaces] = useState<PlaceRecord[]>([]);
   const [addresses, setAddresses] = useState<AddressRecord[]>([]);
@@ -107,14 +105,9 @@ export function PersonEditor({
     setContributors(await api.getRecordSubmitters('person', draft.id));
   };
 
-  /** Reloads every universal attachment list of the person. */
-  const refreshAttachments = async () => {
-    const [loadedIdentifiers, loadedContacts] = await Promise.all([
-      api.getIdentifiers('person', draft.id),
-      api.getContacts('person', draft.id),
-    ]);
-    setIdentifiers(loadedIdentifiers);
-    setContacts(loadedContacts);
+  /** Reloads the universal contact list of the person. */
+  const refreshContacts = async () => {
+    setContacts(await api.getContacts('person', draft.id));
   };
 
   const refreshNotes = async () => {
@@ -167,14 +160,11 @@ export function PersonEditor({
     void api.getMedia(draft.id).then((loaded) => {
       if (!cancelled) setMedia(loaded);
     });
-    void Promise.all([api.getIdentifiers('person', draft.id), api.getContacts('person', draft.id)]).then(
-      ([loadedIdentifiers, loadedContacts]) => {
-        if (!cancelled) {
-          setIdentifiers(loadedIdentifiers);
-          setContacts(loadedContacts);
-        }
-      },
-    );
+    void api.getContacts('person', draft.id).then((loadedContacts) => {
+      if (!cancelled) {
+        setContacts(loadedContacts);
+      }
+    });
     void Promise.all([api.getSubmitters(), api.getRecordSubmitters('person', draft.id)]).then(
       ([loadedSubmitters, loadedContributors]) => {
         if (!cancelled) {
@@ -286,7 +276,7 @@ export function PersonEditor({
                 api={api}
                 sources={sources}
                 onOpenSource={(sourceId) => api.openSource?.(sourceId)}
-                sections={['notes', 'sources', 'media', 'identifiers', 'contacts', 'contributors', 'tasks']}
+                sections={['notes', 'sources', 'media', 'contacts', 'contributors', 'tasks']}
                 renderCitationAttachments={(citation) => (
                   <CitationAttachments
                     citation={citation}
@@ -440,7 +430,7 @@ export function PersonEditor({
                 api={api}
                 sources={sources}
                 onOpenSource={(sourceId) => api.openSource?.(sourceId)}
-                sections={['notes', 'sources', 'media', 'identifiers', 'contacts', 'contributors', 'tasks']}
+                sections={['notes', 'sources', 'media', 'contacts', 'contributors', 'tasks']}
                 renderCitationAttachments={(citation) => (
                   <CitationAttachments
                     citation={citation}
@@ -520,38 +510,21 @@ export function PersonEditor({
               await refreshNotes();
             }}
           />
-          <IdentifiersSection
-            targetType="person"
-            targetId={draft.id}
-            identifiers={identifiers}
-            onAdd={async (identifier) => {
-              await api.addIdentifier(identifier);
-              await refreshAttachments();
-            }}
-            onUpdate={async (before, after) => {
-              await api.updateIdentifier(before, after);
-              await refreshAttachments();
-            }}
-            onDelete={async (identifier) => {
-              await api.deleteIdentifier(identifier);
-              await refreshAttachments();
-            }}
-          />
           <ContactsSection
             targetType="person"
             targetId={draft.id}
             contacts={contacts}
             onAdd={async (contact) => {
               await api.addContact(contact);
-              await refreshAttachments();
+              await refreshContacts();
             }}
             onUpdate={async (before, after) => {
               await api.updateContact(before, after);
-              await refreshAttachments();
+              await refreshContacts();
             }}
             onDelete={async (contact) => {
               await api.deleteContact(contact);
-              await refreshAttachments();
+              await refreshContacts();
             }}
           />
           <ContributorsSection

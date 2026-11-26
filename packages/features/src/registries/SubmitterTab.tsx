@@ -17,7 +17,6 @@ import {
   AddressLinkField,
   ContactsSection,
   ContributorsSection,
-  IdentifiersSection,
   NotesSection,
   SourcesSection,
   addressDraftEmpty,
@@ -139,7 +138,6 @@ function SubmitterTabBody({
     notes: submitterNotes,
     allNotes,
     citations: submitterCitations,
-    identifiers,
     contacts,
     submitters: contributorOptions,
     contributors,
@@ -406,23 +404,6 @@ function SubmitterTabBody({
             }}
             onDelete={async (note) => {
               await api.deleteNote(note);
-              await refreshAttachments();
-            }}
-          />
-          <IdentifiersSection
-            targetType="submitter"
-            targetId={targetId}
-            identifiers={identifiers}
-            onAdd={async (identifier) => {
-              await api.addIdentifier(identifier);
-              await refreshAttachments();
-            }}
-            onUpdate={async (before, after) => {
-              await api.updateIdentifier(before, after);
-              await refreshAttachments();
-            }}
-            onDelete={async (identifier) => {
-              await api.deleteIdentifier(identifier);
               await refreshAttachments();
             }}
           />

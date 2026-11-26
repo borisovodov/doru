@@ -23,14 +23,6 @@ describe('P1 GEDCOM export gaps', () => {
         id: 'PL1',
         names: [{ id: 'PN1', kind: 'official', position: 0, value: 'Moscow' }],
       });
-      repo.insertIdentifier({
-        id: 'PI1',
-        targetType: 'place',
-        targetId: 'PL1',
-        namespace: 'refn',
-        type: 'register',
-        value: 'PLACE-1',
-      });
       repo.insertPerson({
         id: 'P1',
         names: [{ id: 'N1', given: 'Ivan' }],
@@ -84,9 +76,9 @@ describe('P1 GEDCOM export gaps', () => {
         createdAt: new Date(2026, 10, 18).getTime(),
       });
 
-      for (const [serialize, hasPlaceCards, hasNonEvents] of [
-        [serializeGedcom70, true, true],
-        [serializeGedcom551, false, false],
+      for (const [serialize, hasNonEvents] of [
+        [serializeGedcom70, true],
+        [serializeGedcom551, false],
       ] as const) {
         const serialized = serialize(buildGedcomDataset(repo));
         expect(serialized.ok).toBe(true);
@@ -102,11 +94,6 @@ describe('P1 GEDCOM export gaps', () => {
         expect(text).toContain('__PREFERRED Preferred');
         expect(text).toContain('__PRIVATE Private');
         expect(text).toContain('1 _QUAY 2');
-        if (hasPlaceCards) {
-          // 5.5.1 has no place-card record: the identifiers have no slot and
-          // only the 7.0 `_PLAC` record can carry them.
-          expect(text).toContain('1 REFN PLACE-1');
-        }
         expect(text).toContain(`_TCDT ${new Date(2026, 10, 17).toISOString()}`);
         expect(text).toContain(`_TCDT ${new Date(2026, 10, 18).toISOString()}`);
         expect(text).toContain('_TSTS Waiting');
@@ -147,13 +134,6 @@ describe('P1 GEDCOM export gaps', () => {
 
           expect(target.repo.listSources()[0]?.certainty).toBe('2');
 
-          if (hasPlaceCards) {
-            const place = target.repo.listPlaces()[0]!;
-            expect(target.repo.listIdentifiersFor('place', place.id)).toEqual(
-              expect.arrayContaining([expect.objectContaining({ namespace: 'refn', value: 'PLACE-1' })]),
-            );
-          }
-
           const tasks = target.repo.listTasks();
           const freeTask = tasks.find((task) => task.text === 'Free task')!;
           const attachedTask = tasks.find((task) => task.text === 'Attached task')!;
@@ -168,46 +148,6 @@ describe('P1 GEDCOM export gaps', () => {
         } finally {
           cleanupRepo(target);
         }
-      }
-    } finally {
-      cleanupRepo(fixture);
-    }
-  });
-  it('does not export task identifiers as _UID', () => {
-    const fixture = makeRepo();
-    try {
-      const { repo } = fixture;
-      repo.insertPerson({ id: 'P1', names: [], sex: 'U', facts: [] });
-      repo.insertTask({ id: 'T1', text: 'Free task', targets: [] });
-      repo.insertTask({
-        id: 'T2',
-        text: 'Attached task',
-        targets: [{ id: 'TL2', taskId: 'T2', targetType: 'person', targetId: 'P1' }],
-      });
-      repo.insertIdentifier({
-        id: 'TI1',
-        targetType: 'task',
-        targetId: 'T1',
-        namespace: 'uid',
-        value: 'free-task-uid',
-      });
-      repo.insertIdentifier({
-        id: 'TI2',
-        targetType: 'task',
-        targetId: 'T2',
-        namespace: 'uid',
-        value: 'attached-task-uid',
-      });
-
-      for (const serialize of [serializeGedcom70, serializeGedcom551]) {
-        const serialized = serialize(buildGedcomDataset(repo));
-        expect(serialized.ok).toBe(true);
-        if (!serialized.ok) {
-          continue;
-        }
-        expect(serialized.value).not.toContain('free-task-uid');
-        expect(serialized.value).not.toContain('attached-task-uid');
-        expect(serialized.value).not.toMatch(/^1 _UID /m);
       }
     } finally {
       cleanupRepo(fixture);

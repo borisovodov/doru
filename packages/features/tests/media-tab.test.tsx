@@ -38,7 +38,6 @@ function attachmentsStub(overrides: Partial<AttachmentsPanelApi> = {}): Attachme
     getNotes: async () => [],
     getAllNotes: async () => [],
     getCitations: async () => [],
-    getIdentifiers: async () => [],
     getContacts: async () => [],
     getSubmitters: async () => [],
     getRecordSubmitters: async () => [],
@@ -105,7 +104,6 @@ describe('MediaTab', () => {
       expect(screen.getAllByRole('region', { name: nls.t('features.tree.sources.title') })).toHaveLength(2),
     );
     expect(screen.getAllByRole('region', { name: nls.t('features.tasks.title') })).toHaveLength(1);
-    expect(screen.getAllByText(nls.t('features.tree.identifiers.title'))).toHaveLength(1);
     expect(screen.getAllByText(nls.t('features.tree.contributors.title'))).toHaveLength(1);
   });
 

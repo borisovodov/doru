@@ -49,7 +49,6 @@ export interface PlaceDraft {
   form: string;
   abbreviation: string;
   preposition: string;
-  govId: string;
   maidenhead: string;
   placeType: string;
   names: PlaceNameDraft[];
@@ -86,7 +85,6 @@ export function emptyPlaceDraft(): PlaceDraft {
     form: '',
     abbreviation: '',
     preposition: '',
-    govId: '',
     maidenhead: '',
     placeType: '',
     names: [emptyPlaceNameDraft()],
@@ -105,7 +103,6 @@ export function placeToDraft(place: PlaceRecord): PlaceDraft {
     form: (place.form ?? []).join(', '),
     abbreviation: place.abbreviation ?? '',
     preposition: place.preposition ?? '',
-    govId: place.govId ?? '',
     maidenhead: place.maidenhead ?? '',
     placeType: place.placeType ?? '',
     names: place.names.map((name) => ({
@@ -155,7 +152,6 @@ export function placeDraftToRecord(draft: PlaceDraft, existing?: PlaceRecord): P
       : {}),
     ...(draft.abbreviation.trim() !== '' ? { abbreviation: draft.abbreviation.trim() } : {}),
     ...(draft.preposition.trim() !== '' ? { preposition: draft.preposition.trim() } : {}),
-    ...(draft.govId.trim() !== '' ? { govId: draft.govId.trim() } : {}),
     ...(draft.maidenhead.trim() !== '' ? { maidenhead: draft.maidenhead.trim() } : {}),
     ...(draft.placeType.trim() !== '' ? { placeType: draft.placeType.trim() } : {}),
     names: draft.names
@@ -407,7 +403,6 @@ export function mergePlaceDraft(
     form: scalar('form'),
     abbreviation: scalar('abbreviation'),
     preposition: scalar('preposition'),
-    govId: scalar('govId'),
     maidenhead: scalar('maidenhead'),
     placeType: scalar('placeType'),
     names: names.sort((left, right) => left.position - right.position),
@@ -437,7 +432,6 @@ export function placeDraftMatches(draft: PlaceDraft, place: PlaceRecord): boolea
     draft.form === other.form &&
     draft.abbreviation === other.abbreviation &&
     draft.preposition === other.preposition &&
-    draft.govId === other.govId &&
     draft.maidenhead === other.maidenhead &&
     draft.placeType === other.placeType &&
     draft.names.length === other.names.length &&

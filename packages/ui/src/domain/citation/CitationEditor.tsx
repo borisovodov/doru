@@ -90,9 +90,6 @@ export function CitationEditor({
         <Field label={nls.t('features.tree.citation.reference')}>
           <Input value={draft.reference} onChange={(event) => set({ reference: event.target.value })} />
         </Field>
-        <Field label={nls.t('features.tree.citation.referenceNumber')}>
-          <Input value={draft.referenceNumber} onChange={(event) => set({ referenceNumber: event.target.value })} />
-        </Field>
         <Field label={nls.t('features.tree.source.abbreviation')}>
           <Input value={draft.abbreviation} onChange={(event) => set({ abbreviation: event.target.value })} />
         </Field>

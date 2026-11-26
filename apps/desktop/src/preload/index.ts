@@ -142,14 +142,6 @@ const api = {
     ipcRenderer.invoke('tree:updateAssociation', { projectPath, before, after }),
   deleteAssociation: (projectPath: string, association: unknown): Promise<unknown> =>
     ipcRenderer.invoke('tree:deleteAssociation', { projectPath, association }),
-  getIdentifiers: (projectPath: string, targetType: string, targetId: string): Promise<unknown> =>
-    ipcRenderer.invoke('tree:identifiers', { projectPath, targetType, targetId }),
-  addIdentifier: (projectPath: string, identifier: unknown): Promise<unknown> =>
-    ipcRenderer.invoke('tree:addIdentifier', { projectPath, identifier }),
-  deleteIdentifier: (projectPath: string, identifier: unknown): Promise<unknown> =>
-    ipcRenderer.invoke('tree:deleteIdentifier', { projectPath, identifier }),
-  updateIdentifier: (projectPath: string, before: unknown, after: unknown): Promise<unknown> =>
-    ipcRenderer.invoke('tree:updateIdentifier', { projectPath, before, after }),
   getContacts: (projectPath: string, targetType: string, targetId: string): Promise<unknown> =>
     ipcRenderer.invoke('tree:contacts', { projectPath, targetType, targetId }),
   addContact: (projectPath: string, contact: unknown): Promise<unknown> =>

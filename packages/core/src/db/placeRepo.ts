@@ -12,7 +12,6 @@ interface PlaceRow {
   form: string | null;
   abbreviation: string | null;
   preposition: string | null;
-  gov_id: string | null;
   maidenhead: string | null;
   place_type: string | null;
 }
@@ -55,7 +54,7 @@ export class PlaceRepo {
     this.transactions.run(() => {
       this.db
         .prepare(`INSERT INTO place (id, xref, latitude, longitude, verified, form, abbreviation,
-          preposition, gov_id, maidenhead, place_type) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`)
+          preposition, maidenhead, place_type) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`)
         .run(
           place.id,
           place.xref ?? null,
@@ -65,7 +64,6 @@ export class PlaceRepo {
           place.form !== undefined ? place.form.join(', ') : null,
           place.abbreviation ?? null,
           place.preposition ?? null,
-          place.govId ?? null,
           place.maidenhead ?? null,
           place.placeType ?? null,
         );
@@ -81,7 +79,7 @@ export class PlaceRepo {
       }
       this.db
         .prepare(`UPDATE place SET xref = ?, latitude = ?, longitude = ?, verified = ?, form = ?,
-          abbreviation = ?, preposition = ?, gov_id = ?, maidenhead = ?, place_type = ? WHERE id = ?`)
+          abbreviation = ?, preposition = ?, maidenhead = ?, place_type = ? WHERE id = ?`)
         .run(
           place.xref ?? null,
           place.latitude ?? null,
@@ -90,7 +88,6 @@ export class PlaceRepo {
           place.form !== undefined ? place.form.join(', ') : null,
           place.abbreviation ?? null,
           place.preposition ?? null,
-          place.govId ?? null,
           place.maidenhead ?? null,
           place.placeType ?? null,
           place.id,
@@ -102,7 +99,7 @@ export class PlaceRepo {
   getPlace(id: string): PlaceRecord | undefined {
     const row = this.db
       .prepare(`SELECT id, xref, latitude, longitude, verified, form, abbreviation, preposition,
-        gov_id, maidenhead, place_type FROM place WHERE id = ?`)
+        maidenhead, place_type FROM place WHERE id = ?`)
       .get(id) as PlaceRow | undefined;
     return row ? this.hydrate(row) : undefined;
   }
@@ -119,7 +116,7 @@ export class PlaceRepo {
   listPlaces(): PlaceRecord[] {
     const rows = this.db
       .prepare(`SELECT id, xref, latitude, longitude, verified, form, abbreviation, preposition,
-        gov_id, maidenhead, place_type FROM place ORDER BY id`)
+        maidenhead, place_type FROM place ORDER BY id`)
       .all() as unknown as PlaceRow[];
     return rows.map((row) => this.hydrate(row));
   }
@@ -274,7 +271,6 @@ export class PlaceRepo {
       ...(row.form !== null ? { form: row.form.split(',').map((value) => value.trim()) } : {}),
       ...(row.abbreviation !== null ? { abbreviation: row.abbreviation } : {}),
       ...(row.preposition !== null ? { preposition: row.preposition } : {}),
-      ...(row.gov_id !== null ? { govId: row.gov_id } : {}),
       ...(row.maidenhead !== null ? { maidenhead: row.maidenhead } : {}),
       ...(row.place_type !== null ? { placeType: row.place_type } : {}),
       names: names.map((name) => {

@@ -90,14 +90,12 @@ describe('Phase 2: attachments cascade and undo', () => {
       repo.insertSource({ id: 'S1', title: 'Parish register' });
       svc.attachSource('S1', 'person', 'P1');
       svc.addNote({ id: 'N1', text: 'check archive', targetType: 'person', targetId: 'P1' });
-      svc.addIdentifier({ id: 'ID1', targetType: 'person', targetId: 'P1', namespace: 'uid', value: 'abc-123' });
       svc.addContact({ id: 'C1', targetType: 'person', targetId: 'P1', kind: 'email', value: 'i@example.org' });
 
       svc.deletePerson(ivan);
       expect(repo.getPerson('P1')).toBeUndefined();
       expect(repo.listNotesFor('person', 'P1')).toEqual([]);
       expect(repo.listCitationsFor('person', 'P1')).toEqual([]);
-      expect(repo.listIdentifiersFor('person', 'P1')).toEqual([]);
       expect(repo.listContactsFor('person', 'P1')).toEqual([]);
       // The shared source survives; only the link is gone.
       expect(repo.listSources()).toHaveLength(1);
@@ -106,7 +104,6 @@ describe('Phase 2: attachments cascade and undo', () => {
       expect(flatPerson(repo.getPerson('P1')!)).toEqual(ivan);
       expect(repo.listNotesFor('person', 'P1').map((note) => note.text)).toEqual(['check archive']);
       expect(repo.listCitationsFor('person', 'P1')).toHaveLength(1);
-      expect(repo.listIdentifiersFor('person', 'P1').map((entry) => entry.value)).toEqual(['abc-123']);
       expect(repo.listContactsFor('person', 'P1').map((entry) => entry.value)).toEqual(['i@example.org']);
     } finally {
       cleanupRepo(fixture);

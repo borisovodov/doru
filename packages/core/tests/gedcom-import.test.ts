@@ -368,7 +368,7 @@ describe('importGedcomDataset', () => {
     }
   });
 
-  it('drops citations, identifiers and submitters on shared notes', () => {
+  it('drops citations and submitters on shared notes', () => {
     const gedcom = [
       '0 HEAD',
       '1 GEDC',
@@ -393,7 +393,6 @@ describe('importGedcomDataset', () => {
       importGedcomDataset(result.value.dataset, fixture.repo);
       const note = fixture.repo.listNotes().find((entry) => entry.text === 'Shared note text')!;
       expect(fixture.repo.listCitationRecordsFor('note', note.id)).toEqual([]);
-      expect(fixture.repo.listIdentifiersFor('note', note.id)).toEqual([]);
       expect(fixture.repo.listRecordSubmittersFor('note', note.id)).toEqual([]);
     } finally {
       cleanupRepo(fixture);

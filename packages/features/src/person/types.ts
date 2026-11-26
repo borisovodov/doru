@@ -7,7 +7,6 @@ import type {
   ContactRecord,
   FactRecord,
   FamilyRecord,
-  IdentifierRecord,
   MediaFile,
   MediaLinkRecord,
   MediaRecord,
@@ -60,9 +59,6 @@ export interface AttachmentsApi extends AttachmentApi, MediaTargetApi {
   attachSource(sourceId: string, targetType: string, targetId: string): Promise<void>;
   attachSourceToTargets?(sourceId: string, targets: TargetRef[]): Promise<void>;
   detachCitation(citationId: string): Promise<void>;
-  addIdentifier(identifier: IdentifierRecord): Promise<void>;
-  updateIdentifier(before: IdentifierRecord, after: IdentifierRecord): Promise<void>;
-  deleteIdentifier(identifier: IdentifierRecord): Promise<void>;
   addContact(contact: ContactRecord): Promise<void>;
   updateContact(before: ContactRecord, after: ContactRecord): Promise<void>;
   deleteContact(contact: ContactRecord): Promise<void>;

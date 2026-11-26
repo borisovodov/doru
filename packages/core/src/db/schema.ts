@@ -46,10 +46,10 @@ export const DORU_APPLICATION_ID = 0x444f5255;
  * Bumped whenever the schema changes. There are no migrations before 1.0.0:
  * a newer version may simply not understand files written by older ones
  * (the store refuses to open them with a loud error). This schema uses
- * version 23, above every version written by an earlier build (the old model
+ * version 24, above every version written by an earlier build (the old model
  * reached 18), so the open guard cannot mistake an old file for this one.
  */
-export const SCHEMA_VERSION = 23;
+export const SCHEMA_VERSION = 24;
 
 export const SCHEMA_SQL = `
 CREATE TABLE IF NOT EXISTS person (
@@ -223,7 +223,6 @@ CREATE TABLE IF NOT EXISTS place (
   form TEXT,
   abbreviation TEXT,
   preposition TEXT,
-  gov_id TEXT,
   maidenhead TEXT,
   place_type TEXT
 );
@@ -357,7 +356,6 @@ CREATE TABLE IF NOT EXISTS citation (
   name TEXT,
   quality_assessment TEXT,
   reference TEXT,
-  reference_number TEXT,
   abbreviation TEXT,
   footnote TEXT,
   verified INTEGER NOT NULL DEFAULT 0,
@@ -477,16 +475,7 @@ CREATE TABLE IF NOT EXISTS address_line (
   value TEXT NOT NULL
 );
 
--- Universal attachments: the single polymorphic shape, one table per kind.
-
-CREATE TABLE IF NOT EXISTS identifier (
-  id TEXT PRIMARY KEY,
-  target_type TEXT NOT NULL,
-  target_id TEXT NOT NULL,
-  namespace TEXT NOT NULL,   -- uid | exid | refn | sosa | daboville | ...
-  type TEXT,                 -- the REFN/EXID authority (identifier TYPE)
-  value TEXT NOT NULL
-);
+-- Contacts: the universal polymorphic attachment table.
 
 -- Contacts target only person, fact, address, repository and submitter:
 -- GEDCOM keeps PHON/EMAIL/FAX/WWW on addresses, event details and those
@@ -627,7 +616,6 @@ CREATE INDEX IF NOT EXISTS idx_submitter_language ON submitter_language(submitte
 CREATE INDEX IF NOT EXISTS idx_record_submitter_submitter ON record_submitter(submitter_id);
 CREATE INDEX IF NOT EXISTS idx_record_submitter_target ON record_submitter(target_type, target_id);
 CREATE INDEX IF NOT EXISTS idx_address_line_address ON address_line(address_id);
-CREATE INDEX IF NOT EXISTS idx_identifier_target ON identifier(target_type, target_id);
 CREATE INDEX IF NOT EXISTS idx_contact_target ON contact(target_type, target_id);
 CREATE INDEX IF NOT EXISTS idx_association_person ON association(person_id);
 CREATE INDEX IF NOT EXISTS idx_association_other ON association(other_person_id);

@@ -41,26 +41,6 @@ describe('db cleanup paths', () => {
     }
   });
 
-  it('cleans and restores the attachments of a note that loses its last link', () => {
-    const fixture = makeRepo();
-    try {
-      const { repo } = fixture;
-      repo.insertNote({ id: 'N1', text: 'linked note', targetType: 'person', targetId: 'P1' });
-      repo.insertIdentifier({ id: 'NI1', targetType: 'note', targetId: 'N1', namespace: 'uid', value: 'note-1' });
-      const snapshot = repo.listAttachmentsFor('person', 'P1');
-
-      repo.deleteAttachmentsFor('person', 'P1');
-      expect(repo.getNote('N1')).toBeUndefined();
-      expect(repo.listIdentifiersFor('note', 'N1')).toEqual([]);
-
-      repo.restoreAttachments(snapshot);
-      expect(repo.getNote('N1')).toBeDefined();
-      expect(repo.listIdentifiersFor('note', 'N1').map((entry) => entry.id)).toEqual(['NI1']);
-    } finally {
-      cleanupRepo(fixture);
-    }
-  });
-
   it('restores a note whose last link is spread across two deleted targets', () => {
     const fixture = makeRepo();
     try {
@@ -68,20 +48,17 @@ describe('db cleanup paths', () => {
       repo.insertPlace({ id: 'PL1', names: [{ id: 'PN1', kind: 'official', position: 0, value: 'Moscow' }] });
       repo.insertNote({ id: 'N1', text: 'shared note', targetType: 'place', targetId: 'PL1' });
       repo.addNoteLink('N1', { id: 'L2', targetType: 'place_name', targetId: 'PN1' });
-      repo.insertIdentifier({ id: 'NI1', targetType: 'note', targetId: 'N1', namespace: 'uid', value: 'note-1' });
       const placeSnapshot = repo.listAttachmentsFor('place', 'PL1');
       const nameSnapshot = repo.listAttachmentsFor('place_name', 'PN1');
 
       repo.deletePlace('PL1');
       expect(repo.getNote('N1')).toBeUndefined();
-      expect(repo.listIdentifiersFor('note', 'N1')).toEqual([]);
 
       repo.insertPlace({ id: 'PL1', names: [{ id: 'PN1', kind: 'official', position: 0, value: 'Moscow' }] });
       repo.restoreAttachments(placeSnapshot);
       repo.restoreAttachments(nameSnapshot);
 
       expect(repo.getNote('N1')).toBeDefined();
-      expect(repo.listIdentifiersFor('note', 'N1').map((entry) => entry.id)).toEqual(['NI1']);
       expect(repo.listNotesFor('place', 'PL1').map((entry) => entry.id)).toEqual(['N1']);
       expect(repo.listNotesFor('place_name', 'PN1').map((entry) => entry.id)).toEqual(['N1']);
     } finally {
@@ -95,7 +72,6 @@ describe('db cleanup paths', () => {
       const { repo } = fixture;
       repo.insertNote({ id: 'N1', text: 'shared note', targetType: 'person', targetId: 'P1' });
       repo.addNoteLink('N1', { id: 'L2', targetType: 'person', targetId: 'P2' });
-      repo.insertIdentifier({ id: 'NI1', targetType: 'note', targetId: 'N1', namespace: 'uid', value: 'note-1' });
       const snapshot = repo.listAttachmentsFor('person', 'P1');
 
       repo.deleteAttachmentsFor('person', 'P1');
@@ -104,7 +80,6 @@ describe('db cleanup paths', () => {
 
       repo.restoreAttachments(snapshot);
       expect(repo.getNote('N1')).toBeDefined();
-      expect(repo.listIdentifiersFor('note', 'N1').map((entry) => entry.id)).toEqual(['NI1']);
       expect(repo.listNotesFor('person', 'P1').map((entry) => entry.id)).toEqual(['N1']);
       expect(repo.listNotesFor('person', 'P2')).toEqual([]);
     } finally {
@@ -120,7 +95,6 @@ describe('db cleanup paths', () => {
       repo.insertPerson({ id: 'P2', names: [], sex: 'U', facts: [] });
       repo.insertMedia({ id: 'M1', path: 'media/a.jpg', targetType: 'person', targetId: 'P1' });
       repo.addMediaLink('M1', { id: 'L2', mediaId: 'M1', targetType: 'person', targetId: 'P2' });
-      repo.insertIdentifier({ id: 'MI1', targetType: 'media', targetId: 'M1', namespace: 'uid', value: 'm1' });
       let snapshot = repo.listAttachmentsFor('person', 'P1');
       repo.transaction(() => {
         snapshot = repo.listAttachmentsFor('person', 'P1');
@@ -132,7 +106,6 @@ describe('db cleanup paths', () => {
       repo.deleteMedia('M1');
       repo.restoreAttachments(snapshot);
       expect(repo.getMedia('M1')).toBeUndefined();
-      expect(repo.listIdentifiersFor('media', 'M1')).toEqual([]);
     } finally {
       cleanupRepo(fixture);
     }
@@ -183,17 +156,15 @@ describe('db cleanup paths', () => {
     }
   });
 
-  it('keeps note attachments while another link survives', () => {
+  it('keeps a shared note while another link survives', () => {
     const fixture = makeRepo();
     try {
       const { repo } = fixture;
       repo.insertNote({ id: 'N1', text: 'shared note', targetType: 'person', targetId: 'P1' });
       repo.addNoteLink('N1', { id: 'L2', targetType: 'person', targetId: 'P2' });
-      repo.insertIdentifier({ id: 'NI1', targetType: 'note', targetId: 'N1', namespace: 'uid', value: 'note-1' });
 
       repo.deleteAttachmentsFor('person', 'P1');
       expect(repo.getNote('N1')).toBeDefined();
-      expect(repo.listIdentifiersFor('note', 'N1').map((entry) => entry.id)).toEqual(['NI1']);
       expect(repo.listNotesFor('person', 'P1')).toEqual([]);
       expect(repo.listNotesFor('person', 'P2').map((entry) => entry.id)).toEqual(['N1']);
     } finally {

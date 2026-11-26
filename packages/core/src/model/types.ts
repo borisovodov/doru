@@ -513,7 +513,6 @@ export interface PlaceRecord {
   form?: string[] | undefined;
   abbreviation?: string | undefined;
   preposition?: string | undefined;
-  govId?: string | undefined;
   maidenhead?: string | undefined;
   placeType?: string | undefined;
   names: PlaceName[];
@@ -614,8 +613,6 @@ export interface CitationRecord {
   qualityAssessment?: string | undefined;
   /** A cross-reference to another citation (vendor `_CREF`). */
   reference?: string | undefined;
-  /** The citation reference number (REFN). */
-  referenceNumber?: string | undefined;
   abbreviation?: string | undefined;
   footnote?: string | undefined;
   verified?: boolean | undefined;
@@ -779,16 +776,6 @@ export interface SubmitterRecord {
 // Attachments
 // ---------------------------------------------------------------------------
 
-export interface IdentifierRecord {
-  id: string;
-  targetType: string;
-  targetId: string;
-  namespace: string;
-  /** The issuing authority of a REFN/EXID identifier (GEDCOM TYPE). */
-  type?: string | undefined;
-  value: string;
-}
-
 /**
  * A contact detail on a target that GEDCOM can carry one for (see
  * `CONTACT_TARGET_TYPES` in `targetPolicy.ts`). `kind` is deliberately open:
@@ -835,7 +822,6 @@ export interface AttachmentsSnapshot {
   mediaFileAttachments: NestedAttachmentSnapshot[];
   /** Attachments of the media links above, restored with them. */
   mediaLinkAttachments: NestedAttachmentSnapshot[];
-  identifiers: IdentifierRecord[];
   contacts: ContactRecord[];
   /** Task links targeting this record; the tasks themselves survive. */
   taskLinks: TaskTargetLink[];
@@ -852,7 +838,6 @@ export function emptyAttachments(): AttachmentsSnapshot {
     mediaAttachments: [],
     mediaFileAttachments: [],
     mediaLinkAttachments: [],
-    identifiers: [],
     contacts: [],
     taskLinks: [],
     recordSubmitters: [],

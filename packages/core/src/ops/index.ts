@@ -7,7 +7,6 @@ export { addPlaceOp, deletePlaceOp, updatePlaceOp } from './place';
 export {
   addAddressOp,
   addContactOp,
-  addIdentifierOp,
   addNoteOp,
   attachNoteOp,
   addRepositoryOp,
@@ -20,8 +19,6 @@ export {
   deleteAddressOp,
   deleteContactOp,
   updateContactOp,
-  deleteIdentifierOp,
-  updateIdentifierOp,
   deleteNoteOp,
   deleteRepositoryOp,
   deleteSourceOp,

@@ -64,12 +64,6 @@ describe('buildGedcomDataset kitchen sink', () => {
         expect(ivan?.names[0]?.date?.component).toEqual(expect.objectContaining({ year: 1923 }));
         expect(ivan?.names[0]?.full).toBe('Dr. Ivan von Petrov Jr.');
         expect(ivan?.names[0]?.language).toBe('ru');
-        expect(
-          target.repo
-            .listIdentifiersFor('person', ivan!.id)
-            .map((entry) => entry.namespace)
-            .sort(),
-        ).toEqual(['daboville', 'exid', 'refn', 'sosa', 'uid']);
 
         const families = target.repo.listFamilies();
         expect(families).toHaveLength(1);

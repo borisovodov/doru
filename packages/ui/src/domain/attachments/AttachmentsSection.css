@@ -1,4 +1,4 @@
-/* ── Identifiers, contacts, history ────────────────────────────────── */
+/* ── Contacts and history ─────────────────────────────────────────── */
 
 .attachment-list {
   list-style: none;
@@ -64,9 +64,4 @@
 .attachment-edit select {
   flex: 1;
   min-width: 0;
-}
-
-.attachment-edit .attachment-edit-namespace {
-  flex: 0 0 auto;
-  width: 96px;
 }

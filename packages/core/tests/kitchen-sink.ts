@@ -265,13 +265,7 @@ export function buildKitchenSinkTree(fixture: RepoFixture): void {
     targetId: 'P1',
   });
 
-  // Identifiers and contacts.
-  repo.insertIdentifier({ id: 'I1', targetType: 'person', targetId: 'P1', namespace: 'uid', value: 'abc' });
-  repo.insertIdentifier({ id: 'I2', targetType: 'person', targetId: 'P1', namespace: 'exid', value: 'xyz' });
-  repo.insertIdentifier({ id: 'I3', targetType: 'person', targetId: 'P1', namespace: 'refn', value: '7' });
-  repo.insertIdentifier({ id: 'I5', targetType: 'person', targetId: 'P1', namespace: 'sosa', value: '1' });
-  repo.insertIdentifier({ id: 'I6', targetType: 'person', targetId: 'P1', namespace: 'daboville', value: '1 G1' });
-  repo.insertIdentifier({ id: 'I4', targetType: 'person', targetId: 'P1', namespace: 'custom', value: 'ignored' });
+  // Contacts.
   repo.insertContact({ id: 'CT1', targetType: 'person', targetId: 'P1', kind: 'email', value: 'ivan@example.org' });
   repo.insertContact({ id: 'CT2', targetType: 'person', targetId: 'P1', kind: 'phone', value: '+7 000' });
   repo.insertContact({ id: 'CT3', targetType: 'person', targetId: 'P1', kind: 'fax', value: '+7 001' });

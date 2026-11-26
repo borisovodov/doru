@@ -23,7 +23,6 @@ import { SourceEditor } from './SourceEditor';
 import type { MediaWithPath } from '@doru/ui/domain';
 import {
   ContributorsSection,
-  IdentifiersSection,
   NotesSection,
   SourcesSection,
   TargetPicker,
@@ -172,7 +171,6 @@ function SourceTabBody({
     notes: sourceNotes,
     allNotes,
     citations: sourceCitations,
-    identifiers,
     submitters,
     contributors,
     refresh: refreshAttachments,
@@ -420,23 +418,6 @@ function SourceTabBody({
                 }}
                 onDelete={async (note) => {
                   await api.deleteNote(note);
-                  await refreshAttachments();
-                }}
-              />
-              <IdentifiersSection
-                targetType="source"
-                targetId={targetId}
-                identifiers={identifiers}
-                onAdd={async (identifier) => {
-                  await api.addIdentifier(identifier);
-                  await refreshAttachments();
-                }}
-                onUpdate={async (before, after) => {
-                  await api.updateIdentifier(before, after);
-                  await refreshAttachments();
-                }}
-                onDelete={async (identifier) => {
-                  await api.deleteIdentifier(identifier);
                   await refreshAttachments();
                 }}
               />

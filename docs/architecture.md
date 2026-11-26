@@ -86,7 +86,7 @@ decisions about what we deliberately do **not** build, see
   keeps a media record that has no links left. Removing a file copy is
   deliberately not undoable, so undo restores the database rows but not bytes
   that were deleted from disk.
-- `target_type`/`target_id` attachments (notes, citations, identifiers,
+- `target_type`/`target_id` attachments (notes, citations,
   contacts, contributors, media links) are polymorphic and
   keyed by UUID. Every op that deletes or removes a target cleans its
   attachment rows; the matching inverse restores the captured snapshot.
@@ -94,7 +94,7 @@ decisions about what we deliberately do **not** build, see
   while a task is a work item that asserts nothing. Contacts are likewise
   limited to the targets GEDCOM carries them for: person, fact, address,
   repository and submitter. A note is not an attachment target either: it is
-  a leaf annotation, so citations, media links, identifiers, contributors,
+  a leaf annotation, so citations, media links, contributors,
   tasks and note links may not point at one. GEDCOM `NOTE.SOUR`/`SNOTE.SOUR`
   is parsed by the format package but dropped by the tree mapping. Tasks are
   shared through `task_link`: deleting one target removes only its link,

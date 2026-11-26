@@ -5,7 +5,6 @@ import { MEDIA_VISIBLE } from '@doru/platform';
 import {
   ContactsSection,
   ContributorsSection,
-  IdentifiersSection,
   NotesSection,
   SourcesSection,
   TasksSection,
@@ -15,26 +14,17 @@ import { MediaSection } from '../media/MediaSection';
 import type { AttachmentsApi } from '../person/types';
 import { useAttachments, type ContributorApi } from './useAttachments';
 
-export type AttachmentSection = 'notes' | 'sources' | 'media' | 'identifiers' | 'contacts' | 'contributors' | 'tasks';
+export type AttachmentSection = 'notes' | 'sources' | 'media' | 'contacts' | 'contributors' | 'tasks';
 
 export type AttachmentsPanelApi = AttachmentsApi & ContributorApi;
 
-const ALL_SECTIONS: readonly AttachmentSection[] = [
-  'notes',
-  'sources',
-  'media',
-  'identifiers',
-  'contacts',
-  'contributors',
-  'tasks',
-];
+const ALL_SECTIONS: readonly AttachmentSection[] = ['notes', 'sources', 'media', 'contacts', 'contributors', 'tasks'];
 
 /** The attachment family that governs each panel section. */
 const SECTION_TARGET_KIND: Readonly<Record<AttachmentSection, AttachmentTargetKind>> = {
   notes: 'noteLink',
   sources: 'citation',
   media: 'mediaLink',
-  identifiers: 'identifier',
   contacts: 'contact',
   contributors: 'recordSubmitter',
   tasks: 'taskLink',
@@ -64,7 +54,7 @@ export function AttachmentsPanel({
   onOpenMedia?: ((mediaId: string) => void) | undefined;
   renderCitationAttachments?: ((citation: CitationRecord) => ReactNode) | undefined;
 }) {
-  const { notes, allNotes, citations, identifiers, contacts, submitters, contributors, refresh } = useAttachments(
+  const { notes, allNotes, citations, contacts, submitters, contributors, refresh } = useAttachments(
     targetType,
     targetId,
     api,
@@ -84,7 +74,6 @@ export function AttachmentsPanel({
   const include = new Set(
     MEDIA_VISIBLE ? availableSections : availableSections.filter((section) => section !== 'media'),
   );
-  const canAddIdentifier = isAttachmentTargetAllowed('identifier', targetType);
   const canAddContributor = isAttachmentTargetAllowed('recordSubmitter', targetType);
   const canAddTask = isAttachmentTargetAllowed('taskLink', targetType);
   return (
@@ -144,26 +133,6 @@ export function AttachmentsPanel({
       )}
       {include.has('media') && (
         <MediaAttachments targetType={targetType} targetId={targetId} api={api} onOpenMedia={onOpenMedia} />
-      )}
-      {include.has('identifiers') && (
-        <IdentifiersSection
-          targetType={targetType}
-          targetId={targetId}
-          identifiers={identifiers}
-          canAdd={canAddIdentifier}
-          onAdd={async (identifier) => {
-            await api.addIdentifier(identifier);
-            await refresh();
-          }}
-          onUpdate={async (before, after) => {
-            await api.updateIdentifier(before, after);
-            await refresh();
-          }}
-          onDelete={async (identifier) => {
-            await api.deleteIdentifier(identifier);
-            await refresh();
-          }}
-        />
       )}
       {include.has('contacts') && (
         <ContactsSection

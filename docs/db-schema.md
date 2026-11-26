@@ -2,7 +2,7 @@
 
 A Dóru project is a single `.doru` file: a SQLite database branded with
 `application_id = 0x444F5255` ("DORU") and versioned with `user_version`.
-This document is the field-level reference for **schema version 23**. The
+This document is the field-level reference for **schema version 24**. The
 source of truth is [`packages/core/src/db/schema.ts`](../packages/core/src/db/schema.ts);
 the domain shapes that the repositories map onto the rows live in
 [`packages/core/src/model/types.ts`](../packages/core/src/model/types.ts).
@@ -17,14 +17,14 @@ in its README; that guarantee does not extend to the tree database.
 
 ## At a glance
 
-- **47 tables**, **74 indexes**, and no date-delete triggers.
+- **46 tables**, **73 indexes**, and no date-delete triggers.
 - The core genealogy model is `person` → `person_name` / `fact`, with
   `family` joining people through `family_partner` and `family_child`.
 - Dates are normalized into one `date` value table; owner rows reference
   their date slots through explicit `*_date_id` foreign keys.
 - Task times are epoch-millisecond integers (`created_at`, `updated_at`,
   `remind_at`), not `date` rows.
-- Notes, citations, media, identifiers, contacts, contributors, and tasks
+- Notes, citations, media, contacts, contributors, and tasks
   attach through a polymorphic `(target_type, target_id)` pair.
 - Files are not stored in SQLite. `media_file` rows hold project-relative
   paths; the bytes live in the `media/` folder next to the `.doru` file.
@@ -475,7 +475,6 @@ erDiagram
         TEXT form "jurisdiction type list"
         TEXT abbreviation
         TEXT preposition
-        TEXT gov_id
         TEXT maidenhead
         TEXT place_type
     }
@@ -650,7 +649,6 @@ erDiagram
         TEXT name
         TEXT quality_assessment
         TEXT reference "vendor _CREF"
-        TEXT reference_number "REFN"
         TEXT abbreviation
         TEXT footnote
         INTEGER verified "NOT NULL, default 0"
@@ -751,7 +749,7 @@ erDiagram
 ```
 
 A media link is a source-only attachment host: citations may target it, while
-notes, media, identifiers, contacts, contributors, and tasks may not.
+notes, media, contacts, contributors, and tasks may not.
 
 ## Notes
 
@@ -761,7 +759,7 @@ is linked to a given target at most once: `(note_id, target_type, target_id)`
 is unique, and re-attaching a note that is already linked is a no-op, so
 repeated `NOTE`/`SNOTE` references in a GEDCOM file cannot produce duplicate
 links. A note is never an attachment target: citations, media links,
-identifiers, contacts, contributors, tasks and other notes cannot point at
+contacts, contributors, tasks and other notes cannot point at
 it. GEDCOM `NOTE.SOUR`/`SNOTE.SOUR` is parsed by `@doru/gedcom` but dropped
 on import and not written on export.
 
@@ -860,15 +858,6 @@ from the owner table.
 erDiagram
     task ||--o{ task_link : "links"
 
-    identifier {
-        TEXT id PK
-        TEXT target_type "NOT NULL, polymorphic target"
-        TEXT target_id "NOT NULL, UUID"
-        TEXT namespace "NOT NULL: uid, exid, refn, sosa, daboville, ..."
-        TEXT type "REFN or EXID authority"
-        TEXT value "NOT NULL"
-    }
-
     contact {
         TEXT id PK
         TEXT target_type "NOT NULL, polymorphic target"
@@ -944,7 +933,6 @@ is no global runtime target list.
 | `note_link` | `NOTE_LINK_TARGET_TYPES` | person, family, family_partner, family_child, family_marriage_status, fact, name, name_part, source, citation, media, media_file, place, place_name, place_hierarchy, repository, submitter, address, address_line, association, task, title |
 | `citation` | `CITATION_TARGET_TYPES` | person, family, family_partner, family_child, family_marriage_status, fact, name, name_part, source, citation, media, media_file, media_link, place, place_name, place_hierarchy, repository, submitter, address, address_line, association, title |
 | `media_link` | `MEDIA_LINK_TARGET_TYPES` | person, family, family_partner, family_child, family_marriage_status, fact, name, name_part, source, citation, media, media_file, place, place_name, place_hierarchy, repository, submitter, address, address_line, association, task, title |
-| `identifier` | `IDENTIFIER_TARGET_TYPES` | person, family, family_partner, family_child, family_marriage_status, fact, name, name_part, source, citation, media, media_file, place, place_name, place_hierarchy, repository, submitter, address, address_line, association, title |
 | `contact` | `CONTACT_TARGET_TYPES` | person, fact, address, repository, submitter |
 | `task_link` | `TASK_LINK_TARGET_TYPES` | person, family, family_partner, family_child, family_marriage_status, fact, name, name_part, source, citation, media, media_file, place, place_name, place_hierarchy, repository, address, address_line, association, title |
 | `record_submitter` | `RECORD_SUBMITTER_TARGET_TYPES` | person, family, family_partner, family_child, family_marriage_status, fact, name, name_part, source, citation, media, media_file, place, place_name, place_hierarchy, repository, submitter, address, address_line, association, title |
@@ -959,7 +947,7 @@ at a source (for example, "check this source"), the records the work concerns,
 and media, but not at another `task`, a `submitter`, or a `media_link`.
 Task-to-task chains duplicate the research log, and a task is not a citation of
 a submitter's contribution or of a link row. Notes and media may still target
-a task, but identifiers, contributors, and citations may not. A task without a
+a task, but contributors and citations may not. A task without a
 person or family target has no GEDCOM embedding slot and is dropped on export.
 
 A `citation` never targets a task: a source is evidence for a genealogical
@@ -978,7 +966,7 @@ table itself remains polymorphic and cannot enforce the rule with a foreign
 key.
 
 `media_link` is a source-only attachment host: only citations may target it.
-It cannot own notes, media, identifiers, contacts, contributors, or tasks, and
+It cannot own notes, media, contacts, contributors, or tasks, and
 a task cannot target it. A media link may still target a task as a media
 attachment.
 
@@ -1059,7 +1047,7 @@ edited inside a parent card or through an attachment section.
 The compact list card is `EntityCard`; the shared editor header is
 `EntityViewCard`; the canvas has its own `PersonCardView`. `Note`,
 `citation`, `association`, `fact`, `date`, person/place name rows,
-family link rows, source child rows, media files/links, identifiers, contacts,
+family link rows, source child rows, media files/links, contacts,
 and contributor links do not have their own tabs.
 
 ## Schema evolution
@@ -1082,7 +1070,7 @@ When adding a table or column, keep the following checklist:
 3. Add `position` when the rows are user-ordered.
 4. Use `ON DELETE CASCADE` for owned child rows and `SET NULL` for optional
    shared references.
-5. If the new row can receive notes, sources, media, identifiers, contacts,
+5. If the new row can receive notes, sources, media, contacts,
    contributors, or tasks, add its type to the relevant sets in
    `packages/core/src/model/targetPolicy.ts`, render the matching panel
    section, and wire the op cleanup.
