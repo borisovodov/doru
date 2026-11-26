@@ -104,12 +104,22 @@ export function emitAddress(w: Writer, version: Version, level: number, address:
   if (address.holidayList === true) {
     w.line(level + 1, '_LIST6', { value: 'YES' });
   }
+  // For 7.0 the contacts live at the record/detail level; the parent
+  // emitter relocates the 5.5.1-position values there.
+  for (const note of address.notes ?? []) {
+    // The standard 5.5.1 ADDRESS_STRUCTURE note slot (see
+    // AddressStructure.notes); accepted and written in both versions.
+    emitNoteStructure(w, version, level + 1, note);
+  }
+  emitExtensions(w, version, level + 1, address);
   if (version === '5.5.1') {
     // The 5.5.1 ADDRESS_STRUCTURE (GEDCOM 5.5.1 §2 p.31) puts the
     // contact substructures PHON/EMAIL/FAX/WWW {0:3} each at the
     // structure level — siblings of ADDR, not its children. The {0:3}
     // limit is enforced here on output: values beyond the third are
-    // dropped (see the contact fields of AddressStructure).
+    // dropped (see the contact fields of AddressStructure). Contacts go
+    // last so the address's own notes and extensions remain children of
+    // ADDR rather than children of the contact siblings.
     for (const value of (address.phone ?? []).slice(0, 3)) {
       w.line(level, 'PHON', { value });
     }
@@ -123,14 +133,6 @@ export function emitAddress(w: Writer, version: Version, level: number, address:
       w.line(level, 'WWW', { value });
     }
   }
-  // For 7.0 the contacts live at the record/detail level; the parent
-  // emitter relocates the 5.5.1-position values there.
-  for (const note of address.notes ?? []) {
-    // The standard 5.5.1 ADDRESS_STRUCTURE note slot (see
-    // AddressStructure.notes); accepted and written in both versions.
-    emitNoteStructure(w, version, level + 1, note);
-  }
-  emitExtensions(w, version, level + 1, address);
 }
 
 /** The address as the target version wants it: 5.5.1 keeps the contact
@@ -139,6 +141,11 @@ export function emitAddress(w: Writer, version: Version, level: number, address:
  * there. Contacts without an address block have no 5.5.1 slot at all
  * (the contact substructures only exist inside the ADDRESS_STRUCTURE,
  * GEDCOM 5.5.1 §2 p.31) and are dropped on 5.5.1 output. */
+function mergeContactValues(...values: Array<string[] | undefined>): string[] | undefined {
+  const merged = values.flatMap((value) => value ?? []);
+  return merged.length > 0 ? [...new Set(merged)] : undefined;
+}
+
 export function mergedAddress(
   _w: Writer,
   version: Version,
@@ -148,12 +155,16 @@ export function mergedAddress(
   if (address === undefined || version === '7.0') {
     return address;
   }
+  const phone = mergeContactValues(address.phone, contacts.phone);
+  const email = mergeContactValues(address.email, contacts.email);
+  const fax = mergeContactValues(address.fax, contacts.fax);
+  const www = mergeContactValues(address.www, contacts.www);
   return {
     ...address,
-    ...(address.phone === undefined && contacts.phone !== undefined ? { phone: contacts.phone } : {}),
-    ...(address.email === undefined && contacts.email !== undefined ? { email: contacts.email } : {}),
-    ...(address.fax === undefined && contacts.fax !== undefined ? { fax: contacts.fax } : {}),
-    ...(address.www === undefined && contacts.www !== undefined ? { www: contacts.www } : {}),
+    ...(phone !== undefined ? { phone } : {}),
+    ...(email !== undefined ? { email } : {}),
+    ...(fax !== undefined ? { fax } : {}),
+    ...(www !== undefined ? { www } : {}),
   };
 }
 

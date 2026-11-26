@@ -25,6 +25,9 @@ const ADDRESS_CONTACTS_551 = [
   '1 ADDR 3 Person Lane',
   '2 EMAIL person@example.org',
   '2 PHON 333',
+  '2 WWW https://person-one.example',
+  '2 WWW https://person-two.example',
+  '2 WWW https://person-three.example',
   '1 BIRT',
   '2 DATE 1900',
   '2 ADDR 4 Fact Lane',
@@ -67,6 +70,9 @@ describe('contact ownership', () => {
       expect(contactPairs(fixture.repo.listContactsFor('person', person.id))).toEqual([
         ['email', 'person@example.org'],
         ['phone', '333'],
+        ['www', 'https://person-one.example'],
+        ['www', 'https://person-three.example'],
+        ['www', 'https://person-two.example'],
       ]);
       expect(contactPairs(fixture.repo.listContactsFor('fact', birth.id))).toEqual([
         ['email', 'fact@example.org'],
@@ -107,6 +113,9 @@ describe('contact ownership', () => {
       expect(serialized551.value).toContain('1 ADDR 3 Person Lane');
       expect(serialized551.value).toContain('1 PHON 333');
       expect(serialized551.value).toContain('1 EMAIL person@@example.org');
+      expect(serialized551.value).toContain('1 WWW https://person-one.example');
+      expect(serialized551.value).toContain('1 WWW https://person-two.example');
+      expect(serialized551.value).toContain('1 WWW https://person-three.example');
       expect(serialized551.value).not.toContain('1 _EMAIL person@@example.org');
       const person551 = round551.records.find((record) => record.tag === 'INDI')!;
       expect(person551.email).toEqual(['person@example.org']);
@@ -122,6 +131,9 @@ describe('contact ownership', () => {
       }
       // The 7.0 parser canonicalizes direct contacts back into an address when
       // one exists, so inspect the wire text instead of the round-tripped model.
+      expect(serialized70.value).toContain('https://person-one.example');
+      expect(serialized70.value).toContain('https://person-two.example');
+      expect(serialized70.value).toContain('https://person-three.example');
       expect(serialized70.value).toContain('1 EMAIL repo@example.org');
       expect(serialized70.value).not.toContain('2 EMAIL repo@example.org');
       expect(serialized70.value).toContain('1 EMAIL submitter@example.org');

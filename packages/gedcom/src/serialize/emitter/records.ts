@@ -371,11 +371,12 @@ export function emitIndividual(w: Writer, version: Version, rec: IndividualRecor
   // of ADDR). Merge the record-level contacts into the address block so
   // the wire position survives instead of moving them to INDI-level
   // vendor tags.
+  const websites = [...(rec.url !== undefined ? [rec.url] : []), ...(rec.www ?? [])];
   const address = mergedAddress(w, version, rec.address, {
     ...(rec.phone !== undefined ? { phone: rec.phone } : {}),
     ...(rec.email !== undefined ? { email: rec.email } : {}),
     ...(rec.fax !== undefined ? { fax: rec.fax } : {}),
-    ...(rec.url !== undefined ? { www: [rec.url] } : {}),
+    ...(websites.length > 0 ? { www: websites } : {}),
   });
   const contactsInAddress = version === '5.5.1' && address !== undefined;
   if (rec.updatedAt !== undefined) {
@@ -577,6 +578,10 @@ export function emitIndividual(w: Writer, version: Version, rec: IndividualRecor
     for (const number of rec.fax ?? []) {
       // The INDI-level fax number (see IndividualRecord.fax).
       w.line(1, 'FAX', { value: number });
+    }
+    for (const website of rec.www ?? []) {
+      // Additional vendor website values when the tag is repeated under INDI.
+      w.line(1, 'WWW', { value: website });
     }
   }
   if (rec.deceased !== undefined) {

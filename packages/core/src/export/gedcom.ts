@@ -246,6 +246,7 @@ function buildPerson(person: PersonRecord, repo: TreeRepository, xrefs: Xrefs): 
     ...(nonEvents.length > 0 ? { nonEvents } : {}),
     ...contacts,
     ...(websites?.[0] !== undefined ? { url: websites[0] } : {}),
+    ...(websites !== undefined && websites.length > 1 ? { www: websites.slice(1) } : {}),
     ...(addressRecord !== undefined ? { address: buildAddress(addressRecord, repo) } : {}),
     ...withCitationList(repo, 'person', person.id, xrefs),
     ...withNoteList(repo, 'person', person.id),

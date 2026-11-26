@@ -25,7 +25,7 @@ describe('ContactsSection', () => {
   it('offers the canonical kinds on every target', () => {
     renderUi(section('person'));
 
-    const labels = within(screen.getByRole('combobox'))
+    const labels = within(screen.getByRole('combobox', { name: nls.t('features.tree.contacts.kindField') }))
       .getAllByRole('option')
       .map((option) => option.textContent);
     expect(labels).toEqual([
@@ -49,8 +49,10 @@ describe('ContactsSection', () => {
     expect(screen.getByText(nls.t('features.tree.contacts.kind.url'))).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: nls.t('features.tree.contacts.edit') }));
 
-    const kinds = screen.getAllByRole('combobox').map((select) => (select as HTMLSelectElement).value);
-    expect(kinds).toContain('www');
-    expect(kinds).not.toContain('url');
+    const editKind = screen.getByRole('combobox', { name: nls.t('features.tree.contacts.editKind') });
+    const addKind = screen.getByRole('combobox', { name: nls.t('features.tree.contacts.kindField') });
+    expect((editKind as HTMLSelectElement).value).toBe('www');
+    expect((addKind as HTMLSelectElement).value).toBe('email');
+    expect(screen.queryByRole('option', { name: nls.t('features.tree.contacts.kind.url') })).not.toBeInTheDocument();
   });
 });

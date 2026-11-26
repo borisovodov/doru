@@ -118,6 +118,12 @@ export interface IndividualRecord extends GedcomStructureBase {
    */
   url?: Text;
   /**
+   * Additional `WWW`/`URL` values when the exporter repeats the individual
+   * website tag. `url` keeps the first value; the remaining ones stay here so
+   * a repeated vendor tag survives the round trip.
+   */
+  www?: Text[];
+  /**
    * _SOSA {0:1} — the individual's Sosa–Stradonitz (Ahnentafel)
    * number. Written by Ancestris, the French GEDCOM editor (see its
    * user guide, "Tags": https://docs.ancestris.org/books/user-guide/page/tags);

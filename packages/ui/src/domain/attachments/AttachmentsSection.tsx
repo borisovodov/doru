@@ -79,7 +79,11 @@ export function ContactsSection({
           <li key={contact.id}>
             {editingId === contact.id ? (
               <div className="attachment-edit">
-                <Select value={editKind} onChange={(event) => setEditKind(event.target.value)}>
+                <Select
+                  value={editKind}
+                  aria-label={nls.t('features.tree.contacts.editKind')}
+                  onChange={(event) => setEditKind(event.target.value)}
+                >
                   {CONTACT_KINDS.map((entry) => (
                     <option key={entry} value={entry}>
                       {nls.t(`features.tree.contacts.kind.${entry}`)}
@@ -124,7 +128,11 @@ export function ContactsSection({
         ))}
       </ul>
       <div className="attachment-add">
-        <Select value={kind} onChange={(event) => setKind(event.target.value)}>
+        <Select
+          value={kind}
+          aria-label={nls.t('features.tree.contacts.kindField')}
+          onChange={(event) => setKind(event.target.value)}
+        >
           {CONTACT_KINDS.map((entry) => (
             <option key={entry} value={entry}>
               {nls.t(`features.tree.contacts.kind.${entry}`)}
