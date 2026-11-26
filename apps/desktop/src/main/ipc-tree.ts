@@ -6,7 +6,6 @@ import type {
   ContactRecord,
   FactRecord,
   FamilyRecord,
-  IdentifierRecord,
   MediaFile,
   MediaLinkRecord,
   MediaRecord,
@@ -244,38 +243,6 @@ export function registerTreeIpc(): void {
     async (_event, options: { projectPath: string; association: AssociationRecord }) => {
       const { runtime } = await ensureRuntime(options.projectPath);
       return runtime.service.deleteAssociation(options.association);
-    },
-  );
-
-  ipcMain.handle(
-    'tree:identifiers',
-    async (_event, options: { projectPath: string; targetType: string; targetId: string }) => {
-      const { runtime } = await ensureRuntime(options.projectPath);
-      return runtime.service.listIdentifiersFor(options.targetType, options.targetId);
-    },
-  );
-
-  ipcMain.handle(
-    'tree:addIdentifier',
-    async (_event, options: { projectPath: string; identifier: IdentifierRecord }) => {
-      const { runtime } = await ensureRuntime(options.projectPath);
-      return runtime.service.addIdentifier(options.identifier);
-    },
-  );
-
-  ipcMain.handle(
-    'tree:deleteIdentifier',
-    async (_event, options: { projectPath: string; identifier: IdentifierRecord }) => {
-      const { runtime } = await ensureRuntime(options.projectPath);
-      return runtime.service.deleteIdentifier(options.identifier);
-    },
-  );
-
-  ipcMain.handle(
-    'tree:updateIdentifier',
-    async (_event, options: { projectPath: string; before: IdentifierRecord; after: IdentifierRecord }) => {
-      const { runtime } = await ensureRuntime(options.projectPath);
-      return runtime.service.updateIdentifier(options.before, options.after);
     },
   );
 

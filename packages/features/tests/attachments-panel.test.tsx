@@ -10,7 +10,6 @@ function apiStub(overrides: Partial<AttachmentsPanelApi> = {}): AttachmentsPanel
     getNotes: async () => [],
     getAllNotes: async () => [],
     getCitations: async () => [],
-    getIdentifiers: async () => [],
     getContacts: async () => [],
     getSubmitters: async () => [],
     getRecordSubmitters: async () => [],
@@ -38,7 +37,6 @@ describe('AttachmentsPanel target policy', () => {
 
     expect(sectionVisible(nls.t('features.tree.notes.title'))).toBe(true);
     expect(sectionVisible(nls.t('features.tree.sources.title'))).toBe(false);
-    expect(sectionVisible(nls.t('features.tree.identifiers.title'))).toBe(false);
     expect(sectionVisible(nls.t('features.tree.contacts.title'))).toBe(false);
     expect(sectionVisible(nls.t('features.tree.contributors.title'))).toBe(false);
     expect(sectionVisible(nls.t('features.tasks.title'))).toBe(false);
@@ -49,7 +47,7 @@ describe('AttachmentsPanel target policy', () => {
 
     expect(sectionVisible(nls.t('features.tree.sources.title'))).toBe(true);
     expect(sectionVisible(nls.t('features.tree.notes.title'))).toBe(false);
-    expect(sectionVisible(nls.t('features.tree.identifiers.title'))).toBe(false);
+    expect(sectionVisible(nls.t('features.tree.notes.title'))).toBe(false);
     expect(sectionVisible(nls.t('features.tree.contacts.title'))).toBe(false);
     expect(sectionVisible(nls.t('features.tree.contributors.title'))).toBe(false);
     expect(sectionVisible(nls.t('features.tasks.title'))).toBe(false);
@@ -71,10 +69,9 @@ describe('AttachmentsPanel target policy', () => {
     expect(sectionVisible(nls.t('features.tasks.title'))).toBe(false);
   });
 
-  it('hides tasks on a submitter but keeps identifiers and contributors', () => {
+  it('hides tasks on a submitter but keeps contributors', () => {
     renderUi(panel('submitter'));
 
-    expect(sectionVisible(nls.t('features.tree.identifiers.title'))).toBe(true);
     expect(sectionVisible(nls.t('features.tree.contributors.title'))).toBe(true);
     expect(sectionVisible(nls.t('features.tasks.title'))).toBe(false);
   });

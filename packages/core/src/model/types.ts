@@ -779,16 +779,6 @@ export interface SubmitterRecord {
 // Attachments
 // ---------------------------------------------------------------------------
 
-export interface IdentifierRecord {
-  id: string;
-  targetType: string;
-  targetId: string;
-  namespace: string;
-  /** The issuing authority of a REFN/EXID identifier (GEDCOM TYPE). */
-  type?: string | undefined;
-  value: string;
-}
-
 /**
  * A contact detail on a target that GEDCOM can carry one for (see
  * `CONTACT_TARGET_TYPES` in `targetPolicy.ts`). `kind` is deliberately open:
@@ -835,7 +825,6 @@ export interface AttachmentsSnapshot {
   mediaFileAttachments: NestedAttachmentSnapshot[];
   /** Attachments of the media links above, restored with them. */
   mediaLinkAttachments: NestedAttachmentSnapshot[];
-  identifiers: IdentifierRecord[];
   contacts: ContactRecord[];
   /** Task links targeting this record; the tasks themselves survive. */
   taskLinks: TaskTargetLink[];
@@ -852,7 +841,6 @@ export function emptyAttachments(): AttachmentsSnapshot {
     mediaAttachments: [],
     mediaFileAttachments: [],
     mediaLinkAttachments: [],
-    identifiers: [],
     contacts: [],
     taskLinks: [],
     recordSubmitters: [],

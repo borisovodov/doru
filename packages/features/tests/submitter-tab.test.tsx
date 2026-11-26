@@ -27,7 +27,6 @@ function apiStub(): RegistriesEditorApi {
     getNotes: async () => [],
     getAllNotes: async () => [],
     getCitations: async () => [],
-    getIdentifiers: async () => [],
     getContacts: async () => [],
     getSubmitters: async () => [],
     getRecordSubmitters: async () => [],
@@ -68,7 +67,6 @@ describe('SubmitterTab', () => {
     );
 
     expect(screen.queryByText(nls.t('features.tasks.title'))).not.toBeInTheDocument();
-    expect(screen.getByText(nls.t('features.tree.identifiers.title'))).toBeInTheDocument();
     expect(screen.getByText(nls.t('features.tree.contributors.title'))).toBeInTheDocument();
   });
 });

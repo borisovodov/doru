@@ -553,7 +553,7 @@ export function FamilyEditor({
             api={api}
             sources={sources}
             onOpenSource={onOpenSource}
-            sections={['notes', 'sources', 'media', 'identifiers', 'contacts', 'contributors', 'tasks']}
+            sections={['notes', 'sources', 'media', 'contacts', 'contributors', 'tasks']}
             renderCitationAttachments={(citation) => (
               <CitationAttachments citation={citation} api={api} sources={sources} onOpenSource={onOpenSource} />
             )}

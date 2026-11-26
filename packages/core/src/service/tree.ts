@@ -7,7 +7,6 @@ import type {
   FamilyChildLink,
   FamilyPartnerLink,
   FamilyRecord,
-  IdentifierRecord,
   MediaLinkRecord,
   MediaRecord,
   NoteLinkRecord,
@@ -41,7 +40,6 @@ import {
   addContactOp,
   addFactOp,
   addFamilyOp,
-  addIdentifierOp,
   addMediaOp,
   updateMediaOp,
   updateMediaLinkOp,
@@ -68,8 +66,6 @@ import {
   updateContactOp,
   deleteFactOp,
   deleteFamilyOp,
-  deleteIdentifierOp,
-  updateIdentifierOp,
   deleteMediaOp,
   deleteNoteOp,
   deletePersonOp,
@@ -375,7 +371,7 @@ export class TreeService {
 
   /**
    * Deletes the person together with their family links and every
-   * attachment (notes, citations, media links, identifiers, …) — one undo
+   * attachment (notes, citations, media links, contacts, …) — one undo
    * step restores everything, attachments included.
    */
   deletePerson(person: PersonRecord): UndoRedoState {
@@ -1221,24 +1217,6 @@ export class TreeService {
   }
 
   // --- universal attachments --------------------------------------------------
-
-  listIdentifiersFor(targetType: string, targetId: string): IdentifierRecord[] {
-    return this.repo.listIdentifiersFor(targetType, targetId);
-  }
-
-  addIdentifier(identifier: IdentifierRecord): UndoRedoState {
-    assertTargetAllowed('identifier', identifier.targetType);
-    return this.apply(addIdentifierOp(identifier));
-  }
-
-  deleteIdentifier(identifier: IdentifierRecord): UndoRedoState {
-    return this.apply(deleteIdentifierOp(identifier));
-  }
-
-  updateIdentifier(before: IdentifierRecord, after: IdentifierRecord): UndoRedoState {
-    assertTargetAllowed('identifier', after.targetType);
-    return this.apply(updateIdentifierOp(before, after));
-  }
 
   listContactsFor(targetType: string, targetId: string): ContactRecord[] {
     return this.repo.listContactsFor(targetType, targetId);

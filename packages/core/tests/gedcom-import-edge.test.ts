@@ -148,7 +148,7 @@ const EDGE_GEDCOM = [
 ].join('\n');
 
 describe('importGedcomDataset edge coverage', () => {
-  it('maps identifiers, contacts, changes, links and vendor records', () => {
+  it('maps contacts, changes, links and vendor records', () => {
     const fixture = makeRepo();
     try {
       const { repo } = fixture;
@@ -159,13 +159,6 @@ describe('importGedcomDataset edge coverage', () => {
       const byXref = new Map(persons.map((person) => [person.xref, person]));
       const ivan = byXref.get('@I1@')!;
       expect(ivan).toBeDefined();
-
-      // _SOSA / _SOSADABOVILLE become identifiers; RIN is not part of Dóru.
-      const identifierNamespaces = repo
-        .listIdentifiersFor('person', ivan.id)
-        .map((identifier) => identifier.namespace)
-        .sort();
-      expect(identifierNamespaces).toEqual(['daboville', 'sosa']);
 
       // INDI-level and fact-address contacts.
       const contactKinds = repo
@@ -195,13 +188,12 @@ describe('importGedcomDataset edge coverage', () => {
       expect(repo.listAssociationsFor(ivan.id)).toHaveLength(1);
       expect(repo.listAliasesFor(ivan.id)).toHaveLength(1);
 
-      // Submitter identifiers and notes: RIN is ignored, only notes survive.
+      // Submitter notes: RIN is ignored, only notes survive.
       const submitter = repo.listSubmitters()[0]!;
-      expect(repo.listIdentifiersFor('submitter', submitter.id)).toEqual([]);
       expect(repo.listNotesFor('submitter', submitter.id)).toHaveLength(1);
 
       // Free-standing task with fields. The parser keeps `_UID`, but the tree
-      // drops it: an identifier cannot target a task.
+      // drops it.
       const tasks = repo.listTasks();
       expect(tasks).toHaveLength(1);
       expect(tasks[0]).toMatchObject({
@@ -210,7 +202,6 @@ describe('importGedcomDataset edge coverage', () => {
         status: 'open',
       });
       expect(tasks[0]).not.toHaveProperty('category');
-      expect(repo.listIdentifiersFor('task', tasks[0]!.id)).toEqual([]);
 
       // The occurrence became one fact per participant.
       const facts = repo.listAllFacts();

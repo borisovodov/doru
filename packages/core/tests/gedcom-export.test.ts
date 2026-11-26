@@ -1,11 +1,53 @@
 import { describe, expect, it } from 'vitest';
-import { parse, serializeGedcom70 } from '@doru/gedcom';
+import { parse, serializeGedcom551, serializeGedcom70 } from '@doru/gedcom';
 import { buildGedcomDataset } from '../src/export/gedcom';
 import { importGedcomDataset } from '../src/import/gedcom';
 import type { FactRecord, PersonRecord, SourceRecord } from '../src/model/types';
 import { cleanupRepo, makeRepo } from './helpers';
 
 describe('buildGedcomDataset', () => {
+  it('never writes GEDCOM identifiers back on export', () => {
+    const parsed = parse(
+      new TextEncoder().encode(
+        [
+          '0 HEAD',
+          '1 GEDC',
+          '2 VERS 7.0',
+          '0 @I1@ INDI',
+          '1 NAME Ivan /Petrov/',
+          '1 UID 4b4f6e2e-0000-4000-8000-000000000001',
+          '1 EXID 123',
+          '2 TYPE https://example.com',
+          '1 REFN local-1',
+          '2 TYPE register',
+          '1 _UID 4b4f6e2e-0000-4000-8000-000000000002',
+          '1 AFN 123',
+          '1 RFN 456',
+          '1 RIN 789',
+          '0 TRLR',
+        ].join('\n'),
+      ),
+    );
+    if (!parsed.ok || parsed.value.kind !== 'dataset') {
+      throw new Error('fixture failed to parse');
+    }
+    const fixture = makeRepo();
+    try {
+      importGedcomDataset(parsed.value.dataset, fixture.repo);
+      const dataset = buildGedcomDataset(fixture.repo);
+      for (const serialize of [serializeGedcom70, serializeGedcom551]) {
+        const serialized = serialize(dataset);
+        expect(serialized.ok).toBe(true);
+        if (!serialized.ok) {
+          continue;
+        }
+        expect(serialized.value).not.toMatch(/^[0-9]+ (?:UID|EXID|REFN|_UID|AFN|RFN|RIN)(?: |\r?$)/m);
+      }
+    } finally {
+      cleanupRepo(fixture);
+    }
+  });
+
   it('keeps an adoption phrase when no adopting parent is selected', () => {
     const fixture = makeRepo();
     try {

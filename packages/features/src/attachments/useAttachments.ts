@@ -1,19 +1,11 @@
 import { useCallback, useEffect, useState } from 'react';
-import type {
-  CitationRecord,
-  ContactRecord,
-  IdentifierRecord,
-  NoteRecord,
-  RecordSubmitterLink,
-  SubmitterRecord,
-} from '@doru/core';
+import type { CitationRecord, ContactRecord, NoteRecord, RecordSubmitterLink, SubmitterRecord } from '@doru/core';
 
 /** The read methods every entity editor needs for its attachment sections. */
 export interface AttachmentApi {
   getNotes(targetType: string, targetId: string): Promise<NoteRecord[]>;
   getAllNotes(): Promise<NoteRecord[]>;
   getCitations(targetType: string, targetId: string): Promise<CitationRecord[]>;
-  getIdentifiers(targetType: string, targetId: string): Promise<IdentifierRecord[]>;
   getContacts(targetType: string, targetId: string): Promise<ContactRecord[]>;
 }
 
@@ -43,7 +35,6 @@ export interface AttachmentData {
   notes: NoteRecord[];
   allNotes: NoteRecord[];
   citations: CitationRecord[];
-  identifiers: IdentifierRecord[];
   contacts: ContactRecord[];
   submitters: SubmitterRecord[];
   contributors: RecordSubmitterLink[];
@@ -53,7 +44,6 @@ const emptyAttachments = (): AttachmentData => ({
   notes: [],
   allNotes: [],
   citations: [],
-  identifiers: [],
   contacts: [],
   submitters: [],
   contributors: [],
@@ -89,11 +79,10 @@ export function useAttachments(
     if (targetId === undefined) {
       return emptyAttachments();
     }
-    const [notes, allNotes, citations, identifiers, contacts] = await Promise.all([
+    const [notes, allNotes, citations, contacts] = await Promise.all([
       api.getNotes(targetType, targetId),
       api.getAllNotes(),
       api.getCitations(targetType, targetId),
-      api.getIdentifiers(targetType, targetId),
       api.getContacts(targetType, targetId),
     ]);
     if (!withSubmitters) {
@@ -102,7 +91,6 @@ export function useAttachments(
         notes,
         allNotes,
         citations,
-        identifiers,
         contacts,
       };
     }
@@ -115,7 +103,6 @@ export function useAttachments(
       notes,
       allNotes,
       citations,
-      identifiers,
       contacts,
       submitters,
       contributors,

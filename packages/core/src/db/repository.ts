@@ -10,7 +10,6 @@ import type {
   FactParticipant,
   FactRecord,
   FamilyRecord,
-  IdentifierRecord,
   MediaLinkRecord,
   MediaRecord,
   NoteLinkRecord,
@@ -197,10 +196,6 @@ export interface TreeRepository {
   getAddress(id: string): AddressRecord | undefined;
   listAddresses(): AddressRecord[];
   deleteAddress(id: string): boolean;
-  insertIdentifier(identifier: IdentifierRecord): void;
-  deleteIdentifier(id: string): boolean;
-  updateIdentifier(identifier: IdentifierRecord): void;
-  listIdentifiersFor(targetType: string, targetId: string): IdentifierRecord[];
   insertContact(contact: ContactRecord): void;
   deleteContact(id: string): boolean;
   updateContact(contact: ContactRecord): void;
@@ -1000,22 +995,6 @@ export class SqliteTreeRepository implements TreeRepository {
     });
   }
 
-  insertIdentifier(identifier: IdentifierRecord): void {
-    this.attachments.insertIdentifier(identifier);
-  }
-
-  deleteIdentifier(id: string): boolean {
-    return this.attachments.deleteIdentifier(id);
-  }
-
-  updateIdentifier(identifier: IdentifierRecord): void {
-    this.attachments.updateIdentifier(identifier);
-  }
-
-  listIdentifiersFor(targetType: string, targetId: string): IdentifierRecord[] {
-    return this.attachments.listIdentifiersFor(targetType, targetId);
-  }
-
   insertContact(contact: ContactRecord): void {
     this.attachments.insertContact(contact);
   }
@@ -1215,7 +1194,6 @@ export class SqliteTreeRepository implements TreeRepository {
         targetId: entry.link.id,
         attachments: this.collectAttachments('media_link', entry.link.id, state),
       })),
-      identifiers: this.attachments.listIdentifiersFor(targetType, targetId),
       contacts: this.attachments.listContactsFor(targetType, targetId),
       taskLinks,
       recordSubmitters: this.submitters.listRecordSubmittersFor(targetType, targetId),
@@ -1370,18 +1348,6 @@ export class SqliteTreeRepository implements TreeRepository {
         this.media.hasLink(nested.targetId)
       ) {
         this.restoreAttachmentsInternal(nested.attachments, visitedFiles);
-      }
-    }
-    const identifierIds = new Set(
-      [...new Set(snapshot.identifiers.map((entry) => `${entry.targetType}:${entry.targetId}`))].flatMap((key) => {
-        const [targetType, targetId] = key.split(':');
-        return this.attachments.listIdentifiersFor(targetType as string, targetId as string).map((entry) => entry.id);
-      }),
-    );
-    for (const identifier of snapshot.identifiers) {
-      if (!identifierIds.has(identifier.id)) {
-        this.attachments.insertIdentifier(identifier);
-        identifierIds.add(identifier.id);
       }
     }
     const contactIds = new Set(

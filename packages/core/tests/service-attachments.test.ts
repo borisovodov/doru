@@ -2,7 +2,6 @@ import { describe, expect, it, vi } from 'vitest';
 import type {
   AddressRecord,
   ContactRecord,
-  IdentifierRecord,
   MediaLinkRecord,
   NoteRecord,
   RepositoryRecord,
@@ -38,15 +37,6 @@ const mediaLink = (overrides: Partial<MediaLinkRecord> = {}): MediaLinkRecord =>
   mediaId: 'M1',
   targetType: 'person',
   targetId: 'P1',
-  ...overrides,
-});
-
-const identifier = (overrides: Partial<IdentifierRecord> = {}): IdentifierRecord => ({
-  id: 'I1',
-  targetType: 'person',
-  targetId: 'P1',
-  namespace: 'familysearch',
-  value: 'abc-123',
   ...overrides,
 });
 
@@ -398,23 +388,13 @@ describe('TreeService attachments', () => {
     }
   });
 
-  it('enforces identifier and contributor target policies', () => {
+  it('enforces contributor target policies', () => {
     const { fixture, service } = makeService();
     try {
-      expect(() => service.addIdentifier(identifier({ targetType: 'task', targetId: 'T1' }))).toThrow(
-        'A identifier cannot target a task.',
-      );
-      service.addIdentifier(identifier());
-      expect(() =>
-        service.updateIdentifier(identifier(), identifier({ targetType: 'media_link', targetId: 'ML1' })),
-      ).toThrow('A identifier cannot target a media_link.');
-
       expect(() => service.addRecordSubmitter('SU1', 'task', 'T1')).toThrow('A recordSubmitter cannot target a task.');
       expect(() => service.addRecordSubmitter('SU1', 'media_link', 'ML1')).toThrow(
         'A recordSubmitter cannot target a media_link.',
       );
-      expect(fixture.repo.listIdentifiersFor('task', 'T1')).toEqual([]);
-      expect(fixture.repo.listIdentifiersFor('media_link', 'ML1')).toEqual([]);
       expect(fixture.repo.listRecordSubmittersFor('task', 'T1')).toEqual([]);
       expect(fixture.repo.listRecordSubmittersFor('media_link', 'ML1')).toEqual([]);
     } finally {
@@ -470,16 +450,12 @@ describe('TreeService attachments', () => {
         'A mediaLink cannot target a note.',
       );
 
-      expect(() => service.addIdentifier(identifier({ targetType: 'note', targetId: 'N1' }))).toThrow(
-        'A identifier cannot target a note.',
-      );
       expect(() => service.addRecordSubmitter('SU1', 'note', 'N1')).toThrow('A recordSubmitter cannot target a note.');
 
       // The failed attempts left no rows behind.
       expect(fixture.repo.listCitationRecordsFor('note', 'N1')).toEqual([]);
       expect(fixture.repo.listTaskLinksFor('note', 'N1')).toEqual([]);
       expect(fixture.repo.listMediaLinksFor('note', 'N1')).toEqual([]);
-      expect(fixture.repo.listIdentifiersFor('note', 'N1')).toEqual([]);
       expect(fixture.repo.listRecordSubmittersFor('note', 'N1')).toEqual([]);
       expect(fixture.repo.listNotesFor('note', 'N1')).toEqual([]);
     } finally {
@@ -702,21 +678,9 @@ describe('TreeService attachments', () => {
     }
   });
 
-  it('manages identifiers and contacts', () => {
+  it('manages contacts', () => {
     const { fixture, service } = makeService();
     try {
-      service.addIdentifier(identifier());
-      expect(fixture.repo.listIdentifiersFor('person', 'P1')).toEqual([identifier()]);
-      const editedIdentifier = identifier({ value: 'xyz-999' });
-      service.updateIdentifier(identifier(), editedIdentifier);
-      expect(fixture.repo.listIdentifiersFor('person', 'P1')).toEqual([editedIdentifier]);
-      service.undo();
-      expect(fixture.repo.listIdentifiersFor('person', 'P1')).toEqual([identifier()]);
-      service.deleteIdentifier(identifier());
-      expect(fixture.repo.listIdentifiersFor('person', 'P1')).toEqual([]);
-      service.undo();
-      expect(fixture.repo.listIdentifiersFor('person', 'P1')).toEqual([identifier()]);
-
       service.addContact(contact());
       expect(fixture.repo.listContactsFor('person', 'P1')).toEqual([contact()]);
       const editedContact = contact({ kind: 'phone', value: '+7 495 000-00-00' });

@@ -152,13 +152,7 @@ describe('importGedcomDataset (phase 4)', () => {
       expect(name.full).toBe('Ivan Petrov');
       expect(name.parts?.map((part) => part.kind)).toEqual(['given', 'nickname', 'surname', 'full']);
 
-      // Identifiers and contacts: RIN is not imported.
-      expect(
-        repo
-          .listIdentifiersFor('person', ivan.id)
-          .map((entry) => entry.namespace)
-          .sort(),
-      ).toEqual(['refn', 'uid']);
+      // Contacts: RIN is not imported.
       expect(repo.listContactsFor('person', ivan.id)).toEqual([
         expect.objectContaining({ kind: 'email', value: 'ivan@example.org' }),
       ]);

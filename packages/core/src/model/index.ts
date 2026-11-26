@@ -15,7 +15,6 @@ export type {
   FamilyChildLink,
   FamilyPartnerLink,
   FamilyRecord,
-  IdentifierRecord,
   MediaFile,
   MediaFileTranslation,
   MediaLinkRecord,

@@ -18,7 +18,6 @@ function apiStub(overrides: Partial<FamilyEditorApi> = {}): FamilyEditorApi {
     getNotes: async () => [],
     getAllNotes: async () => [],
     getCitations: async () => [],
-    getIdentifiers: async () => [],
     getContacts: async () => [],
     getMediaFor: async () => [],
     getAllMedia: async () => [],

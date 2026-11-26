@@ -83,15 +83,23 @@ Schema and UI decisions should stand on the app's own domain needs. Do not
 justify a decision by GEDCOM round-trip fidelity alone: wire-format fidelity
 belongs to the format package, not to the application.
 
-## GEDCOM legacy identifiers and FAMC/FAMS vendor details
+## GEDCOM FAMC/FAMS vendor details
 
-`RFN` and `AFN` are GEDCOM 5.5.1 identifiers with no 7.0 spelling; Dóru does
-not store them. The vendor FAMC/FAMS link fields `_HUSB`, `_WIFE`, `MTYP`,
+The vendor FAMC/FAMS link fields `_HUSB`, `_WIFE`, `MTYP`,
 `_PRIMARY`, `_PREF` and `_PLINK` are also intentionally not stored. Corpus
 counts showed them in only a handful of files (or not at all); the standard
 `PEDI`, `STAT` (including its 7.0 `PHRASE`), relation fields and link notes
 are stored. `WILL.TEXT` is normalized into a note on the `WILL` fact and is
 exported as `NOTE`, not as the vendor `TEXT` tag.
+
+## GEDCOM identifiers are not stored
+
+`@doru/gedcom` parses the standard identifier structures (`REFN`, `UID`,
+`EXID`), the 5.5.1-only `AFN`/`RFN`/`RIN` fields and every vendor identity
+field, but the tree mapping ignores all of them. Dóru has no identifier
+table, no identifier attachment, and no identifier editor; export never
+writes identifier tags. The parser-level model and tests remain in the
+format package, which is storage-free by design.
 
 ## GEDCOM task repositories, categories, localities, titles, and types
 
@@ -116,8 +124,7 @@ and no separate task-result field.
 
 The `_TODO._UID` value is parsed by `@doru/gedcom` (it stays on
 `TodoRecord.uids`) but is not imported into the tree and is never written on
-export: an identifier cannot target a task. The task's own identifiers section
-does not exist, so there is no editor path for such a row either.
+export: Dóru stores no GEDCOM identifiers at all.
 
 ## Tasks are shared across targets
 
@@ -142,23 +149,21 @@ those sets; there is no global runtime target list and no second UI list.
 | Note link | Every target type except `media_link`. A note is never a target. |
 | Citation | Every target type except `task`; `media_link` is allowed. |
 | Media link | Every target type except `media_link`; a task is a valid media target. |
-| Identifier | Every target type except `task` and `media_link`. |
 | Contact | `person`, `fact`, `address`, `repository`, `submitter`. |
 | Task link | Every target type except `task`, `submitter`, and `media_link`; `source` is valid. |
 | Contributor link | Every target type except `task` and `media_link`. |
 
 Consequences: a source has nothing to cite on a task (a task asserts nothing),
 a task card keeps Notes and Media only, a submitter card has no Tasks section,
-a media link carries Sources only, and identifiers and contributors are absent
+a media link carries Sources only, and contributors are absent
 from task cards. `TreeService` rejects every disallowed pair with one shared
 guard, so agents and IPC callers follow the same matrix as the UI.
 
 A note is a leaf annotation: it attaches to a record and stores its text, but
 no attachment may point at it, and a note row has no attachment panel. GEDCOM 7
 allows `SOUR` inside both `NOTE` and `SNOTE`; `@doru/gedcom` still parses it, but
-the core mapping drops it on import and never writes it on export. GEDCOM
-`UID`/`EXID`/`REFN` identifiers and vendor `_SUBM` links on notes are dropped
-the same way.
+the core mapping drops it on import and never writes it on export. Vendor
+`_SUBM` links on notes are dropped the same way.
 
 ## Notes store text only
 
@@ -286,7 +291,7 @@ from the file path on export; `TRAN` is written only for GEDCOM 7.0. Sources
 and notes attach to the media record (`media`); vendor `SOUR` lines under an
 `OBJE` link attach to the link (`media_link`) and are editable in the media
 tab. A media link is a source-only nested row: citations may target it, while
-notes, media, identifiers, contacts, contributors, and tasks may not.
+notes, media, contacts, contributors, and tasks may not.
 
 ## API stability before 1.0.0
 

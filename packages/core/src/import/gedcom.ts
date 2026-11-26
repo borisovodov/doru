@@ -18,7 +18,6 @@ import type {
   FamilyRecord as GedcomFamilyRecord,
   GedcomDataset,
   GedcomRecord,
-  IdentifierStructure,
   IndividualRecord as GedcomIndividualRecord,
   NoteStructure,
   PersonalNamePieces,
@@ -75,8 +74,9 @@ import type {
  *   vendor IDs (FamilySearch/MyHeritage/Ancestry), raw extension records,
  *   `_ALIA` duplicate-candidate records (they carry a single person pointer
  *   and have no second-person slot in our model).
- * - the 5.5.1-only `RFN`/`AFN` person identifiers: neither has a 7.0
- *   spelling, and the tree has no matching identifier namespace.
+ * - the 5.5.1-only `RFN`/`AFN` person identifiers, `RIN`, `UID`, `EXID`,
+ *   `REFN` and every vendor identifier: the parser keeps them, the tree
+ *   stores no GEDCOM identifiers at all.
  * - source citations on notes (`NOTE.SOUR`/`SNOTE.SOUR`): a note is not an
  *   attachment target in the tree.
  * Whole dropped vendor record types are counted into `droppedStructures`;
@@ -260,7 +260,6 @@ function importRepositories(records: GedcomRecord[], ctx: ImportContext): void {
       xref?: string;
       name: string;
       address?: AddressStructure;
-      identifiers?: IdentifierStructure[];
       notes?: NoteStructure[];
       phone?: string[];
       email?: string[];
@@ -277,7 +276,6 @@ function importRepositories(records: GedcomRecord[], ctx: ImportContext): void {
       addressId = importAddress(repository.address, ctx);
     }
     ctx.repo.insertRepository({ id, xref: repository.xref, name: repository.name, addressId });
-    importIdentifiers(repository.identifiers, 'repository', id, ctx);
     importNotes(repository.notes, 'repository', id, ctx);
     importContacts(
       'repository',
@@ -305,7 +303,6 @@ function importSubmitters(records: GedcomRecord[], ctx: ImportContext): void {
       address?: AddressStructure;
       languages?: string[];
       automatedRecordId?: string;
-      identifiers?: IdentifierStructure[];
       notes?: NoteStructure[];
       phone?: string[];
       email?: string[];
@@ -328,7 +325,6 @@ function importSubmitters(records: GedcomRecord[], ctx: ImportContext): void {
       addressId,
       languages: submitter.languages,
     });
-    importIdentifiers(submitter.identifiers, 'submitter', id, ctx);
     importNotes(submitter.notes, 'submitter', id, ctx);
     importContacts(
       'submitter',
@@ -524,7 +520,6 @@ function importSources(records: GedcomRecord[], ctx: ImportContext): number {
       })),
     });
     importNotes(source.notes, 'source', id, ctx);
-    importIdentifiers(source.identifiers, 'source', id, ctx);
     importMediaLinks(source.media, 'source', id, ctx);
     importSubmitterLinks(source.submitters, 'source', id, ctx);
     imported += 1;
@@ -662,29 +657,7 @@ function importPerson(record: GedcomIndividualRecord, ctx: ImportContext): void 
   importCitations(record.citations, 'person', id, ctx);
   importCitations(record.sexCitations, 'person', id, ctx);
   importNotes(record.notes, 'person', id, ctx);
-  // RFN/AFN are 5.5.1-only person identifiers (removed in 7.0). They have
-  // no matching identifier namespace and no 7.0 export form, so they are
-  // deliberately not imported. See docs/decisions.md.
-  importIdentifiers(record.identifiers, 'person', id, ctx);
   importMediaLinks(record.media, 'person', id, ctx);
-  if (record.sosaNumber !== undefined) {
-    ctx.repo.insertIdentifier({
-      id: crypto.randomUUID(),
-      targetType: 'person',
-      targetId: id,
-      namespace: 'sosa',
-      value: record.sosaNumber,
-    });
-  }
-  if (record.sosaDAboville !== undefined) {
-    ctx.repo.insertIdentifier({
-      id: crypto.randomUUID(),
-      targetType: 'person',
-      targetId: id,
-      namespace: 'daboville',
-      value: record.sosaDAboville,
-    });
-  }
   importContacts(
     'person',
     id,
@@ -776,12 +749,6 @@ function mapFact(
 ): FactRecord {
   queueFactFamily(structure, base.id, ctx, detail);
   importMediaLinks(detail?.media, 'fact', base.id, ctx);
-  importIdentifiers(
-    detail?.uniqueIds?.map((payload) => ({ tag: 'UID', payload })),
-    'fact',
-    base.id,
-    ctx,
-  );
   importContacts(
     'fact',
     base.id,
@@ -1207,7 +1174,6 @@ function importFamily(record: GedcomFamilyRecord, ctx: ImportContext): void {
 
   importCitations(record.citations, 'family', id, ctx);
   importNotes(record.notes, 'family', id, ctx);
-  importIdentifiers(record.identifiers, 'family', id, ctx);
   importMediaLinks(record.media, 'family', id, ctx);
   importSubmitterLinks(record.submitters, 'family', id, ctx);
   for (const structure of record.todos ?? []) {
@@ -1389,8 +1355,8 @@ function importGedcomTodoRecord(record: GedcomTodoRecord, ctx: ImportContext): v
   // _TODO.REPO becomes an ordinary repository target link: a task has no
   // direct repository field. _TODO._CAT (category), _TODO._LOCL (locality),
   // and _TODO._TTIL (title) are deliberately ignored. `_TODO._UID` is parsed
-  // by `@doru/gedcom` but dropped here: an identifier cannot target a task.
-  // Status and priority are normalized immediately; unknown values become
+  // by `@doru/gedcom` but dropped here: Dóru stores no GEDCOM identifiers at
+  // all. Status and priority are normalized immediately; unknown values become
   // open and medium rather than lingering in the database.
   const id = crypto.randomUUID();
   const repository = taskRepositoryTarget(id, record.repository, ctx);
@@ -1724,25 +1690,6 @@ function importNotes(
   }
 }
 
-function importIdentifiers(
-  structures: IdentifierStructure[] | undefined,
-  targetType: string,
-  targetId: string,
-  ctx: ImportContext,
-): void {
-  for (const structure of structures ?? []) {
-    const namespace = structure.tag === 'UID' ? 'uid' : structure.tag === 'EXID' ? 'exid' : 'refn';
-    ctx.repo.insertIdentifier({
-      id: crypto.randomUUID(),
-      targetType,
-      targetId,
-      namespace,
-      ...('type' in structure ? { type: structure.type } : {}),
-      value: structure.payload,
-    });
-  }
-}
-
 function importContacts(
   targetType: string,
   targetId: string,
@@ -2007,7 +1954,6 @@ function importMediaRecords(records: GedcomRecord[], ctx: ImportContext): void {
       ctx.mediaIds.set(record.xref, id);
     }
     importNotes(record.notes, 'media', id, ctx);
-    importIdentifiers(record.identifiers, 'media', id, ctx);
     importSubmitterLinks(record.submitters, 'media', id, ctx);
   }
 }
@@ -2158,7 +2104,6 @@ function importPlaceRecords(records: GedcomRecord[], ctx: ImportContext): void {
     importCitations(record.citations, 'place', id, ctx);
     importNotes(record.notes, 'place', id, ctx);
     importMediaLinks(record.media, 'place', id, ctx);
-    importIdentifiers(record.identifiers, 'place', id, ctx);
     if (record.parents !== undefined && record.parents.length > 0) {
       ctx.placeParents.set(
         id,
@@ -2261,7 +2206,6 @@ function importPlace(place: PlaceStructure, ctx: ImportContext): string | undefi
   });
   importCitations(place.citations, 'place', id, ctx);
   importNotes(place.notes, 'place', id, ctx);
-  importIdentifiers(place.externalIds, 'place', id, ctx);
   const existingPlace = ctx.placeIds.get(joined);
   if (existingPlace !== undefined && existingPlace !== id) {
     ctx.ambiguousPlaceNames.add(joined);

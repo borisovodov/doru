@@ -5,7 +5,6 @@ import type {
   ContactRecord,
   FactRecord,
   FamilyRecord,
-  IdentifierRecord,
   MediaFile,
   MediaLinkRecord,
   MediaRecord,
@@ -138,10 +137,6 @@ declare global {
         after: AssociationRecord,
       ): Promise<UndoRedoState>;
       deleteAssociation(projectPath: string, association: AssociationRecord): Promise<UndoRedoState>;
-      getIdentifiers(projectPath: string, targetType: string, targetId: string): Promise<IdentifierRecord[]>;
-      addIdentifier(projectPath: string, identifier: IdentifierRecord): Promise<UndoRedoState>;
-      deleteIdentifier(projectPath: string, identifier: IdentifierRecord): Promise<UndoRedoState>;
-      updateIdentifier(projectPath: string, before: IdentifierRecord, after: IdentifierRecord): Promise<UndoRedoState>;
       getContacts(projectPath: string, targetType: string, targetId: string): Promise<ContactRecord[]>;
       addContact(projectPath: string, contact: ContactRecord): Promise<UndoRedoState>;
       deleteContact(projectPath: string, contact: ContactRecord): Promise<UndoRedoState>;

@@ -1,7 +1,7 @@
 import type { CitationRecord, SourceRecord } from '@doru/core';
 import { AttachmentsPanel, type AttachmentsPanelApi } from './AttachmentsPanel';
 
-/** Notes and identifiers attached to a citation. No sources here:
+/** Notes and other attachments on a citation. No sources here:
  * citations → sources → citations would recurse. */
 export function CitationAttachments({
   citation,
@@ -21,7 +21,7 @@ export function CitationAttachments({
       api={api}
       sources={sources}
       onOpenSource={onOpenSource}
-      sections={['notes', 'media', 'identifiers', 'contacts', 'contributors', 'tasks']}
+      sections={['notes', 'media', 'contacts', 'contributors', 'tasks']}
     />
   );
 }

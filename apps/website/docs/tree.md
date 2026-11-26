@@ -60,7 +60,7 @@ Removing a person from a family or deleting a family is one click.
   record's Notes section, then choose whether an edit should update the
   shared text everywhere or only the current record. **Detach from this
   record** removes one link; **Delete everywhere** removes the note.
-- Facts and names carry their own Sources, Notes and Identifiers sections
+- Facts and names carry their own Sources and Notes sections
   inside the person editor; facts also have Contacts.
 
 ## Addresses
@@ -88,9 +88,9 @@ record, and deleting one related record leaves the task in place. Use
 one.
 
 Titles, addresses, associations and family partner/child links have the same
-Notes, Sources, Identifiers, Contributors and Tasks sections as the main entity
+Notes, Sources, Contributors and Tasks sections as the main entity
 tabs. Addresses also have Contacts. Tasks keep Notes and Media, but have no
-Sources, Identifiers, Contacts, Contributors or Tasks sections. A media link
+Sources, Contacts, Contributors or Tasks sections. A media link
 has Sources only.
 
 ## Media

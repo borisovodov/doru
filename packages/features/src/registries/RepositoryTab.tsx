@@ -15,7 +15,6 @@ import {
   AddressLinkField,
   ContactsSection,
   ContributorsSection,
-  IdentifiersSection,
   NotesSection,
   SourcesSection,
   TasksSection,
@@ -130,7 +129,6 @@ function RepositoryTabBody({
     notes: repositoryNotes,
     allNotes,
     citations: repositoryCitations,
-    identifiers,
     contacts,
     submitters,
     contributors,
@@ -351,23 +349,6 @@ function RepositoryTabBody({
             }}
             onDelete={async (note) => {
               await api.deleteNote(note);
-              await refreshAttachments();
-            }}
-          />
-          <IdentifiersSection
-            targetType="repository"
-            targetId={targetId}
-            identifiers={identifiers}
-            onAdd={async (identifier) => {
-              await api.addIdentifier(identifier);
-              await refreshAttachments();
-            }}
-            onUpdate={async (before, after) => {
-              await api.updateIdentifier(before, after);
-              await refreshAttachments();
-            }}
-            onDelete={async (identifier) => {
-              await api.deleteIdentifier(identifier);
               await refreshAttachments();
             }}
           />

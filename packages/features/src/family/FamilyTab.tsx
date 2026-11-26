@@ -11,7 +11,6 @@ import { Button, DangerZone, InlineError, useAutoSaveOnBlur } from '@doru/ui';
 import type { MediaWithPath } from '@doru/ui/domain';
 import {
   ContributorsSection,
-  IdentifiersSection,
   NotesSection,
   SourcesSection,
   TasksSection,
@@ -285,7 +284,6 @@ function FamilyTabBody({
     notes: familyNotes,
     allNotes,
     citations: familyCitations,
-    identifiers,
     submitters,
     contributors,
     refresh: refreshAttachments,
@@ -445,23 +443,6 @@ function FamilyTabBody({
         }}
         onDelete={async (note) => {
           await api.deleteNote(note);
-          await refreshAttachments();
-        }}
-      />
-      <IdentifiersSection
-        targetType="family"
-        targetId={record.id}
-        identifiers={identifiers}
-        onAdd={async (identifier) => {
-          await api.addIdentifier(identifier);
-          await refreshAttachments();
-        }}
-        onUpdate={async (before, after) => {
-          await api.updateIdentifier(before, after);
-          await refreshAttachments();
-        }}
-        onDelete={async (identifier) => {
-          await api.deleteIdentifier(identifier);
           await refreshAttachments();
         }}
       />

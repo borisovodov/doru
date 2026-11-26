@@ -2,7 +2,6 @@ import { useMemo } from 'react';
 import type {
   CitationRecord,
   ContactRecord,
-  IdentifierRecord,
   NoteLinkRecord,
   NoteRecord,
   RecordSubmitterLink,
@@ -107,25 +106,6 @@ export function useAttachmentMethods(
       updateCitation: async (before: CitationRecord, after: CitationRecord) => {
         if (!projectPath) return;
         await window.doru.updateCitation(projectPath, before, after);
-        await refreshTree();
-      },
-      getIdentifiers: (targetType: string, targetId: string) =>
-        projectPath
-          ? window.doru.getIdentifiers(projectPath, targetType, targetId)
-          : Promise.resolve([] as IdentifierRecord[]),
-      addIdentifier: async (identifier: IdentifierRecord) => {
-        if (!projectPath) return;
-        await window.doru.addIdentifier(projectPath, identifier);
-        await refreshTree();
-      },
-      deleteIdentifier: async (identifier: IdentifierRecord) => {
-        if (!projectPath) return;
-        await window.doru.deleteIdentifier(projectPath, identifier);
-        await refreshTree();
-      },
-      updateIdentifier: async (before: IdentifierRecord, after: IdentifierRecord) => {
-        if (!projectPath) return;
-        await window.doru.updateIdentifier(projectPath, before, after);
         await refreshTree();
       },
       getContacts: (targetType: string, targetId: string) =>

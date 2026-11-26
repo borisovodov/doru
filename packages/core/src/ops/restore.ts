@@ -281,7 +281,6 @@ export function attachmentsMatch(
         return [JSON.stringify(entry.link), JSON.stringify(media)];
       })
       .sort(),
-    identifiers: snapshot.identifiers.map((entry) => JSON.stringify(entry)).sort(),
     contacts: snapshot.contacts.map((entry) => JSON.stringify(entry)).sort(),
     taskLinks: snapshot.taskLinks.map((entry) => JSON.stringify(entry)).sort(),
     recordSubmitters: snapshot.recordSubmitters.map((entry) => JSON.stringify(entry)).sort(),

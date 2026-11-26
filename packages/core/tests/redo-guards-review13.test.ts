@@ -634,12 +634,11 @@ describe('redo guards for nested attachment targets', () => {
       const link = before.childLinks![0]!;
       service.updateFamily(before, { ...before, children: [], childLinks: [] });
       service.undo();
-      repo.insertIdentifier({
-        id: 'ID1',
+      repo.insertNote({
+        id: 'N1',
+        text: 'evidence added after undo',
         targetType: 'family_child',
         targetId: link.id,
-        namespace: 'refn',
-        value: 'x',
       });
       expect(service.redo().redoBlocked).toBe(true);
       expect(repo.getFamily('F1')?.childLinks?.map((entry) => entry.id)).toEqual([link.id]);

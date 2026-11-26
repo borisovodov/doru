@@ -3,7 +3,6 @@ import type {
   AttachmentsSnapshot,
   CitationRecord,
   ContactRecord,
-  IdentifierRecord,
   MediaLinkRecord,
   MediaRecord,
   NoteLinkRecord,
@@ -495,39 +494,6 @@ export function detachMediaOp(
 }
 
 // --- universal attachments ----------------------------------------------------
-
-export function addIdentifierOp(identifier: IdentifierRecord): Op {
-  return op(
-    crypto.randomUUID(),
-    'identifier.add',
-    (ctx) => ctx.repo.insertIdentifier(identifier),
-    (ctx) => ctx.repo.deleteIdentifier(identifier.id),
-    { targetType: identifier.targetType, targetId: identifier.targetId, kind: 'changed' },
-  );
-}
-
-export function deleteIdentifierOp(identifier: IdentifierRecord): Op {
-  return op(
-    crypto.randomUUID(),
-    'identifier.delete',
-    (ctx) => ctx.repo.deleteIdentifier(identifier.id),
-    (ctx) => ctx.repo.insertIdentifier(identifier),
-    { targetType: identifier.targetType, targetId: identifier.targetId, kind: 'changed' },
-  );
-}
-
-/** Changes an identifier's namespace or value. */
-export function updateIdentifierOp(before: IdentifierRecord, after: IdentifierRecord): Op {
-  return {
-    ...op(
-      crypto.randomUUID(),
-      'identifier.update',
-      (ctx) => ctx.repo.updateIdentifier(after),
-      (ctx) => ctx.repo.updateIdentifier(before),
-    ),
-    change: { targetType: after.targetType, targetId: after.targetId, kind: 'changed' },
-  };
-}
 
 export function addContactOp(contact: ContactRecord): Op {
   return op(
