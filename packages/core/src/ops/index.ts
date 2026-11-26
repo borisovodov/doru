@@ -1,7 +1,7 @@
 export { addPersonOp } from './addPerson';
 export { addRelativeOp, deletePersonOp, reparentOp, updatePersonOp } from './person';
 export { addFamilyOp, deleteFamilyOp, updateFamilyOp, type FamilyLinkAttachments } from './family';
-export { addFactOp, deleteFactOp, updateFactOp } from './fact';
+export { addFactOp, deleteFactOp, updateFactOp, type FactOwnerStamp } from './fact';
 export { addMediaOp, deleteMediaOp, updateMediaOp } from './media';
 export { addPlaceOp, deletePlaceOp, updatePlaceOp } from './place';
 export {

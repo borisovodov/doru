@@ -2,7 +2,7 @@
 
 A Dóru project is a single `.doru` file: a SQLite database branded with
 `application_id = 0x444F5255` ("DORU") and versioned with `user_version`.
-This document is the field-level reference for **schema version 24**. The
+This document is the field-level reference for **schema version 25**. The
 source of truth is [`packages/core/src/db/schema.ts`](../packages/core/src/db/schema.ts);
 the domain shapes that the repositories map onto the rows live in
 [`packages/core/src/model/types.ts`](../packages/core/src/model/types.ts).
@@ -24,6 +24,8 @@ in its README; that guarantee does not extend to the tree database.
   their date slots through explicit `*_date_id` foreign keys.
 - Task times are epoch-millisecond integers (`created_at`, `updated_at`,
   `remind_at`), not `date` rows.
+- Top-level records carry Dóru-local `created_at`/`updated_at` epoch-millisecond
+  instants; child, link and value rows do not.
 - Notes, citations, media, contacts, contributors, and tasks
   attach through a polymorphic `(target_type, target_id)` pair.
 - Files are not stored in SQLite. `media_file` rows hold project-relative
@@ -63,6 +65,34 @@ in its README; that guarantee does not extend to the tree database.
   `packages/core/src/model/targetPolicy.ts`. Date slots are plain `*_date_id`
   columns on the owner table; the role is the column name.
 
+## Record timestamps
+
+`person`, `family`, `place`, `source`, `media`, `repository`, `submitter`,
+`address`, `title`, `note` and `task` carry two Dóru-local epoch-millisecond
+instants. They are operational provenance, not genealogical dates and not a
+change log. Child rows, link rows and `date` values have no timestamps of
+their own.
+
+`created_at` is the first write of the row: the application clock for a record
+created in Dóru, the import instant for an unparseable GEDCOM stamp. `updated_at`
+is the last edit of the aggregate's own content. Editing names, facts,
+partner/child links, files, place names or address lines moves the root's
+instant; adding or removing notes, citations, media links, task links,
+contacts or contributors does not. Deleting a place, address,
+title or repository and detaching dangling references does not move the
+consumer's instant either. A fact's own `CHAN` moves the owning person or
+family, because facts are part of that aggregate and have no separate stamp.
+
+GEDCOM import maps structured `CREA`/`CHAN` and the vendor
+`_CREAT`/`_CREA`/`_CRE`/`_UPD` spellings when they contain a complete exact
+date. Typed record fields win; the same tags left in generic extensions are
+the second priority. `CREA` and vendor creation text fill `created_at`;
+`CHAN`, `_UPD` and the latest fact `CHAN` fill `updated_at`. When a record has
+no creation stamp, the earliest known change date is used as its lower bound.
+Partial, approximate, range, BCE and unparseable values are dropped rather
+than invented. When no GEDCOM stamp is usable, both instants are the single
+import instant. Export does not synthesize `CHAN` or `CREA`.
+
 ---
 
 ## Persons, names, and aliases
@@ -87,6 +117,8 @@ erDiagram
         TEXT sex "M, F, X, U"
         TEXT death_status "alive or dead"
         TEXT address_id FK "nullable, SET NULL"
+        INTEGER created_at "epoch milliseconds"
+        INTEGER updated_at "epoch milliseconds"
     }
 
     person_name {
@@ -161,6 +193,8 @@ erDiagram
         TEXT union_status "vendor _UST"
         TEXT marriage_begin_status "vendor _MSTAT"
         TEXT marriage_end_status "vendor _MEND"
+        INTEGER created_at "epoch milliseconds"
+        INTEGER updated_at "epoch milliseconds"
     }
 
     family_partner {
@@ -477,6 +511,8 @@ erDiagram
         TEXT preposition
         TEXT maidenhead
         TEXT place_type
+        INTEGER created_at "epoch milliseconds"
+        INTEGER updated_at "epoch milliseconds"
     }
 
     place_name {
@@ -548,6 +584,8 @@ erDiagram
         TEXT bibliography "vendor _BIBL"
         TEXT data_note
         TEXT publication_date_id FK "nullable, RESTRICT"
+        INTEGER created_at "epoch milliseconds"
+        INTEGER updated_at "epoch milliseconds"
     }
 
     source_text {
@@ -599,6 +637,8 @@ erDiagram
         TEXT repository_id FK "nullable, SET NULL"
         TEXT call_number
         INTEGER sequence
+        INTEGER created_at "epoch milliseconds"
+        INTEGER updated_at "epoch milliseconds"
     }
 
     repository {
@@ -606,6 +646,8 @@ erDiagram
         TEXT xref "GEDCOM provenance"
         TEXT name "NOT NULL"
         TEXT address_id FK "nullable, SET NULL"
+        INTEGER created_at "epoch milliseconds"
+        INTEGER updated_at "epoch milliseconds"
     }
 
     place {
@@ -704,6 +746,8 @@ erDiagram
         TEXT description "_DSCR"
         TEXT keywords "_KEYS"
         TEXT date_id FK "nullable, RESTRICT"
+        INTEGER created_at "epoch milliseconds"
+        INTEGER updated_at "epoch milliseconds"
     }
 
     media_file {
@@ -796,6 +840,8 @@ erDiagram
         TEXT state
         TEXT postal_code
         TEXT country
+        INTEGER created_at "epoch milliseconds"
+        INTEGER updated_at "epoch milliseconds"
     }
 
     address_line {
@@ -810,6 +856,8 @@ erDiagram
         TEXT xref "GEDCOM provenance"
         TEXT name "NOT NULL"
         TEXT address_id FK "nullable, SET NULL"
+        INTEGER created_at "epoch milliseconds"
+        INTEGER updated_at "epoch milliseconds"
     }
 
     submitter_language {
@@ -885,12 +933,15 @@ model type, tab prefix, and UI strings all use the task vocabulary
 (`TaskRecord`, `TaskTab`, the `task:` tab prefix, `features.tasks.*`).
 
 Task times are **epoch milliseconds**, not genealogical dates: `created_at`
-is set once by the application, `updated_at` changes on every task edit, and
-`remind_at` is the single user-chosen reminder instant. Closing a task only
-changes its status; the schema has no completion timestamp. Import accepts
-complete exact dates only (including My Family Tree's encoded `DDMMYYYY`
-record slots); partial, approximate, range, or otherwise unparseable task
-dates are dropped.
+is set once by the application (or mapped from a complete exact GEDCOM task
+date on import), `updated_at` changes on every task edit (or is mapped from a
+complete exact `CHAN`), and `remind_at` is the single user-chosen reminder
+instant. Closing a task only changes its status; the schema has no completion
+timestamp. Import accepts complete exact dates only (including My Family
+Tree's encoded `DDMMYYYY` record slots); partial, approximate, range, or
+otherwise unparseable values are not used as task dates. Without a usable
+creation date, `created_at` is the import instant; a usable `CHAN` sets
+`updated_at` but never moves it before `created_at`.
 
 The GEDCOM `TODO` `REPO` slot is parsed by `@doru/gedcom` and imported as a
 repository target (`task_link`), not as a direct column. The `_CAT`, `_LOCL`,

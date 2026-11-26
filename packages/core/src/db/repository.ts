@@ -57,10 +57,14 @@ export interface TreeRepository {
   countFamilies(): number;
   /** Reconnects a person to an address without rewriting names or facts. */
   setPersonAddressId(personId: string, addressId: string | undefined): void;
+  /** Bumps a person's aggregate edit instant without rewriting names or facts. */
+  setPersonUpdatedAt(personId: string, updatedAt: number | undefined): void;
   insertFamily(family: FamilyRecord): void;
   updateFamily(family: FamilyRecord): void;
   /** Reconnects a surviving marriage-status row to its place. */
   setFamilyMarriageStatusPlaceId(statusId: string, placeId: string | undefined): void;
+  /** Bumps a family's aggregate edit instant without rewriting links or facts. */
+  setFamilyUpdatedAt(familyId: string, updatedAt: number | undefined): void;
   getFamily(id: string): FamilyRecord | undefined;
   deleteFamily(id: string): boolean;
   listFamilies(): FamilyRecord[];
@@ -291,6 +295,8 @@ export class SqliteTreeRepository implements TreeRepository {
         sex: person.sex,
         deathStatus: person.deathStatus,
         addressId: person.addressId,
+        createdAt: person.createdAt,
+        updatedAt: person.updatedAt,
       });
       this.names.replaceNamesForPerson(person.id, person.names);
       for (const fact of person.facts) {
@@ -318,6 +324,8 @@ export class SqliteTreeRepository implements TreeRepository {
         sex: person.sex,
         deathStatus: person.deathStatus,
         addressId: person.addressId,
+        createdAt: person.createdAt,
+        updatedAt: person.updatedAt,
       });
       const newParts = this.names.replaceNamesForPerson(person.id, person.names, reservedDates);
       const newNames = new Set(collectNameIds(person.names));
@@ -435,12 +443,20 @@ export class SqliteTreeRepository implements TreeRepository {
     this.persons.setAddressId(personId, addressId);
   }
 
+  setPersonUpdatedAt(personId: string, updatedAt: number | undefined): void {
+    this.persons.setUpdatedAt(personId, updatedAt);
+  }
+
   insertFamily(family: FamilyRecord): void {
     this.families.insertFamily(family);
   }
 
   setFamilyMarriageStatusPlaceId(statusId: string, placeId: string | undefined): void {
     this.families.setMarriageStatusPlaceId(statusId, placeId);
+  }
+
+  setFamilyUpdatedAt(familyId: string, updatedAt: number | undefined): void {
+    this.families.setUpdatedAt(familyId, updatedAt);
   }
 
   updateFamily(family: FamilyRecord): void {
