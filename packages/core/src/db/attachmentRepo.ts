@@ -49,7 +49,7 @@ export class AttachmentRepo {
 
   // bulk cascade -------------------------------------------------------------
 
-  /** Deletes every attachment row of the target (except notes/citations/media, which own their links). */
+  /** Deletes the attachment rows that are not cleaned by their owning repo (identifiers, contacts). */
   deleteAllFor(targetType: string, targetId: string): void {
     this.db.prepare('DELETE FROM contact WHERE target_type = ? AND target_id = ?').run(targetType, targetId);
   }

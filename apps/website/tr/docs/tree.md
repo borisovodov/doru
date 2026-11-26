@@ -1,5 +1,5 @@
 ---
-source-hash: b425b67199c0
+source-hash: 2e99cfb11221
 ---
 
 # Ağaçla çalışma
@@ -36,8 +36,7 @@ Tam kişi düzenleyicisinde ebeveyn, partner veya çocuk ekleyin. Mevcut bir ki�
 ## Kaynaklar ve notlar
 
 - **Kaynaklar**: bir kişiye kaynak ekleyin (başlık ve yazarla) veya mevcut bir kaynağı yeniden kullanın. Her ekleme bir atıftır ve kaldırılabilir.
-- **Notlar**: bir kişiye eklenen serbest biçimli araştırma notları. Bir not birkaç kayda eklenebilir: başka bir kaydın Notlar bölümünde **Mevcut notu ekle**'yi kullanın, ardından bir düzenlemenin paylaşılan metni her yerde mi yoksa yalnızca geçerli kayıtta mı güncelleyeceğini seçin. **Bu kayıttan ayır** bir bağlantıyı kaldırır; **Her yerde sil** notu kaldırır.
-- Olgular ve adlar, kişi düzenleyicisi içinde kendi Kaynaklar ve Notlar bölümlerine sahiptir; olguların ayrıca İletişim bilgileri vardır.
+- **Notlar**: bir kişiye eklenen serbest biçimli araştırma notları. Her not tek bir kayda aittir: o kaydın Notlar bölümünde ekleyin, düzenleyin veya silin. İçe aktarılan bir GEDCOM dosyasındaki paylaşılan not, ona başvuran her kayda kopyalanır.
 
 ## Adresler
 
@@ -53,7 +52,7 @@ Eserler, adresler, ilişkilendirmeler ve aile partner/çocuk bağlantıları, an
 
 Fotoğraflar, projenin yanındaki `media/` klasöründeki sıradan dosyalardır. Bunları bir kişi, aile, kaynak, yer, depo, gönderen, eser, görev veya adresten ekleyin; medya sekmesindeki **İlgili** bölümünde mevcut bir kaydı ek hedeflere bağlayabilirsiniz. Medya sekmesini açmak için bir önizlemeye tıklayın; burada başlığı düzenleyebilir, dosyaları yönetebilir ve altyazı, sıra, birincil bayrağı ve dışlama bayrağı gibi bağlantı meta verilerini düzenleyebilirsiniz.
 
-Bir medya kaydı birkaç hedefe bağlanabilir. **Bu kayıttan ayır** bir bağlantıyı kaldırır ve son bağlantıysa kaydı siler; **Medyayı sil** kaydı ve dosya kopyalarını kaldırır. Bir hedef kaydı silmek yalnızca bağlantılarını kaldırır, bu nedenle paylaşılan bir medya kaydı bağlantısız kalabilir.
+Bir medya kaydı birkaç hedefe bağlanabilir. **Bu kayıttan ayır** yalnızca medya birkaç hedefe bağlıysa görünür; bir bağlantıyı kaldırır. **Medyayı sil** kaydı ve dosya kopyalarını kaldırır. Bir hedef kaydı silmek yalnızca bağlantılarını kaldırır, bu nedenle bir medya kaydı bağlantısız kalabilir.
 
 ## Sıralama
 

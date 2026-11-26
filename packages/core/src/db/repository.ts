@@ -12,7 +12,6 @@ import type {
   FamilyRecord,
   MediaLinkRecord,
   MediaRecord,
-  NoteLinkRecord,
   NoteRecord,
   PersonName,
   PersonRecord,
@@ -141,8 +140,6 @@ export interface TreeRepository {
   updateNote(note: NoteRecord): void;
   getNote(id: string): NoteRecord | undefined;
   deleteNote(id: string): boolean;
-  addNoteLink(noteId: string, link: NoteLinkRecord): void;
-  removeNoteLink(id: string): boolean;
   listNotes(): NoteRecord[];
   listNotesFor(targetType: string, targetId: string): NoteRecord[];
   insertMedia(media: MediaRecord): void;
@@ -755,18 +752,7 @@ export class SqliteTreeRepository implements TreeRepository {
   }
 
   deleteNote(id: string): boolean {
-    return this.transactions.run(() => {
-      this.deleteAttachmentsFor('note', id);
-      return this.notes.deleteNote(id);
-    });
-  }
-
-  addNoteLink(noteId: string, link: NoteLinkRecord): void {
-    this.notes.addNoteLink(noteId, link);
-  }
-
-  removeNoteLink(id: string): boolean {
-    return this.notes.removeNoteLink(id);
+    return this.notes.deleteNote(id);
   }
 
   listNotes(): NoteRecord[] {
@@ -1157,19 +1143,9 @@ export class SqliteTreeRepository implements TreeRepository {
     const mediaLinks = this.media.listLinksFor(targetType, targetId);
     const citations = this.sources.listCitations(targetType, targetId);
     const taskLinks = this.research.listTaskLinksFor(targetType, targetId);
-    const noteLinks = this.notes.listLinksFor(targetType, targetId);
-    // Capture every linked note: another target removed by the same
-    // operation may take the note's last link, and this snapshot is then
-    // the only place its attachments were recorded.
-    const linkedNoteIds = [...new Set(noteLinks.map((entry) => entry.note.id))];
     const linkedMedia = [...new Map(mediaLinks.map((entry) => [entry.media.id, entry.media])).values()];
     const snapshot: AttachmentsSnapshot = {
-      noteLinks,
-      noteAttachments: linkedNoteIds.map((noteId) => ({
-        targetType: 'note',
-        targetId: noteId,
-        attachments: this.collectAttachments('note', noteId, state),
-      })),
+      notes: this.notes.listNotesFor(targetType, targetId),
       citations,
       citationAttachments: citations.map((citation) => ({
         targetType: 'citation',
@@ -1214,21 +1190,7 @@ export class SqliteTreeRepository implements TreeRepository {
     }
     visited.add(key);
     this.markRemoved(targetType, targetId);
-    const noteLinks = this.notes.listLinksFor(targetType, targetId);
-    const removedLinksByNote = new Map<string, number>();
-    for (const entry of noteLinks) {
-      removedLinksByNote.set(entry.note.id, (removedLinksByNote.get(entry.note.id) ?? 0) + 1);
-    }
-    const deletedNoteIds = [...removedLinksByNote]
-      .filter(([noteId, removed]) => this.notes.countLinksForNote(noteId) - removed <= 0)
-      .map(([noteId]) => noteId);
-    this.notes.deleteLinksFor(targetType, targetId);
-    // A note that just lost its last link is gone; its own attachments must
-    // follow it instead of being left behind as orphan rows.
-    for (const noteId of deletedNoteIds) {
-      this.markRemoved('note', noteId);
-      this.deleteAttachmentsForInternal('note', noteId, visited);
-    }
+    this.notes.deleteNotesFor(targetType, targetId);
     for (const citation of this.sources.listCitations(targetType, targetId)) {
       this.deleteAttachmentsForInternal('citation', citation.id, visited);
     }
@@ -1271,26 +1233,9 @@ export class SqliteTreeRepository implements TreeRepository {
 
   private restoreAttachmentsInternal(snapshot: AttachmentsSnapshot, visitedFiles: Set<AttachmentsSnapshot>): void {
     const removed = this.removedTargets(snapshot);
-    const restoredNotes = new Set<string>();
-    for (const entry of snapshot.noteLinks) {
-      if (this.notes.getNote(entry.note.id) === undefined) {
-        // Only a note that this operation removed may come back; a note
-        // deleted by another writer after the operation stays deleted.
-        if (removed.size > 0 && !removed.has(`note\u0000${entry.note.id}`)) {
-          continue;
-        }
-        // Reinsert without its captured links: only the links this operation
-        // removed may come back.
-        this.notes.insertNote({ ...entry.note, links: [] });
-        restoredNotes.add(entry.note.id);
-      }
-      if (!this.notes.hasLink(entry.link.id)) {
-        this.notes.addNoteLink(entry.note.id, entry.link);
-      }
-    }
-    for (const nested of snapshot.noteAttachments) {
-      if (restoredNotes.has(nested.targetId)) {
-        this.restoreAttachmentsInternal(nested.attachments, visitedFiles);
+    for (const note of snapshot.notes) {
+      if (this.notes.getNote(note.id) === undefined) {
+        this.notes.insertNote(note);
       }
     }
     const skippedCitations = new Set<string>();
@@ -1421,7 +1366,6 @@ export class SqliteTreeRepository implements TreeRepository {
       visited.add(node);
       this.snapshotMarkers.set(node, frame);
       for (const nested of [
-        ...node.noteAttachments,
         ...node.citationAttachments,
         ...node.mediaAttachments,
         ...node.mediaFileAttachments,

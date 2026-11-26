@@ -1,35 +1,30 @@
 import type { DatabaseSync } from 'node:sqlite';
-import type { NoteLinkRecord, NoteRecord } from '../model/types';
+import type { NoteRecord } from '../model/types';
 
 interface NoteRow {
   id: string;
   text: string;
+  target_type: string;
+  target_id: string;
   created_at: number | null;
   updated_at: number | null;
 }
 
-interface LinkRow {
-  id: string;
-  note_id: string;
-  target_type: string;
-  target_id: string;
-}
-
 /**
- * Notes with their link rows. An inline note has one link, a shared note
- * several. The flat `targetType`/`targetId` on the model are projections of
- * the first link (of the matching link, for per-target reads).
+ * Notes owned by exactly one target. The polymorphic target pair lives on
+ * the note row itself; shared GEDCOM notes are copied per target on import.
  */
 export class NoteRepo {
   constructor(private readonly db: DatabaseSync) {}
 
-  /** Inserts the note with its links (or the flat target as a single link). */
+  /** Inserts the note with its target. */
   insertNote(note: NoteRecord): void {
-    this.insertRow(note);
-    this.replaceLinks(note);
+    this.db
+      .prepare('INSERT INTO note (id, text, target_type, target_id, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)')
+      .run(note.id, note.text, note.targetType, note.targetId, note.createdAt ?? null, note.updatedAt ?? null);
   }
 
-  /** Updates the note text and timestamp; links are managed separately. */
+  /** Updates the note text and timestamp; the target never changes. */
   updateNote(note: NoteRecord): void {
     if (this.db.prepare('SELECT 1 FROM note WHERE id = ?').get(note.id) === undefined) {
       throw new Error(`note ${note.id} no longer exists`);
@@ -43,142 +38,45 @@ export class NoteRepo {
     return this.db.prepare('DELETE FROM note WHERE id = ?').run(id).changes > 0;
   }
 
-  /** Inserts a link; a note already linked to the same target is left unchanged. */
-  addNoteLink(noteId: string, link: NoteLinkRecord): void {
-    this.db
-      .prepare(
-        `INSERT INTO note_link (id, note_id, target_type, target_id) VALUES (?, ?, ?, ?)
-         ON CONFLICT (note_id, target_type, target_id) DO NOTHING`,
-      )
-      .run(link.id, noteId, link.targetType, link.targetId);
-  }
-
-  removeNoteLink(id: string): boolean {
-    const link = this.db.prepare('SELECT note_id FROM note_link WHERE id = ?').get(id) as
-      | { note_id: string }
-      | undefined;
-    const result = this.db.prepare('DELETE FROM note_link WHERE id = ?').run(id);
-    if (result.changes > 0 && link) {
-      const remaining = this.db.prepare('SELECT COUNT(*) AS n FROM note_link WHERE note_id = ?').get(link.note_id) as {
-        n: number;
-      };
-      if (remaining.n === 0) {
-        this.db.prepare('DELETE FROM note WHERE id = ?').run(link.note_id);
-      }
-    }
-    return result.changes > 0;
-  }
-
   getNote(id: string): NoteRecord | undefined {
-    const row = this.db.prepare('SELECT id, text, created_at, updated_at FROM note WHERE id = ?').get(id) as
-      | NoteRow
-      | undefined;
+    const row = this.db
+      .prepare('SELECT id, text, target_type, target_id, created_at, updated_at FROM note WHERE id = ?')
+      .get(id) as NoteRow | undefined;
     return row ? this.hydrate(row) : undefined;
   }
 
-  /** Every note, projected to its first link. */
+  /** Every note, ordered by id. */
   listNotes(): NoteRecord[] {
     const rows = this.db
-      .prepare('SELECT id, text, created_at, updated_at FROM note ORDER BY id')
+      .prepare('SELECT id, text, target_type, target_id, created_at, updated_at FROM note ORDER BY id')
       .all() as unknown as NoteRow[];
     return rows.map((row) => this.hydrate(row));
   }
 
-  /** Notes linked to the target, projected to that target. */
+  /** Notes owned by the target, ordered by id. */
   listNotesFor(targetType: string, targetId: string): NoteRecord[] {
-    const links = this.db
+    const rows = this.db
       .prepare(
-        'SELECT id, note_id, target_type, target_id FROM note_link WHERE target_type = ? AND target_id = ? ORDER BY id',
+        `SELECT id, text, target_type, target_id, created_at, updated_at
+         FROM note WHERE target_type = ? AND target_id = ? ORDER BY id`,
       )
-      .all(targetType, targetId) as unknown as LinkRow[];
-    const notes: NoteRecord[] = [];
-    for (const link of links) {
-      const row = this.db
-        .prepare('SELECT id, text, created_at, updated_at FROM note WHERE id = ?')
-        .get(link.note_id) as NoteRow | undefined;
-      if (row) {
-        notes.push({ ...this.hydrate(row), targetType, targetId });
-      }
-    }
-    return notes;
+      .all(targetType, targetId) as unknown as NoteRow[];
+    return rows.map((row) => this.hydrate(row));
   }
 
-  /** The link rows targeting the given target, with their notes. */
-  listLinksFor(targetType: string, targetId: string): Array<{ note: NoteRecord; link: NoteLinkRecord }> {
-    const links = this.db
-      .prepare('SELECT id, note_id, target_type, target_id FROM note_link WHERE target_type = ? AND target_id = ?')
-      .all(targetType, targetId) as unknown as LinkRow[];
-    const result: Array<{ note: NoteRecord; link: NoteLinkRecord }> = [];
-    for (const link of links) {
-      const row = this.db
-        .prepare('SELECT id, text, created_at, updated_at FROM note WHERE id = ?')
-        .get(link.note_id) as NoteRow | undefined;
-      if (row) {
-        result.push({
-          note: this.hydrate(row),
-          link: { id: link.id, targetType: link.target_type, targetId: link.target_id },
-        });
-      }
-    }
-    return result;
-  }
-
-  /** Removes every link to the target, deleting notes left with no links. */
-  deleteLinksFor(targetType: string, targetId: string): void {
-    const links = this.db
-      .prepare('SELECT id, note_id FROM note_link WHERE target_type = ? AND target_id = ?')
-      .all(targetType, targetId) as unknown as { id: string; note_id: string }[];
-    this.db.prepare('DELETE FROM note_link WHERE target_type = ? AND target_id = ?').run(targetType, targetId);
-    for (const link of links) {
-      const remaining = this.db.prepare('SELECT COUNT(*) AS n FROM note_link WHERE note_id = ?').get(link.note_id) as {
-        n: number;
-      };
-      if (remaining.n === 0) {
-        this.db.prepare('DELETE FROM note WHERE id = ?').run(link.note_id);
-      }
-    }
-  }
-
-  /** Whether one note link id exists, without hydrating its target. */
-  hasLink(id: string): boolean {
-    return this.db.prepare('SELECT 1 FROM note_link WHERE id = ?').get(id) !== undefined;
-  }
-
-  /** How many targets currently link this note. */
-  countLinksForNote(noteId: string): number {
-    const row = this.db.prepare('SELECT COUNT(*) AS n FROM note_link WHERE note_id = ?').get(noteId) as { n: number };
-    return row.n;
-  }
-
-  private insertRow(note: NoteRecord): void {
-    this.db
-      .prepare('INSERT INTO note (id, text, created_at, updated_at) VALUES (?, ?, ?, ?)')
-      .run(note.id, note.text, note.createdAt ?? null, note.updatedAt ?? null);
-  }
-
-  private replaceLinks(note: NoteRecord): void {
-    if (note.links !== undefined) {
-      for (const link of note.links) {
-        this.addNoteLink(note.id, link);
-      }
-    } else if (note.targetType !== undefined && note.targetId !== undefined) {
-      this.addNoteLink(note.id, { id: crypto.randomUUID(), targetType: note.targetType, targetId: note.targetId });
-    }
+  /** Deletes every note owned by the target. */
+  deleteNotesFor(targetType: string, targetId: string): void {
+    this.db.prepare('DELETE FROM note WHERE target_type = ? AND target_id = ?').run(targetType, targetId);
   }
 
   private hydrate(row: NoteRow): NoteRecord {
-    const links = this.db
-      .prepare('SELECT id, note_id, target_type, target_id FROM note_link WHERE note_id = ? ORDER BY id')
-      .all(row.id) as unknown as LinkRow[];
-    const first = links[0];
     return {
       id: row.id,
       text: row.text,
+      targetType: row.target_type,
+      targetId: row.target_id,
       createdAt: row.created_at ?? undefined,
       updatedAt: row.updated_at ?? undefined,
-      targetType: first?.target_type,
-      targetId: first?.target_id,
-      links: links.map((link) => ({ id: link.id, targetType: link.target_type, targetId: link.target_id })),
     };
   }
 }

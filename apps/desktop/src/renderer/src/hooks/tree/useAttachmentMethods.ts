@@ -2,7 +2,6 @@ import { useMemo } from 'react';
 import type {
   CitationRecord,
   ContactRecord,
-  NoteLinkRecord,
   NoteRecord,
   RecordSubmitterLink,
   SourceRecord,
@@ -24,25 +23,14 @@ export function useAttachmentMethods(
       ...mediaApi,
       getNotes: (targetType: string, targetId: string) =>
         projectPath ? window.doru.listNotes(projectPath, targetType, targetId) : Promise.resolve([] as NoteRecord[]),
-      getAllNotes: () => (projectPath ? window.doru.listNotes(projectPath) : Promise.resolve([] as NoteRecord[])),
       addNote: async (note: NoteRecord) => {
         if (!projectPath) return;
         await window.doru.addNote(projectPath, note);
         await refreshTree();
       },
-      updateNote: async (before: NoteRecord, after: NoteRecord, context?: NoteLinkRecord) => {
+      updateNote: async (before: NoteRecord, after: NoteRecord) => {
         if (!projectPath) return;
-        await window.doru.updateNote(projectPath, before, after, context);
-        await refreshTree();
-      },
-      attachNote: async (noteId: string, link: NoteLinkRecord) => {
-        if (!projectPath) return;
-        await window.doru.attachNote(projectPath, noteId, link);
-        await refreshTree();
-      },
-      detachNote: async (note: NoteRecord, link: NoteLinkRecord) => {
-        if (!projectPath) return;
-        await window.doru.detachNote(projectPath, note, link);
+        await window.doru.updateNote(projectPath, before, after);
         await refreshTree();
       },
       deleteNote: async (note: NoteRecord) => {

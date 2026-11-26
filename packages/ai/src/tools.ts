@@ -109,8 +109,8 @@ export const doruTools: ToolDefinition[] = [
     description: 'Write a research note attached to a person, family or source.',
     inputSchema: {
       text: z.string().describe('Note text'),
-      targetType: z.string().optional(),
-      targetId: z.string().optional(),
+      targetType: z.string().describe('Target record type'),
+      targetId: z.string().describe('Id of the annotated record'),
     },
   },
 ];

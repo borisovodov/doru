@@ -1,5 +1,5 @@
 ---
-source-hash: b425b67199c0
+source-hash: 2e99cfb11221
 ---
 
 # Lavorare con l'albero
@@ -62,12 +62,7 @@ famiglia è un clic.
 
 - **Fonti**: collega fonti a una persona (con titolo e autore) o riutilizza una
   fonte esistente. Ogni collegamento è una citazione e può essere rimosso.
-- **Note**: note di ricerca libere collegate a una persona. Una nota può essere
-  collegata a più record: usa **Collega una nota esistente** nella sezione Note
-  di un altro record, poi scegli se una modifica deve aggiornare il testo
-  condiviso ovunque o solo il record corrente. **Scollega da questo record**
-  rimuove un collegamento; **Elimina ovunque** rimuove la nota.
-- Eventi e nomi hanno le proprie sezioni Fonti e Note all'interno dell'editor della persona; gli eventi hanno anche Contatti.
+- **Note**: note di ricerca libere collegate a una persona. Ogni nota appartiene a un solo record: aggiungila, modificala o eliminala nella sezione Note di quel record. Una nota condivisa da un file GEDCOM importato viene copiata per ogni record che la referenzia.
 
 ## Indirizzi
 
@@ -92,7 +87,7 @@ media, dove puoi modificare il titolo, gestire i file e modificare i metadati
 del collegamento come la didascalia, la sequenza, il contrassegno principale e
 quello di esclusione.
 
-Un record media può essere collegato a più destinazioni. **Scollega da questo record** rimuove un collegamento e elimina il record quando era l'ultimo; **Elimina media** rimuove il record e le copie dei suoi file. L'eliminazione di un record di destinazione rimuove solo i suoi collegamenti, quindi un record media condiviso può rimanere senza collegamenti.
+Un record media può essere collegato a più destinazioni. **Scollega da questo record** compare solo quando il media è collegato a più destinazioni; rimuove un collegamento. **Elimina media** rimuove il record e le copie dei suoi file. L'eliminazione di un record di destinazione rimuove solo i suoi collegamenti, quindi un record media può rimanere senza collegamenti.
 
 ## Ordinamento
 

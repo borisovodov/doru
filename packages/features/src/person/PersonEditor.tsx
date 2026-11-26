@@ -77,7 +77,6 @@ export function PersonEditor({
   onBlur,
 }: PersonEditorProps) {
   const [notes, setNotes] = useState<NoteRecord[]>([]);
-  const [allNotes, setAllNotes] = useState<NoteRecord[]>([]);
   const [families, setFamilies] = useState<FamilyRecord[]>([]);
   const [associations, setAssociations] = useState<AssociationRecord[]>([]);
   const [aliases, setAliases] = useState<Array<{ id: string; aliasId: string }>>([]);
@@ -111,9 +110,7 @@ export function PersonEditor({
   };
 
   const refreshNotes = async () => {
-    const [loadedNotes, loadedAllNotes] = await Promise.all([api.getNotes('person', draft.id), api.getAllNotes()]);
-    setNotes(loadedNotes);
-    setAllNotes(loadedAllNotes);
+    setNotes(await api.getNotes('person', draft.id));
   };
 
   const refreshCitations = async () => {
@@ -134,10 +131,9 @@ export function PersonEditor({
       return;
     }
     let cancelled = false;
-    void Promise.all([api.getNotes('person', draft.id), api.getAllNotes()]).then(([loadedNotes, loadedAllNotes]) => {
+    void api.getNotes('person', draft.id).then((loadedNotes) => {
       if (!cancelled) {
         setNotes(loadedNotes);
-        setAllNotes(loadedAllNotes);
       }
     });
     void api.getFamilies().then((loaded) => {
@@ -475,34 +471,18 @@ export function PersonEditor({
             onOpenMedia={onOpenMedia}
           />
           <NotesSection
-            targetType="person"
-            targetId={draft.id}
             notes={notes}
-            availableNotes={allNotes}
             onAdd={async (text) => {
               await api.addNote({
                 id: crypto.randomUUID(),
                 text,
                 targetType: 'person',
                 targetId: draft.id,
-                links: [{ id: crypto.randomUUID(), targetType: 'person', targetId: draft.id }],
               });
               await refreshNotes();
             }}
-            onUpdate={async (before, after, context) => {
-              await api.updateNote(before, after, context);
-              await refreshNotes();
-            }}
-            onAttach={async (noteId) => {
-              await api.attachNote(noteId, {
-                id: crypto.randomUUID(),
-                targetType: 'person',
-                targetId: draft.id,
-              });
-              await refreshNotes();
-            }}
-            onDetach={async (note, link) => {
-              await api.detachNote(note, link);
+            onUpdate={async (before, after) => {
+              await api.updateNote(before, after);
               await refreshNotes();
             }}
             onDelete={async (note) => {

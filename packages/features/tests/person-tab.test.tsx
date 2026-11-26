@@ -24,7 +24,6 @@ function renderTab(
     getPlaces: async () => [],
     getAddresses: async () => [],
     getNotes: async () => [],
-    getAllNotes: async () => [],
     getCitations: async () => [],
     getContacts: async () => [],
     getTasksFor: async () => [],

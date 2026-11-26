@@ -5,55 +5,48 @@ import { NotesSection } from '../src/domain/notes/NotesSection';
 import { nls } from '../src/nls';
 import { renderUi } from '../../../test/ui/harness';
 
-const existingNote: NoteRecord = { id: 'N2', text: 'Existing note' };
+const note: NoteRecord = {
+  id: 'N1',
+  text: 'Existing note',
+  targetType: 'person',
+  targetId: 'P1',
+};
 
 const noop = async () => undefined;
 
 describe('NotesSection', () => {
-  it('attaches an existing note and clears the selection', async () => {
-    const onAttach = vi.fn(async () => undefined);
-    renderUi(
-      <NotesSection
-        targetType="person"
-        targetId="P1"
-        notes={[]}
-        availableNotes={[existingNote]}
-        onAdd={noop}
-        onUpdate={noop}
-        onAttach={onAttach}
-        onDelete={noop}
-      />,
-    );
+  it('edits the note through the update callback', async () => {
+    const onUpdate = vi.fn(async () => undefined);
+    renderUi(<NotesSection notes={[note]} onAdd={noop} onUpdate={onUpdate} onDelete={noop} />);
 
-    const select = screen.getByRole('combobox', { name: nls.t('features.tree.notes.attachExisting') });
-    fireEvent.change(select, { target: { value: 'N2' } });
-    fireEvent.click(screen.getByRole('button', { name: nls.t('features.tree.notes.attach') }));
+    fireEvent.click(screen.getByRole('button', { name: nls.t('features.tree.notes.edit') }));
+    fireEvent.change(screen.getByDisplayValue(note.text), { target: { value: 'Updated note' } });
+    fireEvent.click(screen.getByRole('button', { name: nls.t('features.tree.save') }));
 
-    await waitFor(() => expect(onAttach).toHaveBeenCalledWith('N2'));
-    expect(select).toHaveValue('');
+    await waitFor(() => expect(onUpdate).toHaveBeenCalledWith(note, expect.objectContaining({ text: 'Updated note' })));
   });
 
-  it('reports a failed attach', async () => {
-    renderUi(
-      <NotesSection
-        targetType="person"
-        targetId="P1"
-        notes={[]}
-        availableNotes={[existingNote]}
-        onAdd={noop}
-        onUpdate={noop}
-        onAttach={async () => {
-          throw new Error('disk full');
-        }}
-        onDelete={noop}
-      />,
-    );
+  it('deletes the note through the delete callback', async () => {
+    const onDelete = vi.fn(async () => undefined);
+    renderUi(<NotesSection notes={[note]} onAdd={noop} onUpdate={noop} onDelete={onDelete} />);
 
-    const select = screen.getByRole('combobox', { name: nls.t('features.tree.notes.attachExisting') });
-    fireEvent.change(select, { target: { value: 'N2' } });
-    fireEvent.click(screen.getByRole('button', { name: nls.t('features.tree.notes.attach') }));
+    fireEvent.click(screen.getByRole('button', { name: nls.t('features.tree.notes.remove') }));
 
-    expect(await screen.findByText(nls.t('features.tree.autosaveFailed'))).toBeInTheDocument();
-    expect(select).toHaveValue('N2');
+    await waitFor(() => expect(onDelete).toHaveBeenCalledWith(note));
+  });
+
+  it('adds a note from the button, not on Enter', async () => {
+    const onAdd = vi.fn(async () => undefined);
+    renderUi(<NotesSection notes={[]} onAdd={onAdd} onUpdate={noop} onDelete={noop} />);
+
+    const field = screen.getByPlaceholderText(nls.t('features.tree.notes.placeholder'));
+    expect(field.tagName).toBe('TEXTAREA');
+    fireEvent.change(field, { target: { value: 'First line\nSecond line' } });
+    fireEvent.keyDown(field, { key: 'Enter' });
+    expect(onAdd).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getByRole('button', { name: nls.t('features.tree.notes.add') }));
+
+    await waitFor(() => expect(onAdd).toHaveBeenCalledWith('First line\nSecond line'));
   });
 });

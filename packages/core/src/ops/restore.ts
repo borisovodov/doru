@@ -271,9 +271,7 @@ export function attachmentsMatch(
   captured: AttachmentsSnapshot,
 ): boolean {
   const direct = (snapshot: AttachmentsSnapshot): unknown => ({
-    noteLinks: snapshot.noteLinks
-      .map((entry) => [entry.link.id, JSON.stringify({ ...entry.note, links: undefined })])
-      .sort(),
+    notes: snapshot.notes.map((entry) => JSON.stringify(entry)).sort(),
     citations: snapshot.citations.map((entry) => JSON.stringify(entry)).sort(),
     mediaLinks: snapshot.mediaLinks
       .map((entry) => {
@@ -294,7 +292,6 @@ export function attachmentsMatch(
       }
       records.set(key, JSON.stringify(direct(node)));
       for (const nested of [
-        ...node.noteAttachments,
         ...node.citationAttachments,
         ...node.mediaAttachments,
         ...node.mediaFileAttachments,

@@ -147,7 +147,7 @@ those sets; there is no global runtime target list and no second UI list.
 
 | Family | Allowed targets |
 |---|---|
-| Note link | Every target type except `media_link`. A note is never a target. |
+| Note | Every target type except `media_link`. A note record is never a target. |
 | Citation | Every target type except `task`; `media_link` is allowed. |
 | Media link | Every target type except `media_link`; a task is a valid media target. |
 | Contact | `person`, `fact`, `address`, `repository`, `submitter`. |
@@ -160,11 +160,13 @@ a media link carries Sources only, and contributors are absent
 from task cards. `TreeService` rejects every disallowed pair with one shared
 guard, so agents and IPC callers follow the same matrix as the UI.
 
-A note is a leaf annotation: it attaches to a record and stores its text, but
-no attachment may point at it, and a note row has no attachment panel. GEDCOM 7
-allows `SOUR` inside both `NOTE` and `SNOTE`; `@doru/gedcom` still parses it, but
-the core mapping drops it on import and never writes it on export. Vendor
-`_SUBM` links on notes are dropped the same way.
+A note is a leaf annotation: it is owned by exactly one record and stores its
+text, but no attachment may point at it, and a note row has no attachment
+panel. GEDCOM shared notes are copied per target on import, so the database
+never holds a note shared between records; export writes every note as an
+inline `NOTE`. GEDCOM 7 allows `SOUR` inside both `NOTE` and `SNOTE`;
+`@doru/gedcom` still parses it, but the core mapping drops it on import and
+never writes it on export. Vendor `_SUBM` links on notes are dropped the same way.
 
 ## Notes store text only
 
@@ -173,6 +175,21 @@ The row also keeps `created_at` and `updated_at` epoch-millisecond instants for
 provenance. GEDCOM `NOTE.LANG`/`SNOTE.LANG`, `NOTE.MIME`/`SNOTE.MIME` and
 `NOTE.TRAN`/`SNOTE.TRAN` are parsed by `@doru/gedcom` but dropped by the core
 mapping: Dóru has one note text and no translation editor.
+
+## Notes are copied per target
+
+Shared notes complicate the UI — split-vs-shared edits, attach existing,
+detach, delete everywhere — without a matching research need. A note is owned
+by exactly one record and its section only adds, edits and deletes that text.
+GEDCOM shared notes are copied to every referencing target on import; export
+writes inline `NOTE` structures and never emits `SNOTE` records or pointers.
+The note-link table and the split/attach/detach operations are gone.
+
+Some note targets have no GEDCOM note slot of their own: name parts and name
+variants, place names and hierarchy links, address lines, and media files.
+Their notes are emitted on the nearest enclosing standard NOTE slot (`NAME`,
+`_PLAC`, `ADDR`, `OBJE`). Import attaches them back to that parent, so the
+text round-trips but the fine-grained target does not.
 
 ## Contacts are limited to their GEDCOM positions
 

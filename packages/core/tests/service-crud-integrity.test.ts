@@ -1223,7 +1223,7 @@ describe('TreeService CRUD integrity', () => {
     }
   });
 
-  it('rejects redoing a note delete after a new link appeared', () => {
+  it('rejects redoing a note delete after the note changed', () => {
     const { fixture, service } = makeService();
     const { repo } = fixture;
     try {
@@ -1231,11 +1231,11 @@ describe('TreeService CRUD integrity', () => {
       service.deleteNote(repo.getNote('N1')!);
       service.undo();
 
-      repo.addNoteLink('N1', { id: 'L2', targetType: 'person', targetId: 'P2' });
+      repo.updateNote({ ...repo.getNote('N1')!, text: 'changed elsewhere' });
       const refused = service.redo();
       expect(refused.redoBlocked).toBe(true);
       expect(refused.canRedo).toBe(false);
-      expect(repo.getNote('N1')).toBeDefined();
+      expect(repo.getNote('N1')?.text).toBe('changed elsewhere');
     } finally {
       cleanupRepo(fixture);
     }

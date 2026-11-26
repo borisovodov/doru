@@ -21,6 +21,12 @@ describe('TaskEditorFields', () => {
     expect(screen.getByLabelText(nls.t('features.tasks.reminder'))).not.toHaveAttribute('aria-invalid');
   });
 
+  it('edits the task text in a multiline field', () => {
+    renderUi(<TaskEditorFields edit={emptyTaskDraft()} onChange={vi.fn()} />);
+
+    expect(screen.getByPlaceholderText(nls.t('features.tasks.text')).tagName).toBe('TEXTAREA');
+  });
+
   it('leaves the related records to the separate card block', () => {
     renderUi(<TaskEditorFields edit={emptyTaskDraft()} onChange={vi.fn()} />);
 

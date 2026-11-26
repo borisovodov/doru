@@ -1,5 +1,5 @@
 ---
-source-hash: b425b67199c0
+source-hash: 2e99cfb11221
 ---
 
 # Praca z drzewem
@@ -60,12 +60,7 @@ osoby z rodziny albo usunięcie rodziny to jedno kliknięcie.
 
 - **Źródła**: dołączaj źródła do osoby (z tytułem i autorem) lub używaj
   ponownie istniejącego źródła. Każde dołączenie to cytat i można je usunąć.
-- **Notatki**: swobodne notatki badawcze dołączone do osoby. Notatkę można
-  dołączyć do kilku rekordów: użyj **Dołącz istniejącą notatkę** w sekcji
-  Notatki innego rekordu, a następnie wybierz, czy edycja ma zaktualizować
-  wspólny tekst wszędzie, czy tylko bieżący rekord. **Odłącz od tego rekordu**
-  usuwa jedno powiązanie; **Usuń wszędzie** usuwa notatkę.
-- Wydarzenia i imiona mają własne sekcje Źródła i Notatki w edytorze osoby; wydarzenia mają także Kontakty.
+- **Notatki**: swobodne notatki badawcze dołączone do osoby. Każda notatka należy do jednego rekordu: dodaj ją, edytuj lub usuń w sekcji Notatki tego rekordu. Współdzielona notatka z zaimportowanego pliku GEDCOM jest kopiowana do każdego rekordu, który ją odwołuje.
 
 ## Adresy
 
@@ -90,7 +85,7 @@ Kliknij podgląd, aby otworzyć kartę multimediów, gdzie możesz edytować tyt
 zarządzać plikami i edytować metadane powiązania, takie jak podpis, kolejność,
 znacznik główny i znacznik wykluczenia.
 
-Rekord multimediów można powiązać z kilkoma celami. **Odłącz od tego rekordu** usuwa jedno powiązanie i usuwa rekord, jeśli było ostatnie; **Usuń multimedia** usuwa rekord i kopie jego plików. Usunięcie rekordu docelowego usuwa tylko jego powiązania, więc współdzielony rekord multimediów może pozostać bez powiązań.
+Rekord multimediów można powiązać z kilkoma celami. **Odłącz od tego rekordu** pojawia się tylko wtedy, gdy multimedia są powiązane z kilkoma celami; usuwa jedno powiązanie. **Usuń multimedia** usuwa rekord i kopie jego plików. Usunięcie rekordu docelowego usuwa tylko jego powiązania, więc rekord multimediów może pozostać bez powiązań.
 
 ## Kolejność
 

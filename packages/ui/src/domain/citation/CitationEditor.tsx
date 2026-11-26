@@ -63,9 +63,6 @@ export function CitationEditor({
         <Field label={nls.t('features.tree.citation.quality')}>
           <Input value={draft.quality} onChange={(event) => set({ quality: event.target.value })} />
         </Field>
-        <Field label={nls.t('features.tree.citation.description')}>
-          <Input value={draft.description} onChange={(event) => set({ description: event.target.value })} />
-        </Field>
         <Field label={nls.t('features.tree.citation.confidence')}>
           <Input value={draft.confidence} onChange={(event) => set({ confidence: event.target.value })} />
         </Field>
@@ -93,9 +90,6 @@ export function CitationEditor({
         <Field label={nls.t('features.tree.source.abbreviation')}>
           <Input value={draft.abbreviation} onChange={(event) => set({ abbreviation: event.target.value })} />
         </Field>
-        <Field label={nls.t('features.tree.citation.footnote')}>
-          <Input value={draft.footnote} onChange={(event) => set({ footnote: event.target.value })} />
-        </Field>
         <Field label={nls.t('features.tree.citation.assessment')}>
           <Input value={draft.assessment} onChange={(event) => set({ assessment: event.target.value })} />
         </Field>
@@ -103,6 +97,12 @@ export function CitationEditor({
           <Input value={draft.foundBy} onChange={(event) => set({ foundBy: event.target.value })} />
         </Field>
       </FieldGrid>
+      <Field label={nls.t('features.tree.citation.description')}>
+        <Textarea rows={2} value={draft.description} onChange={(event) => set({ description: event.target.value })} />
+      </Field>
+      <Field label={nls.t('features.tree.citation.footnote')}>
+        <Textarea rows={3} value={draft.footnote} onChange={(event) => set({ footnote: event.target.value })} />
+      </Field>
       <Checkbox
         label={nls.t('features.tree.citation.verified')}
         checked={draft.verified}

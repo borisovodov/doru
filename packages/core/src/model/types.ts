@@ -622,28 +622,22 @@ export interface CitationRecord {
   templateFields?: Array<{ id: string; name: string; value?: string }> | undefined;
 }
 
-export interface NoteLinkRecord {
-  id: string;
-  targetType: string;
-  targetId: string;
-}
-
 /**
- * A note: inline (one link) or shared (several links). The text is the whole
- * note content; MIME type, languages, translations and a GEDCOM xref are
- * deliberately not stored. `targetType`/`targetId` are projections of the
- * first link, kept for the renderer; the full attachment set lives in `links`.
+ * A note: a leaf annotation owned by exactly one target. The text is the
+ * whole note content; MIME type, languages, translations and a GEDCOM xref
+ * are deliberately not stored. Shared GEDCOM notes are copied per target on
+ * import, and export writes every note as an inline NOTE.
  */
 export interface NoteRecord {
   id: string;
   text: string;
+  /** The record this note annotates. */
+  targetType: string;
+  targetId: string;
   /** Creation instant, epoch milliseconds. */
   createdAt?: number | undefined;
   /** Last text edit instant, epoch milliseconds. */
   updatedAt?: number | undefined;
-  targetType?: string | undefined;
-  targetId?: string | undefined;
-  links?: NoteLinkRecord[] | undefined;
 }
 
 /** One file of a media record; the bytes live in the media/ folder, never in the DB. */
@@ -809,9 +803,7 @@ export interface NestedAttachmentSnapshot {
 
 /** Everything attached to one target, for op snapshots and cascades. */
 export interface AttachmentsSnapshot {
-  noteLinks: Array<{ note: NoteRecord; link: NoteLinkRecord }>;
-  /** Attachments of linked notes, restored when this snapshot reinserts one. */
-  noteAttachments: NestedAttachmentSnapshot[];
+  notes: NoteRecord[];
   citations: CitationRecord[];
   /** Attachments of citations that would be deleted with this target. */
   citationAttachments: NestedAttachmentSnapshot[];
@@ -830,8 +822,7 @@ export interface AttachmentsSnapshot {
 
 export function emptyAttachments(): AttachmentsSnapshot {
   return {
-    noteLinks: [],
-    noteAttachments: [],
+    notes: [],
     citations: [],
     citationAttachments: [],
     mediaLinks: [],

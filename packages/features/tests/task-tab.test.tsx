@@ -9,7 +9,6 @@ import { renderUi, stubApi } from '../../../test/ui/harness';
 function apiStub(overrides: Partial<TaskEditorApi> = {}): TaskEditorApi {
   return stubApi<TaskEditorApi>({
     getNotes: async () => [],
-    getAllNotes: async () => [],
     getCitations: async () => [],
     getContacts: async () => [],
     getSubmitters: async () => [],

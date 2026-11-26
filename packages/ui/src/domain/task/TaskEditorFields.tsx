@@ -3,8 +3,8 @@ import { nls } from '../../nls';
 import { Field } from '../../atoms/field/Field';
 import { FieldGrid } from '../../atoms/field-grid/FieldGrid';
 import { DateTimePicker } from '../../atoms/date-time-picker/DateTimePicker';
-import { Input } from '../../atoms/form/Input';
 import { Select } from '../../atoms/form/Select';
+import { Textarea } from '../../atoms/form/Textarea';
 import { useAutoFocusSelect } from '../../lib/useAutoFocusSelect';
 import { inputToTimestamp, type TaskDraft } from './taskDraft';
 
@@ -24,7 +24,7 @@ export function TaskEditorFields({
   /** Focuses the task text when a new task tab opens. */
   autoFocusText?: boolean;
 }) {
-  const textRef = useAutoFocusSelect<HTMLInputElement>(autoFocusText);
+  const textRef = useAutoFocusSelect<HTMLTextAreaElement>(autoFocusText);
   const dateTimeLabels = {
     chooseDate: nls.t('features.tasks.chooseDate'),
     previousMonth: nls.t('features.tasks.previousMonth'),
@@ -38,8 +38,9 @@ export function TaskEditorFields({
   return (
     <>
       <Field label={nls.t('features.tasks.text')}>
-        <Input
+        <Textarea
           ref={textRef}
+          rows={3}
           value={edit.text}
           placeholder={nls.t('features.tasks.text')}
           onChange={(event) => onChange({ text: event.target.value })}

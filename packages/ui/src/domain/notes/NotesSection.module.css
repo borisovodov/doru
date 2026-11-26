@@ -32,12 +32,6 @@
   width: 100%;
 }
 
-.notesMeta {
-  flex: none;
-  font-size: 11px;
-  color: var(--doru-fg-muted);
-}
-
 .notesEditActions {
   display: flex;
   gap: 6px;
@@ -46,10 +40,11 @@
 
 .notesAdd {
   display: flex;
+  align-items: flex-end;
   gap: 8px;
 }
 
-.notesAdd input {
+.notesAdd textarea {
   flex: 1;
   min-width: 0;
 }

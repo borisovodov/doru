@@ -46,9 +46,15 @@
 }
 
 .taskRowText {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  overflow: hidden;
   font-size: 12px;
   color: var(--doru-fg);
   overflow-wrap: anywhere;
+  white-space: normal;
 }
 
 .taskRowText.closed {

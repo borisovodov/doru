@@ -19,6 +19,7 @@ import { Checkbox } from '../../atoms/form/Checkbox';
 import { Field } from '../../atoms/field/Field';
 import { Input } from '../../atoms/form/Input';
 import { Select } from '../../atoms/form/Select';
+import { Textarea } from '../../atoms/form/Textarea';
 import { ReorderButtons } from '../../atoms/reorder-buttons/ReorderButtons';
 import { displayName, familyLabel, formatAddress } from '../format/format';
 import { moveItem } from '../reorder';
@@ -235,7 +236,7 @@ export function FactEditor({
 
       <label className="fact-field">
         {nls.t('features.tree.fact.value')}
-        <Input value={draft.value} onChange={(event) => set({ value: event.target.value })} />
+        <Textarea rows={2} value={draft.value} onChange={(event) => set({ value: event.target.value })} />
       </label>
 
       {['ADOP', 'BIRT', 'CHR'].includes(draft.tag) && (
@@ -466,7 +467,7 @@ export function FactEditor({
       </div>
       <label className="fact-field">
         {nls.t('features.tree.fact.sentence')}
-        <Input value={draft.sentence} onChange={(event) => set({ sentence: event.target.value })} />
+        <Textarea rows={3} value={draft.sentence} onChange={(event) => set({ sentence: event.target.value })} />
       </label>
 
       <div className="fact-subsection">

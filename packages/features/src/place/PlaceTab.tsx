@@ -143,7 +143,6 @@ function PlaceTabBody({
   const targetId = (lastSaved ?? record)?.id;
   const {
     notes: placeNotes,
-    allNotes,
     citations: placeCitations,
     submitters,
     contributors,
@@ -341,24 +340,13 @@ function PlaceTabBody({
                 )}
               />
               <NotesSection
-                targetType="place"
-                targetId={targetId}
                 notes={placeNotes}
-                availableNotes={allNotes}
                 onAdd={async (text) => {
                   await api.addNote({ id: crypto.randomUUID(), text, targetType: 'place', targetId });
                   await refreshAttachments();
                 }}
-                onUpdate={async (before, after, context) => {
-                  await api.updateNote(before, after, context);
-                  await refreshAttachments();
-                }}
-                onAttach={async (noteId) => {
-                  await api.attachNote(noteId, { id: crypto.randomUUID(), targetType: 'place', targetId });
-                  await refreshAttachments();
-                }}
-                onDetach={async (note, link) => {
-                  await api.detachNote(note, link);
+                onUpdate={async (before, after) => {
+                  await api.updateNote(before, after);
                   await refreshAttachments();
                 }}
                 onDelete={async (note) => {

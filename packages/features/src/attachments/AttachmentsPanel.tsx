@@ -22,7 +22,7 @@ const ALL_SECTIONS: readonly AttachmentSection[] = ['notes', 'sources', 'media',
 
 /** The attachment family that governs each panel section. */
 const SECTION_TARGET_KIND: Readonly<Record<AttachmentSection, AttachmentTargetKind>> = {
-  notes: 'noteLink',
+  notes: 'note',
   sources: 'citation',
   media: 'mediaLink',
   contacts: 'contact',
@@ -54,7 +54,7 @@ export function AttachmentsPanel({
   onOpenMedia?: ((mediaId: string) => void) | undefined;
   renderCitationAttachments?: ((citation: CitationRecord) => ReactNode) | undefined;
 }) {
-  const { notes, allNotes, citations, contacts, submitters, contributors, refresh } = useAttachments(
+  const { notes, citations, contacts, submitters, contributors, refresh } = useAttachments(
     targetType,
     targetId,
     api,
@@ -80,34 +80,18 @@ export function AttachmentsPanel({
     <>
       {include.has('notes') && (
         <NotesSection
-          targetType={targetType}
-          targetId={targetId}
           notes={notes}
-          availableNotes={allNotes}
           onAdd={async (text) => {
             await api.addNote({
               id: crypto.randomUUID(),
               text,
               targetType,
               targetId,
-              links: [{ id: crypto.randomUUID(), targetType, targetId }],
             });
             await refresh();
           }}
-          onUpdate={async (before, after, context, mode) => {
-            if (mode === 'shared') {
-              await api.updateNote(before, after);
-            } else {
-              await api.updateNote(before, after, context);
-            }
-            await refresh();
-          }}
-          onAttach={async (noteId) => {
-            await api.attachNote(noteId, { id: crypto.randomUUID(), targetType, targetId });
-            await refresh();
-          }}
-          onDetach={async (note, link) => {
-            await api.detachNote(note, link);
+          onUpdate={async (before, after) => {
+            await api.updateNote(before, after);
             await refresh();
           }}
           onDelete={async (note) => {

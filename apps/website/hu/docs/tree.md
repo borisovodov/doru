@@ -1,5 +1,5 @@
 ---
-source-hash: b425b67199c0
+source-hash: 2e99cfb11221
 ---
 
 # A családfa használata
@@ -36,8 +36,7 @@ A teljes személyszerkesztőben adjon hozzá szülőket, partnert vagy gyermekek
 ## Források és jegyzetek
 
 - **Források**: csatoljon forrásokat egy személyhez (címmel és szerzővel), vagy használjon újra egy meglévő forrást. Minden csatolás egy hivatkozás, és eltávolítható.
-- **Jegyzetek**: egy személyhez csatolt szabad formájú kutatási jegyzetek. Egy jegyzet több rekordhoz is csatolható: használja a **Meglévő jegyzet csatolása** lehetőséget egy másik rekord Jegyzetek szakaszában, majd válassza ki, hogy a szerkesztés mindenhol frissítse-e a megosztott szöveget, vagy csak az aktuális rekordban. A **Leválasztás erről a rekordról** eltávolít egy hivatkozást; a **Törlés mindenhol** eltávolítja a jegyzetet.
-- A tények és nevek saját Források és Jegyzetek szakaszokkal rendelkeznek a személyszerkesztőn belül; a tényeknek Elérhetőségeik is vannak.
+- **Jegyzetek**: egy személyhez csatolt szabad formájú kutatási jegyzetek. Minden jegyzet egyetlen rekordhoz tartozik: a rekord Jegyzetek szakaszában adhatja hozzá, szerkesztheti vagy törölheti. Az importált GEDCOM-fájl megosztott jegyzetét minden hivatkozó rekordhoz átmásoljuk.
 
 ## Címek
 
@@ -53,7 +52,7 @@ A művek, címek, társítások és családi partner/gyermek kapcsolatok ugyanaz
 
 A fényképek közönséges fájlok a projekt melletti `media/` mappában. Adja hozzá őket egy személytől, családtól, forrástól, helytől, levéltártól, beküldőtől, műtől, feladattól vagy címtől; a médialapon a **Kapcsolódó** szakaszban egy meglévő rekordot további célokhoz csatolhat. Kattintson egy előnézetre a média lap megnyitásához, ahol szerkesztheti a címet, kezelheti a fájlokat és szerkesztheti a hivatkozás metaadatait, például a feliratot, a sorrendet, az elsődleges jelzőt és a kizárási jelzőt.
 
-Egy médiarekord több célhoz is kapcsolható. A **Leválasztás erről a rekordról** eltávolít egy hivatkozást, és törli a rekordot, ha az volt az utolsó; a **Média törlése** eltávolítja a rekordot és fájlmásolatait. Egy célrekord törlése csak a hivatkozásait távolítja el, így egy megosztott médiarekord hivatkozások nélkül is megmaradhat.
+Egy médiarekord több célhoz is kapcsolható. A **Leválasztás erről a rekordról** csak akkor jelenik meg, ha a média több célhoz van kapcsolva; egy hivatkozást távolít el. A **Média törlése** eltávolítja a rekordot és fájlmásolatait. Egy célrekord törlése csak a hivatkozásait távolítja el, így egy médiarekord hivatkozások nélkül is megmaradhat.
 
 ## Sorrendezés
 

@@ -48,12 +48,12 @@ import type {
   FamilyRecord,
   MediaLinkRecord,
   MediaRecord,
-  NoteRecord,
   PersonName,
   PersonRecord,
   PlaceRecord,
   SourceRecord,
   TaskRecord,
+  AddressRecord,
 } from '../model/types';
 
 /**
@@ -141,7 +141,6 @@ export function buildGedcomDataset(repo: TreeRepository): GedcomDataset {
   const places = repo.listPlaces();
   const media = repo.listAllMedia().filter((entry) => (entry.files ?? []).length > 0);
   const firstSubmitter = submitters[0];
-  const notes = repo.listNotes().filter((note) => (note.links?.length ?? 0) !== 1);
   // Only free-standing tasks become top-level `_TODO` records. Person and
   // family targets carry embedded structures; tasks whose targets have no
   // GEDCOM embedding slot (repository, source, place, …) are deliberately
@@ -173,11 +172,6 @@ export function buildGedcomDataset(repo: TreeRepository): GedcomDataset {
   for (const entry of media) {
     xrefs.assign('O', entry.id, entry.xref);
   }
-  // Notes are always allocated fresh; assign them last so every retained
-  // xref is already reserved and a generated @N…@ cannot collide with it.
-  for (const note of notes) {
-    xrefs.assign('N', note.id, undefined);
-  }
 
   const records: GedcomRecord[] = [
     ...places.map((place) => buildPlaceRecord(place, repo, xrefs)),
@@ -186,10 +180,9 @@ export function buildGedcomDataset(repo: TreeRepository): GedcomDataset {
     ...repositories.map((repository) => buildRepository(repository, repo, xrefs)),
     ...titles.map((title) => buildTitle(title, repo, xrefs)),
     ...sources.map((source) => buildSource(source, repo, xrefs)),
-    ...notes.map((note) => buildSharedNote(note, xrefs)),
     ...persons.map((person) => buildPerson(person, repo, xrefs)),
     ...families.map((family) => buildFamily(family, repo, xrefs)),
-    ...tasks.map((task) => buildGedcomTodoRecord(task, repo, xrefs)),
+    ...tasks.map((task) => buildGedcomTodoRecord(task, repo)),
     ...buildAssociations(),
   ];
   // The schema keeps no header table: the export synthesizes a fresh
@@ -222,7 +215,7 @@ function buildPerson(person: PersonRecord, repo: TreeRepository, xrefs: Xrefs): 
         payload: fact.tag as NonEventStructure['payload'],
         ...(fact.date !== undefined ? { date: buildDatePeriod(fact.date) } : {}),
         ...(citations.citations.length > 0 ? citations : {}),
-        ...withNoteList(repo, 'fact', fact.id, xrefs),
+        ...withNoteList(repo, 'fact', fact.id),
       });
       continue;
     }
@@ -252,9 +245,9 @@ function buildPerson(person: PersonRecord, repo: TreeRepository, xrefs: Xrefs): 
     ...(attributes.length > 0 ? { attributes } : {}),
     ...(nonEvents.length > 0 ? { nonEvents } : {}),
     ...contacts,
-    ...(addressRecord !== undefined ? { address: buildAddress(addressRecord, repo, xrefs) } : {}),
+    ...(addressRecord !== undefined ? { address: buildAddress(addressRecord, repo) } : {}),
     ...withCitationList(repo, 'person', person.id, xrefs),
-    ...withNoteList(repo, 'person', person.id, xrefs),
+    ...withNoteList(repo, 'person', person.id),
     ...withMediaLinks(repo, 'person', person.id, xrefs),
     ...withSubmitterLinks(repo, 'person', person.id, xrefs),
     ...(ancestorInterests.length > 0 ? { ancestorInterests } : {}),
@@ -413,7 +406,7 @@ function buildName(name: PersonName, repo: TreeRepository, xrefs: Xrefs): Person
       ? { romanized: variantStructures.filter((variant) => variant.kind === 'romanized').map(buildNameVariation) }
       : {}),
     ...withCitationList(repo, 'name', name.id, xrefs),
-    ...withNoteList(repo, 'name', name.id, xrefs),
+    ...withNoteTargets(repo, nameNoteTargets(name)),
     ...withMediaLinks(repo, 'name', name.id, xrefs),
   };
 }
@@ -518,7 +511,7 @@ function buildFamily(family: FamilyRecord, repo: TreeRepository, xrefs: Xrefs): 
         payload: fact.tag as NonEventStructure['payload'],
         ...(fact.date !== undefined ? { date: buildDatePeriod(fact.date) } : {}),
         ...(citations.citations.length > 0 ? citations : {}),
-        ...withNoteList(repo, 'fact', fact.id, xrefs),
+        ...withNoteList(repo, 'fact', fact.id),
       });
       continue;
     }
@@ -546,7 +539,7 @@ function buildFamily(family: FamilyRecord, repo: TreeRepository, xrefs: Xrefs): 
             payload: status.status,
             ...(status.date !== undefined ? { date: buildDate(status.date) } : {}),
             ...(status.placeId !== undefined ? { place: buildPlace(repo, status.placeId, xrefs) } : {}),
-            ...withNoteList(repo, 'family_marriage_status', status.id, xrefs),
+            ...withNoteList(repo, 'family_marriage_status', status.id),
             ...withCitationList(repo, 'family_marriage_status', status.id, xrefs),
           })) as import('@doru/gedcom').MarriageStatusStructure[],
         }
@@ -558,7 +551,7 @@ function buildFamily(family: FamilyRecord, repo: TreeRepository, xrefs: Xrefs): 
     ...(attributes.length > 0 ? { attributes } : {}),
     ...(nonEvents.length > 0 ? { nonEvents } : {}),
     ...withCitationList(repo, 'family', family.id, xrefs),
-    ...withNoteList(repo, 'family', family.id, xrefs),
+    ...withNoteList(repo, 'family', family.id),
     ...withMediaLinks(repo, 'family', family.id, xrefs),
     ...withSubmitterLinks(repo, 'family', family.id, xrefs),
     ...withGedcomTodoStructures(repo, 'family', family.id),
@@ -627,9 +620,9 @@ function buildRepository(
     tag: 'REPO',
     xref: xrefs.of(repository.id),
     name: repository.name,
-    ...(address !== undefined ? { address: buildAddress(address, repo, xrefs) } : {}),
+    ...(address !== undefined ? { address: buildAddress(address, repo) } : {}),
     ...withContacts(repo, 'repository', repository.id),
-    ...withNoteList(repo, 'repository', repository.id, xrefs),
+    ...withNoteList(repo, 'repository', repository.id),
     ...withSubmitterLinks(repo, 'repository', repository.id, xrefs),
   } as GedcomRecord;
   return record;
@@ -645,10 +638,10 @@ function buildSubmitter(
     tag: 'SUBM',
     xref: xrefs.of(submitter.id),
     name: submitter.name,
-    ...(address !== undefined ? { address: buildAddress(address, repo, xrefs) } : {}),
+    ...(address !== undefined ? { address: buildAddress(address, repo) } : {}),
     ...(submitter.languages !== undefined && submitter.languages.length > 0 ? { languages: submitter.languages } : {}),
     ...withContacts(repo, 'submitter', submitter.id),
-    ...withNoteList(repo, 'submitter', submitter.id, xrefs),
+    ...withNoteList(repo, 'submitter', submitter.id),
     ...withSubmitterLinks(repo, 'submitter', submitter.id, xrefs),
   };
 }
@@ -665,16 +658,7 @@ function buildTitle(title: import('../model/types').TitleRecord, repo: TreeRepos
     ...(title.repositoryId !== undefined ? { repository: xrefs.of(title.repositoryId) } : {}),
     ...(title.callNumber !== undefined ? { callNumber: title.callNumber } : {}),
     ...(title.sequence !== undefined ? { sequenceNumber: String(title.sequence) } : {}),
-    ...withNoteList(repo, 'title', title.id, xrefs),
-  };
-}
-
-/** A note is not an attachment target, so it never carries citations. */
-function buildSharedNote(note: NoteRecord, xrefs: Xrefs): GedcomRecord {
-  return {
-    tag: 'SNOTE',
-    xref: xrefs.of(note.id),
-    payload: note.text,
+    ...withNoteList(repo, 'title', title.id),
   };
 }
 
@@ -684,7 +668,7 @@ function gedcomTaskStatus(status: string | undefined): string {
   return normalized === 'waiting' ? 'Waiting' : normalized;
 }
 
-function buildGedcomTodoRecord(task: TaskRecord, repo: TreeRepository, xrefs: Xrefs): GedcomRecord {
+function buildGedcomTodoRecord(task: TaskRecord, repo: TreeRepository): GedcomRecord {
   // _TODO.REPO is deliberately not written: Dóru stores repository targets in
   // task_link, and a task whose only target is a repository is not exported
   // (see buildGedcomDataset). _TODO._CAT, _TODO._LOCL, _TODO._TTIL,
@@ -699,7 +683,7 @@ function buildGedcomTodoRecord(task: TaskRecord, repo: TreeRepository, xrefs: Xr
     status: gedcomTaskStatus(task.status),
     ...(createdDate !== undefined ? { createdDate } : {}),
     ...(reminderDate !== undefined ? { reminderDate } : {}),
-    ...withNoteList(repo, 'task', task.id, xrefs),
+    ...withNoteList(repo, 'task', task.id),
   };
 }
 
@@ -800,7 +784,7 @@ function buildAssociation(
         }
       : {}),
     ...withCitationList(repo, 'association', association.id, xrefs),
-    ...withNoteList(repo, 'association', association.id, xrefs),
+    ...withNoteList(repo, 'association', association.id),
   };
 }
 
@@ -846,7 +830,7 @@ function withChildFamilies(
         : {}),
       ...(link.fatherRelation !== undefined ? { fatherRelation: link.fatherRelation } : {}),
       ...(link.motherRelation !== undefined ? { motherRelation: link.motherRelation } : {}),
-      ...withNoteList(repo, 'family_child', link.id, xrefs),
+      ...withNoteList(repo, 'family_child', link.id),
     });
   }
   return links.length > 0 ? { childFamilies: links } : {};
@@ -866,7 +850,7 @@ function withSpouseFamilies(
     links.push({
       family: xrefs.of(family.id),
       ...(link.date !== undefined ? { date: buildDate(link.date) } : {}),
-      ...withNoteList(repo, 'family_partner', link.id, xrefs),
+      ...withNoteList(repo, 'family_partner', link.id),
     } as SpouseFamilyLink);
   }
   return links.length > 0 ? { spouseFamilies: links } : {};
@@ -939,7 +923,7 @@ function buildMediaRecord(media: MediaRecord, repo: TreeRepository, xrefs: Xrefs
         : {}),
     })),
     ...withCitationList(repo, 'media', media.id, xrefs),
-    ...withNoteList(repo, 'media', media.id, xrefs),
+    ...withNoteTargets(repo, mediaNoteTargets(media)),
     ...withSubmitterLinks(repo, 'media', media.id, xrefs),
   };
 }
@@ -1085,26 +1069,63 @@ function buildCitation(
           },
         }
       : {}),
-    ...withNoteList(repo, 'citation', row.id, xrefs),
+    ...withNoteList(repo, 'citation', row.id),
     ...withMediaLinks(repo, 'citation', row.id, xrefs),
   } as unknown as SourceCitation;
 }
 
-function withNoteList(
-  repo: TreeRepository,
-  targetType: string,
-  targetId: string,
-  xrefs: Xrefs,
-): { notes: NoteStructure[] } {
-  const notes: NoteStructure[] = repo.listNotesFor(targetType, targetId).map((note) =>
-    xrefs.has(note.id)
-      ? { tag: 'SNOTE', note: xrefs.of(note.id) }
-      : {
-          tag: 'NOTE',
-          payload: note.text,
-        },
-  );
+function withNoteList(repo: TreeRepository, targetType: string, targetId: string): { notes: NoteStructure[] } {
+  const notes: NoteStructure[] = repo.listNotesFor(targetType, targetId).map((note) => ({
+    tag: 'NOTE',
+    payload: note.text,
+  }));
   return { notes };
+}
+
+interface NoteTarget {
+  targetType: string;
+  targetId: string;
+}
+
+/**
+ * Notes on targets that have no GEDCOM note slot of their own (name parts and
+ * variants, place names and hierarchy links, address lines, media files) are
+ * emitted on the nearest enclosing standard NOTE slot. Import attaches them
+ * back to that parent, so the note text round-trips but the fine-grained
+ * target does not.
+ */
+function withNoteTargets(repo: TreeRepository, targets: readonly NoteTarget[]): { notes: NoteStructure[] } {
+  return { notes: targets.flatMap((target) => withNoteList(repo, target.targetType, target.targetId).notes) };
+}
+
+function nameNoteTargets(name: PersonName): NoteTarget[] {
+  return [
+    { targetType: 'name', targetId: name.id },
+    ...(name.parts ?? []).map((part) => ({ targetType: 'name_part', targetId: part.id })),
+    ...(name.variants ?? []).flatMap((variant) => nameNoteTargets(variant)),
+  ];
+}
+
+function placeNoteTargets(place: PlaceRecord): NoteTarget[] {
+  return [
+    { targetType: 'place', targetId: place.id },
+    ...place.names.map((name) => ({ targetType: 'place_name', targetId: name.id })),
+    ...(place.hierarchy ?? []).map((link) => ({ targetType: 'place_hierarchy', targetId: link.id })),
+  ];
+}
+
+function addressNoteTargets(address: AddressRecord): NoteTarget[] {
+  return [
+    { targetType: 'address', targetId: address.id },
+    ...address.lines.map((line) => ({ targetType: 'address_line', targetId: line.id })),
+  ];
+}
+
+function mediaNoteTargets(media: MediaRecord): NoteTarget[] {
+  return [
+    { targetType: 'media', targetId: media.id },
+    ...(media.files ?? []).map((file) => ({ targetType: 'media_file', targetId: file.id })),
+  ];
 }
 
 function withSubmitterLinks(
@@ -1227,7 +1248,7 @@ function buildSource(source: SourceRecord, repo: TreeRepository, xrefs: Xrefs): 
         }
       : {}),
     ...(source.titleId !== undefined ? { titlRef: xrefs.of(source.titleId) } : {}),
-    ...withNoteList(repo, 'source', source.id, xrefs),
+    ...withNoteList(repo, 'source', source.id),
     ...withMediaLinks(repo, 'source', source.id, xrefs),
     ...withSubmitterLinks(repo, 'source', source.id, xrefs),
   };
@@ -1250,7 +1271,7 @@ function buildDetail(fact: FactRecord, repo: TreeRepository, xrefs: Xrefs): Even
         ? { tag: 'PLAC', payload: [fact.place] }
         : undefined;
   const addressRecord = fact.addressId !== undefined ? repo.getAddress(fact.addressId) : undefined;
-  const address = addressRecord !== undefined ? buildAddress(addressRecord, repo, xrefs) : undefined;
+  const address = addressRecord !== undefined ? buildAddress(addressRecord, repo) : undefined;
   const ages = fact.ages?.filter((age) => age.role === undefined);
   const witnessAssociations = (fact.participants ?? []).flatMap((participant) => {
     if (participant.personId === undefined) {
@@ -1276,7 +1297,7 @@ function buildDetail(fact: FactRecord, repo: TreeRepository, xrefs: Xrefs): Even
     .filter((participant) => participant.role?.toUpperCase() === 'GODP')
     .map((participant) => participant.value as string);
   const citations = withCitationList(repo, 'fact', fact.id, xrefs).citations;
-  const notes = withNoteList(repo, 'fact', fact.id, xrefs).notes;
+  const notes = withNoteList(repo, 'fact', fact.id).notes;
   const media = withMediaLinks(repo, 'fact', fact.id, xrefs).media;
   const contacts = withContacts(repo, 'fact', fact.id);
   const flags =
@@ -1396,7 +1417,6 @@ function buildAge(age: {
 function buildAddress(
   address: import('../model/types').AddressRecord,
   repo: TreeRepository,
-  xrefs: Xrefs,
 ): import('@doru/gedcom').AddressStructure {
   return {
     ...(address.lines.length > 0 ? { payload: address.lines.map((line) => line.value).join('\n') } : {}),
@@ -1404,7 +1424,7 @@ function buildAddress(
     ...(address.state !== undefined ? { state: address.state } : {}),
     ...(address.postalCode !== undefined ? { postalCode: address.postalCode } : {}),
     ...(address.country !== undefined ? { country: address.country } : {}),
-    ...withNoteList(repo, 'address', address.id, xrefs),
+    ...withNoteTargets(repo, addressNoteTargets(address)),
     ...withContacts(repo, 'address', address.id),
   };
 }
@@ -1513,7 +1533,7 @@ function buildPlaceRecord(place: PlaceRecord, repo: TreeRepository, xrefs: Xrefs
     ...(postalCodes.length > 0 ? { postalCodes } : {}),
     ...(place.verified === true ? { extensions: [{ tag: '_VERI', payload: 'Y', children: [] }] } : {}),
     ...withCitationList(repo, 'place', place.id, xrefs),
-    ...withNoteList(repo, 'place', place.id, xrefs),
+    ...withNoteTargets(repo, placeNoteTargets(place)),
     ...withMediaLinks(repo, 'place', place.id, xrefs),
   };
 }

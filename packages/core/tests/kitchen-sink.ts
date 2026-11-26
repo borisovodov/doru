@@ -239,7 +239,7 @@ export function buildKitchenSinkTree(fixture: RepoFixture): void {
     templateFields: [{ id: 'CF1', name: 'entry', value: '12' }],
   });
 
-  // Notes: inline and shared.
+  // Notes: one per target (shared GEDCOM notes are copied on import).
   repo.insertNote({
     id: 'NN1',
     text: 'inline note',
@@ -249,10 +249,8 @@ export function buildKitchenSinkTree(fixture: RepoFixture): void {
   repo.insertNote({
     id: 'NN2',
     text: 'shared note',
-    links: [
-      { id: 'NL1', targetType: 'person', targetId: 'P1' },
-      { id: 'NL2', targetType: 'person', targetId: 'P2' },
-    ],
+    targetType: 'person',
+    targetId: 'P2',
   });
 
   // Media.

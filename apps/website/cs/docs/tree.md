@@ -1,5 +1,5 @@
 ---
-source-hash: b425b67199c0
+source-hash: 2e99cfb11221
 ---
 
 # Práce se stromem
@@ -58,12 +58,7 @@ rodiny nebo smazání rodiny je jeden klik.
 
 - **Prameny**: připojte k osobě prameny (s názvem a autorem) nebo znovu
   použijte existující pramen. Každá příloha je citace a lze ji odebrat.
-- **Poznámky**: volné výzkumné poznámky připojené k osobě. Poznámka může být
-  připojena k několika záznamům: použijte **Připojit existující poznámku** v
-  sekci Poznámky jiného záznamu a poté zvolte, zda má úprava aktualizovat
-  sdílený text všude, nebo jen aktuální záznam. **Odpojit od tohoto záznamu**
-  odebere jedno propojení; **Smazat všude** poznámku odstraní.
-- Události a jména mají v editoru osoby vlastní sekce Prameny a Poznámky; události mají také Kontakty.
+- **Poznámky**: volné výzkumné poznámky připojené k osobě. Každá poznámka patří jednomu záznamu: přidejte, upravte nebo smažte ji v sekci Poznámky daného záznamu. Sdílená poznámka z importovaného souboru GEDCOM se zkopíruje ke každému záznamu, který na ni odkazuje.
 
 ## Adresy
 
@@ -88,7 +83,7 @@ na náhled otevřete kartu médií, kde můžete upravit název, spravovat soubo
 upravit metadata propojení, jako je popisek, pořadí, označení hlavní a
 označení vyloučení.
 
-Mediální záznam lze propojit s několika cíli. **Odpojit od tohoto záznamu** odebere jedno propojení a smaže záznam, pokud bylo poslední; **Smazat médium** odstraní záznam a kopie jeho souborů. Smazání cílového záznamu odstraní pouze jeho propojení, takže sdílený mediální záznam může zůstat bez propojení.
+Mediální záznam lze propojit s několika cíli. **Odpojit od tohoto záznamu** se zobrazí pouze tehdy, když je médium propojeno s několika cíli; odebere jedno propojení. **Smazat médium** odstraní záznam a kopie jeho souborů. Smazání cílového záznamu odstraní pouze jeho propojení, takže mediální záznam může zůstat bez propojení.
 
 ## Řazení
 

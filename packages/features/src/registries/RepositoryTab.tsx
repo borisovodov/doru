@@ -127,7 +127,6 @@ function RepositoryTabBody({
   const targetId = (lastSaved ?? record)?.id;
   const {
     notes: repositoryNotes,
-    allNotes,
     citations: repositoryCitations,
     contacts,
     submitters,
@@ -327,24 +326,13 @@ function RepositoryTabBody({
             )}
           />
           <NotesSection
-            targetType="repository"
-            targetId={targetId}
             notes={repositoryNotes}
-            availableNotes={allNotes}
             onAdd={async (text) => {
               await api.addNote({ id: crypto.randomUUID(), text, targetType: 'repository', targetId });
               await refreshAttachments();
             }}
-            onUpdate={async (before, after, context) => {
-              await api.updateNote(before, after, context);
-              await refreshAttachments();
-            }}
-            onAttach={async (noteId) => {
-              await api.attachNote(noteId, { id: crypto.randomUUID(), targetType: 'repository', targetId });
-              await refreshAttachments();
-            }}
-            onDetach={async (note, link) => {
-              await api.detachNote(note, link);
+            onUpdate={async (before, after) => {
+              await api.updateNote(before, after);
               await refreshAttachments();
             }}
             onDelete={async (note) => {

@@ -39,6 +39,12 @@ const portrait: MediaWithPath = {
       targetId: 'P1',
       primary: true,
     },
+    {
+      id: 'ML3',
+      mediaId: 'M2',
+      targetType: 'place',
+      targetId: 'PL1',
+    },
   ],
 };
 

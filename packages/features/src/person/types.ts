@@ -10,7 +10,6 @@ import type {
   MediaFile,
   MediaLinkRecord,
   MediaRecord,
-  NoteLinkRecord,
   NoteRecord,
   PersonRecord,
   PlaceRecord,
@@ -49,10 +48,8 @@ export interface MediaAdminApi extends MediaTargetApi {
 
 export interface AttachmentsApi extends AttachmentApi, MediaTargetApi {
   addNote(note: NoteRecord): Promise<void>;
-  updateNote(before: NoteRecord, after: NoteRecord, context?: NoteLinkRecord): Promise<void>;
+  updateNote(before: NoteRecord, after: NoteRecord): Promise<void>;
   deleteNote(note: NoteRecord): Promise<void>;
-  attachNote(noteId: string, link: NoteLinkRecord): Promise<void>;
-  detachNote(note: NoteRecord, link: NoteLinkRecord): Promise<void>;
   updateCitation(before: CitationRecord, after: CitationRecord): Promise<void>;
   getSources(): Promise<SourceRecord[]>;
   addSource(source: SourceRecord, targetType?: string, targetId?: string): Promise<void>;

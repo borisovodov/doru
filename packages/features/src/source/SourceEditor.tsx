@@ -167,9 +167,6 @@ export function SourceEditor({
           <Field label={nls.t('features.tree.sources.authorField')}>
             <Input value={draft.author} onChange={(event) => set({ author: event.target.value })} />
           </Field>
-          <Field label={nls.t('features.tree.source.publication')}>
-            <Input value={draft.publication} onChange={(event) => set({ publication: event.target.value })} />
-          </Field>
           <Field label={nls.t('features.tree.source.abbreviation')}>
             <Input value={draft.abbreviation} onChange={(event) => set({ abbreviation: event.target.value })} />
           </Field>
@@ -191,19 +188,27 @@ export function SourceEditor({
           <Field label={nls.t('features.tree.source.certainty')}>
             <Input value={draft.certainty} onChange={(event) => set({ certainty: event.target.value })} />
           </Field>
-          <Field label={nls.t('features.tree.source.subsequentCitationFormat')}>
-            <Input
-              value={draft.subsequentCitationFormat}
-              onChange={(event) => set({ subsequentCitationFormat: event.target.value })}
-            />
-          </Field>
-          <Field label={nls.t('features.tree.source.bibliography')}>
-            <Input value={draft.bibliography} onChange={(event) => set({ bibliography: event.target.value })} />
-          </Field>
-          <Field label={nls.t('features.tree.source.dataNote')}>
-            <Input value={draft.dataNote} onChange={(event) => set({ dataNote: event.target.value })} />
-          </Field>
         </FieldGrid>
+        <Field label={nls.t('features.tree.source.publication')}>
+          <Textarea rows={2} value={draft.publication} onChange={(event) => set({ publication: event.target.value })} />
+        </Field>
+        <Field label={nls.t('features.tree.source.bibliography')}>
+          <Textarea
+            rows={3}
+            value={draft.bibliography}
+            onChange={(event) => set({ bibliography: event.target.value })}
+          />
+        </Field>
+        <Field label={nls.t('features.tree.source.dataNote')}>
+          <Textarea rows={3} value={draft.dataNote} onChange={(event) => set({ dataNote: event.target.value })} />
+        </Field>
+        <Field label={nls.t('features.tree.source.subsequentCitationFormat')}>
+          <Textarea
+            rows={2}
+            value={draft.subsequentCitationFormat}
+            onChange={(event) => set({ subsequentCitationFormat: event.target.value })}
+          />
+        </Field>
         <DateEditor
           label={nls.t('features.tree.source.pubDate')}
           value={draft.pubDate}

@@ -28,6 +28,8 @@ describe('FactEditor', () => {
       />,
     );
 
+    expect(screen.getByLabelText(nls.t('features.tree.fact.value')).tagName).toBe('TEXTAREA');
+    expect(screen.getByLabelText(nls.t('features.tree.fact.sentence')).tagName).toBe('TEXTAREA');
     fireEvent.change(screen.getByLabelText(nls.t('features.tree.fact.value')), {
       target: { value: '1850 census' },
     });

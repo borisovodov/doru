@@ -22,7 +22,6 @@ export type {
   NamePart,
   NamePartKind,
   NestedAttachmentSnapshot,
-  NoteLinkRecord,
   NoteRecord,
   PersonName,
   PersonRecord,

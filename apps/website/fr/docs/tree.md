@@ -1,5 +1,5 @@
 ---
-source-hash: b425b67199c0
+source-hash: 2e99cfb11221
 ---
 
 # Travailler avec l'arbre
@@ -63,13 +63,7 @@ famille se fait en un clic.
 - **Sources** : attachez des sources à une personne (avec un titre et un auteur) ou
   réutilisez une source existante. Chaque attachement est une citation et peut
   être supprimé.
-- **Notes** : notes de recherche libre attachées à une personne. Une note peut être
-  attachée à plusieurs enregistrements : utilisez **Attacher une note existante**
-  dans la section Notes d'un autre enregistrement, puis choisissez si une
-  modification doit mettre à jour le texte partagé partout ou seulement
-  l'enregistrement courant. **Détacher de cet enregistrement** supprime un lien ;
-  **Supprimer partout** supprime la note.
-- Les faits et les noms portent leurs propres sections Sources et Notes dans l'éditeur de personne ; les faits ont aussi des Contacts.
+- **Notes** : notes de recherche libres attachées à une personne. Chaque note appartient à un seul enregistrement : ajoutez-la, modifiez-la ou supprimez-la dans la section Notes de cet enregistrement. Une note partagée d'un fichier GEDCOM importé est copiée pour chaque enregistrement qui la référence.
 
 ## Adresses
 
@@ -95,11 +89,7 @@ pour ouvrir l'onglet média, où vous pouvez modifier le titre, gérer les fichi
 et modifier les métadonnées de lien comme la légende, la séquence, l'indicateur
 principal et l'indicateur d'exclusion.
 
-Un enregistrement média peut être lié à plusieurs cibles. **Détacher de cet
-enregistrement** supprime un lien et supprime l'enregistrement lorsqu'il était le
-dernier ; **Supprimer le média** supprime l'enregistrement et ses copies de
-fichiers. Supprimer un enregistrement cible ne supprime que ses liens, de sorte
-qu'un média partagé peut rester sans lien.
+Un enregistrement média peut être lié à plusieurs cibles. **Détacher de cet enregistrement** n'apparaît que lorsque le média est lié à plusieurs cibles ; il retire un lien. **Supprimer le média** supprime l'enregistrement et les copies de ses fichiers. Supprimer un enregistrement cible ne retire que ses liens, donc un enregistrement média peut rester sans liens.
 
 ## Ordre
 

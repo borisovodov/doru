@@ -75,17 +75,32 @@ export function MediaSection({
   };
 
   const remove = async (item: MediaRecord) => {
-    const link = item.links?.find((entry) => entry.targetType === targetType && entry.targetId === targetId);
-    if (link !== undefined && (item.links?.length ?? 0) > 1) {
-      await api.detachMedia(link);
-    } else {
-      if (!window.confirm(nls.t('features.tree.media.deleteConfirm'))) {
-        return;
-      }
-      await api.deleteMedia(item);
+    if (!window.confirm(nls.t('features.tree.media.deleteConfirm'))) {
+      return;
     }
-    await refresh();
-    setAllMedia(await api.getAllMedia());
+    setMediaError(false);
+    try {
+      await api.deleteMedia(item);
+      await refresh();
+      setAllMedia(await api.getAllMedia());
+    } catch {
+      setMediaError(true);
+    }
+  };
+
+  const detach = async (item: MediaRecord) => {
+    const link = item.links?.find((entry) => entry.targetType === targetType && entry.targetId === targetId);
+    if (link === undefined) {
+      return;
+    }
+    setMediaError(false);
+    try {
+      await api.detachMedia(link);
+      await refresh();
+      setAllMedia(await api.getAllMedia());
+    } catch {
+      setMediaError(true);
+    }
   };
 
   const linkOf = (item: MediaRecord) =>
@@ -109,6 +124,7 @@ export function MediaSection({
         <div className={styles['grid']}>
           {visibleMedia.map((item) => {
             const link = linkOf(item);
+            const shared = (item.links?.length ?? 0) > 1;
             const resolvedFile = item.files?.find((file) => file.absolutePath !== '');
             const preview =
               resolvedFile !== undefined && isImagePath(resolvedFile.path)
@@ -139,8 +155,14 @@ export function MediaSection({
                       onOpen: () => onOpenMedia(item.id),
                     }
                   : {})}
-                removeLabel={nls.t('features.tree.media.remove')}
+                removeLabel={nls.t('features.tree.media.delete')}
                 onRemove={() => void remove(item)}
+                {...(shared
+                  ? {
+                      detachLabel: nls.t('features.tree.media.detach'),
+                      onDetach: () => void detach(item),
+                    }
+                  : {})}
               />
             );
           })}

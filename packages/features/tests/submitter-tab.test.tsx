@@ -25,7 +25,6 @@ const targetData: TaskTargetData = {
 function apiStub(): RegistriesEditorApi {
   return stubApi<RegistriesEditorApi>({
     getNotes: async () => [],
-    getAllNotes: async () => [],
     getCitations: async () => [],
     getContacts: async () => [],
     getSubmitters: async () => [],

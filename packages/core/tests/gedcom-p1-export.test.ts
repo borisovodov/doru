@@ -316,7 +316,7 @@ describe('P1 GEDCOM export gaps', () => {
       const child = target.repo.listAllPersons().find((entry) => entry.facts.some((fact) => fact.tag === 'ADOP'))!;
       const fact = child.facts.find((entry) => entry.tag === 'ADOP')!;
       expect(fact.familyLinks?.[0]?.phrase).toBe('raised together');
-      expect(target.repo.listAttachmentsFor('fact', fact.id).noteLinks).toEqual([]);
+      expect(target.repo.listAttachmentsFor('fact', fact.id).notes).toEqual([]);
     } finally {
       cleanupRepo(fixture);
       cleanupRepo(target);

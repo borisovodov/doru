@@ -1,10 +1,10 @@
-import { X } from 'lucide-react';
+import { Trash2, X } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { IconButton } from '../../atoms/icon-button/IconButton';
 import { cx } from '../../lib/cx';
 import styles from './MediaTile.module.css';
 
-export interface MediaTileProps {
+interface MediaTileBaseProps {
   src: string;
   alt: string;
   onOpen?: () => void;
@@ -18,19 +18,15 @@ export interface MediaTileProps {
   fallback?: ReactNode;
 }
 
+type MediaTileDetachProps = { onDetach: () => void; detachLabel: string };
+type MediaTileNoDetachProps = { onDetach?: undefined; detachLabel?: undefined };
+
+export type MediaTileProps = MediaTileBaseProps & (MediaTileDetachProps | MediaTileNoDetachProps);
+
 /** A square media thumbnail with optional open and remove actions. */
-export function MediaTile({
-  src,
-  alt,
-  onOpen,
-  openLabel,
-  onRemove,
-  removeLabel,
-  badge,
-  muted,
-  className,
-  fallback,
-}: MediaTileProps) {
+export function MediaTile(props: MediaTileProps) {
+  const { src, alt, onOpen, openLabel, onRemove, removeLabel, badge, muted, className, fallback } = props;
+  const detach = props.onDetach !== undefined ? { onClick: props.onDetach, label: props.detachLabel } : undefined;
   const image =
     src !== '' ? (
       <img src={src} alt={alt} loading="lazy" />
@@ -50,15 +46,28 @@ export function MediaTile({
         image
       )}
       {badge !== undefined ? <span className={styles['badge']}>{badge}</span> : null}
-      {onRemove ? (
-        <IconButton
-          className={styles['remove']}
-          size="sm"
-          variant="danger"
-          label={removeLabel ?? 'Remove'}
-          icon={<X size={13} aria-hidden="true" />}
-          onClick={onRemove}
-        />
+      {detach !== undefined || onRemove !== undefined ? (
+        <span className={styles['actions']}>
+          {detach !== undefined ? (
+            <IconButton
+              className={styles['action']}
+              size="sm"
+              label={detach.label}
+              icon={<X size={13} aria-hidden="true" />}
+              onClick={detach.onClick}
+            />
+          ) : null}
+          {onRemove !== undefined ? (
+            <IconButton
+              className={styles['action']}
+              size="sm"
+              variant="danger"
+              label={removeLabel ?? 'Remove'}
+              icon={<Trash2 size={13} aria-hidden="true" />}
+              onClick={onRemove}
+            />
+          ) : null}
+        </span>
       ) : null}
     </figure>
   );

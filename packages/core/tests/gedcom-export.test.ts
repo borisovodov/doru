@@ -101,76 +101,81 @@ describe('buildGedcomDataset', () => {
     }
   });
 
-  it('exports an app-created shared note as an SNOTE record without a citation', () => {
-    const fixture = makeRepo();
-    try {
-      const { repo } = fixture;
-      repo.insertSource({ id: 'S1', title: 'Parish register' });
-      repo.insertNote({
-        id: 'SN1',
-        text: 'shared note',
-        links: [
-          { id: 'L1', targetType: 'person', targetId: 'P1' },
-          { id: 'L2', targetType: 'person', targetId: 'P2' },
-        ],
-      });
-      repo.addSourceCitation('S1', 'note', 'SN1');
-      const dataset = buildGedcomDataset(repo);
-      const note = dataset.records.find((record) => record.tag === 'SNOTE');
-      expect(note).toEqual(expect.objectContaining({ xref: '@N1@', payload: 'shared note' }));
-      expect(note).not.toHaveProperty('citations');
-    } finally {
-      cleanupRepo(fixture);
-    }
-  });
-
-  it('exports an unlinked note as a standalone SNOTE and drops its citation', () => {
-    const fixture = makeRepo();
-    try {
-      const { repo } = fixture;
-      repo.insertSource({ id: 'S1', title: 'Parish register' });
-      repo.insertNote({ id: 'SN1', text: 'orphan note', links: [] });
-      repo.addSourceCitation('S1', 'note', 'SN1');
-
-      const dataset = buildGedcomDataset(repo);
-      const note = dataset.records.find((record) => record.tag === 'SNOTE');
-      expect(note).toEqual(expect.objectContaining({ payload: 'orphan note' }));
-      expect(note).not.toHaveProperty('citations');
-
-      const target = makeRepo();
-      try {
-        importGedcomDataset(dataset, target.repo);
-        const imported = target.repo.listNotes().find((entry) => entry.text === 'orphan note');
-        expect(imported).toBeDefined();
-        expect(target.repo.listCitationRecordsFor('note', imported!.id)).toEqual([]);
-      } finally {
-        cleanupRepo(target);
-      }
-    } finally {
-      cleanupRepo(fixture);
-    }
-  });
-
-  it('keeps generated note xrefs distinct from retained media xrefs', () => {
+  it('exports every note inline and never emits SNOTE records', () => {
     const fixture = makeRepo();
     try {
       const { repo } = fixture;
       repo.insertPerson({ id: 'P1', names: [], sex: 'U', facts: [] });
-      repo.insertPerson({ id: 'P2', names: [], sex: 'U', facts: [] });
-      repo.insertMedia({ id: 'M1', xref: '@N1@', files: [{ id: 'MF1', path: 'media/a.jpg' }] });
-      repo.insertNote({
-        id: 'SN1',
-        text: 'shared note',
-        links: [
-          { id: 'L1', targetType: 'person', targetId: 'P1' },
-          { id: 'L2', targetType: 'person', targetId: 'P2' },
+      repo.insertNote({ id: 'NN1', text: 'inline note', targetType: 'person', targetId: 'P1' });
+      const dataset = buildGedcomDataset(repo);
+
+      expect(dataset.records.some((record) => record.tag === 'SNOTE')).toBe(false);
+      const person = dataset.records.find((record) => record.tag === 'INDI');
+      expect(person).toEqual(expect.objectContaining({ notes: [{ tag: 'NOTE', payload: 'inline note' }] }));
+    } finally {
+      cleanupRepo(fixture);
+    }
+  });
+
+  it('exports notes on sub-targets through their enclosing NOTE slot', () => {
+    const fixture = makeRepo();
+    try {
+      const { repo } = fixture;
+      repo.insertPlace({ id: 'PL2', names: [{ id: 'PN2', value: 'Russia', position: 0 }] });
+      repo.insertPlace({
+        id: 'PL1',
+        names: [{ id: 'PN1', value: 'Moscow', position: 0 }],
+        hierarchy: [{ id: 'PH1', parentId: 'PL2' }],
+      });
+      repo.insertAddress({ id: 'AD1', lines: [{ id: 'AL1', value: '1 Main Street' }] });
+      repo.insertPerson({
+        id: 'P1',
+        sex: 'U',
+        facts: [],
+        names: [
+          {
+            id: 'N1',
+            given: 'Ivan',
+            parts: [{ id: 'NP1', kind: 'given', value: 'Ivan', position: 0 }],
+            variants: [
+              {
+                id: 'NV1',
+                kind: 'translation',
+                language: 'ru',
+                parts: [{ id: 'NVP1', kind: 'given', value: 'Иван', position: 0 }],
+              },
+            ],
+          },
         ],
       });
+      repo.insertRepository({ id: 'R1', name: 'Archive', addressId: 'AD1' });
+      repo.insertMedia({ id: 'M1', files: [{ id: 'MF1', path: 'media/a.jpg' }] });
 
-      const dataset = buildGedcomDataset(repo);
-      const xrefs = dataset.records.flatMap((record) => (record.xref !== undefined ? [record.xref] : []));
-      expect(new Set(xrefs).size).toBe(xrefs.length);
-      expect(dataset.records.find((record) => record.tag === 'SNOTE')?.xref).not.toBe('@N1@');
+      const notes = [
+        { targetType: 'name_part', targetId: 'NP1', text: 'name part note' },
+        { targetType: 'name', targetId: 'NV1', text: 'name variant note' },
+        { targetType: 'place_name', targetId: 'PN1', text: 'place name note' },
+        { targetType: 'place_hierarchy', targetId: 'PH1', text: 'place hierarchy note' },
+        { targetType: 'address_line', targetId: 'AL1', text: 'address line note' },
+        { targetType: 'media_file', targetId: 'MF1', text: 'media file note' },
+      ];
+      for (const note of notes) {
+        repo.insertNote({
+          id: `N_${note.targetId}`,
+          text: note.text,
+          targetType: note.targetType,
+          targetId: note.targetId,
+        });
+      }
+
+      const serialized = serializeGedcom70(buildGedcomDataset(repo));
+      expect(serialized.ok).toBe(true);
+      if (!serialized.ok) {
+        return;
+      }
+      for (const note of notes) {
+        expect(serialized.value).toContain(note.text);
+      }
     } finally {
       cleanupRepo(fixture);
     }

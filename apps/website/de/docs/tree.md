@@ -1,5 +1,5 @@
 ---
-source-hash: b425b67199c0
+source-hash: 2e99cfb11221
 ---
 
 # Arbeiten mit dem Stammbaum
@@ -63,13 +63,7 @@ oder eine Familie zu löschen ist ein Klick.
 - **Quellen**: Hängen Sie Quellen an eine Person an (mit Titel und Autor) oder
   verwenden Sie eine vorhandene Quelle. Jede Verknüpfung ist ein Zitat
   und kann entfernt werden.
-- **Notizen**: Freie Forschungsnotizen, die an eine Person angehängt werden. Eine
-  Notiz kann an mehrere Datensätze angehängt werden: Verwenden Sie **Vorhandene
-  Notiz anhängen** im Abschnitt Notizen eines anderen Datensatzes und wählen Sie
-  dann, ob eine Bearbeitung den gemeinsamen Text überall oder nur im aktuellen
-  Datensatz aktualisieren soll. **Von diesem Datensatz lösen** entfernt eine
-  Verknüpfung; **Überall löschen** entfernt die Notiz.
-- Fakten und Namen tragen ihre eigenen Abschnitte Quellen und Notizen im Personen-Editor; Fakten haben außerdem Kontakte.
+- **Notizen**: Freie Forschungsnotizen, die an eine Person angehängt werden. Jede Notiz gehört zu genau einem Datensatz: Fügen Sie sie im Abschnitt Notizen dieses Datensatzes hinzu, bearbeiten oder löschen Sie sie dort. Eine geteilte Notiz aus einer importierten GEDCOM-Datei wird für jeden Datensatz kopiert, der darauf verweist.
 
 ## Adressen
 
@@ -96,7 +90,7 @@ Vorschau, um den Medien-Tab zu öffnen, in dem Sie den Titel bearbeiten, Dateien
 verwalten und Link-Metadaten wie Bildunterschrift, Reihenfolge, Primärmarkierung
 und Ausschlussmarkierung bearbeiten können.
 
-Ein Mediendatensatz kann mit mehreren Zielen verknüpft werden. **Von diesem Datensatz lösen** entfernt eine Verknüpfung und löscht den Datensatz, wenn es die letzte war; **Medien löschen** entfernt den Datensatz und seine Dateikopien. Das Löschen eines Ziel-Datensatzes entfernt nur seine Verknüpfungen, sodass ein geteilter Mediendatensatz ohne Verknüpfungen bestehen bleiben kann.
+Ein Mediendatensatz kann mit mehreren Zielen verknüpft werden. **Von diesem Datensatz lösen** wird nur angezeigt, wenn das Medium mit mehreren Zielen verknüpft ist; es entfernt eine Verknüpfung. **Medien löschen** entfernt den Datensatz und seine Dateikopien. Das Löschen eines Ziel-Datensatzes entfernt nur seine Verknüpfungen, sodass ein Mediendatensatz ohne Verknüpfungen bestehen bleiben kann.
 
 ## Reihenfolge
 

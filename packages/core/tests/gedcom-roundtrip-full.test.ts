@@ -37,7 +37,7 @@ describe('buildGedcomDataset kitchen sink', () => {
       expect(tags).toContain('REPO');
       expect(tags).toContain('SUBM');
       expect(tags).toContain('TITL');
-      expect(tags).toContain('SNOTE');
+      expect(tags).not.toContain('SNOTE');
       expect(tags).toContain('_TODO');
       // The evidence/research, census and event-definition records stay
       // out of the tree: the export must not carry them.

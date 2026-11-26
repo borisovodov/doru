@@ -1,5 +1,5 @@
 ---
-source-hash: b425b67199c0
+source-hash: 2e99cfb11221
 ---
 
 # Trabajar con el árbol
@@ -63,13 +63,7 @@ familia es un clic.
 
 - **Fuentes**: adjunta fuentes a una persona (con un título y un autor) o
   reutiliza una fuente existente. Cada vínculo es una cita y se puede eliminar.
-- **Notas**: notas de investigación de formato libre adjuntas a una persona. Una
-  nota puede estar adjunta a varios registros: usa **Adjuntar nota existente** en
-  la sección Notas de otro registro y luego elige si una edición debe actualizar
-  el texto compartido en todas partes o solo en el registro actual. **Desvincular
-  de este registro** elimina un enlace; **Eliminar en todas partes** elimina la
-  nota.
-- Los hechos y los nombres llevan sus propias secciones de Fuentes y Notas dentro del editor de la persona; los hechos también tienen Contactos.
+- **Notas**: notas de investigación de formato libre adjuntas a una persona. Cada nota pertenece a un solo registro: añádela, edítala o elimínala en la sección Notas de ese registro. Una nota compartida de un archivo GEDCOM importado se copia a cada registro que la referencia.
 
 ## Direcciones
 
@@ -94,7 +88,7 @@ un registro existente a destinos adicionales. Haz clic en una vista previa para 
 puedes editar el título, gestionar archivos y editar metadatos del enlace como la
 leyenda, la secuencia, la marca de principal y la marca de exclusión.
 
-Un registro multimedia puede estar vinculado a varios destinos. **Desvincular de este registro** elimina un enlace y borra el registro cuando era el último; **Eliminar multimedia** elimina el registro y sus copias de archivos. Eliminar un registro de destino elimina solo sus enlaces, así que un registro multimedia compartido puede quedar sin enlaces.
+Un registro multimedia puede estar vinculado a varios destinos. **Desvincular de este registro** aparece solo cuando el elemento multimedia está vinculado a varios destinos; elimina un enlace. **Eliminar multimedia** elimina el registro y sus copias de archivos. Eliminar un registro de destino elimina solo sus enlaces, así que un registro multimedia puede quedar sin enlaces.
 
 ## Orden
 

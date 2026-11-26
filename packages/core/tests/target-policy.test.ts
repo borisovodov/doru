@@ -4,7 +4,7 @@ import {
   CITATION_TARGET_TYPES,
   CONTACT_TARGET_TYPES,
   MEDIA_LINK_TARGET_TYPES,
-  NOTE_LINK_TARGET_TYPES,
+  NOTE_TARGET_TYPES,
   RECORD_SUBMITTER_TARGET_TYPES,
   TASK_LINK_TARGET_TYPES,
   isAttachmentTargetAllowed,
@@ -42,7 +42,7 @@ const ALL_TARGET_TYPES = [
 ] as const;
 
 const FAMILIES: Array<[AttachmentTargetKind, readonly string[]]> = [
-  ['noteLink', NOTE_LINK_TARGET_TYPES],
+  ['note', NOTE_TARGET_TYPES],
   ['citation', CITATION_TARGET_TYPES],
   ['mediaLink', MEDIA_LINK_TARGET_TYPES],
   ['contact', CONTACT_TARGET_TYPES],
@@ -61,10 +61,10 @@ describe('attachment target policy', () => {
   });
 
   it.each([
-    ['noteLink', 'person', true],
-    ['noteLink', 'task', true],
-    ['noteLink', 'media_link', false],
-    ['noteLink', 'note', false],
+    ['note', 'person', true],
+    ['note', 'task', true],
+    ['note', 'media_link', false],
+    ['note', 'note', false],
     ['citation', 'media_link', true],
     ['citation', 'submitter', true],
     ['citation', 'task', false],

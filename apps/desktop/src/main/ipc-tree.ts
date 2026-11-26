@@ -11,7 +11,6 @@ import type {
   MediaRecord,
   NoteRecord,
   PersonRecord,
-  NoteLinkRecord,
   PlaceRecord,
   RecordSubmitterLink,
   RepositoryRecord,
@@ -159,28 +158,9 @@ export function registerTreeIpc(): void {
 
   ipcMain.handle(
     'tree:updateNote',
-    async (
-      _event,
-      options: { projectPath: string; before: NoteRecord; after: NoteRecord; context?: NoteLinkRecord },
-    ) => {
+    async (_event, options: { projectPath: string; before: NoteRecord; after: NoteRecord }) => {
       const { runtime } = await ensureRuntime(options.projectPath);
-      return runtime.service.updateNote(options.before, options.after, options.context);
-    },
-  );
-
-  ipcMain.handle(
-    'tree:attachNote',
-    async (_event, options: { projectPath: string; noteId: string; link: NoteLinkRecord }) => {
-      const { runtime } = await ensureRuntime(options.projectPath);
-      return runtime.service.attachNote(options.noteId, options.link);
-    },
-  );
-
-  ipcMain.handle(
-    'tree:detachNote',
-    async (_event, options: { projectPath: string; note: NoteRecord; link: NoteLinkRecord }) => {
-      const { runtime } = await ensureRuntime(options.projectPath);
-      return runtime.service.detachNote(options.note, options.link);
+      return runtime.service.updateNote(options.before, options.after);
     },
   );
 

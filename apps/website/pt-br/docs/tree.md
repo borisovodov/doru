@@ -1,5 +1,5 @@
 ---
-source-hash: b425b67199c0
+source-hash: 2e99cfb11221
 ---
 
 # Trabalhando com a árvore
@@ -61,13 +61,7 @@ clique.
 
 - **Fontes**: anexe fontes a uma pessoa (com título e autor) ou reutilize uma
   fonte existente. Cada anexo é uma citação e pode ser removido.
-- **Notas**: notas de pesquisa livres anexadas a uma pessoa. Uma nota pode ser
-  anexada a vários registros: use **Anexar uma nota existente** na seção Notas
-  de outro registro, depois escolha se uma edição deve atualizar o texto
-  compartilhado em todos os lugares ou apenas o registro atual. **Desvincular
-  deste registro** remove um vínculo; **Excluir em todos os lugares** remove a
-  nota.
-- Eventos e nomes têm suas próprias seções Fontes e Notas dentro do editor da pessoa; eventos também têm Contatos.
+- **Notas**: notas de pesquisa livres anexadas a uma pessoa. Cada nota pertence a um único registro: adicione, edite ou exclua-a na seção Notas desse registro. Uma nota compartilhada de um arquivo GEDCOM importado é copiada para cada registro que a referencia.
 
 ## Endereços
 
@@ -91,7 +85,7 @@ tarefa ou endereço; a seção **Relacionado a** da aba de mídia permite anexar
 você pode editar o título, gerenciar os arquivos e editar metadados do vínculo,
 como a legenda, a sequência, o sinalizador principal e o de exclusão.
 
-Um registro de mídia pode ser vinculado a vários destinos. **Desvincular deste registro** remove um vínculo e exclui o registro quando era o último; **Excluir mídia** remove o registro e as cópias dos seus arquivos. Excluir um registro de destino remove apenas seus vínculos, então um registro de mídia compartilhado pode permanecer sem vínculos.
+Um registro de mídia pode ser vinculado a vários destinos. **Desvincular deste registro** aparece apenas quando a mídia está vinculada a vários destinos; remove um vínculo. **Excluir mídia** remove o registro e as cópias dos seus arquivos. Excluir um registro de destino remove apenas seus vínculos, então um registro de mídia pode permanecer sem vínculos.
 
 ## Ordenação
 

@@ -33,6 +33,7 @@ const api = {
   getAllTasks: async () => [...tasks, otherTask],
   addTask: async () => undefined,
   addTaskLink: async () => undefined,
+  deleteTask: async () => undefined,
   deleteTaskLink: async () => undefined,
   openTask: () => undefined,
 };

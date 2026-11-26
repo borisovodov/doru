@@ -754,31 +754,23 @@ notes, media, contacts, contributors, and tasks may not.
 ## Notes
 
 A note is one text row with creation and last-update instants (epoch
-milliseconds). An inline note has one link; a shared note has several. A note
-is linked to a given target at most once: `(note_id, target_type, target_id)`
-is unique, and re-attaching a note that is already linked is a no-op, so
-repeated `NOTE`/`SNOTE` references in a GEDCOM file cannot produce duplicate
-links. A note is never an attachment target: citations, media links,
-contacts, contributors, tasks and other notes cannot point at
-it. GEDCOM `NOTE.SOUR`/`SNOTE.SOUR` is parsed by `@doru/gedcom` but dropped
-on import and not written on export.
+milliseconds) and exactly one owning target. The polymorphic
+`(target_type, target_id)` pair lives on the note row itself; there is no
+separate note-link table. A note is never an attachment target: citations,
+media links, contacts, contributors, tasks and other notes cannot point at
+it. GEDCOM shared notes are copied per target on import, and
+export writes every note as an inline `NOTE`. `NOTE.SOUR`/`SNOTE.SOUR` is
+parsed by `@doru/gedcom` but dropped on import and not written on export.
 
 ```mermaid
 erDiagram
-    note ||--o{ note_link : "links"
-
     note {
         TEXT id PK
         TEXT text "NOT NULL"
-        INTEGER created_at "epoch milliseconds"
-        INTEGER updated_at "epoch milliseconds"
-    }
-
-    note_link {
-        TEXT id PK
-        TEXT note_id FK "UNIQUE with target_type and target_id"
         TEXT target_type "NOT NULL, polymorphic target"
         TEXT target_id "NOT NULL, UUID"
+        INTEGER created_at "epoch milliseconds"
+        INTEGER updated_at "epoch milliseconds"
     }
 ```
 
@@ -930,7 +922,7 @@ is no global runtime target list.
 
 | Table | Policy set | Allowed targets |
 |---|---|---|
-| `note_link` | `NOTE_LINK_TARGET_TYPES` | person, family, family_partner, family_child, family_marriage_status, fact, name, name_part, source, citation, media, media_file, place, place_name, place_hierarchy, repository, submitter, address, address_line, association, task, title |
+| `note` | `NOTE_TARGET_TYPES` | person, family, family_partner, family_child, family_marriage_status, fact, name, name_part, source, citation, media, media_file, place, place_name, place_hierarchy, repository, submitter, address, address_line, association, task, title |
 | `citation` | `CITATION_TARGET_TYPES` | person, family, family_partner, family_child, family_marriage_status, fact, name, name_part, source, citation, media, media_file, media_link, place, place_name, place_hierarchy, repository, submitter, address, address_line, association, title |
 | `media_link` | `MEDIA_LINK_TARGET_TYPES` | person, family, family_partner, family_child, family_marriage_status, fact, name, name_part, source, citation, media, media_file, place, place_name, place_hierarchy, repository, submitter, address, address_line, association, task, title |
 | `contact` | `CONTACT_TARGET_TYPES` | person, fact, address, repository, submitter |
@@ -938,9 +930,9 @@ is no global runtime target list.
 | `record_submitter` | `RECORD_SUBMITTER_TARGET_TYPES` | person, family, family_partner, family_child, family_marriage_status, fact, name, name_part, source, citation, media, media_file, place, place_name, place_hierarchy, repository, submitter, address, address_line, association, title |
 
 `name` refers to the `person_name` table. `family_witness` is deliberately
-absent from every set: it is free text without stable identity. A note is not
-in the target vocabulary at all: it is a leaf annotation and no attachment may
-point at it.
+absent from every set: it is free text without stable identity. A note record
+is not itself a target type: it is a leaf annotation and no attachment may
+point at a note.
 
 `task_link` stores one task's links to any number of targets. A task may point
 at a source (for example, "check this source"), the records the work concerns,
@@ -987,7 +979,8 @@ Most child rows are removed with their parent:
   citations.
 - `citation` → citation texts and template fields.
 - `media` → media files and media links; `media_file` → translations.
-- `note` → note links.
+- `note` → none (a note is a leaf annotation).
+- Every target → its notes (notes are owned by one target).
 - `address` → address lines.
 - `submitter` → languages and record-submitter links.
 - `task` → task links (the task itself survives a target deletion).
@@ -1010,11 +1003,11 @@ must add a `*_date_id` column and date cleanup to its repository.
 
 ## Indexes
 
-The schema has 75 regular indexes:
+The schema has 73 regular indexes:
 
 - Parent/child lookups are indexed on the child columns: `person_name`,
   `name_part`, `family_partner`, `family_child`, `fact_*`, `place_*`,
-  `source_*`, `citation_*`, `media_*`, `note_*`, `address_line`,
+  `source_*`, `citation_*`, `media_*`, `address_line`,
   `submitter_language`, `record_submitter`, and the rest.
 - Ordered child lists use `(parent_id, position)`.
 - Polymorphic attachment tables use `(target_type, target_id)`.

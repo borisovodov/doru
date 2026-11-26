@@ -49,15 +49,21 @@
   pointer-events: none;
 }
 
-.remove {
+.actions {
   position: absolute;
   top: 4px;
   right: 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.action {
   background: var(--doru-scrim);
   color: var(--doru-on-scrim);
 }
 
-.remove:hover:not(:disabled) {
+.action:hover:not(:disabled) {
   background: var(--doru-scrim-strong);
   color: var(--doru-on-scrim);
 }
