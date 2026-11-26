@@ -96,6 +96,12 @@ describe('AttachmentsPanel contacts', () => {
     expect(screen.queryByText(nls.t('features.tree.contacts.title'))).not.toBeInTheDocument();
   });
 
+  it('hides contacts on an address, which is not a contact owner', () => {
+    renderUi(panel('address'));
+
+    expect(screen.queryByText(nls.t('features.tree.contacts.title'))).not.toBeInTheDocument();
+  });
+
   it('keeps attachment forms scoped to the current target', () => {
     renderUi(panel('person'));
 

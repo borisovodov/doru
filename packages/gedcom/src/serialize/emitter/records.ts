@@ -367,6 +367,18 @@ export function emitFamily(w: Writer, version: Version, rec: FamilyRecord): void
 
 export function emitIndividual(w: Writer, version: Version, rec: IndividualRecord): void {
   w.line(0, 'INDI', { xref: rec.xref });
+  // 5.5.1 keeps PHON/EMAIL/FAX/WWW in the ADDRESS_STRUCTURE (as siblings
+  // of ADDR). Merge the record-level contacts into the address block so
+  // the wire position survives instead of moving them to INDI-level
+  // vendor tags.
+  const websites = [...(rec.url !== undefined ? [rec.url] : []), ...(rec.www ?? [])];
+  const address = mergedAddress(w, version, rec.address, {
+    ...(rec.phone !== undefined ? { phone: rec.phone } : {}),
+    ...(rec.email !== undefined ? { email: rec.email } : {}),
+    ...(rec.fax !== undefined ? { fax: rec.fax } : {}),
+    ...(websites.length > 0 ? { www: websites } : {}),
+  });
+  const contactsInAddress = version === '5.5.1' && address !== undefined;
   if (rec.updatedAt !== undefined) {
     w.line(1, '_UPD', { value: rec.updatedAt });
   }
@@ -384,7 +396,7 @@ export function emitIndividual(w: Writer, version: Version, rec: IndividualRecor
     // GenPlus: the record creation date (see IndividualRecord.createdAt).
     w.line(1, '_CREAT', { value: rec.createdAt });
   }
-  if (rec.url !== undefined) {
+  if (rec.url !== undefined && !contactsInAddress) {
     w.line(1, '_URL', { value: rec.url });
   }
   if (rec.sosaNumber !== undefined) {
@@ -418,11 +430,11 @@ export function emitIndividual(w: Writer, version: Version, rec: IndividualRecor
     // (see IndividualRecord.familyTreeSystemId).
     w.line(1, '_FTSID', { value: rec.familyTreeSystemId });
   }
-  if (version === '5.5.1' && rec.address !== undefined) {
+  if (version === '5.5.1' && address !== undefined) {
     // PAF: the person's contact address directly under the INDI
     // record (see IndividualRecord.address); 7.0 has no INDI address
     // position.
-    emitAddress(w, version, 1, rec.address);
+    emitAddress(w, version, 1, address);
   }
   if (rec.geditcomId !== undefined) {
     // GEDitCOM II: the record's id (see IndividualRecord.geditcomId).
@@ -553,18 +565,24 @@ export function emitIndividual(w: Writer, version: Version, rec: IndividualRecor
       }
     });
   }
-  for (const address of rec.email ?? []) {
-    // BKW/FO/PAF: the individual's e-mail address under INDI (see
-    // IndividualRecord.email).
-    w.line(1, '_EMAIL', { value: address });
-  }
-  for (const number of rec.phone ?? []) {
-    // The INDI-level phone number (see IndividualRecord.phone).
-    w.line(1, 'PHON', { value: number });
-  }
-  for (const number of rec.fax ?? []) {
-    // The INDI-level fax number (see IndividualRecord.fax).
-    w.line(1, 'FAX', { value: number });
+  if (!contactsInAddress) {
+    for (const email of rec.email ?? []) {
+      // BKW/FO/PAF: the individual's e-mail address under INDI (see
+      // IndividualRecord.email).
+      w.line(1, '_EMAIL', { value: email });
+    }
+    for (const number of rec.phone ?? []) {
+      // The INDI-level phone number (see IndividualRecord.phone).
+      w.line(1, 'PHON', { value: number });
+    }
+    for (const number of rec.fax ?? []) {
+      // The INDI-level fax number (see IndividualRecord.fax).
+      w.line(1, 'FAX', { value: number });
+    }
+    for (const website of rec.www ?? []) {
+      // Additional vendor website values when the tag is repeated under INDI.
+      w.line(1, 'WWW', { value: website });
+    }
   }
   if (rec.deceased !== undefined) {
     // GenoPro: the person's vital flag (see IndividualRecord.deceased).

@@ -113,9 +113,16 @@ export interface IndividualRecord extends GedcomStructureBase {
    * _URL {0:1} — an internet address of the individual. Written by
    * Legacy Family Tree under INDI (see its "Custom GEDCOM Tags" help:
    * https://www.legacyfamilytree.se/WEB_US/custom_gedcom_tags.htm); not part of any GEDCOM version. Recognized on input and
-   * written back as `_URL` in both versions.
+   * written back as `_URL` when the person has no INDI address; with an
+   * address, 5.5.1 writes it as `WWW` inside the ADDRESS_STRUCTURE.
    */
   url?: Text;
+  /**
+   * Additional `WWW`/`URL` values when the exporter repeats the individual
+   * website tag. `url` keeps the first value; the remaining ones stay here so
+   * a repeated vendor tag survives the round trip.
+   */
+  www?: Text[];
   /**
    * _SOSA {0:1} — the individual's Sosa–Stradonitz (Ahnentafel)
    * number. Written by Ancestris, the French GEDCOM editor (see its
@@ -285,22 +292,24 @@ export interface IndividualRecord extends GedcomStructureBase {
    * https://www.legacyfamilytree.se/WEB_US/user_defined_gedcom_tags.htm);
    * not part of any GEDCOM version (the contact fields of the ADDRESS
    * and event structures are the standard positions). Recognized on
-   * input and written back as `_EMAIL` in both versions.
+   * input and written back as `_EMAIL` when the person has no INDI
+   * address; with an address, 5.5.1 writes the value inside the
+   * ADDRESS_STRUCTURE as `EMAIL` instead.
    */
   email?: Text[];
   /**
    * PHON {0:M} — the individual's phone numbers, written directly
    * under the INDI record (PAF and the ged4web exports; the standard
    * positions are the event/address contacts). Not part of any GEDCOM
-   * version. Recognized on input and written back as `PHON` in both
-   * versions.
+   * version. Recognized on input and written back as `PHON`; with an
+   * INDI address, 5.5.1 keeps it inside the ADDRESS_STRUCTURE.
    */
   phone?: Text[];
   /**
    * FAX {0:M} — the individual's fax numbers, written directly under
    * the INDI record (PAF; see `phone`). Not part of any GEDCOM
-   * version. Recognized on input and written back as `FAX` in both
-   * versions.
+   * version. Recognized on input and written back as `FAX`; with an
+   * INDI address, 5.5.1 keeps it inside the ADDRESS_STRUCTURE.
    */
   fax?: Text[];
   /**

@@ -1,5 +1,5 @@
 ---
-source-hash: 2e99cfb11221
+source-hash: bd745f4dc593
 ---
 
 # A családfa használata
@@ -46,7 +46,7 @@ A **Források** nézetben van egy **Címek** szakasz. Itt önálló címeket hoz
 
 A feladatoknak létrehozási dátumuk és egy emlékeztető dátumuk van. A feladat lezárása csak az állapotát változtatja meg; külön befejezési dátum nem kerül mentésre. A legtöbb szerkesztőnek van **Feladatok** szakasza: adjon hozzá ott egy feladatot, és az automatikusan ahhoz a rekordhoz kapcsolódik. Kivétel a feladat- és a beküldő-szerkesztő, a médiakapcsolat sora pedig csak a Források szakaszt tartalmazza: a feladatkártya megőrzi a Jegyzeteket és a Médiát, a beküldő kártyáján nincs Feladatok szakasz, és a médiakapcsolat nem célja feladatoknak. A tények, nevek és hivatkozások saját Feladatok szakasszal rendelkeznek a csatolási panelükön. A **Kapcsolódó** egy feladatot egy vagy több rekordhoz kapcsol a fában — személyhez, családhoz, eseményhez, névhez, forráshoz, hivatkozáshoz, médiához, helyhez, levéltárhoz, címhez vagy műhöz, de nem egy másik feladathoz, beküldőhöz vagy médiakapcsolathoz; hagyja üresen egy szabadon álló feladathoz. A feladat megosztott: bárhol szerkesztve ugyanazt a rekordot frissíti, és egy kapcsolódó rekord törlése helyben hagyja a feladatot. A **Meglévő feladat csatolása** lehetőséggel új feladat létrehozása helyett újra felhasználhat egy megosztott feladatot.
 
-A művek, címek, társítások és családi partner/gyermek kapcsolatok ugyanazokkal a Jegyzetek, Források, Közreműködők és Feladatok szakaszokkal rendelkeznek, mint a fő entitáslapok. A címeknek Elérhetőségeik is vannak. A feladatok megőrzik a Jegyzeteket és a Médiát, de nincs Forrásuk, Elérhetőségük, Közreműködőjük vagy Feladatuk. A médiakapcsolat csak Forrásokat tartalmaz.
+A művek, címek, társítások és családi partner/gyermek kapcsolatok ugyanazokkal a Jegyzetek, Források, Közreműködők és Feladatok szakaszokkal rendelkeznek, mint a fő entitáslapok. Az elérhetőségek ahhoz a személyhez, tényhez, levéltárhoz vagy beküldőhöz tartoznak, akit vagy amit leírnek, nem egy címhez. A feladatok megőrzik a Jegyzeteket és a Médiát, de nincs Forrásuk, Elérhetőségük, Közreműködőjük vagy Feladatuk. A médiakapcsolat csak Forrásokat tartalmaz.
 
 ## Média
 

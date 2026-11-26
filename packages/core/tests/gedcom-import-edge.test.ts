@@ -13,6 +13,8 @@ const GEDCOM = [
   '1 NAME Ivan',
   '1 RIN 42',
   '1 NOTE a submitter note',
+  '1 _SKYPEID ivan.skype',
+  '1 _JABBERID ivan@jabber.example',
   '0 @I1@ INDI',
   '1 NAME Ivan /Petrov/',
   '2 GIVN Ivan',
@@ -165,7 +167,7 @@ describe('importGedcomDataset edge coverage', () => {
         .listContactsFor('person', ivan.id)
         .map((contact) => contact.kind)
         .sort();
-      expect(contactKinds).toEqual(['email', 'phone', 'phone', 'url']);
+      expect(contactKinds).toEqual(['email', 'phone', 'phone', 'www']);
 
       const birth = ivan.facts.find((fact) => fact.tag === 'BIRT')!;
       const factKinds = repo
@@ -173,6 +175,9 @@ describe('importGedcomDataset edge coverage', () => {
         .map((contact) => contact.kind)
         .sort();
       expect(factKinds).toEqual(['email', 'fax', 'phone', 'www']);
+      if (birth.addressId !== undefined) {
+        expect(repo.listContactsFor('address', birth.addressId)).toEqual([]);
+      }
 
       // Submitter links.
       expect(repo.listSubmittersFor('person', ivan.id)).toHaveLength(1);
@@ -191,6 +196,12 @@ describe('importGedcomDataset edge coverage', () => {
       // Submitter notes: RIN is ignored, only notes survive.
       const submitter = repo.listSubmitters()[0]!;
       expect(repo.listNotesFor('submitter', submitter.id)).toHaveLength(1);
+      expect(
+        repo
+          .listContactsFor('submitter', submitter.id)
+          .map((contact) => contact.kind)
+          .sort(),
+      ).toEqual(['jabber', 'skype']);
 
       // Free-standing task with fields. The parser keeps `_UID`, but the tree
       // drops it.

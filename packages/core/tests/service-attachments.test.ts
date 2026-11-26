@@ -574,6 +574,10 @@ describe('TreeService attachments', () => {
       );
       expect(fixture.repo.listContactsFor('task', 'T1')).toEqual([]);
 
+      expect(() => service.addContact(contact({ id: 'C3', targetType: 'address', targetId: 'A1' }))).toThrow(
+        'A contact cannot target',
+      );
+
       const familyContact = contact({ id: 'C2', targetType: 'family', targetId: 'F1' });
       fixture.repo.insertContact(familyContact);
       expect(() => service.updateContact(familyContact, { ...familyContact, value: '+7 495 000-00-00' })).toThrow(

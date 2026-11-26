@@ -315,6 +315,7 @@ function importRepositories(records: GedcomRecord[], ctx: ImportContext): void {
         ...(repository.phone ?? []).map((value) => ({ kind: 'phone', value })),
         ...(repository.fax ?? []).map((value) => ({ kind: 'fax', value })),
         ...(repository.www ?? []).map((value) => ({ kind: 'www', value })),
+        ...addressContacts(repository.address),
       ],
       ctx,
     );
@@ -338,6 +339,8 @@ function importSubmitters(records: GedcomRecord[], ctx: ImportContext): void {
       email?: string[];
       fax?: string[];
       www?: string[];
+      skypeId?: string;
+      jabberId?: string;
       submitters?: string[];
       creationDate?: CreationDate;
       changeDate?: ChangeDate;
@@ -368,6 +371,9 @@ function importSubmitters(records: GedcomRecord[], ctx: ImportContext): void {
         ...(submitter.phone ?? []).map((value) => ({ kind: 'phone', value })),
         ...(submitter.fax ?? []).map((value) => ({ kind: 'fax', value })),
         ...(submitter.www ?? []).map((value) => ({ kind: 'www', value })),
+        ...(submitter.skypeId !== undefined ? [{ kind: 'skype', value: submitter.skypeId }] : []),
+        ...(submitter.jabberId !== undefined ? [{ kind: 'jabber', value: submitter.jabberId }] : []),
+        ...addressContacts(submitter.address),
       ],
       ctx,
     );
@@ -425,17 +431,6 @@ function importAddress(address: AddressStructure, ctx: ImportContext): string {
     createdAt: ctx.importedAt,
     updatedAt: ctx.importedAt,
   });
-  importContacts(
-    'address',
-    id,
-    [
-      ...(address.email ?? []).map((value) => ({ kind: 'email', value })),
-      ...(address.phone ?? []).map((value) => ({ kind: 'phone', value })),
-      ...(address.fax ?? []).map((value) => ({ kind: 'fax', value })),
-      ...(address.www ?? []).map((value) => ({ kind: 'www', value })),
-    ],
-    ctx,
-  );
   importNotes(address.notes, 'address', id, ctx);
   return id;
 }
@@ -685,7 +680,6 @@ function importPerson(record: GedcomIndividualRecord, ctx: ImportContext): void 
         ctx,
       );
     }
-    importAddressContacts(structure.detail, fact.id, ctx);
   });
   record.nonEvents?.forEach((nonEvent, index) => {
     const fact = facts[factStructures.length + index];
@@ -705,7 +699,9 @@ function importPerson(record: GedcomIndividualRecord, ctx: ImportContext): void 
       ...(record.email ?? []).map((value) => ({ kind: 'email', value })),
       ...(record.phone ?? []).map((value) => ({ kind: 'phone', value })),
       ...(record.fax ?? []).map((value) => ({ kind: 'fax', value })),
-      ...(record.url ? [{ kind: 'url', value: record.url }] : []),
+      ...(record.url ? [{ kind: 'www', value: record.url }] : []),
+      ...(record.www ?? []).map((value) => ({ kind: 'www', value })),
+      ...addressContacts(record.address),
     ],
     ctx,
   );
@@ -797,6 +793,7 @@ function mapFact(
       ...(detail?.phone ?? []).map((value) => ({ kind: 'phone', value })),
       ...(detail?.fax ?? []).map((value) => ({ kind: 'fax', value })),
       ...(detail?.www ?? []).map((value) => ({ kind: 'www', value })),
+      ...addressContacts(detail?.address),
     ],
     ctx,
   );
@@ -902,23 +899,6 @@ function mapParticipants(detail: EventDetail | undefined, ctx: ImportContext): F
     });
   }
   return participants.length > 0 ? participants : undefined;
-}
-
-function importAddressContacts(detail: EventDetail | undefined, targetId: string, ctx: ImportContext): void {
-  if (detail?.address === undefined) {
-    return;
-  }
-  importContacts(
-    'fact',
-    targetId,
-    [
-      ...(detail.address.email ?? []).map((value) => ({ kind: 'email', value })),
-      ...(detail.address.phone ?? []).map((value) => ({ kind: 'phone', value })),
-      ...(detail.address.fax ?? []).map((value) => ({ kind: 'fax', value })),
-      ...(detail.address.www ?? []).map((value) => ({ kind: 'www', value })),
-    ],
-    ctx,
-  );
 }
 
 function extensionText(extensions: ExtensionStructure[] | undefined, tag: string): string | undefined {
@@ -1958,6 +1938,23 @@ function importNotes(
       updatedAt: ctx.importedAt,
     });
   }
+}
+
+/**
+ * The contact details of an address block. The parser canonicalizes contacts
+ * that sit beside an ADDR into the address itself, so every owner that imports
+ * an address must hoist these rows onto its own contact target.
+ */
+function addressContacts(address: AddressStructure | undefined): Array<{ kind: string; value: string }> {
+  if (address === undefined) {
+    return [];
+  }
+  return [
+    ...(address.email ?? []).map((value) => ({ kind: 'email', value })),
+    ...(address.phone ?? []).map((value) => ({ kind: 'phone', value })),
+    ...(address.fax ?? []).map((value) => ({ kind: 'fax', value })),
+    ...(address.www ?? []).map((value) => ({ kind: 'www', value })),
+  ];
 }
 
 function importContacts(

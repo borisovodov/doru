@@ -892,9 +892,15 @@ function applyLegacyIndividualTags(
         case 'negative':
           pushVendorNonEvent(rec, child, ctx, rule.event);
           return;
-        case 'url':
-          rec.url = reqText(child);
+        case 'url': {
+          const value = reqText(child);
+          if (rec.url === undefined) {
+            rec.url = value;
+          } else {
+            (rec.www ??= []).push(value);
+          }
           return;
+        }
         case 'refn':
           if (rule.type === undefined) {
             (rec.identifiers ??= []).push(parseReferenceIdentifier(child, ctx));
@@ -1116,7 +1122,12 @@ export function parseIndividualRecord(node: RawNode, ctx: Ctx): IndividualRecord
       rec.deathCauseAsRecorded = reqText(child);
     },
     _URL: (child) => {
-      rec.url = reqText(child);
+      const value = reqText(child);
+      if (rec.url === undefined) {
+        rec.url = value;
+      } else {
+        (rec.www ??= []).push(value);
+      }
     },
     _SOSA: (child) => {
       rec.sosaNumber = reqText(child);

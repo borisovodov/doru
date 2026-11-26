@@ -150,7 +150,7 @@ those sets; there is no global runtime target list and no second UI list.
 | Note | Every target type except `media_link`. A note record is never a target. |
 | Citation | Every target type except `task`; `media_link` is allowed. |
 | Media link | Every target type except `media_link`; a task is a valid media target. |
-| Contact | `person`, `fact`, `address`, `repository`, `submitter`. |
+| Contact | `person`, `fact`, `repository`, `submitter`. |
 | Task link | Every target type except `task`, `submitter`, and `media_link`; `source` is valid. |
 | Contributor link | Every target type except `task` and `media_link`. |
 
@@ -191,17 +191,26 @@ Their notes are emitted on the nearest enclosing standard NOTE slot (`NAME`,
 `_PLAC`, `ADDR`, `OBJE`). Import attaches them back to that parent, so the
 text round-trips but the fine-grained target does not.
 
-## Contacts are limited to their GEDCOM positions
+## Contacts belong to their GEDCOM owner
 
 `PHON`, `EMAIL`, `FAX` and `WWW` are not universal record fields. GEDCOM
 5.5.x keeps them inside `ADDRESS_STRUCTURE`; 7.0 moves them to event details
 and to the `REPO` and `SUBM` records. A direct `INDI` contact is a vendor
 extension, which Dóru keeps on a person. Dóru therefore accepts contact rows
-only for `person`, `fact`, `address`, `repository` and `submitter`; every other
-target has no import or export path, and a contact there would be dead data.
-The kind list (`email`, `phone`, `fax`, `url`, `www`) is deliberately not
-restricted per target: the storage layer keeps unknown and future spellings,
-and the same picker stays available on every supported target.
+only for `person`, `fact`, `repository` and `submitter`; every other target has
+no import or export path, and a contact there would be dead data.
+
+An address is a postal container, not a contact owner. The parser canonicalizes
+5.5.x contacts into the address block, so the importer hoists them onto the
+owning person, fact, repository or submitter; the 5.5.1 serializer merges them
+back into the address block on export. This keeps one row per contact instead
+of duplicating it on both the address and its owner.
+
+The website kind is `www` (the GEDCOM tag); `url` survives only as a legacy
+alias and is normalized to `www` when edited. `skype` and `jabber` are accepted
+vendor handles: the parser and exporter support them on `submitter`; on other
+targets they are stored and shown but have no GEDCOM output path. The kind list
+is deliberately open, so unknown and future spellings survive a round trip.
 
 ## Privacy restrictions are out of scope
 

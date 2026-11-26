@@ -91,8 +91,11 @@ export const MEDIA_LINK_TARGET_TYPES = [
  * Targets that can own contact details. GEDCOM keeps PHON, EMAIL, FAX and WWW
  * inside addresses (5.5.x), on event details and on the REPO and SUBM records
  * (7.0); direct INDI contacts are a vendor extension Dóru keeps on a person.
+ * An address is not a target: its 5.5.x contacts are hoisted to the owning
+ * person, fact, repository or submitter on import and merged back into the
+ * address block when a 5.5.1 file is exported.
  */
-export const CONTACT_TARGET_TYPES = ['person', 'fact', 'address', 'repository', 'submitter'] as const;
+export const CONTACT_TARGET_TYPES = ['person', 'fact', 'repository', 'submitter'] as const;
 
 /** Targets a task link may point at. */
 export const TASK_LINK_TARGET_TYPES = [
