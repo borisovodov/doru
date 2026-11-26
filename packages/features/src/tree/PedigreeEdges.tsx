@@ -1,4 +1,5 @@
 import type { PedigreeEdge } from '@doru/core';
+import styles from './TreeEdges.module.css';
 
 export interface TreeBounds {
   minX: number;
@@ -69,7 +70,7 @@ export function TreeEdges({
   }
   return (
     <svg
-      className="tree-edges"
+      className={styles['edges']}
       aria-hidden="true"
       style={{
         left: bounds.minX,
@@ -81,7 +82,12 @@ export function TreeEdges({
       overflow="visible"
     >
       {visible.map((edge) => (
-        <path key={edge.id} className={`tree-edge tree-edge-${edge.kind}`} d={edgePath(edge, bounds)} />
+        <path
+          key={edge.id}
+          className={[styles['edge'], edge.kind === 'see-also' ? styles['seeAlso'] : null].filter(Boolean).join(' ')}
+          d={edgePath(edge, bounds)}
+          data-canvas-edge
+        />
       ))}
     </svg>
   );

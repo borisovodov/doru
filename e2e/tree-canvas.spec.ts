@@ -194,12 +194,19 @@ test('the canvas does not emit ResizeObserver loop or attribution warnings', asy
 
   // Zoom, hide the tab, come back: the camera survives a tab switch.
   await page.getByRole('button', { name: 'Zoom in' }).click();
-  await page.waitForTimeout(300);
-  const zoomed = await ivan.boundingBox();
+  let zoomed = await ivan.boundingBox();
+  // Wait for the zoom transition to reach its final scale before hiding the tab.
+  await expect.poll(async () => (zoomed = await ivan.boundingBox())?.width ?? 0).toBe(216);
   await page.getByRole('button', { name: 'Settings', exact: true }).click();
   await page.getByRole('tab', { name: 'Family Tree' }).click();
-  await page.waitForTimeout(300);
-  expect(await ivan.boundingBox()).toEqual(zoomed);
+  await expect(ivan).toBeVisible();
+  await expect
+    .poll(async () => {
+      const box = await ivan.boundingBox();
+      return box === null ? null : { x: box.x, y: box.y, width: box.width, height: box.height };
+    })
+    .toEqual(zoomed);
+  // Allow deferred warnings from the tab switch to reach the listener.
   await page.waitForTimeout(300);
 
   const errors = await page.evaluate(
@@ -237,9 +244,30 @@ test('a card click tolerates tiny pointer movement and the platform zoom modifie
   await page.keyboard.down(zoomModifier);
   await page.mouse.wheel(0, -120);
   await page.keyboard.up(zoomModifier);
-  await page.waitForTimeout(300);
-  const after = await ivan.boundingBox();
-  expect(after!.width).toBeGreaterThan(before!.width);
+  await expect.poll(async () => (await ivan.boundingBox())?.width ?? 0).toBeGreaterThan(before!.width);
+
+  await app.close();
+});
+
+test('keyboard activation of the collapse button collapses the branch', async () => {
+  const project = join(mkdtempSync(join(tmpdir(), 'doru-canvas-keyboard-e2e-')), 'family.doru');
+  const { app, page } = await launchApp({ project });
+  await seedFamilyTree(page, project);
+  await page.reload();
+  const ivan = page.getByRole('group', { name: 'Ivan Ivanov', exact: true });
+  await expect(ivan).toBeVisible({ timeout: 20_000 });
+
+  await ivan.dblclick();
+  await page.getByRole('button', { name: 'Descendants' }).click();
+  await expect(ivan).toBeVisible();
+  const petr = page.getByRole('group', { name: 'Petr Ivanov', exact: true });
+  await expect(petr).toBeVisible();
+  await ivan.hover();
+  const collapse = page.getByRole('button', { name: 'Collapse branch', exact: true });
+  await expect(collapse).toBeVisible();
+  await collapse.focus();
+  await page.keyboard.press('Enter');
+  await expect(petr).toHaveCount(0);
 
   await app.close();
 });

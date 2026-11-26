@@ -22,6 +22,7 @@ export interface CanvasContextValue {
   store: ViewportStore;
   config: CanvasConfig;
   controllerRef: RefObject<CanvasController | null>;
+  rootRef: RefObject<HTMLDivElement | null>;
   worldRef: RefObject<HTMLDivElement | null>;
   setController(controller: CanvasController | null): void;
 }

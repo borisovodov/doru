@@ -1,0 +1,16 @@
+.edges {
+  position: absolute;
+  overflow: visible;
+  pointer-events: none;
+}
+
+.edge {
+  fill: none;
+  stroke: var(--doru-border-strong);
+  stroke-width: 1.5;
+}
+
+.seeAlso {
+  stroke: var(--doru-fg-faint);
+  stroke-dasharray: 4 4;
+}

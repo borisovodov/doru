@@ -9,7 +9,10 @@ export interface CanvasApi {
   zoomIn(options?: ViewportTransitionOptions): Promise<boolean>;
   zoomOut(options?: ViewportTransitionOptions): Promise<boolean>;
   getViewport(): Viewport;
+  /** Converts a point relative to the canvas element. */
   screenToWorld(point: Point): Point;
+  /** Converts a browser viewport point (clientX/clientY). */
+  clientToWorld(point: Point): Point;
   worldToScreen(point: Point): Point;
 }
 
@@ -24,7 +27,7 @@ export function useCanvasContext(): CanvasContextValue {
 
 /** Imperative viewport API for code that lives inside a CanvasProvider. */
 export function useCanvas(): CanvasApi {
-  const { store, controllerRef } = useCanvasContext();
+  const { store, controllerRef, rootRef } = useCanvasContext();
 
   const fit = useCallback(
     (bounds: Rect, options?: FitOptions) => controllerRef.current?.fit(bounds, options) ?? Promise.resolve(false),
@@ -45,11 +48,18 @@ export function useCanvas(): CanvasApi {
   );
   const getViewport = useCallback(() => store.getSnapshot(), [store]);
   const screenToWorld = useCallback((point: Point) => toWorld(point, store.getSnapshot()), [store]);
+  const clientToWorld = useCallback(
+    (point: Point) => {
+      const rect = rootRef.current?.getBoundingClientRect();
+      return toWorld({ x: point.x - (rect?.left ?? 0), y: point.y - (rect?.top ?? 0) }, store.getSnapshot());
+    },
+    [rootRef, store],
+  );
   const worldToScreen = useCallback((point: Point) => toScreen(point, store.getSnapshot()), [store]);
 
   return useMemo(
-    () => ({ fit, setViewport, zoomIn, zoomOut, getViewport, screenToWorld, worldToScreen }),
-    [fit, setViewport, zoomIn, zoomOut, getViewport, screenToWorld, worldToScreen],
+    () => ({ fit, setViewport, zoomIn, zoomOut, getViewport, screenToWorld, clientToWorld, worldToScreen }),
+    [fit, setViewport, zoomIn, zoomOut, getViewport, screenToWorld, clientToWorld, worldToScreen],
   );
 }
 

@@ -118,7 +118,7 @@ async function captureTreeScreenshots(app: ElectronApplication, project: string)
   }, project);
 
   await page.reload();
-  await page.waitForSelector('.tree-card', { timeout: 20_000 });
+  await page.waitForSelector('[data-canvas-item]', { timeout: 20_000 });
 
   await app.evaluate(
     ({ BrowserWindow }, size) => {

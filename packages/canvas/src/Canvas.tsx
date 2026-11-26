@@ -127,10 +127,15 @@ function createCanvasController(
     if (width === 0 || height === 0 || bounds.width <= 0 || bounds.height <= 0) {
       return false;
     }
+    // A per-fit maxZoom may exceed the canvas limits; clamp it before
+    // computing the translation, otherwise setViewportInstant would clamp
+    // only the zoom and leave the bounds off-center.
+    const minZoom = Math.min(config.maxZoom, Math.max(config.minZoom, options?.minZoom ?? config.minZoom));
+    const maxZoom = Math.max(minZoom, Math.min(config.maxZoom, options?.maxZoom ?? config.maxZoom));
     const viewport = fitViewport(bounds, width, height, {
       padding: options?.padding,
-      minZoom: options?.minZoom ?? config.minZoom,
-      maxZoom: options?.maxZoom ?? config.maxZoom,
+      minZoom,
+      maxZoom,
     });
     void setViewportInstant(viewport, options);
     return true;
@@ -252,8 +257,7 @@ export function Canvas({
   fitOptions,
   onPaneClick,
 }: CanvasProps) {
-  const { store, config, worldRef, setController } = useCanvasContext();
-  const rootRef = useRef<HTMLDivElement | null>(null);
+  const { store, config, rootRef, worldRef, setController } = useCanvasContext();
   const controllerHandleRef = useRef<ControllerHandle | null>(null);
   const lastFitKey = useRef<string | null>(null);
 
@@ -277,7 +281,7 @@ export function Canvas({
       controllerHandleRef.current = null;
       handle.destroy();
     };
-  }, [store, config, worldRef, setController]);
+  }, [store, config, rootRef, worldRef, setController]);
 
   useLayoutEffect(() => {
     if (fitBounds === undefined || fitKey === undefined) {

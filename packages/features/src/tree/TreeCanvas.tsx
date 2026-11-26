@@ -76,7 +76,7 @@ function TreeCanvasInner({ persons, families, photos = new Map(), api, focusRequ
     layout: PedigreeLayout;
     counts: Record<string, PersonCounts>;
   } | null>(null);
-  const dropTargetRef = useRef<string | null>(null);
+  const draggingKeyRef = useRef<string | null>(null);
 
   const suggested = suggestFocusPerson(persons, families);
   const focusId = history ? history.stack[history.index] : suggested;
@@ -276,21 +276,14 @@ function TreeCanvasInner({ persons, families, photos = new Map(), api, focusRequ
     [view, refocus],
   );
 
-  const handleDragStart = useCallback((cardKey: string) => {
-    setDraggingKey(cardKey);
-    setSelectedKey(cardKey);
-    dropTargetRef.current = null;
-    setDropTargetKey(null);
-  }, []);
-
-  const handleDragMove = useCallback(
-    (cardKey: string, dx: number, dy: number) => {
+  const findDropTarget = useCallback(
+    (cardKey: string, dx: number, dy: number): string | null => {
       if (!layout) {
-        return;
+        return null;
       }
       const dragged = layout.cards.find((card) => card.key === cardKey);
       if (!dragged) {
-        return;
+        return null;
       }
       const draggedRect = {
         x: dragged.x - CARD_WIDTH / 2 + dx,
@@ -313,22 +306,48 @@ function TreeCanvasInner({ persons, families, photos = new Map(), api, focusRequ
         };
         return rectsIntersect(draggedRect, rect);
       });
-      const targetKey = target?.key ?? null;
-      if (targetKey !== dropTargetRef.current) {
-        dropTargetRef.current = targetKey;
-        setDropTargetKey(targetKey);
-      }
+      return target?.key ?? null;
     },
     [layout, families],
   );
 
+  const handleDragStart = useCallback((cardKey: string) => {
+    // One pointer gesture owns the shared drop highlight at a time.
+    if (draggingKeyRef.current !== null) {
+      return;
+    }
+    draggingKeyRef.current = cardKey;
+    setDraggingKey(cardKey);
+    setSelectedKey(cardKey);
+    setDropTargetKey(null);
+  }, []);
+
+  const handleDragMove = useCallback(
+    (cardKey: string, dx: number, dy: number) => {
+      if (draggingKeyRef.current !== cardKey) {
+        return;
+      }
+      const targetKey = findDropTarget(cardKey, dx, dy);
+      setDropTargetKey((current) => (current === targetKey ? current : targetKey));
+    },
+    [findDropTarget],
+  );
+
   const handleDragEnd = useCallback(
-    (cardKey: string, _dx: number, _dy: number, cancelled: boolean) => {
-      const targetKey = dropTargetRef.current;
-      dropTargetRef.current = null;
+    (cardKey: string, dx: number, dy: number, cancelled: boolean) => {
+      if (draggingKeyRef.current !== cardKey) {
+        return;
+      }
+      draggingKeyRef.current = null;
       setDraggingKey(null);
       setDropTargetKey(null);
-      if (cancelled || !layout || targetKey === null) {
+      if (cancelled || !layout) {
+        return;
+      }
+      // Resolve the target at release for this specific card. A shared
+      // last-move target could belong to another pointer on a touch screen.
+      const targetKey = findDropTarget(cardKey, dx, dy);
+      if (targetKey === null) {
         return;
       }
       const dragged = layout.cards.find((card) => card.key === cardKey);
@@ -340,7 +359,7 @@ function TreeCanvasInner({ persons, families, photos = new Map(), api, focusRequ
         .then(() => setDropError(false))
         .catch(() => setDropError(true));
     },
-    [layout, reparent],
+    [findDropTarget, layout, reparent],
   );
 
   const fitBounds = useMemo<Rect | undefined>(() => {
@@ -570,7 +589,6 @@ function DraftPersonCard({
       y={y}
       width={CARD_WIDTH}
       height={CARD_HEIGHT}
-      className="tree-card tree-card-draft"
       onClick={(event) => {
         if (!draft.editing && event.detail === 1) {
           onStartEditing();

@@ -4,6 +4,7 @@ import type { LaidOutCard, PersonRecord } from '@doru/core';
 import { CanvasItem, usePointerDrag } from '@doru/canvas';
 import { PersonCardView, type PersonCounts } from '@doru/ui/domain';
 import { CARD_HEIGHT, CARD_WIDTH } from './sizes';
+import styles from './PersonCard.module.css';
 
 export interface PersonCardProps {
   card: LaidOutCard;
@@ -66,7 +67,9 @@ export const PersonCard = memo(function PersonCard({
   };
 
   const handleKeyDown = (event: KeyboardEvent<HTMLDivElement>): void => {
-    if (event.key === 'Enter' || event.key === ' ') {
+    // Only the focused card itself selects on Enter/Space. Descendants such
+    // as the collapse button keep their native keyboard activation.
+    if ((event.key === 'Enter' || event.key === ' ') && event.target === event.currentTarget) {
       event.preventDefault();
       onSelect(card.key);
     } else if (event.key === 'Escape') {
@@ -80,7 +83,6 @@ export const PersonCard = memo(function PersonCard({
       y={card.y - CARD_HEIGHT / 2}
       width={CARD_WIDTH}
       height={CARD_HEIGHT}
-      className="tree-card"
       style={drag.dragging ? { transform: `translate(${drag.dx}px, ${drag.dy}px)`, zIndex: 10 } : undefined}
       onClick={handleClick}
       onDoubleClick={handleDoubleClick}
@@ -100,7 +102,7 @@ export const PersonCard = memo(function PersonCard({
         tabIndex={0}
         onKeyDown={handleKeyDown}
         dragHandle={
-          <div className="tree-card-drag-handle" data-canvas-no-pan aria-hidden="true" {...drag.handlers}>
+          <div className={styles['handle']} data-canvas-no-pan aria-hidden="true" {...drag.handlers}>
             <GripVertical size={12} aria-hidden="true" />
           </div>
         }

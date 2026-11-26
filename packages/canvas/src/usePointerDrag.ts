@@ -139,7 +139,7 @@ export function usePointerDrag(options: PointerDragOptions = {}): PointerDragRes
       }
       event.stopPropagation();
       event.currentTarget.setPointerCapture(event.pointerId);
-      const startWorld = canvas.screenToWorld({ x: event.clientX, y: event.clientY });
+      const startWorld = canvas.clientToWorld({ x: event.clientX, y: event.clientY });
       stateRef.current = {
         pointerId: event.pointerId,
         captureTarget: event.currentTarget,
@@ -170,7 +170,7 @@ export function usePointerDrag(options: PointerDragOptions = {}): PointerDragRes
         optionsRef.current.onStart?.();
       }
       event.preventDefault();
-      const current = canvas.screenToWorld({ x: event.clientX, y: event.clientY });
+      const current = canvas.clientToWorld({ x: event.clientX, y: event.clientY });
       state.dx = current.x - state.startWorldX;
       state.dy = current.y - state.startWorldY;
       setDrag({ dragging: true, dx: state.dx, dy: state.dy });

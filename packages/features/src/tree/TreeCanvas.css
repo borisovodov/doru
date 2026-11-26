@@ -56,51 +56,6 @@
   background: color-mix(in srgb, var(--doru-bg-raised) 55%, transparent);
 }
 
-/* ── Edges ────────────────────────────────────────────────────────── */
-
-.tree-edges {
-  position: absolute;
-  overflow: visible;
-  pointer-events: none;
-}
-
-.tree-edge {
-  fill: none;
-  stroke: var(--doru-border-strong);
-  stroke-width: 1.5;
-}
-
-.tree-edge-see-also {
-  stroke: var(--doru-fg-faint);
-  stroke-dasharray: 4 4;
-}
-
-/* ── Card drag handle ─────────────────────────────────────────────── */
-
-.tree-card-drag-handle {
-  position: absolute;
-  top: 3px;
-  left: 4px;
-  z-index: 2;
-  display: flex;
-  width: 16px;
-  height: 16px;
-  align-items: center;
-  justify-content: center;
-  color: var(--doru-fg-faint);
-  cursor: grab;
-  background: var(--doru-bg-input);
-  border: 1px solid var(--doru-border);
-  border-radius: var(--doru-radius-sm);
-  opacity: 0;
-  touch-action: none;
-}
-
-.tree-card:hover .tree-card-drag-handle,
-.tree-card:focus-within .tree-card-drag-handle {
-  opacity: 1;
-}
-
 /* ── Card quick-action toolbar ────────────────────────────────────── */
 
 .card-toolbar {

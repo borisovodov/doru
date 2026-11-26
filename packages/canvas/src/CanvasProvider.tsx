@@ -26,6 +26,7 @@ export function CanvasProvider({
 }: CanvasProviderProps) {
   const store = useMemo(() => new ViewportStore(), []);
   const controllerRef = useRef<CanvasController | null>(null);
+  const rootRef = useRef<HTMLDivElement | null>(null);
   const worldRef = useRef<HTMLDivElement | null>(null);
   const setController = useCallback((controller: CanvasController | null) => {
     controllerRef.current = controller;
@@ -35,7 +36,7 @@ export function CanvasProvider({
     [minZoom, maxZoom, panOnScroll, zoomOnPinch, panOnDrag, panOnScrollSpeed],
   );
   const value = useMemo<CanvasContextValue>(
-    () => ({ store, config, controllerRef, worldRef, setController }),
+    () => ({ store, config, controllerRef, rootRef, worldRef, setController }),
     [store, config, setController],
   );
   return <CanvasContext.Provider value={value}>{children}</CanvasContext.Provider>;
