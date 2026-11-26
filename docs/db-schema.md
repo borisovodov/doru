@@ -78,7 +78,7 @@ created in Dóru, the import instant for an unparseable GEDCOM stamp. `updated_a
 is the last edit of the aggregate's own content. Editing names, facts,
 partner/child links, files, place names or address lines moves the root's
 instant; adding or removing notes, citations, media links, task links,
-identifiers, contacts or contributors does not. Deleting a place, address,
+contacts or contributors does not. Deleting a place, address,
 title or repository and detaching dangling references does not move the
 consumer's instant either. A fact's own `CHAN` moves the owning person or
 family, because facts are part of that aggregate and have no separate stamp.

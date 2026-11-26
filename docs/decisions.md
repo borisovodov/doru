@@ -275,7 +275,7 @@ their own.
 Editing a person's names or facts moves the person's instant even when the
 fact is saved through its own operation. Family partner/child links, media
 files, place names/hierarchy and source texts belong to their roots. Adding a
-note, citation, media link, task link, identifier, contact or contributor does
+note, citation, media link, task link, contact or contributor does
 not move the host's instant, and neither does the reference cleanup performed
 when another record is deleted. Undo restores the previous instants; redo
 restores the edit's.
