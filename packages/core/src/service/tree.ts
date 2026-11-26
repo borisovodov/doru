@@ -839,7 +839,6 @@ export class TreeService {
       const sources = this.repo
         .listSources()
         .filter((source) => (source.dataEvents ?? []).some((event) => event.placeId === current.id));
-      const media = this.repo.listAllMedia().filter((entry) => entry.placeId === current.id);
       const childPlaces = this.repo
         .listPlaces()
         .filter((child) => (child.hierarchy ?? []).some((link) => link.parentId === current.id));
@@ -863,7 +862,7 @@ export class TreeService {
         });
       }
       const attachments = this.repo.listAttachmentsFor('place', current.id);
-      return deletePlaceOp(current, facts, attachments, { families, sources, childPlaces, media }, nested);
+      return deletePlaceOp(current, facts, attachments, { families, sources, childPlaces }, nested);
     });
   }
 
@@ -1082,23 +1081,7 @@ export class TreeService {
       const now = Date.now();
       const current = this.repo.getMedia(before.id) ?? before;
       const merged: MediaRecord = { ...current };
-      for (const key of [
-        'xref',
-        'title',
-        'path',
-        'medium',
-        'contentType',
-        'text',
-        'date',
-        'place',
-        'placeId',
-        'objectType',
-        'description',
-        'keywords',
-        'links',
-        'targetType',
-        'targetId',
-      ] as const) {
+      for (const key of ['title', 'path', 'date', 'links', 'targetType', 'targetId'] as const) {
         if (JSON.stringify(after[key]) !== JSON.stringify(before[key])) {
           (merged as unknown as Record<string, unknown>)[key] = after[key];
         }
@@ -1117,12 +1100,7 @@ export class TreeService {
         return undefined;
       }
       const attachments = this.repo.listAttachmentsFor('media', current.id);
-      const linkAttachments = (current.links ?? []).map((link) => ({
-        targetType: 'media_link',
-        targetId: link.id,
-        attachments: this.repo.listAttachmentsFor('media_link', link.id),
-      }));
-      return deleteMediaOp(current, attachments, linkAttachments);
+      return deleteMediaOp(current, attachments);
     });
   }
 
@@ -1181,8 +1159,7 @@ export class TreeService {
         return undefined;
       }
       const attachments = this.repo.listAttachmentsFor('media', link.mediaId);
-      const linkAttachments = this.repo.listAttachmentsFor('media_link', stored.id);
-      return detachMediaOp(stored, media, attachments, linkAttachments);
+      return detachMediaOp(stored, media, attachments);
     });
   }
 
@@ -1874,7 +1851,6 @@ export class TreeService {
 
     return {
       id: current.id,
-      xref: after.xref === before.xref ? current.xref : after.xref,
       sex: after.sex === before.sex ? current.sex : after.sex,
       deathStatus: after.deathStatus === before.deathStatus ? current.deathStatus : after.deathStatus,
       addressId: after.addressId === before.addressId ? current.addressId : after.addressId,

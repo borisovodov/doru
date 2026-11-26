@@ -42,11 +42,10 @@ describe('AttachmentsPanel target policy', () => {
     expect(sectionVisible(nls.t('features.tasks.title'))).toBe(false);
   });
 
-  it('shows only sources on a media link', () => {
+  it('shows no attachment sections on a media link', () => {
     renderUi(panel('media_link'));
 
-    expect(sectionVisible(nls.t('features.tree.sources.title'))).toBe(true);
-    expect(sectionVisible(nls.t('features.tree.notes.title'))).toBe(false);
+    expect(sectionVisible(nls.t('features.tree.sources.title'))).toBe(false);
     expect(sectionVisible(nls.t('features.tree.notes.title'))).toBe(false);
     expect(sectionVisible(nls.t('features.tree.contacts.title'))).toBe(false);
     expect(sectionVisible(nls.t('features.tree.contributors.title'))).toBe(false);
@@ -56,23 +55,23 @@ describe('AttachmentsPanel target policy', () => {
   it('does not render a disallowed section even when the caller asks for it', () => {
     renderUi(
       <AttachmentsPanel
-        targetType="media_link"
-        targetId="ML1"
+        targetType="task"
+        targetId="T1"
         api={apiStub()}
         sources={[]}
         sections={['notes', 'sources', 'media', 'tasks']}
       />,
     );
 
-    expect(sectionVisible(nls.t('features.tree.sources.title'))).toBe(true);
-    expect(sectionVisible(nls.t('features.tree.notes.title'))).toBe(false);
+    expect(sectionVisible(nls.t('features.tree.notes.title'))).toBe(true);
+    expect(sectionVisible(nls.t('features.tree.sources.title'))).toBe(false);
     expect(sectionVisible(nls.t('features.tasks.title'))).toBe(false);
   });
 
-  it('hides tasks on a submitter but keeps contributors', () => {
+  it('hides tasks and contributors on a submitter', () => {
     renderUi(panel('submitter'));
 
-    expect(sectionVisible(nls.t('features.tree.contributors.title'))).toBe(true);
+    expect(sectionVisible(nls.t('features.tree.contributors.title'))).toBe(false);
     expect(sectionVisible(nls.t('features.tasks.title'))).toBe(false);
   });
 

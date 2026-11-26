@@ -32,12 +32,6 @@ describe('TasksSection', () => {
     );
   });
 
-  it('does not offer task creation on a media link', () => {
-    renderUi(<TasksSection targetType="media_link" targetId="ML1" api={api} />);
-    expect(screen.queryByRole('button', { name: nls.t('features.tasks.add') })).not.toBeInTheDocument();
-    expect(screen.queryByRole('region', { name: nls.t('features.tasks.title') })).not.toBeInTheDocument();
-  });
-
   it('still offers inline task creation on a person', () => {
     renderUi(<TasksSection targetType="person" targetId="P1" api={api} />);
     expect(screen.getByRole('button', { name: nls.t('features.tasks.add') })).toBeInTheDocument();

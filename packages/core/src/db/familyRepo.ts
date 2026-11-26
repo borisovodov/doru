@@ -5,7 +5,6 @@ import type { TransactionScope } from './transaction';
 
 interface FamilyRow {
   id: string;
-  xref: string | null;
   preferred: number;
   same_sex: number;
   union_kind: string | null;
@@ -60,8 +59,8 @@ export class FamilyRepo {
   insertFamily(family: FamilyRecord): void {
     this.transactions.run(() => {
       this.db
-        .prepare(`INSERT INTO family (id, xref, preferred, same_sex, union_kind, union_status,
-        marriage_begin_status, marriage_end_status, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`)
+        .prepare(`INSERT INTO family (id, preferred, same_sex, union_kind, union_status,
+        marriage_begin_status, marriage_end_status, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`)
         .run(...familyParams(family));
       this.replaceLinks(family, new Map(), undefined, new Map());
       this.replaceDetails(family, new Map());
@@ -71,7 +70,7 @@ export class FamilyRepo {
   updateFamily(family: FamilyRecord): void {
     this.transactions.run(() => {
       this.db
-        .prepare(`UPDATE family SET xref = ?, preferred = ?, same_sex = ?, union_kind = ?,
+        .prepare(`UPDATE family SET preferred = ?, same_sex = ?, union_kind = ?,
         union_status = ?, marriage_begin_status = ?, marriage_end_status = ?,
         created_at = ?, updated_at = ? WHERE id = ?`)
         .run(...familyParams(family).slice(1), family.id);
@@ -94,7 +93,7 @@ export class FamilyRepo {
 
   getFamily(id: string): FamilyRecord | undefined {
     const row = this.db
-      .prepare(`SELECT id, xref, preferred, same_sex, union_kind, union_status,
+      .prepare(`SELECT id, preferred, same_sex, union_kind, union_status,
         marriage_begin_status, marriage_end_status, created_at, updated_at FROM family WHERE id = ?`)
       .get(id) as FamilyRow | undefined;
     return row ? this.hydrate(row) : undefined;
@@ -130,7 +129,7 @@ export class FamilyRepo {
 
   listFamilies(): FamilyRecord[] {
     const rows = this.db
-      .prepare(`SELECT id, xref, preferred, same_sex, union_kind, union_status,
+      .prepare(`SELECT id, preferred, same_sex, union_kind, union_status,
         marriage_begin_status, marriage_end_status, created_at, updated_at FROM family ORDER BY id`)
       .all() as unknown as FamilyRow[];
     return rows.map((row) => this.hydrate(row));
@@ -140,7 +139,7 @@ export class FamilyRepo {
   listFamiliesForPerson(personId: string): FamilyRecord[] {
     const rows = this.db
       .prepare(
-        `SELECT f.id, f.xref, f.preferred, f.same_sex, f.union_kind, f.union_status,
+        `SELECT f.id, f.preferred, f.same_sex, f.union_kind, f.union_status,
            f.marriage_begin_status, f.marriage_end_status, f.created_at, f.updated_at FROM family f
          WHERE EXISTS (SELECT 1 FROM family_partner p WHERE p.family_id = f.id AND p.person_id = ?)
             OR EXISTS (SELECT 1 FROM family_child c WHERE c.family_id = f.id AND c.child_id = ?)
@@ -238,7 +237,6 @@ export class FamilyRepo {
     ]);
     return {
       id: row.id,
-      xref: row.xref ?? undefined,
       preferred: row.preferred === 1 ? true : undefined,
       sameSex: row.same_sex === 1 ? true : undefined,
       unionKind: row.union_kind ?? undefined,
@@ -367,7 +365,6 @@ function dateReservations(rows: Array<{ id: string; date_id: string | null }>, o
 function familyParams(family: FamilyRecord): Array<string | number | null> {
   return [
     family.id,
-    family.xref ?? null,
     family.preferred === true ? 1 : 0,
     family.sameSex === true ? 1 : 0,
     family.unionKind ?? null,

@@ -197,9 +197,8 @@ describe('familyLabel', () => {
     ).toBe('Kolya …');
   });
 
-  it('falls back to the xref and then the id', () => {
+  it('falls back to the id', () => {
     expect(familyLabel({ id: 'F1', partners: [], children: [] }, byId([]))).toBe('F1');
-    expect(familyLabel({ id: 'F1', xref: '@F1@', partners: [], children: [] }, byId([]))).toBe('@F1@');
   });
 });
 

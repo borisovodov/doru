@@ -40,9 +40,8 @@ export interface TemplateFieldDraft {
 }
 
 /**
- * The editable form of a source record. `titleId` and `xref` are
- * provenance fields passed through untouched; the bibliographic work
- * (TITL) has no editor yet.
+ * The editable form of a source record. `titleId` is a provenance field
+ * passed through untouched; the bibliographic work (TITL) has no editor yet.
  */
 export interface SourceDraft {
   id: string;
@@ -62,7 +61,6 @@ export interface SourceDraft {
   /** The publication date; the date draft's place field holds the publication place. */
   pubDate: DateDraft;
   titleId?: string | undefined;
-  xref?: string | undefined;
   texts: SourceTextDraft[];
   dataEvents: SourceDataEventDraft[];
   repositories: SourceRepositoryDraft[];
@@ -115,7 +113,6 @@ export function sourceToDraft(source: SourceRecord): SourceDraft {
     agency: source.agency ?? '',
     pubDate: toDateDraft(source.pubDate, source.pubPlace ?? ''),
     titleId: source.titleId,
-    xref: source.xref,
     texts: (source.texts ?? []).map((text) => ({
       id: text.id,
       text: text.text,
@@ -205,7 +202,6 @@ export function sourceDraftToRecord(draft: SourceDraft, existing?: SourceRecord)
   const existingEvents = new Map((existing?.dataEvents ?? []).map((event) => [event.id, event]));
   return {
     id: draft.id,
-    xref: draft.xref,
     title: draft.title.trim() || undefined,
     abbreviation: draft.abbreviation.trim() || undefined,
     author: draft.author.trim() || undefined,
@@ -307,7 +303,6 @@ export function sourceDraftMatches(draft: SourceDraft, source: SourceRecord): bo
     draft.dataNote === other.dataNote &&
     draft.agency === other.agency &&
     draft.titleId === other.titleId &&
-    draft.xref === other.xref &&
     dateDraftsEqual(draft.pubDate, other.pubDate) &&
     draft.texts.length === other.texts.length &&
     draft.texts.every((text, index) => {

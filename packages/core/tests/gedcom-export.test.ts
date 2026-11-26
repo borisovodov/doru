@@ -271,57 +271,35 @@ describe('buildGedcomDataset', () => {
     }
   });
 
-  it('assigns fresh xrefs to records without one and keeps imported ones', () => {
+  it('assigns fresh xrefs to every record', () => {
     const fixture = makeRepo();
     try {
       const { repo } = fixture;
-      repo.insertPerson({ id: 'P1', xref: '@I7@', names: [], sex: 'U', facts: [] });
+      repo.insertPerson({ id: 'P1', names: [], sex: 'U', facts: [] });
       repo.insertPerson({ id: 'P2', names: [], sex: 'U', facts: [] });
       repo.insertFamily({ id: 'F1', partners: ['P1', 'P2'], children: [] });
       repo.insertSource({ id: 'S1', title: 'Book' });
 
       const dataset = buildGedcomDataset(repo);
       const xrefs = dataset.records.map((record) => record.xref).filter((xref) => xref !== undefined);
-      // The imported @I7@ survives; fresh xrefs avoid collisions with it.
-      expect(xrefs).toContain('@I7@');
-      expect(xrefs).toHaveLength(4);
-      expect(xrefs.filter((xref) => xref !== '@I7@').sort()).toEqual(['@F1@', '@I1@', '@S1@']);
+      expect(xrefs.sort()).toEqual(['@F1@', '@I1@', '@I2@', '@S1@']);
     } finally {
       cleanupRepo(fixture);
     }
   });
 
-  it('skips over used xrefs when allocating fresh ones', () => {
+  it('generates unique media xrefs', () => {
     const fixture = makeRepo();
     try {
       const { repo } = fixture;
-      repo.insertPerson({ id: 'P1', xref: '@I1@', names: [], sex: 'U', facts: [] });
-      repo.insertPerson({ id: 'P2', names: [], sex: 'U', facts: [] });
-
-      const dataset = buildGedcomDataset(repo);
-      const xrefs = dataset.records.map((record) => record.xref);
-      expect(xrefs).toContain('@I1@');
-      // The fresh xref skipped the used @I1@.
-      expect(xrefs).toContain('@I2@');
-    } finally {
-      cleanupRepo(fixture);
-    }
-  });
-
-  it('reserves retained media xrefs before allocating split-card xrefs', () => {
-    const fixture = makeRepo();
-    try {
-      const { repo } = fixture;
-      // The generated card sorts before the card that kept @O1@.
       repo.insertMedia({ id: 'A', path: 'media/a.jpg' });
-      repo.insertMedia({ id: 'B', xref: '@O1@', path: 'media/b.jpg' });
+      repo.insertMedia({ id: 'B', path: 'media/b.jpg' });
 
       const dataset = buildGedcomDataset(repo);
       const xrefs = dataset.records.filter((record) => record.tag === 'OBJE').map((record) => record.xref);
       expect(xrefs).toHaveLength(2);
       expect(new Set(xrefs).size).toBe(2);
-      expect(xrefs).toContain('@O1@');
-      expect(xrefs).toContain('@O2@');
+      expect(xrefs.sort()).toEqual(['@O1@', '@O2@']);
     } finally {
       cleanupRepo(fixture);
     }

@@ -314,12 +314,6 @@ describe('draftToRecord', () => {
     });
   });
 
-  it('carries the imported xref through an edit', () => {
-    const existing = person({ xref: '@I7@' });
-    expect(draftToRecord(personToDraft(existing), existing).xref).toBe('@I7@');
-    expect(draftToRecord(personToDraft(existing)).xref).toBeUndefined();
-  });
-
   it('keeps an untouched address but honours an explicit clear or change', () => {
     const source = person({ addressId: 'A1' });
     const existing = person({ addressId: 'A2' });

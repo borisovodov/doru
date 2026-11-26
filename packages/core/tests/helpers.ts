@@ -58,14 +58,13 @@ export function flatPerson(person: PersonRecord): PersonRecord {
 
 /** The flat contract of a hydrated family: partner/child ids without link rows. */
 export function flatFamily(family: FamilyRecord): FamilyRecord {
-  return { id: family.id, xref: family.xref, partners: family.partners, children: family.children };
+  return { id: family.id, partners: family.partners, children: family.children };
 }
 
 /** The flat contract of a hydrated media record: the first link as flat fields. */
 export function flatMedia(media: MediaRecord): MediaRecord {
   return {
     id: media.id,
-    xref: media.xref,
     path: media.path,
     title: media.title,
     targetType: media.targetType,

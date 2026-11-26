@@ -169,7 +169,7 @@ describe('importGedcomDataset media', () => {
       expect(result.importedMedia).toBe(1);
       const media = fixture.repo.listAllMedia();
       expect(media).toHaveLength(1);
-      expect(media[0]).toMatchObject({ title: 'Portrait', xref: '@O1@' });
+      expect(media[0]).toMatchObject({ title: 'Portrait' });
       expect(media[0]?.path).toBe('media/prepared.jpg');
 
       const person = fixture.repo.listAllPersons()[0]!;
@@ -257,9 +257,7 @@ describe('importGedcomDataset', () => {
 
       const persons = repo.listAllPersons();
       expect(persons).toHaveLength(3);
-      const byXref = new Map(persons.map((person) => [person.xref, person]));
-
-      const ivan = byXref.get('@I1@');
+      const ivan = persons.find((person) => person.names[0]?.given === 'Ivan');
       expect(ivan?.sex).toBe('M');
       expect(ivan?.names).toEqual([expect.objectContaining({ given: 'Ivan', surname: 'Petrov', full: 'Ivan Petrov' })]);
       const birth = ivan?.facts.find((fact) => fact.tag === 'BIRT');
@@ -274,7 +272,7 @@ describe('importGedcomDataset', () => {
       const occupation = ivan?.facts.find((fact) => fact.tag === 'OCCU');
       expect(occupation?.value).toBe('Engineer');
 
-      const maria = byXref.get('@I2@');
+      const maria = persons.find((person) => person.names[0]?.given === 'Maria');
       expect(maria?.names[0]).toEqual(
         expect.objectContaining({ given: 'Maria', surname: 'Sidorova', surnamePrefix: 'de' }),
       );
@@ -287,9 +285,9 @@ describe('importGedcomDataset', () => {
       const families = repo.listFamilies();
       expect(families).toHaveLength(1);
       const family = families[0];
-      expect(family?.xref).toBe('@F1@');
+      const child = persons.find((person) => person.names[0]?.given === 'Petr');
       expect(family?.partners).toEqual([ivan?.id, maria?.id]);
-      expect(family?.children).toEqual([byXref.get('@I3@')?.id]);
+      expect(family?.children).toEqual([child?.id]);
       const marriage = repo.listFactsForFamily(family?.id ?? '').find((fact) => fact.tag === 'MARR');
       expect(marriage?.date).toEqual({
         id: expect.any(String),
@@ -300,7 +298,7 @@ describe('importGedcomDataset', () => {
       expect(marriage?.place).toBe('Tomsk');
 
       const sources = repo.listSources();
-      expect(sources).toEqual([expect.objectContaining({ xref: '@S1@', title: 'Parish register', author: 'Church' })]);
+      expect(sources).toEqual([expect.objectContaining({ title: 'Parish register', author: 'Church' })]);
 
       const birthCitations = repo.listCitationsFor('fact', birth?.id ?? '');
       expect(birthCitations).toHaveLength(1);
@@ -737,8 +735,6 @@ describe('importGedcomDataset media splitting', () => {
       expect(media).toHaveLength(2);
       expect(media.map((entry) => entry.path)).toEqual(['audio/b.mp3', 'photos/a.jpg']);
       expect(media.map((entry) => entry.title)).toEqual(['Sound', 'Front']);
-      expect(media[0]?.xref).toBeUndefined();
-      expect(media[1]?.xref).toBe('@O1@');
 
       for (const entry of media) {
         expect(fixture.repo.listNotesFor('media', entry.id).map((note) => note.text)).toEqual(['Shared media note']);
@@ -747,21 +743,15 @@ describe('importGedcomDataset media splitting', () => {
 
       const persons = fixture.repo.listAllPersons();
       let totalLinks = 0;
-      let totalLinkCitations = 0;
       for (const person of persons) {
         const links = fixture.repo.listAttachmentsFor('person', person.id).mediaLinks;
         expect(links).toHaveLength(2);
         totalLinks += links.length;
         for (const entry of links) {
-          const pages = fixture.repo
-            .listCitationRecordsFor('media_link', entry.link.id)
-            .map((citation) => citation.page);
-          expect(pages).toEqual(person.xref === '@I1@' ? ['link page'] : []);
-          totalLinkCitations += pages.length;
+          expect(fixture.repo.listCitationRecordsFor('media_link', entry.link.id)).toEqual([]);
         }
       }
       expect(totalLinks).toBe(4);
-      expect(totalLinkCitations).toBe(2);
     } finally {
       cleanupRepo(fixture);
     }

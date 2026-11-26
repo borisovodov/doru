@@ -79,7 +79,7 @@ describe('MediaTab', () => {
     expect(regions[regions.length - 1]).toHaveAccessibleName(nls.t('features.tasks.target'));
   });
 
-  it('gives the media record Tasks but a media link only Sources', async () => {
+  it('gives the media record Tasks and Sources but no sources panel on a media link', () => {
     const api = stubApi<MediaAdminApi>({
       getMediaFor: async () => [],
       getAllMedia: async () => [],
@@ -97,13 +97,7 @@ describe('MediaTab', () => {
     );
 
     expect(screen.getByRole('region', { name: nls.t('features.tasks.title') })).toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: nls.t('features.tree.media.linkSources') }));
-
-    await waitFor(() =>
-      expect(screen.getAllByRole('region', { name: nls.t('features.tree.sources.title') })).toHaveLength(2),
-    );
-    expect(screen.getAllByRole('region', { name: nls.t('features.tasks.title') })).toHaveLength(1);
-    expect(screen.getAllByText(nls.t('features.tree.contributors.title'))).toHaveLength(1);
+    expect(screen.getByRole('region', { name: nls.t('features.tree.sources.title') })).toBeInTheDocument();
   });
 
   it('saves the card title on the registered close flush', async () => {
@@ -234,13 +228,11 @@ describe('MediaTab', () => {
       getMediaFor: async () => [],
       getAllMedia: async () => [],
     });
-    const media = (title: string, description: string) => [
-      { id: 'M1', title, description, path: 'media/a.jpg', absolutePath: '' },
-    ];
+    const media = (title: string) => [{ id: 'M1', title, path: 'media/a.jpg', absolutePath: '' }];
     const view = renderUi(
       <MediaTab
         entityId="M1"
-        media={media('Old', 'X')}
+        media={media('Old')}
         api={api}
         attachmentsApi={attachmentsStub()}
         sources={[]}
@@ -251,12 +243,12 @@ describe('MediaTab', () => {
     fireEvent.change(screen.getByDisplayValue('Old'), { target: { value: 'New' } });
     fireEvent.blur(screen.getByDisplayValue('New'), { relatedTarget: document.body });
     await waitFor(() => expect(updateMedia).toHaveBeenCalledTimes(1));
-    fireEvent.change(screen.getByDisplayValue('X'), { target: { value: 'Z' } });
+    fireEvent.change(screen.getByDisplayValue('New'), { target: { value: 'Newer' } });
 
     view.rerender(
       <MediaTab
         entityId="M1"
-        media={media('New', 'Y')}
+        media={media('New')}
         api={api}
         attachmentsApi={attachmentsStub()}
         sources={[]}
@@ -265,8 +257,7 @@ describe('MediaTab', () => {
       />,
     );
     await act(async () => pending.resolve());
-    expect(screen.getByDisplayValue('New')).toBeInTheDocument();
-    expect(screen.getByDisplayValue('Z')).toBeInTheDocument();
+    expect(screen.getByDisplayValue('Newer')).toBeInTheDocument();
   });
 
   it('keeps a reversal after a confirming refresh during a save', async () => {
@@ -396,7 +387,7 @@ describe('MediaTab', () => {
     expect(screen.getByText('Kazan')).toBeInTheDocument();
   });
 
-  it('opens a source from the media-link sources panel', async () => {
+  it('opens a media-level source from the attachments panel', async () => {
     const openSource = vi.fn();
     const api = stubApi<MediaAdminApi>({
       openSource,
@@ -405,12 +396,12 @@ describe('MediaTab', () => {
     });
     const attachmentsApi = attachmentsStub({
       getCitations: async (targetType: string) =>
-        targetType === 'media_link' ? [{ id: 'C1', sourceId: 'S1', targetType: 'media_link', targetId: 'L1' }] : [],
+        targetType === 'media' ? [{ id: 'C1', sourceId: 'S1', targetType: 'media', targetId: 'M1' }] : [],
     });
     renderUi(
       <MediaTab
         entityId="M1"
-        media={[record]}
+        media={[{ id: 'M1', title: 'Portrait', path: 'media/a.jpg', absolutePath: '' }]}
         api={api}
         attachmentsApi={attachmentsApi}
         sources={[{ id: 'S1', title: 'Register' }]}
@@ -419,7 +410,6 @@ describe('MediaTab', () => {
       />,
     );
 
-    fireEvent.click(screen.getByRole('button', { name: nls.t('features.tree.media.linkSources') }));
     await waitFor(() => expect(screen.getByRole('button', { name: 'Register' })).toBeInTheDocument());
     fireEvent.click(screen.getByRole('button', { name: 'Register' }));
     expect(openSource).toHaveBeenCalledWith('S1');

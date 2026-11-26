@@ -158,8 +158,7 @@ describe('importGedcomDataset edge coverage', () => {
       expect(result.droppedStructures).toBeGreaterThan(0);
 
       const persons = repo.listAllPersons();
-      const byXref = new Map(persons.map((person) => [person.xref, person]));
-      const ivan = byXref.get('@I1@')!;
+      const ivan = persons.find((person) => person.names[0]?.given === 'Ivan')!;
       expect(ivan).toBeDefined();
 
       // INDI-level and fact-address contacts.
@@ -233,8 +232,7 @@ describe('importGedcomDataset edge coverage', () => {
       importGedcomDataset(result.value.dataset, repo);
 
       const persons = repo.listAllPersons();
-      const byXref = new Map(persons.map((person) => [person.xref, person]));
-      const ivan = byXref.get('@I1@')!;
+      const ivan = persons.find((person) => person.names[0]?.given === 'Ivan')!;
 
       // French Republican and Hebrew calendar dates, with the VEND month
       // kept as a string code.

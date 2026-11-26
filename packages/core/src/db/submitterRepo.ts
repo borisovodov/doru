@@ -27,10 +27,9 @@ export class SubmitterRepo {
 
   insertSubmitter(submitter: SubmitterRecord): void {
     this.db
-      .prepare('INSERT INTO submitter (id, xref, name, address_id, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)')
+      .prepare('INSERT INTO submitter (id, name, address_id, created_at, updated_at) VALUES (?, ?, ?, ?, ?)')
       .run(
         submitter.id,
-        submitter.xref ?? null,
         submitter.name,
         submitter.addressId ?? null,
         submitter.createdAt ?? null,
@@ -45,9 +44,8 @@ export class SubmitterRepo {
 
   updateSubmitter(submitter: SubmitterRecord): void {
     this.db
-      .prepare('UPDATE submitter SET xref = ?, name = ?, address_id = ?, created_at = ?, updated_at = ? WHERE id = ?')
+      .prepare('UPDATE submitter SET name = ?, address_id = ?, created_at = ?, updated_at = ? WHERE id = ?')
       .run(
-        submitter.xref ?? null,
         submitter.name,
         submitter.addressId ?? null,
         submitter.createdAt ?? null,
@@ -70,11 +68,10 @@ export class SubmitterRepo {
 
   getSubmitter(id: string): SubmitterRecord | undefined {
     const row = this.db
-      .prepare('SELECT id, xref, name, address_id, created_at, updated_at FROM submitter WHERE id = ?')
+      .prepare('SELECT id, name, address_id, created_at, updated_at FROM submitter WHERE id = ?')
       .get(id) as
       | {
           id: string;
-          xref: string | null;
           name: string;
           address_id: string | null;
           created_at: number | null;
@@ -89,7 +86,6 @@ export class SubmitterRepo {
       .all(id) as unknown as { language: string }[];
     const submitter: SubmitterRecord = {
       id: row.id,
-      xref: row.xref ?? undefined,
       name: row.name,
       addressId: row.address_id ?? undefined,
       createdAt: row.created_at ?? undefined,
@@ -102,9 +98,8 @@ export class SubmitterRepo {
   }
 
   listSubmitters(): SubmitterRecord[] {
-    const rows = this.db.prepare('SELECT id, xref, name, address_id FROM submitter ORDER BY id').all() as unknown as {
+    const rows = this.db.prepare('SELECT id, name, address_id FROM submitter ORDER BY id').all() as unknown as {
       id: string;
-      xref: string | null;
       name: string;
       address_id: string | null;
     }[];

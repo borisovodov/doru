@@ -34,7 +34,7 @@ export const NOTE_TARGET_TYPES = [
   'title',
 ] as const;
 
-/** Targets a source citation may point at. A task is not an assertion. */
+/** Targets a source citation may point at. A task and a citation are not assertions about themselves. */
 export const CITATION_TARGET_TYPES = [
   'person',
   'family',
@@ -45,9 +45,7 @@ export const CITATION_TARGET_TYPES = [
   'name',
   'name_part',
   'source',
-  'citation',
   'media',
-  'media_link',
   'place',
   'place_name',
   'place_hierarchy',
@@ -59,7 +57,7 @@ export const CITATION_TARGET_TYPES = [
   'title',
 ] as const;
 
-/** Targets a media link may point at. */
+/** Targets a media link may point at. A media card is not attached to another media card. */
 export const MEDIA_LINK_TARGET_TYPES = [
   'person',
   'family',
@@ -71,7 +69,6 @@ export const MEDIA_LINK_TARGET_TYPES = [
   'name_part',
   'source',
   'citation',
-  'media',
   'place',
   'place_name',
   'place_hierarchy',
@@ -134,7 +131,6 @@ export const RECORD_SUBMITTER_TARGET_TYPES = [
   'place_name',
   'place_hierarchy',
   'repository',
-  'submitter',
   'address',
   'address_line',
   'association',

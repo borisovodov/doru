@@ -15,7 +15,6 @@ export function buildKitchenSinkTree(fixture: RepoFixture): void {
   });
   repo.insertPlace({
     id: 'PL1',
-    xref: '@P1@',
     latitude: 55.7558,
     longitude: -37.6173,
     verified: true,
@@ -47,7 +46,6 @@ export function buildKitchenSinkTree(fixture: RepoFixture): void {
 
   repo.insertPerson({
     id: 'P2',
-    xref: '@I8@',
     sex: 'F',
     names: [{ id: 'N4', given: 'Maria', surname: 'Ivanova' }],
     facts: [],
@@ -57,7 +55,6 @@ export function buildKitchenSinkTree(fixture: RepoFixture): void {
   // Persons with rich names and facts.
   repo.insertPerson({
     id: 'P1',
-    xref: '@I7@',
     sex: 'M',
     names: [
       {
@@ -137,7 +134,6 @@ export function buildKitchenSinkTree(fixture: RepoFixture): void {
   // Family with links and facts.
   repo.insertFamily({
     id: 'F1',
-    xref: '@F5@',
     partners: ['P1', 'P2'],
     children: ['P3'],
     partnerLinks: [
@@ -171,11 +167,10 @@ export function buildKitchenSinkTree(fixture: RepoFixture): void {
   repo.insertFact({ id: 'FAM2', familyId: 'F1', tag: 'DIV', negation: true });
 
   // Sources, repositories, submitters, titles.
-  repo.insertRepository({ id: 'RP1', xref: '@R1@', name: 'State Archive', addressId: 'AD1' });
-  repo.insertSubmitter({ id: 'SU1', xref: '@U1@', name: 'Ivan Petrov', addressId: 'AD1', languages: ['ru', 'en'] });
+  repo.insertRepository({ id: 'RP1', name: 'State Archive', addressId: 'AD1' });
+  repo.insertSubmitter({ id: 'SU1', name: 'Ivan Petrov', addressId: 'AD1', languages: ['ru', 'en'] });
   repo.insertTitle({
     id: 'TL1',
-    xref: '@T1@',
     name: 'The Parish Registers',
     author: 'A. Author',
     publisher: 'Press House',
@@ -187,7 +182,6 @@ export function buildKitchenSinkTree(fixture: RepoFixture): void {
   });
   repo.insertSource({
     id: 'S1',
-    xref: '@S9@',
     title: 'Parish register',
     abbreviation: 'PR',
     author: 'Church',
@@ -256,7 +250,6 @@ export function buildKitchenSinkTree(fixture: RepoFixture): void {
   // Media.
   repo.insertMedia({
     id: 'M1',
-    xref: '@M1@',
     path: 'media/photo.jpg',
     title: 'Portrait',
     targetType: 'person',

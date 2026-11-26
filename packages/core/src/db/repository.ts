@@ -148,15 +148,11 @@ export interface TreeRepository {
   listNotesFor(targetType: string, targetId: string): NoteRecord[];
   insertMedia(media: MediaRecord): void;
   updateMedia(media: MediaRecord): void;
-  /** Reconnects a surviving media row to its place without rewriting files. */
-  setMediaPlaceId(mediaId: string, placeId: string | undefined): void;
   getMedia(id: string): MediaRecord | undefined;
   deleteMedia(id: string): boolean;
   addMediaLink(mediaId: string, link: MediaLinkRecord): void;
   /** Direct media links of a target, without recursive attachment collection. */
   listMediaLinksFor(targetType: string, targetId: string): Array<{ media: MediaRecord; link: MediaLinkRecord }>;
-  /** True when this link id already exists, without hydrating its target. */
-  hasMediaLink(id: string): boolean;
   updateMediaLink(link: MediaLinkRecord): void;
   removeMediaLink(id: string): boolean;
   removeMediaLinkOnly(id: string): boolean;
@@ -290,7 +286,6 @@ export class SqliteTreeRepository implements TreeRepository {
     this.transactions.run(() => {
       this.persons.insertPerson({
         id: person.id,
-        xref: person.xref,
         sex: person.sex,
         deathStatus: person.deathStatus,
         addressId: person.addressId,
@@ -319,7 +314,6 @@ export class SqliteTreeRepository implements TreeRepository {
       const reservedDates = personDateReservations(oldNames, oldFacts);
       this.persons.updatePerson({
         id: person.id,
-        xref: person.xref,
         sex: person.sex,
         deathStatus: person.deathStatus,
         addressId: person.addressId,
@@ -782,10 +776,6 @@ export class SqliteTreeRepository implements TreeRepository {
     this.media.insertMedia(media);
   }
 
-  setMediaPlaceId(mediaId: string, placeId: string | undefined): void {
-    this.media.setPlaceId(mediaId, placeId);
-  }
-
   updateMedia(media: MediaRecord): void {
     this.transactions.run(() => {
       this.media.updateMedia(media);
@@ -798,11 +788,7 @@ export class SqliteTreeRepository implements TreeRepository {
 
   deleteMedia(id: string): boolean {
     return this.transactions.run(() => {
-      const media = this.media.getMedia(id);
       this.deleteAttachmentsFor('media', id);
-      for (const link of media?.links ?? []) {
-        this.deleteAttachmentsFor('media_link', link.id);
-      }
       return this.media.deleteMedia(id);
     });
   }
@@ -815,10 +801,6 @@ export class SqliteTreeRepository implements TreeRepository {
     return this.media.listLinksFor(targetType, targetId);
   }
 
-  hasMediaLink(id: string): boolean {
-    return this.media.hasLink(id);
-  }
-
   updateMediaLink(link: MediaLinkRecord): void {
     this.media.updateMediaLink(link);
   }
@@ -826,7 +808,6 @@ export class SqliteTreeRepository implements TreeRepository {
   removeMediaLink(id: string): boolean {
     return this.transactions.run(() => {
       const mediaId = this.media.getMediaIdForLink(id);
-      this.deleteAttachmentsFor('media_link', id);
       const removed = this.media.removeMediaLink(id);
       if (removed && mediaId !== undefined && this.media.getMedia(mediaId) === undefined) {
         this.deleteAttachmentsFor('media', mediaId);
@@ -1151,11 +1132,6 @@ export class SqliteTreeRepository implements TreeRepository {
         targetId: media.id,
         attachments: this.collectAttachments('media', media.id, state),
       })),
-      mediaLinkAttachments: mediaLinks.map((entry) => ({
-        targetType: 'media_link',
-        targetId: entry.link.id,
-        attachments: this.collectAttachments('media_link', entry.link.id, state),
-      })),
       contacts: this.attachments.listContactsFor(targetType, targetId),
       taskLinks,
       recordSubmitters: this.submitters.listRecordSubmittersFor(targetType, targetId),
@@ -1182,9 +1158,6 @@ export class SqliteTreeRepository implements TreeRepository {
     }
     this.sources.deleteCitationsFor(targetType, targetId);
     const links = this.media.listLinksFor(targetType, targetId);
-    for (const entry of links) {
-      this.deleteAttachmentsForInternal('media_link', entry.link.id, visited);
-    }
     const affectedMedia = new Map(links.map((entry) => [entry.media.id, entry.media]));
     this.media.deleteLinksFor(targetType, targetId);
     for (const media of affectedMedia.values()) {
@@ -1241,13 +1214,8 @@ export class SqliteTreeRepository implements TreeRepository {
         if (removed.size > 0 && !removed.has(`media\u0000${entry.media.id}`)) {
           continue;
         }
-        // The historical place may have been deleted while the media record
-        // was gone; keep the raw place text and restore the rest. Reinsert
-        // without captured links so only this operation's links return.
-        const placeMissing = entry.media.placeId !== undefined && this.getPlace(entry.media.placeId) === undefined;
-        this.media.insertMedia(
-          placeMissing ? { ...entry.media, placeId: undefined, links: [] } : { ...entry.media, links: [] },
-        );
+        // Reinsert without captured links so only this operation's links return.
+        this.media.insertMedia({ ...entry.media, links: [] });
         restoredMedia.add(entry.media.id);
       }
       if (!this.media.hasLink(entry.link.id)) {
@@ -1256,14 +1224,6 @@ export class SqliteTreeRepository implements TreeRepository {
     }
     for (const nested of snapshot.mediaAttachments) {
       if (restoredMedia.has(nested.targetId) || this.media.hasMedia(nested.targetId)) {
-        this.restoreAttachmentsInternal(nested.attachments, visitedFiles);
-      }
-    }
-    for (const nested of snapshot.mediaLinkAttachments) {
-      if (
-        (removed.size === 0 || removed.has(`media_link\u0000${nested.targetId}`)) &&
-        this.media.hasLink(nested.targetId)
-      ) {
         this.restoreAttachmentsInternal(nested.attachments, visitedFiles);
       }
     }
@@ -1337,7 +1297,7 @@ export class SqliteTreeRepository implements TreeRepository {
       }
       visited.add(node);
       this.snapshotMarkers.set(node, frame);
-      for (const nested of [...node.citationAttachments, ...node.mediaAttachments, ...node.mediaLinkAttachments]) {
+      for (const nested of [...node.citationAttachments, ...node.mediaAttachments]) {
         visit(nested.attachments);
       }
     };

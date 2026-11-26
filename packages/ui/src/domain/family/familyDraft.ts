@@ -43,11 +43,10 @@ export interface MarriageStatusDraft {
 
 /**
  * The editable form of a family: its partner and child slots with the
- * link details. `xref` is provenance passed through.
+ * link details.
  */
 export interface FamilyDraft {
   id: string;
-  xref?: string | undefined;
   preferred: boolean;
   sameSex: boolean;
   unionKind: string;
@@ -123,7 +122,6 @@ export function familyToDraft(family: FamilyRecord): FamilyDraft {
     family.children.map((childId) => ({ ...emptyChildLinkDraft(childId), id: `${family.id}#child#${childId}` }));
   return {
     id: family.id,
-    xref: family.xref,
     preferred: family.preferred === true,
     sameSex: family.sameSex === true,
     unionKind: family.unionKind ?? '',
@@ -209,7 +207,6 @@ export function familyDraftToRecord(draft: FamilyDraft, existing?: FamilyRecord)
     });
   return {
     id: draft.id,
-    xref: draft.xref,
     ...(draft.preferred ? { preferred: true } : {}),
     ...(draft.sameSex ? { sameSex: true } : {}),
     ...(draft.unionKind.trim() !== '' ? { unionKind: draft.unionKind.trim() } : {}),
@@ -230,7 +227,6 @@ export function familyDraftMatches(draft: FamilyDraft, family: FamilyRecord): bo
   const other = familyToDraft(family);
   return (
     draft.id === other.id &&
-    draft.xref === other.xref &&
     draft.preferred === other.preferred &&
     draft.sameSex === other.sameSex &&
     draft.unionKind === other.unionKind &&

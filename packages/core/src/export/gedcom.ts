@@ -129,7 +129,7 @@ const NAME_TYPE_CODES: Record<string, string> = {
 
 const MONTH_CODES = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
 
-/** Builds the GEDCOM dataset for the whole tree, assigning fresh xrefs to records without one. */
+/** Builds the GEDCOM dataset for the whole tree with fresh xrefs. */
 export function buildGedcomDataset(repo: TreeRepository): GedcomDataset {
   const xrefs = new Xrefs();
   const persons = repo.listAllPersons();
@@ -148,44 +148,29 @@ export function buildGedcomDataset(repo: TreeRepository): GedcomDataset {
   // only target is a repository disappears from the export.
   const tasks = repo.listTasks().filter((task) => task.targets.length === 0);
 
-  // Reserve every retained xref first: a split media card without its own
-  // xref may be visited before the card that kept the original identifier.
-  for (const xref of [
-    ...persons.map((record) => record.xref),
-    ...families.map((record) => record.xref),
-    ...sources.map((record) => record.xref),
-    ...repositories.map((record) => record.xref),
-    ...submitters.map((record) => record.xref),
-    ...titles.map((record) => record.xref),
-    ...places.map((record) => record.xref),
-    ...media.map((record) => record.xref),
-  ]) {
-    xrefs.reserve(xref);
-  }
-
   for (const person of persons) {
-    xrefs.assign('I', person.id, person.xref);
+    xrefs.assign('I', person.id);
   }
   for (const family of families) {
-    xrefs.assign('F', family.id, family.xref);
+    xrefs.assign('F', family.id);
   }
   for (const source of sources) {
-    xrefs.assign('S', source.id, source.xref);
+    xrefs.assign('S', source.id);
   }
   for (const repository of repositories) {
-    xrefs.assign('R', repository.id, repository.xref);
+    xrefs.assign('R', repository.id);
   }
   for (const submitter of submitters) {
-    xrefs.assign('U', submitter.id, submitter.xref);
+    xrefs.assign('U', submitter.id);
   }
   for (const title of titles) {
-    xrefs.assign('T', title.id, title.xref);
+    xrefs.assign('T', title.id);
   }
   for (const place of places) {
-    xrefs.assign('P', place.id, place.xref);
+    xrefs.assign('P', place.id);
   }
   for (const entry of media) {
-    xrefs.assign('O', entry.id, entry.xref);
+    xrefs.assign('O', entry.id);
   }
 
   const records: GedcomRecord[] = [
@@ -664,7 +649,6 @@ function buildSubmitter(
     ...(skype !== undefined ? { skypeId: skype } : {}),
     ...(jabber !== undefined ? { jabberId: jabber } : {}),
     ...withNoteList(repo, 'submitter', submitter.id),
-    ...withSubmitterLinks(repo, 'submitter', submitter.id, xrefs),
   };
 }
 
@@ -919,43 +903,23 @@ function mediaMime(path: string): string {
   return MIME_BY_EXTENSION.get(extension) ?? 'application/octet-stream';
 }
 
-/** The stored place text, or the place row's official name when only an id is set. */
-function mediaPlaceText(media: MediaRecord, repo: TreeRepository): string | undefined {
-  if (media.place !== undefined) {
-    return media.place;
-  }
-  const place = media.placeId !== undefined ? repo.getPlace(media.placeId) : undefined;
-  const names = place !== undefined ? officialPlaceNames(place) : [];
-  return names.length > 0 ? names.join(', ') : undefined;
-}
-
 function normalizeMediaPath(path: string): string {
   return path.replaceAll('\\', '/');
 }
 
 function buildMediaRecord(media: MediaRecord, repo: TreeRepository, xrefs: Xrefs): MultimediaRecord {
   const date = buildDate(media.date);
-  const place = mediaPlaceText(media, repo);
   return {
     tag: 'OBJE',
     xref: xrefs.of(media.id),
     ...(date !== undefined ? { date } : {}),
-    ...(place !== undefined && place !== '' ? { place } : {}),
-    ...(media.objectType !== undefined ? { objectType: media.objectType } : {}),
-    ...(media.description !== undefined ? { description: media.description } : {}),
-    ...(media.keywords !== undefined ? { keywords: media.keywords } : {}),
     files: [
       {
         payload: normalizeMediaPath(media.path),
         form: {
           payload: mediaMime(media.path),
-          ...(media.medium !== undefined
-            ? { medium: { payload: media.medium as import('@doru/gedcom').MediaEnum } }
-            : {}),
         },
         ...(media.title !== undefined ? { title: media.title } : {}),
-        ...(media.contentType !== undefined ? { contentType: media.contentType } : {}),
-        ...(media.text !== undefined ? { text: media.text } : {}),
       },
     ],
     ...withCitationList(repo, 'media', media.id, xrefs),
@@ -978,14 +942,7 @@ function buildMediaLink(link: MediaLinkRecord, xrefs: Xrefs): MultimediaLink {
           },
         }
       : {}),
-    ...(link.title !== undefined ? { title: link.title } : {}),
-    ...(link.sequence !== undefined ? { sequence: link.sequence } : {}),
     ...(link.primary === true ? { primary: true } : {}),
-    ...(link.scrapbook === true ? { scrapbook: true } : {}),
-    ...(link.slideshow === true ? { slideshow: true } : {}),
-    ...(link.thumbnail === true ? { thumbnail: true } : {}),
-    ...(link.exclude === true ? { excludeFromDiagrams: true } : {}),
-    ...(link.caption === true ? { caption: true } : {}),
   };
 }
 
@@ -998,13 +955,7 @@ function withMediaLinks(
   const links = repo
     .listMediaLinksFor(targetType, targetId)
     .filter((entry) => entry.media.path !== '')
-    .map((entry) => {
-      const { citations } = withCitationList(repo, 'media_link', entry.link.id, xrefs);
-      return {
-        ...buildMediaLink(entry.link, xrefs),
-        ...(citations.length > 0 ? { citations } : {}),
-      };
-    });
+    .map((entry) => buildMediaLink(entry.link, xrefs));
   return links.length > 0 ? { media: links } : {};
 }
 
@@ -1699,41 +1650,20 @@ function mapMonth(month: number | string | undefined): GedcomMonth | undefined {
 // ---------------------------------------------------------------------------
 
 /**
- * Assigns export xrefs: records keep the xref a GEDCOM import gave them;
- * records without one get the next free `@I<digits>@`-style identifier.
+ * Assigns fresh export xrefs. Every record gets the next
+ * `@I<digits>@`-style identifier for its prefix; imported GEDCOM xrefs are
+ * not stored and therefore never reused.
  */
 class Xrefs {
   private readonly byId = new Map<string, string>();
-  private readonly used = new Set<string>();
   private readonly counters = new Map<string, number>();
 
-  /** Marks a retained identifier as unavailable for generated xrefs. */
-  reserve(existing: string | undefined): void {
-    if (existing !== undefined && existing !== '') {
-      this.used.add(existing);
-    }
-  }
-
-  assign(prefix: string, id: string, existing: string | undefined): string {
-    if (existing !== undefined && existing !== '') {
-      this.byId.set(id, existing);
-      this.used.add(existing);
-      return existing;
-    }
-    let counter = (this.counters.get(prefix) ?? 0) + 1;
+  assign(prefix: string, id: string): string {
+    const counter = (this.counters.get(prefix) ?? 0) + 1;
     this.counters.set(prefix, counter);
-    while (this.used.has(`@${prefix}${counter}@`)) {
-      counter += 1;
-      this.counters.set(prefix, counter);
-    }
     const xref = `@${prefix}${counter}@`;
-    this.used.add(xref);
     this.byId.set(id, xref);
     return xref;
-  }
-
-  has(id: string): boolean {
-    return this.byId.has(id);
   }
 
   of(id: string): string {

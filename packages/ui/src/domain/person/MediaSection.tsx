@@ -135,12 +135,7 @@ export function MediaSection({
                 ? `doru-media://local/?path=${encodeURIComponent(item.absolutePath)}`
                 : '';
             const label = item.title ?? (isExternalMediaPath(item.path) ? item.id : item.path);
-            const badge =
-              link?.primary === true
-                ? nls.t('features.tree.media.primary')
-                : link?.exclude === true
-                  ? nls.t('features.tree.media.excluded')
-                  : undefined;
+            const badge = link?.primary === true ? nls.t('features.tree.media.primary') : undefined;
             return (
               <MediaTile
                 key={item.id}
@@ -153,7 +148,6 @@ export function MediaSection({
                   </span>
                 }
                 {...(badge !== undefined ? { badge } : {})}
-                {...(link?.exclude === true ? { muted: true } : {})}
                 {...(onOpenMedia
                   ? {
                       openLabel: nls.t('features.tree.media.open'),

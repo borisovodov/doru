@@ -121,9 +121,8 @@ describe('undo restore sanitizers', () => {
       expect(repo.getFamily('F1')?.marriageStatuses?.[0]?.id).toBe('MS1');
       expect(repo.getFamily('F1')?.marriageStatuses?.[0]?.placeId).toBeUndefined();
 
-      restoreMedia(ctx, { id: 'M1', path: 'media/m1.jpg', title: 'Photo', place: 'Moscow', placeId: 'missing' });
-      expect(repo.getMedia('M1')?.place).toBe('Moscow');
-      expect(repo.getMedia('M1')?.placeId).toBeUndefined();
+      restoreMedia(ctx, { id: 'M1', path: 'media/m1.jpg', title: 'Photo' });
+      expect(repo.getMedia('M1')?.title).toBe('Photo');
 
       restoreSource(ctx, {
         id: 'S1',
@@ -161,8 +160,8 @@ describe('undo restore sanitizers', () => {
       expect(repo.getSource('S1')?.dataEvents?.[0]?.placeId).toBe('PL1');
       expect(repo.getSource('S1')?.repositories?.[0]?.repositoryId).toBe('R1');
 
-      restoreMedia(ctx, { id: 'M1', path: 'media/m1.jpg', title: 'Photo', place: 'Moscow', placeId: 'PL1' });
-      expect(repo.getMedia('M1')?.placeId).toBe('PL1');
+      restoreMedia(ctx, { id: 'M1', path: 'media/m1.jpg', title: 'Photo' });
+      expect(repo.getMedia('M1')?.title).toBe('Photo');
 
       repo.insertPerson({ id: 'P1', names: [], sex: 'U', facts: [] });
       restoreFamily(ctx, {
@@ -288,7 +287,7 @@ describe('undo restore sanitizers', () => {
       const { repo } = fixture;
       const ctx = context(fixture);
       repo.insertPerson({ id: 'P1', names: [], sex: 'U', facts: [] });
-      const restored = restoreMedia(ctx, {
+      restoreMedia(ctx, {
         id: 'M1',
         path: 'media/m1.jpg',
         title: 'Photo',
@@ -297,16 +296,14 @@ describe('undo restore sanitizers', () => {
           { id: 'L2', mediaId: 'M1', targetType: 'person', targetId: 'missing' },
         ],
       });
-      expect([...restored]).toEqual(['L1']);
       expect(repo.getMedia('M1')?.links?.map((link) => link.id)).toEqual(['L1']);
 
-      const noLinks = restoreMedia(ctx, {
+      restoreMedia(ctx, {
         id: 'M2',
         path: 'media/m2.jpg',
         title: 'Standalone',
         links: [{ id: 'L3', mediaId: 'M2', targetType: 'person', targetId: 'missing' }],
       });
-      expect([...noLinks]).toEqual([]);
       expect(repo.getMedia('M2')?.links).toEqual([]);
 
       restoreTask(ctx, {

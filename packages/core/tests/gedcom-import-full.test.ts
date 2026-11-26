@@ -144,7 +144,7 @@ describe('importGedcomDataset (phase 4)', () => {
 
       // Persons, names with parts and projections.
       const persons = repo.listAllPersons();
-      const ivan = persons.find((person) => person.xref === '@I1@')!;
+      const ivan = persons.find((person) => person.names[0]?.given === 'Ivan')!;
       const name = ivan.names[0]!;
       expect(name.given).toBe('Ivan');
       expect(name.surname).toBe('Petrov');
@@ -187,7 +187,7 @@ describe('importGedcomDataset (phase 4)', () => {
       expect(notes).toContain('shared note text');
 
       // Associations and tasks.
-      const maria = persons.find((person) => person.xref === '@I2@')!;
+      const maria = persons.find((person) => person.names[0]?.given === 'Maria')!;
       expect(repo.listAssociationsFor(ivan.id)).toEqual([
         expect.objectContaining({ otherPersonId: maria.id, relationship: 'godfather' }),
       ]);
@@ -196,7 +196,7 @@ describe('importGedcomDataset (phase 4)', () => {
       // Family with link details and a marriage fact with partner ages.
       const family = repo.listFamilies()[0]!;
       expect(family.partners).toEqual([ivan.id, maria.id]);
-      const child = persons.find((person) => person.xref === '@I3@')!;
+      const child = persons.find((person) => person.names[0]?.given === 'Child')!;
       expect(family.children).toEqual([child.id]);
       expect(family.childLinks?.[0]).toEqual(
         expect.objectContaining({ childId: child.id, pedigree: 'adopted', fatherRelation: 'adopted' }),
@@ -267,7 +267,7 @@ describe('importGedcomDataset (phase 4)', () => {
       // The same persons, names and facts come back.
       const persons = second.repo.listAllPersons();
       expect(persons).toHaveLength(3);
-      const ivan = persons.find((person) => person.xref === '@I1@')!;
+      const ivan = persons.find((person) => person.names[0]?.given === 'Ivan')!;
       expect(ivan.names[0]?.given).toBe('Ivan');
       expect(ivan.names[0]?.surname).toBe('Petrov');
       const birth = second.repo.listFactsForPerson(ivan.id).find((fact) => fact.tag === 'BIRT')!;

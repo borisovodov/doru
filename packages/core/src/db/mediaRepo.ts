@@ -5,17 +5,8 @@ import type { TransactionScope } from './transaction';
 
 interface MediaRow {
   id: string;
-  xref: string | null;
   title: string | null;
   path: string;
-  medium: string | null;
-  content_type: string | null;
-  text: string | null;
-  place_id: string | null;
-  place_text: string | null;
-  object_type: string | null;
-  description: string | null;
-  keywords: string | null;
   date_id: string | null;
   created_at: number | null;
   updated_at: number | null;
@@ -30,14 +21,7 @@ interface LinkRow {
   crop_left: number | null;
   crop_height: number | null;
   crop_width: number | null;
-  title: string | null;
-  sequence: number | null;
   primary_flag: number;
-  scrapbook: number;
-  slideshow: number;
-  thumbnail: number;
-  exclude: number;
-  caption: number;
 }
 
 /**
@@ -46,8 +30,7 @@ interface LinkRow {
  * record is exactly one file; the flat `targetType`/`targetId` on the model
  * are projections of the first link.
  */
-const MEDIA_COLUMNS = `id, xref, title, path, medium, content_type, text, place_id, place_text,
-  object_type, description, keywords, date_id, created_at, updated_at`;
+const MEDIA_COLUMNS = `id, title, path, date_id, created_at, updated_at`;
 
 export class MediaRepo {
   constructor(
@@ -62,9 +45,8 @@ export class MediaRepo {
       const dateId = media.date !== undefined ? this.dates.create(media.date) : null;
       this.db
         .prepare(
-          `INSERT INTO media (id, xref, title, path, medium, content_type, text, place_id, place_text,
-             object_type, description, keywords, created_at, updated_at, date_id)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          `INSERT INTO media (id, title, path, created_at, updated_at, date_id)
+           VALUES (?, ?, ?, ?, ?, ?)`,
         )
         .run(...mediaParams(media), dateId);
       this.replaceLinks(media);
@@ -82,18 +64,12 @@ export class MediaRepo {
       const prepared = this.dates.prepareSlots([current.date_id], [media.date]);
       this.db
         .prepare(
-          `UPDATE media SET xref = ?, title = ?, path = ?, medium = ?, content_type = ?, text = ?,
-             place_id = ?, place_text = ?, object_type = ?, description = ?, keywords = ?,
-             created_at = ?, updated_at = ?, date_id = ? WHERE id = ?`,
+          `UPDATE media SET title = ?, path = ?, created_at = ?, updated_at = ?,
+             date_id = ? WHERE id = ?`,
         )
         .run(...mediaParams(media).slice(1), prepared.ids[0] ?? null, media.id);
       this.dates.deleteMany(prepared.obsolete);
     });
-  }
-
-  /** Reconnects a surviving media record to its place after a place-delete undo. */
-  setPlaceId(id: string, placeId: string | undefined): void {
-    this.db.prepare('UPDATE media SET place_id = ? WHERE id = ? AND place_id IS NULL').run(placeId ?? null, id);
   }
 
   deleteMedia(id: string): boolean {
@@ -119,8 +95,8 @@ export class MediaRepo {
     const links = this.db
       .prepare(
         `SELECT id, media_id, target_type, target_id, crop_top, crop_left, crop_height, crop_width,
-           title, sequence, primary_flag, scrapbook, slideshow, thumbnail, exclude, caption
-         FROM media_link WHERE target_type = ? AND target_id = ? ORDER BY sequence, id`,
+           primary_flag
+         FROM media_link WHERE target_type = ? AND target_id = ? ORDER BY rowid`,
       )
       .all(targetType, targetId) as unknown as LinkRow[];
     const result: MediaRecord[] = [];
@@ -140,8 +116,8 @@ export class MediaRepo {
     const links = this.db
       .prepare(
         `SELECT id, media_id, target_type, target_id, crop_top, crop_left, crop_height, crop_width,
-           title, sequence, primary_flag, scrapbook, slideshow, thumbnail, exclude, caption
-         FROM media_link WHERE target_type = ? AND target_id = ? ORDER BY sequence, id`,
+           primary_flag
+         FROM media_link WHERE target_type = ? AND target_id = ? ORDER BY rowid`,
       )
       .all(targetType, targetId) as unknown as LinkRow[];
     const result: Array<{ media: MediaRecord; link: MediaLinkRecord }> = [];
@@ -167,8 +143,8 @@ export class MediaRepo {
     this.db
       .prepare(
         `INSERT INTO media_link (id, media_id, target_type, target_id, crop_top, crop_left, crop_height,
-           crop_width, title, sequence, primary_flag, scrapbook, slideshow, thumbnail, exclude, caption)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+           crop_width, primary_flag)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       )
       .run(...linkParams(mediaId, link));
   }
@@ -177,8 +153,7 @@ export class MediaRepo {
     this.db
       .prepare(
         `UPDATE media_link SET target_type = ?, target_id = ?, crop_top = ?, crop_left = ?,
-           crop_height = ?, crop_width = ?, title = ?, sequence = ?, primary_flag = ?,
-           scrapbook = ?, slideshow = ?, thumbnail = ?, exclude = ?, caption = ?
+           crop_height = ?, crop_width = ?, primary_flag = ?
          WHERE id = ?`,
       )
       .run(
@@ -188,14 +163,7 @@ export class MediaRepo {
         link.crop?.left ?? null,
         link.crop?.height ?? null,
         link.crop?.width ?? null,
-        link.title ?? null,
-        link.sequence ?? null,
         link.primary ? 1 : 0,
-        link.scrapbook ? 1 : 0,
-        link.slideshow ? 1 : 0,
-        link.thumbnail ? 1 : 0,
-        link.exclude ? 1 : 0,
-        link.caption ? 1 : 0,
         link.id,
       );
   }
@@ -275,26 +243,17 @@ export class MediaRepo {
     const links = this.db
       .prepare(
         `SELECT id, media_id, target_type, target_id, crop_top, crop_left, crop_height, crop_width,
-           title, sequence, primary_flag, scrapbook, slideshow, thumbnail, exclude, caption
-         FROM media_link WHERE media_id = ? ORDER BY sequence, id`,
+           primary_flag
+         FROM media_link WHERE media_id = ? ORDER BY rowid`,
       )
       .all(row.id) as unknown as LinkRow[];
     const firstLink = links[0];
     const date = row.date_id !== null ? this.dates.get(row.date_id) : undefined;
     return {
       id: row.id,
-      xref: row.xref ?? undefined,
       title: row.title ?? undefined,
       path: row.path,
-      ...(row.medium !== null ? { medium: row.medium } : {}),
-      ...(row.content_type !== null ? { contentType: row.content_type } : {}),
-      ...(row.text !== null ? { text: row.text } : {}),
       ...(date !== undefined ? { date } : {}),
-      ...(row.place_id !== null ? { placeId: row.place_id } : {}),
-      ...(row.place_text !== null ? { place: row.place_text } : {}),
-      ...(row.object_type !== null ? { objectType: row.object_type } : {}),
-      ...(row.description !== null ? { description: row.description } : {}),
-      ...(row.keywords !== null ? { keywords: row.keywords } : {}),
       createdAt: row.created_at ?? undefined,
       updatedAt: row.updated_at ?? undefined,
       targetType: firstLink?.target_type,
@@ -305,22 +264,7 @@ export class MediaRepo {
 }
 
 function mediaParams(media: MediaRecord): Array<string | number | null> {
-  return [
-    media.id,
-    media.xref ?? null,
-    media.title ?? null,
-    media.path,
-    media.medium ?? null,
-    media.contentType ?? null,
-    media.text ?? null,
-    media.placeId ?? null,
-    media.place ?? null,
-    media.objectType ?? null,
-    media.description ?? null,
-    media.keywords ?? null,
-    media.createdAt ?? null,
-    media.updatedAt ?? null,
-  ];
+  return [media.id, media.title ?? null, media.path, media.createdAt ?? null, media.updatedAt ?? null];
 }
 
 function linkParams(mediaId: string, link: MediaLinkRecord): Array<string | number | null> {
@@ -333,14 +277,7 @@ function linkParams(mediaId: string, link: MediaLinkRecord): Array<string | numb
     link.crop?.left ?? null,
     link.crop?.height ?? null,
     link.crop?.width ?? null,
-    link.title ?? null,
-    link.sequence ?? null,
     link.primary ? 1 : 0,
-    link.scrapbook ? 1 : 0,
-    link.slideshow ? 1 : 0,
-    link.thumbnail ? 1 : 0,
-    link.exclude ? 1 : 0,
-    link.caption ? 1 : 0,
   ];
 }
 
@@ -361,13 +298,6 @@ function rowToLink(row: LinkRow): MediaLinkRecord {
     targetType: row.target_type,
     targetId: row.target_id,
     crop,
-    title: row.title ?? undefined,
-    sequence: row.sequence ?? undefined,
     primary: row.primary_flag === 1 ? true : undefined,
-    scrapbook: row.scrapbook === 1 ? true : undefined,
-    slideshow: row.slideshow === 1 ? true : undefined,
-    thumbnail: row.thumbnail === 1 ? true : undefined,
-    exclude: row.exclude === 1 ? true : undefined,
-    caption: row.caption === 1 ? true : undefined,
   };
 }

@@ -51,24 +51,6 @@ describe('redo guards for nested attachment targets', () => {
     }
   });
 
-  it('blocks media detach redo when a new link attachment appeared', () => {
-    const { fixture, service } = makeService();
-    const { repo } = fixture;
-    try {
-      service.addPerson(person('P1'));
-      service.addSource({ id: 'S1', title: 'Book' });
-      service.addMedia({ id: 'M1', path: 'media/a.jpg', title: 'Photo', targetType: 'person', targetId: 'P1' });
-      const link = repo.listAttachmentsFor('person', 'P1').mediaLinks[0]!.link;
-      service.detachMedia(link);
-      service.undo();
-      expect(repo.getMedia('M1')?.links?.map((entry) => entry.id)).toEqual([link.id]);
-      repo.insertCitation({ id: 'C2', sourceId: 'S1', targetType: 'media_link', targetId: link.id });
-      expect(service.redo().redoBlocked).toBe(true);
-    } finally {
-      cleanupRepo(fixture);
-    }
-  });
-
   it('blocks source redo when a citation changed', () => {
     const { fixture, service } = makeService();
     const { repo } = fixture;
@@ -274,7 +256,7 @@ describe('redo guards for nested attachment targets', () => {
       service.undo();
       repo.updateMediaLink({
         ...repo.getMedia('M1')!.links!.find((link) => link.id === first.link.id)!,
-        title: 'Edited',
+        primary: true,
       });
       expect(service.redo().redoBlocked).toBe(true);
     } finally {
@@ -567,24 +549,6 @@ describe('redo guards for nested attachment targets', () => {
       expect(repo.getSource('S1')?.titleId).toBe('T2');
       expect(service.redo().redoBlocked).toBeUndefined();
       expect(repo.getTitle('T1')).toBeUndefined();
-    } finally {
-      cleanupRepo(fixture);
-    }
-  });
-
-  it('allows place redo after a media record moved to another place before undo', () => {
-    const { fixture, service } = makeService();
-    const { repo } = fixture;
-    try {
-      service.addPlace({ id: 'PL1', names: [{ id: 'PN1', kind: 'official', position: 0, value: 'A' }] });
-      service.addPlace({ id: 'PL2', names: [{ id: 'PN2', kind: 'official', position: 0, value: 'B' }] });
-      service.addMedia({ id: 'M1', path: 'media/a.jpg', title: 'Photo', placeId: 'PL1' });
-      service.deletePlace(repo.getPlace('PL1')!);
-      repo.updateMedia({ ...repo.getMedia('M1')!, placeId: 'PL2' });
-      service.undo();
-      expect(repo.getMedia('M1')?.placeId).toBe('PL2');
-      expect(service.redo().redoBlocked).toBeUndefined();
-      expect(repo.getPlace('PL1')).toBeUndefined();
     } finally {
       cleanupRepo(fixture);
     }

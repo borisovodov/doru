@@ -37,7 +37,6 @@ describe('placeToDraft / placeDraftToRecord', () => {
   it('round-trips every field', () => {
     const stored: PlaceRecord = {
       id: 'PL1',
-      xref: '@P1@',
       latitude: 54.19,
       longitude: 37.61,
       verified: true,
@@ -69,7 +68,6 @@ describe('placeToDraft / placeDraftToRecord', () => {
     const draft = placeToDraft(stored);
     expect(draft).toMatchObject({
       id: 'PL1',
-      xref: '@P1@',
       latitude: '54.19',
       longitude: '37.61',
       verified: true,
