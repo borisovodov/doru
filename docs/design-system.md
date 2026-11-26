@@ -65,6 +65,16 @@ the tooltip text. Use `Button` for text actions and `Field`/`Input`/`Select`/
 belongs only inside the `@doru/ui` component that owns its behavior; if no
 component fits, add one to the library with a gallery demo instead.
 
+## Action icons
+
+- `Trash2` deletes the stored record and its owned attachments. Undo
+  restores the record where the operation has an inverse.
+- `X` detaches a link from the current record while the linked record
+  survives, or removes an unsaved row from a form. Close and cancel controls
+  also use `X`.
+- The tooltip names the outcome: `Delete …`, `Detach …`,
+  `Remove … from this record`, or `Unlink`.
+
 ## Gallery
 
 ```bash

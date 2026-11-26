@@ -5,7 +5,7 @@ import { Input } from '../../atoms/form/Input';
 import { Select } from '../../atoms/form/Select';
 import { SectionCard } from '../../patterns/section-card/SectionCard';
 import { useState } from 'react';
-import { Pencil, X } from 'lucide-react';
+import { Pencil, Trash2 } from 'lucide-react';
 import type { ContactRecord } from '@doru/core';
 import { nls } from '../../nls';
 import './AttachmentsSection.css';
@@ -119,7 +119,7 @@ export function ContactsSection({
                 <IconButton
                   size="sm"
                   label={nls.t('features.tree.contacts.remove')}
-                  icon={<X size={13} aria-hidden="true" />}
+                  icon={<Trash2 size={13} aria-hidden="true" />}
                   onClick={() => void onDelete(contact)}
                 />
               </>

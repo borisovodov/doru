@@ -1,4 +1,4 @@
-import { Paperclip, Plus, Star, X } from 'lucide-react';
+import { Paperclip, Plus, Star, Trash2 } from 'lucide-react';
 import { useState, type ReactNode } from 'react';
 import { nls } from '../../nls';
 import { Button } from '../../atoms/button/Button';
@@ -153,7 +153,7 @@ export function NamesSection({
             <IconButton
               size="sm"
               label={nls.t('features.tree.names.remove')}
-              icon={<X size={14} aria-hidden="true" />}
+              icon={<Trash2 size={14} aria-hidden="true" />}
               onClick={() => removeName(index)}
             />
           </div>
@@ -305,7 +305,7 @@ function VariantEditor({
         <IconButton
           size="sm"
           label={nls.t('features.tree.names.variant.remove')}
-          icon={<X size={14} aria-hidden="true" />}
+          icon={<Trash2 size={14} aria-hidden="true" />}
           onClick={onRemove}
         />
       </div>
@@ -489,7 +489,7 @@ function ExtraParts<T extends { parts: NamePart[] }>({
               <IconButton
                 size="sm"
                 label={nls.t('features.tree.names.part.remove')}
-                icon={<X size={14} aria-hidden="true" />}
+                icon={<Trash2 size={14} aria-hidden="true" />}
                 onClick={() => {
                   onChange(removeNamePart(name, part.id));
                   onNameRemoved?.();

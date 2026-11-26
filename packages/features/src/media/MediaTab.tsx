@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { FileImage, Image as ImageIcon, Paperclip, X } from 'lucide-react';
+import { FileImage, Image as ImageIcon, Paperclip, Trash2 } from 'lucide-react';
 import {
   isImagePath,
   placeName,
@@ -684,7 +684,7 @@ function MediaTabBody({
                   onClick={() => setExpandedFileId(expandedFileId === file.id ? null : file.id)}
                 />
                 <Button variant="secondary" size="sm" onClick={() => void removeFile(file)}>
-                  <X size={13} aria-hidden="true" />
+                  <Trash2 size={13} aria-hidden="true" />
                   {nls.t('features.tree.media.remove')}
                 </Button>
               </div>

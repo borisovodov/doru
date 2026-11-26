@@ -1,4 +1,4 @@
-import { Paperclip, Plus, X } from 'lucide-react';
+import { Paperclip, Plus, Trash2 } from 'lucide-react';
 import { useState, type ReactNode } from 'react';
 import { nls } from '../../nls';
 import { Button } from '../../atoms/button/Button';
@@ -65,7 +65,7 @@ export function AddressFields({
               <IconButton
                 size="sm"
                 label={nls.t('features.tree.address.removeLine')}
-                icon={<X size={13} aria-hidden="true" />}
+                icon={<Trash2 size={13} aria-hidden="true" />}
                 onClick={() => set({ lines: address.lines.filter((_, lineIndex) => lineIndex !== index) })}
               />
             </div>

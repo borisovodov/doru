@@ -334,6 +334,7 @@
   "features.tree.family.pedigree.sealing": "結び固め",
   "features.tree.family.pedigreePhrase": "血統の表現",
   "features.tree.family.preferred": "優先",
+  "features.tree.family.removeMarriageStatus": "結婚ステータスを削除",
   "features.tree.family.removeMember": "家族メンバーを削除",
   "features.tree.family.removeWitness": "証人を削除",
   "features.tree.family.sameSex": "同性の結合",

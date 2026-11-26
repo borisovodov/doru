@@ -334,6 +334,7 @@
   "features.tree.family.pedigree.sealing": "Σφράγιση",
   "features.tree.family.pedigreePhrase": "Διατύπωση καταγωγής",
   "features.tree.family.preferred": "Προτιμώμενος",
+  "features.tree.family.removeMarriageStatus": "Αφαίρεση κατάστασης γάμου",
   "features.tree.family.removeMember": "Αφαίρεση μέλους οικογένειας",
   "features.tree.family.removeWitness": "Αφαίρεση μάρτυρα",
   "features.tree.family.sameSex": "Ένωση ομοφύλων",

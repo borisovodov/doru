@@ -334,6 +334,7 @@
   "features.tree.family.pedigree.sealing": "인봉",
   "features.tree.family.pedigreePhrase": "혈통 표현",
   "features.tree.family.preferred": "기본",
+  "features.tree.family.removeMarriageStatus": "결혼 상태 삭제",
   "features.tree.family.removeMember": "가족 구성원 제거",
   "features.tree.family.removeWitness": "증인 제거",
   "features.tree.family.sameSex": "동성 결합",

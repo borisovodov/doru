@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import { act, fireEvent, screen } from '@testing-library/react';
-import { emptyFamilyDraft } from '@doru/ui/domain';
+import { emptyFamilyDraft, emptyMarriageStatusDraft } from '@doru/ui/domain';
 import type { PersonRecord } from '@doru/core';
 import { FamilyEditor } from '@doru/features';
 import type { FamilyEditorApi } from '@doru/features';
@@ -21,8 +21,7 @@ const grace: PersonRecord = {
   facts: [],
 };
 
-async function renderEditor() {
-  const draft = emptyFamilyDraft();
+async function renderEditor(draft = emptyFamilyDraft()) {
   const onChange = vi.fn();
   const api = stubApi<FamilyEditorApi>({
     getFacts: async () => [],
@@ -76,5 +75,14 @@ describe('FamilyEditor', () => {
       target: { value: 'civil' },
     });
     expect(onChange).toHaveBeenCalledWith(expect.objectContaining({ unionKind: 'civil' }));
+  });
+
+  it('removes a marriage status with its own label', async () => {
+    const draft = { ...emptyFamilyDraft(), marriageStatuses: [emptyMarriageStatusDraft()] };
+    const { onChange } = await renderEditor(draft);
+
+    fireEvent.click(screen.getByRole('button', { name: nls.t('features.tree.family.removeMarriageStatus') }));
+
+    expect(onChange).toHaveBeenCalledWith(expect.objectContaining({ marriageStatuses: [] }));
   });
 });

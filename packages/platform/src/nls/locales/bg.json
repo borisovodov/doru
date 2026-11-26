@@ -334,6 +334,7 @@
   "features.tree.family.pedigree.sealing": "Запечатване",
   "features.tree.family.pedigreePhrase": "Формулировка на произхода",
   "features.tree.family.preferred": "Предпочитан",
+  "features.tree.family.removeMarriageStatus": "Премахване на статус на брака",
   "features.tree.family.removeMember": "Премахване на член на семейството",
   "features.tree.family.removeWitness": "Премахване на свидетел",
   "features.tree.family.sameSex": "Еднополов съюз",

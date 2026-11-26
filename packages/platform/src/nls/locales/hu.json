@@ -334,6 +334,7 @@
   "features.tree.family.pedigree.sealing": "Pecsételés",
   "features.tree.family.pedigreePhrase": "Származási megfogalmazás",
   "features.tree.family.preferred": "Előnyben részesített",
+  "features.tree.family.removeMarriageStatus": "Házassági állapot eltávolítása",
   "features.tree.family.removeMember": "Családtag eltávolítása",
   "features.tree.family.removeWitness": "Tanú eltávolítása",
   "features.tree.family.sameSex": "Azonos neműek uniója",

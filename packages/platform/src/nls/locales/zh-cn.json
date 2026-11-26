@@ -334,6 +334,7 @@
   "features.tree.family.pedigree.sealing": "印证",
   "features.tree.family.pedigreePhrase": "血缘表述",
   "features.tree.family.preferred": "首选",
+  "features.tree.family.removeMarriageStatus": "删除婚姻状态",
   "features.tree.family.removeMember": "移除家庭成员",
   "features.tree.family.removeWitness": "移除证人",
   "features.tree.family.sameSex": "同性结合",

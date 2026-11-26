@@ -334,6 +334,7 @@
   "features.tree.family.pedigree.sealing": "Zpečetění",
   "features.tree.family.pedigreePhrase": "Formulace původu",
   "features.tree.family.preferred": "Upřednostněný",
+  "features.tree.family.removeMarriageStatus": "Odebrat stav manželství",
   "features.tree.family.removeMember": "Odebrat člena rodiny",
   "features.tree.family.removeWitness": "Odebrat svědka",
   "features.tree.family.sameSex": "Svazek osob stejného pohlaví",

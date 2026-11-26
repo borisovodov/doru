@@ -2,7 +2,7 @@ import { IconButton } from '@doru/ui';
 import { EmptyText } from '@doru/ui';
 import { useEffect, useMemo, useState } from 'react';
 import { Checkbox, Field, FieldGrid, InlineForm, Input, ReorderButtons, Select, SectionCard, Subcard } from '@doru/ui';
-import { Paperclip, Plus, Users, X } from 'lucide-react';
+import { Paperclip, Plus, Trash2, Users, X } from 'lucide-react';
 import type { FocusEventHandler, ReactNode } from 'react';
 import type {
   AddressRecord,
@@ -264,8 +264,8 @@ export function FamilyEditor({
               )}
               <IconButton
                 size="sm"
-                label={nls.t('features.tree.family.removeWitness')}
-                icon={<X size={13} aria-hidden="true" />}
+                label={nls.t('features.tree.family.removeMarriageStatus')}
+                icon={<Trash2 size={13} aria-hidden="true" />}
                 onClick={() => {
                   set({ marriageStatuses: draft.marriageStatuses.filter((_, i) => i !== index) });
                   onRowsChanged?.();

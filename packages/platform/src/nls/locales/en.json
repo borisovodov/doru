@@ -334,6 +334,7 @@
   "features.tree.family.pedigree.sealing": "Sealing",
   "features.tree.family.pedigreePhrase": "Pedigree phrase",
   "features.tree.family.preferred": "Preferred",
+  "features.tree.family.removeMarriageStatus": "Remove marriage status",
   "features.tree.family.removeMember": "Remove family member",
   "features.tree.family.removeWitness": "Remove witness",
   "features.tree.family.sameSex": "Same-sex union",

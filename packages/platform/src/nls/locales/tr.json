@@ -334,6 +334,7 @@
   "features.tree.family.pedigree.sealing": "Mühürleme",
   "features.tree.family.pedigreePhrase": "Soy ifadesi",
   "features.tree.family.preferred": "Tercih edilen",
+  "features.tree.family.removeMarriageStatus": "Evlilik durumunu kaldır",
   "features.tree.family.removeMember": "Aile üyesini kaldır",
   "features.tree.family.removeWitness": "Tanığı kaldır",
   "features.tree.family.sameSex": "Aynı cinsiyetli birliktelik",

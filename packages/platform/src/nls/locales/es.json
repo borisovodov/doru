@@ -334,6 +334,7 @@
   "features.tree.family.pedigree.sealing": "Sellamiento",
   "features.tree.family.pedigreePhrase": "Formulación de filiación",
   "features.tree.family.preferred": "Preferido",
+  "features.tree.family.removeMarriageStatus": "Eliminar estado del matrimonio",
   "features.tree.family.removeMember": "Quitar miembro de la familia",
   "features.tree.family.removeWitness": "Eliminar testigo",
   "features.tree.family.sameSex": "Unión homosexual",

@@ -334,6 +334,7 @@
   "features.tree.family.pedigree.sealing": "Siegelung",
   "features.tree.family.pedigreePhrase": "Abstammungsformulierung",
   "features.tree.family.preferred": "Bevorzugt",
+  "features.tree.family.removeMarriageStatus": "Ehestatus entfernen",
   "features.tree.family.removeMember": "Familienmitglied entfernen",
   "features.tree.family.removeWitness": "Zeugen entfernen",
   "features.tree.family.sameSex": "Gleichgeschlechtliche Verbindung",
