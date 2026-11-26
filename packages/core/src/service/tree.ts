@@ -28,7 +28,7 @@ import { partsFromFlat } from '../db/nameRepo';
 import {
   collectNameIds,
   collectNamePartIds,
-  isProjectMediaPath,
+  isVisibleMedia,
   normalizeTaskPriority,
   normalizeTaskStatus,
   stampNewRecord,
@@ -253,7 +253,7 @@ export class TreeService {
       counts[personId] = {
         notes: this.repo.listNotesFor('person', personId).length,
         sources: this.repo.listCitationsFor('person', personId).length,
-        media: this.repo.listMediaFor('person', personId).filter((entry) => isProjectMediaPath(entry.path)).length,
+        media: this.repo.listMediaFor('person', personId).filter(isVisibleMedia).length,
       };
     }
     return counts;

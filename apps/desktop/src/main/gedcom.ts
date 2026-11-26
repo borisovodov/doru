@@ -32,6 +32,22 @@ const fs = new NodeFileSystem();
 const REMOTE_MEDIA_CONCURRENCY = 4;
 const REMOTE_MEDIA_TOTAL_LIMIT = 500 * 1024 * 1024;
 const REMOTE_MEDIA_FILE_LIMIT = 100 * 1024 * 1024;
+const REMOTE_MEDIA_MAX_URLS = 1000;
+const REMOTE_MEDIA_TOTAL_TIME_MS = 10 * 60_000;
+const REMOTE_MEDIA_FILE_TIMEOUT_MS = 30_000;
+
+/** The log surface used while copying media; injectable for tests. */
+export interface GedcomMediaLogger {
+  info(...args: unknown[]): void;
+  warn(...args: unknown[]): void;
+}
+
+/** Injectable seams for unit tests; production uses the defaults. */
+export interface GedcomMediaDependencies {
+  download?: typeof downloadRemoteMedia | undefined;
+  write?: ((path: string, contents: Uint8Array) => Promise<void>) | undefined;
+  logger?: GedcomMediaLogger | undefined;
+}
 
 /** Keeps credentials, query tokens and fragments out of the import log. */
 function redactMediaUrl(value: string): string {
@@ -65,18 +81,22 @@ async function mapWithConcurrency<T>(
 }
 
 /** Copies GEDCOM media into the project folder and maps FILE paths to them. */
-async function prepareGedcomMedia(
+export async function prepareGedcomMedia(
   dataset: GedcomDataset,
   entries: GedzipMediaEntry[] | undefined,
   sourcePath: string,
   tempDir: string,
+  dependencies: GedcomMediaDependencies = {},
 ): Promise<Map<string, string>> {
+  const download = dependencies.download ?? downloadRemoteMedia;
+  const write = dependencies.write ?? ((path: string, contents: Uint8Array) => fs.writeBinary(path, contents));
+  const logger = dependencies.logger ?? log;
   const paths = new Map<string, string>();
   const mediaDir = join(tempDir, MEDIA_DIR_NAME);
   await fs.mkdir(mediaDir);
   const store = async (contents: Uint8Array, original: string, extension?: string): Promise<void> => {
     const name = `${randomUUID()}${extension ?? (extname(original) || '.bin')}`;
-    await fs.writeBinary(join(mediaDir, name), contents);
+    await write(join(mediaDir, name), contents);
     paths.set(original, `${MEDIA_DIR_NAME}/${name}`);
   };
   if (entries !== undefined) {
@@ -88,29 +108,45 @@ async function prepareGedcomMedia(
   }
 
   let remoteBytes = 0;
+  let reservedBytes = 0;
   let remoteDownloaded = 0;
   let remoteFailed = 0;
+  let remoteDeadline = 0;
   const storeRemote = async (original: string): Promise<void> => {
     if (paths.has(original)) {
       return;
     }
-    const remaining = REMOTE_MEDIA_TOTAL_LIMIT - remoteBytes;
+    const remaining = REMOTE_MEDIA_TOTAL_LIMIT - remoteBytes - reservedBytes;
     if (remaining <= 0) {
       remoteFailed += 1;
-      log.warn('gedcom import: remote media skipped, total size limit reached');
+      logger.warn('gedcom import: remote media skipped, total size limit reached');
       return;
     }
+    const remainingTime = remoteDeadline - Date.now();
+    if (remainingTime <= 0) {
+      remoteFailed += 1;
+      logger.warn('gedcom import: remote media skipped, total time limit reached');
+      return;
+    }
+    const reserved = Math.min(REMOTE_MEDIA_FILE_LIMIT, remaining);
+    reservedBytes += reserved;
+    let downloaded: Awaited<ReturnType<typeof download>>;
     try {
-      const downloaded = await downloadRemoteMedia(original, {
-        maxBytes: Math.min(REMOTE_MEDIA_FILE_LIMIT, remaining),
+      downloaded = await download(original, {
+        maxBytes: reserved,
+        timeoutMs: Math.min(REMOTE_MEDIA_FILE_TIMEOUT_MS, remainingTime),
       });
-      remoteBytes += downloaded.bytes.byteLength;
-      await store(downloaded.bytes, original, remoteMediaExtension(downloaded.contentType, original));
-      remoteDownloaded += 1;
     } catch (error) {
       remoteFailed += 1;
-      log.warn('gedcom import: could not download media URL', redactMediaUrl(original), error);
+      logger.warn('gedcom import: could not download media URL', redactMediaUrl(original), error);
+      return;
+    } finally {
+      reservedBytes -= reserved;
     }
+    // Project-write failures are not per-payload and must propagate.
+    remoteBytes += downloaded.bytes.byteLength;
+    await store(downloaded.bytes, original, remoteMediaExtension(downloaded.contentType, original));
+    remoteDownloaded += 1;
   };
 
   const storeReachable = async (original: string): Promise<void> => {
@@ -125,7 +161,7 @@ async function prepareGedcomMedia(
       const candidate = resolve(dirname(sourcePath), original);
       const safe = await resolveImportFile(dirname(sourcePath), candidate);
       if (safe === null) {
-        log.warn('gedcom import: skipped media outside the source folder', original);
+        logger.warn('gedcom import: skipped media outside the source folder', original);
         return;
       }
       if (!(await fs.exists(safe)) || !(await stat(safe)).isFile()) {
@@ -138,7 +174,7 @@ async function prepareGedcomMedia(
     } catch (error) {
       // Unreadable payloads stay external and hidden; they must not abort
       // the whole import.
-      log.warn('gedcom import: could not read media payload', original, error);
+      logger.warn('gedcom import: could not read media payload', original, error);
       return;
     }
     // Project-write failures are not per-payload and must propagate.
@@ -160,7 +196,7 @@ async function prepareGedcomMedia(
         remoteUrls.add(payload);
       } else if (isExternalMediaUrl(payload)) {
         // ftp:// and file:// stay external references.
-        log.warn('gedcom import: external media URL left as a reference', redactMediaUrl(payload));
+        logger.warn('gedcom import: external media URL left as a reference', redactMediaUrl(payload));
       } else {
         localPaths.add(payload);
       }
@@ -169,9 +205,17 @@ async function prepareGedcomMedia(
   for (const original of localPaths) {
     await storeReachable(original);
   }
-  await mapWithConcurrency([...remoteUrls], REMOTE_MEDIA_CONCURRENCY, storeRemote);
+  remoteDeadline = Date.now() + REMOTE_MEDIA_TOTAL_TIME_MS;
+  const urls = [...remoteUrls];
+  const cappedUrls = urls.slice(0, REMOTE_MEDIA_MAX_URLS);
+  const skippedUrls = urls.length - cappedUrls.length;
+  if (skippedUrls > 0) {
+    remoteFailed += skippedUrls;
+    logger.warn('gedcom import: remote media skipped, URL count limit reached', { skipped: skippedUrls });
+  }
+  await mapWithConcurrency(cappedUrls, REMOTE_MEDIA_CONCURRENCY, storeRemote);
   if (remoteDownloaded > 0 || remoteFailed > 0) {
-    log.info('gedcom import: remote media', {
+    logger.info('gedcom import: remote media', {
       downloaded: remoteDownloaded,
       failed: remoteFailed,
       bytes: remoteBytes,

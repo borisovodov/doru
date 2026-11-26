@@ -1,5 +1,18 @@
 import { lookup } from 'node:dns/promises';
+import type { LookupFunction } from 'node:net';
 import { isIP } from 'node:net';
+import { Agent, fetch as undiciFetch } from 'undici';
+
+interface PinnedAddress {
+  address: string;
+  family: 4 | 6;
+}
+
+interface PinnedHost {
+  addresses: PinnedAddress[];
+}
+
+type FetchLike = (input: URL, init?: RequestInit & { dispatcher?: Agent | undefined }) => Promise<Response>;
 
 export interface DownloadedMedia {
   bytes: Uint8Array;
@@ -137,13 +150,14 @@ function isPrivateAddress(address: string): boolean {
   return false;
 }
 
-async function assertPublicHost(hostname: string): Promise<void> {
+async function resolvePublicHost(hostname: string): Promise<PinnedHost> {
   const host = hostname.replace(/^\[|\]$/g, '');
-  if (isIP(host) !== 0) {
+  const literalFamily = isIP(host);
+  if (literalFamily !== 0) {
     if (isPrivateAddress(host)) {
       throw new Error('remote media host is a private or local address');
     }
-    return;
+    return { addresses: [{ address: host, family: literalFamily === 4 ? 4 : 6 }] };
   }
   const addresses = await lookup(host, { all: true, order: 'verbatim' });
   if (addresses.length === 0) {
@@ -154,6 +168,28 @@ async function assertPublicHost(hostname: string): Promise<void> {
       throw new Error('remote media host resolves to a private or local address');
     }
   }
+  return {
+    addresses: addresses.map((entry) => ({
+      address: entry.address,
+      family: entry.family === 4 ? 4 : 6,
+    })),
+  };
+}
+
+function pinnedLookup(pinned: PinnedHost): LookupFunction {
+  return (_hostname, options, callback) => {
+    if (options.all === true) {
+      callback(null, pinned.addresses);
+      return;
+    }
+    const first = pinned.addresses[0];
+    if (first === undefined) {
+      const error: NodeJS.ErrnoException = new Error('remote media host did not resolve');
+      callback(error, '', 0);
+      return;
+    }
+    callback(null, first.address, first.family);
+  };
 }
 
 function isRedirect(status: number): boolean {
@@ -165,10 +201,13 @@ function isRedirect(status: number): boolean {
  * progress reporting live here; the caller decides how to surface failures.
  */
 export async function downloadRemoteMedia(value: string, options: RemoteMediaOptions = {}): Promise<DownloadedMedia> {
-  const fetchImpl = options.fetch ?? fetch;
+  const fetchImpl = (options.fetch ?? undiciFetch) as unknown as FetchLike;
+  const pinDownloads = options.fetch === undefined;
   const timeoutMs = options.timeoutMs ?? DEFAULT_TIMEOUT_MS;
   const maxBytes = options.maxBytes ?? DEFAULT_MAX_BYTES;
   const maxRedirects = options.maxRedirects ?? DEFAULT_MAX_REDIRECTS;
+  // One deadline per file, redirects included.
+  const signal = AbortSignal.timeout(timeoutMs);
 
   let current: URL;
   try {
@@ -181,64 +220,79 @@ export async function downloadRemoteMedia(value: string, options: RemoteMediaOpt
     if (current.protocol !== 'http:' && current.protocol !== 'https:') {
       throw new Error('remote media URL uses an unsupported protocol');
     }
-    await assertPublicHost(current.hostname);
+    const pinned = await resolvePublicHost(current.hostname);
+    const agent = pinDownloads
+      ? new Agent({
+          connect: {
+            lookup: pinnedLookup(pinned),
+          },
+        })
+      : undefined;
 
-    const response = await fetchImpl(current, {
-      redirect: 'manual',
-      signal: AbortSignal.timeout(timeoutMs),
-    });
+    try {
+      const response = await fetchImpl(current, {
+        redirect: 'manual',
+        signal,
+        ...(agent !== undefined ? { dispatcher: agent } : {}),
+      });
 
-    if (isRedirect(response.status)) {
-      if (redirects >= maxRedirects) {
-        throw new Error('remote media URL redirected too many times');
+      if (isRedirect(response.status)) {
+        if (redirects >= maxRedirects) {
+          throw new Error('remote media URL redirected too many times');
+        }
+        const location = response.headers.get('location');
+        if (location === null || location === '') {
+          throw new Error('remote media redirect has no location');
+        }
+        await response.body?.cancel();
+        current = new URL(location, current);
+        continue;
       }
-      const location = response.headers.get('location');
-      if (location === null || location === '') {
-        throw new Error('remote media redirect has no location');
+
+      if (!response.ok) {
+        throw new Error(`remote media download failed with HTTP ${response.status}`);
       }
-      current = new URL(location, current);
-      continue;
-    }
-
-    if (!response.ok) {
-      throw new Error(`remote media download failed with HTTP ${response.status}`);
-    }
-    if (response.body === null) {
-      throw new Error('remote media download returned an empty body');
-    }
-
-    const contentLength = Number(response.headers.get('content-length') ?? '');
-    if (Number.isFinite(contentLength) && contentLength > maxBytes) {
-      throw new Error('remote media file exceeds the size limit');
-    }
-
-    const reader = response.body.getReader();
-    const chunks: Uint8Array[] = [];
-    let total = 0;
-    for (;;) {
-      const { done, value: chunk } = await reader.read();
-      if (done) {
-        break;
+      if (response.body === null) {
+        throw new Error('remote media download returned an empty body');
       }
-      total += chunk.byteLength;
-      if (total > maxBytes) {
-        await reader.cancel();
+
+      const contentLength = Number(response.headers.get('content-length') ?? '');
+      if (Number.isFinite(contentLength) && contentLength > maxBytes) {
         throw new Error('remote media file exceeds the size limit');
       }
-      chunks.push(chunk);
-    }
 
-    const bytes = new Uint8Array(total);
-    let offset = 0;
-    for (const chunk of chunks) {
-      bytes.set(chunk, offset);
-      offset += chunk.byteLength;
+      const reader = response.body.getReader();
+      const chunks: Uint8Array[] = [];
+      let total = 0;
+      for (;;) {
+        const { done, value: chunk } = await reader.read();
+        if (done) {
+          break;
+        }
+        total += chunk.byteLength;
+        if (total > maxBytes) {
+          await reader.cancel();
+          throw new Error('remote media file exceeds the size limit');
+        }
+        chunks.push(chunk);
+      }
+
+      const bytes = new Uint8Array(total);
+      let offset = 0;
+      for (const chunk of chunks) {
+        bytes.set(chunk, offset);
+        offset += chunk.byteLength;
+      }
+      const contentType = response.headers.get('content-type')?.split(';')[0]?.trim().toLowerCase();
+      return {
+        bytes,
+        ...(contentType !== undefined && contentType !== '' ? { contentType } : {}),
+        finalUrl: current.toString(),
+      };
+    } finally {
+      // `destroy` also tears down connections whose response body was left
+      // unread by an error path, so a failed download cannot hang the import.
+      await agent?.destroy();
     }
-    const contentType = response.headers.get('content-type')?.split(';')[0]?.trim().toLowerCase();
-    return {
-      bytes,
-      ...(contentType !== undefined && contentType !== '' ? { contentType } : {}),
-      finalUrl: current.toString(),
-    };
   }
 }
