@@ -21,6 +21,7 @@ import { PersonCard } from './PersonCard';
 import { TreeEdges } from './PedigreeEdges';
 import { CARD_HEIGHT, CARD_WIDTH, ROW_HEIGHT } from './sizes';
 import { buildTreeView } from './view';
+import treeCanvasStyles from './TreeCanvas.module.css';
 import type { PersonCounts, RelativeRelation, TreeCanvasProps } from './types';
 import './TreeCanvas.css';
 
@@ -295,7 +296,8 @@ function TreeCanvasInner({
           minSize={2}
           fadeGap={32}
           minOpacity={0.2}
-          color="var(--doru-canvas-dot)"
+          color="var(--tree-canvas-dot)"
+          className={treeCanvasStyles['dots']}
         />
         <CanvasWorld>
           {layout &&
