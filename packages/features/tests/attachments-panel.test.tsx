@@ -84,7 +84,7 @@ describe('AttachmentsPanel target policy', () => {
   it('shows contributors on persons and families only', () => {
     const views = renderUi(
       <div>
-        {(['person', 'family', 'source', 'citation'] as const).map((type) => (
+        {(['person', 'family', 'source', 'citation', 'media'] as const).map((type) => (
           <div key={type}>{panel(type)}</div>
         ))}
       </div>,
