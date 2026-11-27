@@ -1,5 +1,5 @@
 ---
-source-hash: 21be4abca28e
+source-hash: d012277cf0bf
 layout: home
 
 hero:
@@ -15,7 +15,7 @@ features:
     details: "整个应用都是 AI 原生。内置助手 Dóru AI 在本地离线运行——无需账户。也可以连接任何提供方——Ollama、LM Studio、云端 API、ACP 智能体。"
   - icon: 🌳
     title: 整棵树，一张画布
-    details: "四种视图——祖先、后代、沙漏、家庭——汇聚在一张可缩放的画布上。就地添加人物，打开完整的日期、来源与笔记编辑器。"
+    details: "焦点上方是祖先，下方是后代，汇聚在一张可缩放的画布上。就地添加人物，打开完整的日期、来源与笔记编辑器。"
   - icon: 💾
     title: GEDCOM 导入导出
     details: "导入 GEDCOM 5.5 和 5.5.1，导出 GEDCOM 7.0——包括 .gdz 归档。识别真实软件中的数百种厂商标签，并映射到 Dóru 模型中。"

@@ -3,7 +3,7 @@ import type { FamilyRecord, PersonRecord } from '../model/types';
 import type { LaidOutCard, PedigreeEdge, PedigreeEdgeKind, PedigreeLayoutOptions } from './types';
 import { buildDirectionalGraph, type SeeAlso, type TreeItem } from './graph';
 
-interface DirectionalLayout {
+export interface DirectionalLayout {
   cards: LaidOutCard[];
   edges: PedigreeEdge[];
   focusKey: string;

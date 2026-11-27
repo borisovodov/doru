@@ -17,10 +17,6 @@
 
 /* ── Overlay panels ───────────────────────────────────────────────── */
 
-.tree-toolbar-panel {
-  margin: 15px;
-}
-
 .tree-zoom {
   display: flex;
   flex-direction: row;

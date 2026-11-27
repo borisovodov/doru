@@ -12,11 +12,11 @@ test('canvas editing cycle: add a child and undo', async () => {
   await seedFamilyTree(page, project);
   await page.reload();
   await expect(page.getByRole('group', { name: 'Ivan Ivanov', exact: true })).toBeVisible({ timeout: 20_000 });
+  // The canvas has no chart switcher: ancestors and descendants are always shown.
+  await expect(page.getByRole('button', { name: 'Descendants' })).toHaveCount(0);
 
-  // Refocus on Ivan and look at his descendants.
+  // Refocus on Ivan: his ancestors and descendants are always visible.
   await page.getByRole('group', { name: 'Ivan Ivanov', exact: true }).dblclick();
-  await page.waitForTimeout(600);
-  await page.getByRole('button', { name: 'Descendants' }).click();
   await page.waitForTimeout(600);
 
   // Add a child to Ivan via the card toolbar: the new card edits in place.
@@ -68,7 +68,8 @@ test('clicking a person in the People sidebar focuses the canvas', async () => {
   await peopleList.getByRole('button', { name: /Ivan Ivanov/ }).click();
 
   // The canvas (kept alive in the hidden pane) refocuses on Ivan.
-  await expect(page.getByRole('list', { name: 'Focus trail', includeHidden: true })).toHaveText(/Ivan Ivanov/);
+  const ivanCard = page.getByRole('group', { name: 'Ivan Ivanov', exact: true, includeHidden: true });
+  await expect(ivanCard).toHaveAttribute('aria-current', 'true');
   await app.close();
 });
 

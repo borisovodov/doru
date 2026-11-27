@@ -46,6 +46,10 @@ const CODE_KEYS: Record<string, string> = {
   Equal: '=',
   Minus: '-',
   Backquote: '`',
+  ArrowLeft: 'left',
+  ArrowRight: 'right',
+  ArrowUp: 'up',
+  ArrowDown: 'down',
 };
 
 /**

@@ -1,5 +1,5 @@
 ---
-source-hash: 385c34608fc6
+source-hash: e68af9c8211a
 ---
 
 # Ağaçla çalışma
@@ -9,8 +9,9 @@ Ağaç, etkileşimli bir tuval olarak açılır. Aşağıdaki her şey tuvalin k
 ## Gezinme
 
 - Arka planı sürükleyerek **kaydırın**, fare tekerleği veya trackpad ile **yakınlaştırın**; yakınlaştırma düğmeleri tuvalin köşesindedir.
-- Bir kişinin kartına çift tıklayarak **yeniden odaklanın**. Araç çubuğu bir geçmiş tutar: geri/ileri okları ve bir sayfa yolu izi.
-- **Grafikler**: araç çubuğunda *Atalar*, *Torunlar*, *Kum saati* ve *Aile* görünümleri arasında geçiş yapın. Aile görünümü odak çiftini, çocuklarını ve ebeveynlerin her iki tarafını gösterir.
+- Bir kişinin kartına çift tıklayarak **yeniden odaklanın**. Penceredeki Geri/İleri düğmeleri önceki sekmelere ve ağaç konumlarına döndürür.
+- **Atalar ve torunlar** her zaman birlikte gösterilir: odak kişinin üstünde ebeveynler ve
+  büyükanne/büyükbabalar, altında çocuklar.
 - **Arama**: araç çubuğundaki arama kutusuna bir ad yazın ve o kişiye gitmek için bir sonuç seçin.
 
 ## Kartlar

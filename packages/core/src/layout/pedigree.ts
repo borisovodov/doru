@@ -7,8 +7,7 @@ import {
   type PedigreeLayout,
   type PedigreeLayoutOptions,
 } from './types';
-import { layoutDirectional } from './directional';
-import { layoutFamilyView } from './family';
+import { layoutDirectional, type DirectionalLayout } from './directional';
 import type { SeeAlso } from './graph';
 
 /**
@@ -23,12 +22,10 @@ import type { SeeAlso } from './graph';
  * - `person:<id>@spouse:<familyId>` — a person as a member of a couple;
  * - `person:<id>@child:<familyId>` — a person as a child of a family.
  *
- * Four chart kinds share the same building blocks:
- * - ancestors / descendants: alternating person/couple tidy trees around the
- *   focus, one direction each (directional.ts);
- * - hourglass: ancestors and descendants merged at the focus;
- * - family: the focus couple with children below and both sides' parents
- *   above, laid out directly (family.ts).
+ * The one tree layout shows ancestors above the focus and descendants below
+ * it. Both directions are tidy-tree passes; they are normalised into one
+ * coordinate frame so the focus card sits at (0, 0) and every edge geometry
+ * matches the final card positions.
  */
 
 /**
@@ -96,10 +93,30 @@ function addSeeAlsoEdges(layout: EdgeHost, seeAlso: SeeAlso[]): void {
   }
 }
 
+/** Shifts a directional layout horizontally, cards and edge geometry alike. */
+function translateDirectional(layout: DirectionalLayout, dx: number): DirectionalLayout {
+  if (dx === 0) {
+    return layout;
+  }
+  return {
+    ...layout,
+    cards: layout.cards.map((card) => ({ ...card, x: card.x + dx })),
+    edges: layout.edges.map((edge) => ({
+      ...edge,
+      geometry: {
+        from: { ...edge.geometry.from, x: edge.geometry.from.x + dx },
+        to: { ...edge.geometry.to, x: edge.geometry.to.x + dx },
+      },
+    })),
+  };
+}
+
 /**
- * Computes positions for the requested chart around `focusId`. Returns null
- * when the focus person is unknown.
- */ export function layoutPedigree(
+ * Computes positions for the tree around `focusId`. Returns null when the
+ * focus person is unknown. Ancestors sit above the focus, descendants below;
+ * both halves share the same coordinate frame with the focus at (0, 0).
+ */
+export function layoutPedigree(
   focusId: string,
   persons: PersonRecord[],
   families: FamilyRecord[],
@@ -109,37 +126,30 @@ function addSeeAlsoEdges(layout: EdgeHost, seeAlso: SeeAlso[]): void {
   const nodeWidth = merged.nodeWidth;
   const nodeHeight = merged.nodeHeight;
 
-  if (merged.kind === 'family') {
-    return layoutFamilyView(focusId, persons, families, merged);
-  }
-
-  if (merged.kind === 'hourglass') {
-    const up = layoutDirectional(focusId, persons, families, 'ancestors', merged);
-    const down = layoutDirectional(focusId, persons, families, 'descendants', merged);
-    if (!up || !down) {
-      return null;
-    }
-    const cards = [...up.cards, ...down.cards.filter((card) => card.key !== down.focusKey)];
-    const edges = [...up.edges, ...down.edges];
-    addSeeAlsoEdges({ cards, edges }, [...up.seeAlso, ...down.seeAlso]);
-    return { cards, edges, focusKey: up.focusKey, ...boundsOf(cards, nodeWidth, nodeHeight) };
-  }
-
-  const laid = layoutDirectional(focusId, persons, families, merged.kind, merged);
-  if (!laid) {
+  const ancestors = layoutDirectional(focusId, persons, families, 'ancestors', merged);
+  const descendants = layoutDirectional(focusId, persons, families, 'descendants', merged);
+  if (!ancestors || !descendants) {
     return null;
   }
-  addSeeAlsoEdges({ cards: laid.cards, edges: laid.edges }, laid.seeAlso);
-  return {
-    cards: laid.cards,
-    edges: laid.edges,
-    focusKey: laid.focusKey,
-    ...boundsOf(laid.cards, nodeWidth, nodeHeight),
-  };
+  const ancestorFocus = ancestors.cards.find((card) => card.key === ancestors.focusKey);
+  const descendantFocus = descendants.cards.find((card) => card.key === descendants.focusKey);
+  if (!ancestorFocus || !descendantFocus) {
+    return null;
+  }
+
+  // One shared focus frame: translate each half so its own focus card lands
+  // at x = 0, then keep the ancestor focus card (the descendant copy is the
+  // same person and would otherwise overlap it). Edge geometry is translated
+  // with the cards, so focus edges cannot detach.
+  const up = translateDirectional(ancestors, -ancestorFocus.x);
+  const down = translateDirectional(descendants, -descendantFocus.x);
+  const cards = [...up.cards, ...down.cards.filter((card) => card.key !== down.focusKey)];
+  const edges = [...up.edges, ...down.edges];
+  addSeeAlsoEdges({ cards, edges }, [...up.seeAlso, ...down.seeAlso]);
+  return { cards, edges, focusKey: up.focusKey, ...boundsOf(cards, nodeWidth, nodeHeight) };
 }
 
 export type {
-  ChartKind,
   LaidOutCard,
   PedigreeCard,
   PedigreeCardRole,

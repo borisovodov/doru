@@ -1,5 +1,5 @@
 ---
-source-hash: 385c34608fc6
+source-hash: e68af9c8211a
 ---
 
 # Práce se stromem
@@ -11,11 +11,9 @@ seznam osob žije v pohledu **Osoby** na levém panelu aktivit.
 
 - **Posouvejte** tažením pozadí, **přibližujte** kolečkem myši nebo
   trackpadem; tlačítka přiblížení jsou v rohu plátna.
-- **Znovu zaostřete** na osobu dvojklikem na její kartu. Panel nástrojů si
-  uchovává historii: šipky zpět/vpřed a stopu fokusu.
-- **Grafy**: přepínejte mezi pohledy *Předci*, *Potomci*, *Přesýpací hodiny* a
-  *Rodina* na panelu nástrojů. Pohled rodiny zobrazuje pár ve fokusu, jeho
-  děti a obě strany rodičů.
+- **Znovu zaostřete** na osobu dvojklikem na její kartu. Tlačítka Zpět/Vpřed v okně vás vrátí na předchozí karty a pozice ve stromu.
+- **Předci a potomci** se vždy zobrazují společně: rodiče a prarodiče nad fokusem, děti pod
+  ním.
 - **Hledání**: napište jméno do vyhledávacího pole na panelu nástrojů a
   vyberte výsledek, abyste na danou osobu přeskočili.
 

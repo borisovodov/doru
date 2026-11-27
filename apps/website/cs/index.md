@@ -1,5 +1,5 @@
 ---
-source-hash: 21be4abca28e
+source-hash: d012277cf0bf
 layout: home
 
 hero:
@@ -15,7 +15,7 @@ features:
     details: "Celá aplikace je nativně AI. Dóru AI, vestavěný asistent, běží lokálně a offline — bez účtu. Nebo připojte libovolného poskytovatele — Ollama, LM Studio, cloudové API, agenta ACP."
   - icon: 🌳
     title: Celý strom na jednom plátně
-    details: "Čtyři pohledy — předci, potomci, přesýpací hodiny, rodina — na jednom přibližitelném plátně. Přidávejte lidi přímo na místě a otevírejte plné editory dat, zdrojů a poznámek."
+    details: "Předci nahoře a potomci dole kolem fokusu na jednom přibližitelném plátně. Přidávejte lidi přímo na místě a otevírejte plné editory dat, zdrojů a poznámek."
   - icon: 💾
     title: Import a export GEDCOM
     details: "Import GEDCOM 5.5 a 5.5.1, export GEDCOM 7.0 — včetně archivů .gdz. Rozpoznávány jsou stovky tagů výrobců z reálného softwaru a mapují se do modelu Dóru."

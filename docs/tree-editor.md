@@ -13,8 +13,8 @@ the "Tree editor" issue track).
   - `types.ts` — the public shapes and layout defaults;
   - `graph.ts` — DAG → tree conversion (role duplication, cycle guards);
   - `directional.ts` — ancestor/descendant tidy trees (d3-hierarchy);
-  - `family.ts` — the shallow family view laid out directly;
-  - `pedigree.ts` — dispatch, hourglass merge, focus heuristics.
+  - `pedigree.ts` — the integrated ancestor/descendant layout, focus
+    normalisation and focus heuristics.
 - **Genealogy is a DAG, not a tree.** Second marriages and pedigree collapse
   are handled by duplicating a person per family role. Card keys are
   role-based and stable: `person:<id>@focus`, `person:<id>@spouse:<fam>`,
@@ -31,10 +31,11 @@ the "Tree editor" issue track).
   coordinates. Cards have fixed sizes and the layout is the only source of
   their world positions.
 - **Fit is a camera command, not a layout pass.** It runs on the first visible
-  size and when the chart shape changes (focus, chart kind, card keys,
-  bounds). A rename or date edit recomputes the layout but keeps the same
-  shape key, so the user's zoom and pan survive. Container resize and tab
-  switching preserve the camera; the Fit button restores a fitted view.
+  size and when the chart shape changes (focus, card keys, bounds), not on
+  every rename or container resize. A rename or date edit recomputes the
+  layout but keeps the same shape key, so the user's zoom and pan survive.
+  Container resize and tab switching preserve the camera; the Fit button
+  restores a fitted view.
 - **Every mutation is one compound op.** Adding a relative and deleting a
   person are single ops in `packages/core/src/ops/person.ts` that also manage
   the family links — one Cmd+Z undoes a whole user action.
@@ -45,6 +46,9 @@ the "Tree editor" issue track).
 
 - The full person editor stays a tab (PersonTab); the card action "Edit" opens
   it. The canvas handles structure and quick edits.
+- Focus is window navigation state: `App` owns the focused person and the
+  Back/Forward history, while the canvas only reports a double-click. The
+  history covers tab switches and tree focus changes.
 - Default focus is `suggestFocusPerson`: a childless child (youngest
   generation), then any child, then the first person.
 - Manual card positions are not persisted; auto-layout is the source of
@@ -52,7 +56,6 @@ the "Tree editor" issue track).
 - Delete/Backspace is not bound on the canvas. Deletion goes through the card
   toolbar (a domain op with undo), so React Flow's accidental "remove the node
   from the view only" behaviour cannot come back.
-- Chart kinds: ancestors → descendants → hourglass → family.
 - Dependencies: `d3-hierarchy` for pure layout math in `@doru/core`, and
   `d3-zoom` in `@doru/canvas` for the viewport. The canvas library itself is
   ours; there is no general node-graph framework dependency.

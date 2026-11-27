@@ -1,5 +1,5 @@
 ---
-source-hash: 385c34608fc6
+source-hash: e68af9c8211a
 ---
 
 # Praca z drzewem
@@ -12,11 +12,9 @@ aktywności.
 
 - **Przesuwaj** przeciągając tło, **powiększaj** kółkiem myszy lub trackpadem;
   przyciski powiększenia znajdują się w rogu płótna.
-- **Wyśrodkuj** osobę dwukrotnym kliknięciem jej karty. Pasek narzędzi
-  zachowuje historię: strzałki wstecz/dalej i ścieżka fokusu.
-- **Wykresy**: przełączaj między widokami *Przodkowie*, *Potomkowie*,
-  *Klepsydra* i *Rodzina* na pasku narzędzi. Widok rodziny pokazuje parę w
-  centrum, jej dzieci i obie strony rodziców.
+- **Wyśrodkuj** osobę dwukrotnym kliknięciem jej karty. Przyciski Wstecz/Dalej w oknie wracają do poprzednich kart i pozycji w drzewie.
+- **Przodkowie i potomkowie** są zawsze pokazywani razem: rodzice i dziadkowie nad fokusem,
+  dzieci pod nim.
 - **Wyszukiwanie**: wpisz imię w polu wyszukiwania na pasku narzędzi i wybierz
   wynik, aby przejść do tej osoby.
 

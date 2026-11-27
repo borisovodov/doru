@@ -1,6 +1,6 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { layoutPedigree, suggestFocusPerson } from '@doru/core/layout';
-import type { ChartKind, PedigreeLayout, PersonRecord } from '@doru/core';
+import type { PedigreeLayout, PersonRecord } from '@doru/core';
 import { Minus, Plus, Scan } from 'lucide-react';
 import {
   Canvas,
@@ -14,14 +14,14 @@ import {
   type Rect,
 } from '@doru/canvas';
 import { IconButton } from '@doru/ui';
-import { PersonCardEditor, PersonCardView, TreeToolbar, type CardAction } from '@doru/ui/domain';
+import { PersonCardEditor, PersonCardView, type CardAction } from '@doru/ui/domain';
 import { nls } from '../nls';
 import { CardToolbar } from './CardToolbar';
 import { PersonCard } from './PersonCard';
 import { TreeEdges } from './PedigreeEdges';
 import { CARD_HEIGHT, CARD_WIDTH, ROW_HEIGHT } from './sizes';
 import { buildTreeView } from './view';
-import type { FocusHistory, PersonCounts, RelativeRelation, TreeCanvasProps } from './types';
+import type { PersonCounts, RelativeRelation, TreeCanvasProps } from './types';
 import './TreeCanvas.css';
 
 export type { PersonCounts, RelativeRelation, TreeCanvasApi, TreeCanvasProps } from './types';
@@ -61,10 +61,15 @@ export function TreeCanvas(props: TreeCanvasProps) {
   );
 }
 
-function TreeCanvasInner({ persons, families, photos = new Map(), api, focusRequest }: TreeCanvasProps) {
+function TreeCanvasInner({
+  persons,
+  families,
+  photos = new Map(),
+  api,
+  focusPersonId,
+  onFocusPerson,
+}: TreeCanvasProps) {
   const { addPerson, addRelative, deletePerson, getPersonCounts, openEditor } = api;
-  const [kind, setKind] = useState<ChartKind>('ancestors');
-  const [history, setHistory] = useState<FocusHistory | null>(null);
   const [drafts, setDrafts] = useState<DraftCard[]>([]);
   const [selectedKey, setSelectedKey] = useState<string | null>(null);
   const [countResult, setCountResult] = useState<{
@@ -73,22 +78,21 @@ function TreeCanvasInner({ persons, families, photos = new Map(), api, focusRequ
   } | null>(null);
 
   const suggested = suggestFocusPerson(persons, families);
-  const focusId = history ? history.stack[history.index] : suggested;
-  // Fall back to the suggested focus when the history points at a person
-  // that no longer exists (deleted by an edit or an agent).
-  const effectiveFocus = focusId !== undefined && persons.some((person) => person.id === focusId) ? focusId : suggested;
+  // Fall back to the suggested focus when the navigation history points at a
+  // person that no longer exists (deleted by an edit or an agent).
+  const effectiveFocus =
+    focusPersonId !== null && persons.some((person) => person.id === focusPersonId) ? focusPersonId : suggested;
 
   const layout = useMemo(() => {
     if (!effectiveFocus) {
       return null;
     }
     return layoutPedigree(effectiveFocus, persons, families, {
-      kind,
       maxGenerations: 4,
       nodeWidth: CARD_WIDTH,
       nodeHeight: CARD_HEIGHT,
     });
-  }, [effectiveFocus, persons, families, kind]);
+  }, [effectiveFocus, persons, families]);
 
   const activeCounts = layout !== null && countResult?.layout === layout ? countResult.counts : EMPTY_COUNTS;
 
@@ -131,23 +135,6 @@ function TreeCanvasInner({ persons, families, photos = new Map(), api, focusRequ
       cancelled = true;
     };
   }, [layout, getPersonCounts]);
-
-  const refocus = useCallback(
-    (personId: string) => {
-      if (!persons.some((person) => person.id === personId)) {
-        return;
-      }
-      setHistory((current) => {
-        const stack = current ? current.stack.slice(0, current.index + 1) : [];
-        if (stack[stack.length - 1] === personId) {
-          return current;
-        }
-        stack.push(personId);
-        return { stack, index: stack.length - 1 };
-      });
-    },
-    [persons],
-  );
 
   const handleAction = useCallback(
     (action: CardAction, personId: string) => {
@@ -208,29 +195,6 @@ function TreeCanvasInner({ persons, families, photos = new Map(), api, focusRequ
     });
   }, []);
 
-  // External focus requests (e.g. a click in the People sidebar).
-  const lastFocusRequestRef = useRef(0);
-  useEffect(() => {
-    if (focusRequest && focusRequest.nonce !== lastFocusRequestRef.current) {
-      lastFocusRequestRef.current = focusRequest.nonce;
-      refocus(focusRequest.personId);
-    }
-  }, [focusRequest, refocus]);
-
-  const goBack = useCallback(() => {
-    setHistory((current) => (current && current.index > 0 ? { ...current, index: current.index - 1 } : current));
-  }, []);
-
-  const goForward = useCallback(() => {
-    setHistory((current) =>
-      current && current.index < current.stack.length - 1 ? { ...current, index: current.index + 1 } : current,
-    );
-  }, []);
-
-  const jumpTo = useCallback((index: number) => {
-    setHistory((current) => (current ? { ...current, index } : current));
-  }, []);
-
   const handleSelect = useCallback((cardKey: string) => {
     setSelectedKey(cardKey);
   }, []);
@@ -243,10 +207,10 @@ function TreeCanvasInner({ persons, families, photos = new Map(), api, focusRequ
     (cardKey: string) => {
       const entry = view?.cards.find((card) => card.card.key === cardKey);
       if (entry) {
-        refocus(entry.person.id);
+        onFocusPerson(entry.person.id);
       }
     },
-    [view, refocus],
+    [view, onFocusPerson],
   );
 
   const fitBounds = useMemo<Rect | undefined>(() => {
@@ -268,14 +232,13 @@ function TreeCanvasInner({ persons, families, photos = new Map(), api, focusRequ
     }
     return [
       layout.focusKey,
-      kind,
       layout.cards.map((card) => card.key).join('|'),
       layout.minX,
       layout.minY,
       layout.width,
       layout.height,
     ].join('§');
-  }, [layout, kind, isEmpty]);
+  }, [layout, isEmpty]);
 
   const selectedCard = view?.cards.find((entry) => entry.card.key === effectiveSelectedKey);
   const selectedRect = selectedCard
@@ -314,8 +277,6 @@ function TreeCanvasInner({ persons, families, photos = new Map(), api, focusRequ
       return { draft, x, y };
     });
   }, [visibleDrafts, view]);
-
-  const breadcrumbs = history ? history.stack.slice(0, history.index + 1) : [];
 
   return (
     <div className="tree-view">
@@ -381,22 +342,6 @@ function TreeCanvasInner({ persons, families, photos = new Map(), api, focusRequ
         </CanvasWorld>
         <CanvasPanel position="bottom-left">
           <ZoomControls fitBounds={fitBounds} />
-        </CanvasPanel>
-        <CanvasPanel position="top-left">
-          <div className="tree-toolbar-panel">
-            <TreeToolbar
-              kind={kind}
-              onKindChange={setKind}
-              canGoBack={history !== null && history.index > 0}
-              canGoForward={history !== null && history.index < history.stack.length - 1}
-              onBack={goBack}
-              onForward={goForward}
-              breadcrumbs={breadcrumbs}
-              focusPersonId={effectiveFocus}
-              persons={persons}
-              onJump={jumpTo}
-            />
-          </div>
         </CanvasPanel>
         {selectedCard && selectedRect && (
           <CanvasOverlay anchor={selectedRect} position="top" offset={8}>

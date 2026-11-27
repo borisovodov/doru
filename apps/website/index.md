@@ -14,7 +14,7 @@ features:
     details: "The whole app is AI-native. Dóru AI, the built-in assistant, runs locally and offline — no account needed. Or connect any provider you like — Ollama, LM Studio, a cloud API, an ACP agent."
   - icon: 🌳
     title: The whole tree, one canvas
-    details: "Four views — ancestors, descendants, hourglass, family — on one zoomable canvas. Add people in place and open full editors for dates, sources, and notes."
+    details: "Ancestors above and descendants below the focus on one zoomable canvas. Add people in place and open full editors for dates, sources, and notes."
   - icon: 💾
     title: GEDCOM import & export
     details: "Import GEDCOM 5.5 and 5.5.1, export GEDCOM 7.0 — .gdz archives included. Hundreds of vendor tags from real-world software are recognized and mapped into Dóru's model."

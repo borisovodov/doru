@@ -372,6 +372,11 @@ decisions about what we deliberately do **not** build, see
   hidden panes (`.editor-stack`/`.editor-pane`), and the welcome page is shown
   in the editor area whenever zero tabs are open. Closing a window closes its
   project runtime; the session file stores open window paths.
+- **Navigation history is window-level.** Every location is the active tab
+  plus, for the tree tab, the focused person. The title-bar Back/Forward
+  controls and the `workbench.goBack`/`workbench.goForward` commands share one
+  stack in the renderer; the canvas does not keep its own history, and closed
+  tabs are skipped when navigating.
 
 ## Packaging and releases
 

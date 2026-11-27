@@ -1,5 +1,5 @@
 ---
-source-hash: 385c34608fc6
+source-hash: e68af9c8211a
 ---
 
 # Arbeiten mit dem Stammbaum
@@ -12,12 +12,9 @@ der linken Aktivitätsleiste.
 
 - **Schwenken** durch Ziehen des Hintergrunds, **Zoomen** mit dem Mausrad oder
   Trackpad; die Zoom-Schaltflächen befinden sich in der Ecke der Leinwand.
-- **Neu zentrieren** auf eine Person durch Doppelklick auf ihre Karte. Die
-  Symbolleiste führt einen Verlauf: Pfeile zurück/vorwärts und eine
-  Breadcrumb-Navigation.
-- **Diagramme**: Wechseln Sie in der Symbolleiste zwischen den Ansichten
-  *Vorfahren*, *Nachkommen*, *Sanduhr* und *Familie*. Die Familienansicht zeigt
-  das Fokuspaar, ihre Kinder und beide Elternseiten.
+- **Neu zentrieren** auf eine Person durch Doppelklick auf ihre Karte. Die Schaltflächen Zurück/Vorwärts im Fenster führen zu vorherigen Tabs und Baumpositionen zurück.
+- **Vorfahren und Nachkommen** werden immer zusammen angezeigt: Eltern und Großeltern über
+  dem Fokus, Kinder darunter.
 - **Suche**: Geben Sie einen Namen in das Suchfeld der Symbolleiste ein und
   wählen Sie ein Ergebnis, um zu dieser Person zu springen.
 

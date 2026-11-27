@@ -1,5 +1,5 @@
 ---
-source-hash: 385c34608fc6
+source-hash: e68af9c8211a
 ---
 
 # Travailler avec l'arbre
@@ -12,11 +12,9 @@ la barre d'activité de gauche.
 
 - **Panoramique** en faisant glisser l'arrière-plan, **zoom** avec la molette ou
   le trackpad ; les boutons de zoom se trouvent dans le coin du canevas.
-- **Recentrer** sur une personne en double-cliquant sur sa carte. La barre
-  d'outils tient un historique : flèches retour/avant et fil d'Ariane.
-- **Graphiques** : basculez entre les vues *Ancêtres*, *Descendants*, *Sablier* et
-  *Famille* dans la barre d'outils. La vue Famille montre le couple au centre, ses
-  enfants et les parents des deux côtés.
+- **Recentrer** sur une personne en double-cliquant sur sa carte. Les boutons Précédent/Suivant de la fenêtre ramènent aux onglets et positions précédents de l’arbre.
+- **Ancêtres et descendants** sont toujours affichés ensemble : parents et grands-parents
+  au-dessus du focus, enfants en dessous.
 - **Recherche** : saisissez un nom dans le champ de recherche de la barre d'outils
   et choisissez un résultat pour sauter à cette personne.
 

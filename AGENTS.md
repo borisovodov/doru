@@ -91,6 +91,10 @@ non-goals: [docs/decisions.md](docs/decisions.md).
   panes are hidden, not unmounted). The welcome page is the editor-area state
   with zero tabs — it is not a window type of its own. `Cmd/Ctrl+W` closes the
   active tab via renderer keybindings, not via the application menu.
+- **Back/Forward history is window-level.** `App` owns one navigation stack
+  whose locations are the active tab plus the tree focus person; the title
+  bar and the `workbench.goBack`/`goForward` commands share it. Never add a
+  separate history stack to the tree canvas.
 - **UI drags are pointer-based, not HTML5 drag-and-drop** (tab reorder,
   side-bar sashes): `setPointerCapture` + a gesture threshold + Escape
   cancel. Native drag sessions flash the macOS copy cursor and fight our
@@ -149,8 +153,8 @@ non-goals: [docs/decisions.md](docs/decisions.md).
   sizes, layout is the only source of coordinates, and there is no free-form
   card dragging or multi-select. Dragging the canvas pans it; cards
   themselves are not draggable.
-  Fit runs on first show and when the chart shape changes (focus, chart kind,
-  card keys, bounds), not on every rename or container resize.
+  Fit runs on first show and when the chart shape changes (focus, card keys,
+  bounds), not on every rename or container resize.
   The canvas has no per-node ResizeObserver; its only observer reads the
   container size and never changes layout. React Flow and its attribution are
   gone — do not reintroduce a node-graph dependency for this canvas.

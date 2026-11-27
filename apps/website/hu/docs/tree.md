@@ -1,5 +1,5 @@
 ---
-source-hash: 385c34608fc6
+source-hash: e68af9c8211a
 ---
 
 # A családfa használata
@@ -9,8 +9,9 @@ A fa interaktív vászonként nyílik meg. Az alábbiak mind a vásznon történ
 ## Navigáció
 
 - **Eltolás** a háttér húzásával, **nagyítás** a görgővel vagy az érintőpaddal; a nagyítás gombjai a vászon sarkában vannak.
-- **Fókuszálás** egy személyre a kártyájára való dupla kattintással. Az eszköztár előzményt tart: vissza/előre nyilak és egy morzsamenü.
-- **Diagramok**: váltson *Ősök*, *Utódok*, *Homokóra* és *Család* nézet között az eszköztáron. A családnézet a fókuszban lévő párt, gyermekeiket és mindkét oldali szülőket mutatja.
+- **Fókuszálás** egy személyre a kártyájára való dupla kattintással. Az ablak Vissza/Előre gombjai visszavisznek a korábbi lapokhoz és fahelyzetekhez.
+- **Ősök és utódok** mindig együtt láthatók: szülők és nagyszülők a fókusz felett, gyermekek
+  alatta.
 - **Keresés**: írjon be egy nevet az eszköztár keresőmezőjébe, és válasszon egy találatot az adott személyhez ugráshoz.
 
 ## Kártyák

@@ -8,11 +8,10 @@ activity bar.
 
 - **Pan** by dragging the background, **zoom** with the scroll wheel or
   trackpad; the zoom buttons sit in the canvas corner.
-- **Refocus** on a person by double-clicking their card. The toolbar keeps a
-  history: back/forward arrows and a breadcrumb trail.
-- **Charts**: switch between *Ancestors*, *Descendants*, *Hourglass* and
-  *Family* views in the toolbar. The family view shows the focus couple, their
-  children and both sides of parents.
+- **Refocus** on a person by double-clicking their card. The window's
+  Back/Forward buttons return to previous tabs and tree locations.
+- **Ancestors and descendants** are always shown together: parents and
+  grandparents above the focus, children below.
 - **Search**: type a name into the toolbar search box and pick a result to
   jump to that person.
 

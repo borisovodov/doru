@@ -1,5 +1,3 @@
-export type ChartKind = 'ancestors' | 'descendants' | 'hourglass' | 'family';
-
 /** Which side of the focus an ancestor card sits on. */
 export type PedigreeLine = 'paternal' | 'maternal' | null;
 
@@ -56,8 +54,6 @@ export interface PedigreeLayout {
 }
 
 export interface PedigreeLayoutOptions {
-  /** Which chart to draw around the focus (default 'ancestors'). */
-  kind?: ChartKind;
   /** Number of ancestor/descendant rows around the focus (default 4). */
   maxGenerations?: number;
   /** Uniform card width, must match the rendered card CSS (default 180). */
@@ -73,7 +69,6 @@ export interface PedigreeLayoutOptions {
 }
 
 export const DEFAULT_OPTIONS: Required<PedigreeLayoutOptions> = {
-  kind: 'ancestors',
   maxGenerations: 4,
   nodeWidth: 180,
   nodeHeight: 64,

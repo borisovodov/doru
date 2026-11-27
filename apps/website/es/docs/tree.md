@@ -1,5 +1,5 @@
 ---
-source-hash: 385c34608fc6
+source-hash: e68af9c8211a
 ---
 
 # Trabajar con el árbol
@@ -12,12 +12,9 @@ actividad izquierda.
 
 - **Desplazamiento** arrastrando el fondo, **zoom** con la rueda del ratón o el
   trackpad; los botones de zoom están en la esquina del lienzo.
-- **Recentrar** en una persona haciendo doble clic en su tarjeta. La barra de
-  herramientas guarda un historial: flechas atrás/adelante y una ruta de
-  navegación.
-- **Gráficos**: cambia entre las vistas *Antepasados*, *Descendientes*, *Reloj de
-  arena* y *Familia* en la barra de herramientas. La vista Familia muestra la
-  pareja central, sus hijos y los padres de ambos lados.
+- **Recentrar** en una persona haciendo doble clic en su tarjeta. Los botones Atrás/Adelante de la ventana vuelven a pestañas y posiciones anteriores del árbol.
+- **Antepasados y descendientes** se muestran siempre juntos: padres y abuelos encima del
+  foco, hijos debajo.
 - **Buscar**: escribe un nombre en el cuadro de búsqueda de la barra de
   herramientas y elige un resultado para saltar a esa persona.
 

@@ -1,7 +1,6 @@
 export {
   layoutPedigree,
   suggestFocusPerson,
-  type ChartKind,
   type LaidOutCard,
   type PedigreeCard,
   type PedigreeCardRole,

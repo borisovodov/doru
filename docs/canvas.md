@@ -58,7 +58,7 @@ fraction and clamps zoom. `Canvas` accepts `fitBounds` and `fitKey`:
 - fit again when `fitKey` changes;
 - never fit on window/container resize or on data edits that keep the shape.
 
-The feature builds `fitKey` from the chart shape (focus, kind, card keys and
+The feature builds `fitKey` from the chart shape (focus, card keys and
 bounds), not from person-record identity. That is why a rename does not reset
 the user's camera.
 
