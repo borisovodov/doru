@@ -180,6 +180,40 @@ describe('AttachmentsPanel contacts', () => {
     expect(refresh).toHaveBeenCalled();
   });
 
+  it('does not ask to retry a URL add when only the refresh fails', async () => {
+    const addMediaUrlToTarget = vi.fn(async () => undefined);
+    const refresh = vi.fn(async () => {
+      throw new Error('refresh failed');
+    });
+    renderUi(
+      <MediaSection
+        targetType="person"
+        targetId="P1"
+        media={[]}
+        api={{
+          getMediaFor: async () => [],
+          getAllMedia: async () => [],
+          addMediaToTarget: async () => undefined,
+          addMediaUrlToTarget,
+          attachMedia: async () => undefined,
+          detachMedia: async () => undefined,
+          deleteMedia: async () => undefined,
+        }}
+        refresh={refresh}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: nls.t('features.tree.media.add') }));
+    fireEvent.click(screen.getByRole('menuitem', { name: nls.t('features.tree.media.addFromLink') }));
+    fireEvent.change(screen.getByLabelText(nls.t('features.tree.media.linkLabel')), {
+      target: { value: 'https://example.com/photo.jpg' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: nls.t('features.tree.media.linkAdd') }));
+
+    await waitFor(() => expect(addMediaUrlToTarget).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(screen.getByText(nls.t('features.tree.autosaveFailed'))).toBeInTheDocument());
+  });
+
   it('attaches existing media to the current target', async () => {
     const attachMedia = vi.fn(async () => undefined);
     const candidate = {

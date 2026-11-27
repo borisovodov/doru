@@ -99,6 +99,29 @@ describe('MediaTab', () => {
     expect(screen.getByRole('heading', { level: 2, name: 'family.jpg' })).toBeInTheDocument();
   });
 
+  it('falls back to the file name when the draft title is cleared', () => {
+    const api = stubApi<MediaAdminApi>({
+      getMediaFor: async () => [],
+      getAllMedia: async () => [],
+    });
+    renderUi(
+      <MediaTab
+        entityId="M1"
+        media={[record]}
+        api={api}
+        attachmentsApi={attachmentsStub()}
+        sources={[]}
+        targetData={targetData}
+        onClose={vi.fn()}
+      />,
+    );
+
+    fireEvent.change(screen.getByLabelText(nls.t('features.tree.media.titleField')), {
+      target: { value: '' },
+    });
+    expect(screen.getByRole('heading', { level: 2, name: 'a.jpg' })).toBeInTheDocument();
+  });
+
   it('gives the media record Tasks and Sources but no sources panel on a media link', () => {
     const api = stubApi<MediaAdminApi>({
       getMediaFor: async () => [],

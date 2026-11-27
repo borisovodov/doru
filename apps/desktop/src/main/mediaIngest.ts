@@ -2,6 +2,7 @@ import { createHash, randomUUID } from 'node:crypto';
 import { readFile, rename, rm, stat, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import sharp from 'sharp';
+import { isExternalMediaPath } from '@doru/core/model';
 
 /** Hard limits for every ingested image, local or remote. */
 const MAX_INPUT_BYTES = 100 * 1024 * 1024;
@@ -91,13 +92,13 @@ function detectFormat(bytes: Uint8Array): MediaFormat | undefined {
   if (!brands.includes('avif') && !brands.includes('avis')) {
     return undefined;
   }
-  return { kind: 'avif', animated: major === 'avis' || (!brands.includes('avif') && brands.includes('avis')) };
+  return { kind: 'avif', animated: major === 'avis' || brands.includes('avis') };
 }
 
 /** The lower-case extension of a local path or URL, without query or fragment. */
 function extensionOf(sourceName: string): string | undefined {
   const normalized = sourceName.replaceAll('\\', '/');
-  const query = normalized.search(/[?#]/);
+  const query = isExternalMediaPath(sourceName) ? normalized.search(/[?#]/) : -1;
   const withoutQuery = query === -1 ? normalized : normalized.slice(0, query);
   const segment = withoutQuery.slice(withoutQuery.lastIndexOf('/') + 1);
   const dot = segment.lastIndexOf('.');
@@ -212,6 +213,11 @@ const MEDIA_HASH_PREFIX_LENGTH = 32;
 export function mediaContentName(bytes: Uint8Array): string {
   const hash = createHash('sha256').update(bytes).digest('hex');
   return `${hash.slice(0, MEDIA_HASH_PREFIX_LENGTH)}.avif`;
+}
+
+/** The per-project media namespace; projects in one folder stay isolated. */
+export function mediaProjectScope(projectKey: string): string {
+  return createHash('sha256').update(projectKey).digest('hex').slice(0, 16);
 }
 
 /** A stored media file and whether this call created it. */

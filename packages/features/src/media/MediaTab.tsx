@@ -307,7 +307,7 @@ function MediaTabBody({
 
   const external = isExternalMediaPath(record.path);
   const hasPreview = !external && record.absolutePath !== '' && isImagePath(record.path);
-  const displayName = title.trim() || mediaDisplayName(record);
+  const displayName = mediaDisplayName({ title, path: record.path });
   return (
     <EntityTab onBlur={autoSave.onBlur}>
       <EntityViewCard

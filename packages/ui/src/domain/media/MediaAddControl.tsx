@@ -5,6 +5,7 @@ import { Button } from '../../atoms/button/Button';
 import { Field } from '../../atoms/field/Field';
 import { Input } from '../../atoms/form/Input';
 import { IconButton } from '../../atoms/icon-button/IconButton';
+import { cx } from '../../lib/cx';
 import { nls } from '../../nls';
 import styles from './MediaAddControl.module.css';
 
@@ -162,7 +163,7 @@ export function MediaAddControl({
       )}
       {open ? (
         <div
-          className={styles['popup']}
+          className={cx(styles['popup'], compact && styles['popupCompact'])}
           role={mode === 'menu' ? 'menu' : 'dialog'}
           aria-label={mode === 'url' ? nls.t('features.tree.media.addFromLink') : undefined}
         >
@@ -198,6 +199,7 @@ export function MediaAddControl({
                   inputMode="url"
                   value={url}
                   disabled={pending}
+                  invalid={error !== undefined}
                   autoComplete="off"
                   spellCheck={false}
                   onChange={(event) => {

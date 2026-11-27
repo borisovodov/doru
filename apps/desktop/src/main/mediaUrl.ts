@@ -76,11 +76,12 @@ export async function fetchRemoteMedia(
  */
 export async function addRemoteMediaRecord(
   mediaDir: string,
+  projectKey: string,
   value: string,
   target: MediaTarget | undefined,
   service: MediaRecordService,
   dependencies: RemoteMediaDependencies = {},
 ): Promise<MediaRecord> {
   const fetched = await fetchRemoteMedia(value, dependencies);
-  return addStoredMedia(mediaDir, fetched.ingested, fetched.title, target, service);
+  return addStoredMedia(mediaDir, projectKey, fetched.ingested, fetched.title, target, service);
 }

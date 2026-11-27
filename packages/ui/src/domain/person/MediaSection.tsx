@@ -76,8 +76,13 @@ export function MediaSection({
   const addUrl = async (url: string) => {
     setMediaError(false);
     await api.addMediaUrlToTarget(targetType, targetId, url);
-    await refresh();
-    setAllMedia(mediaList(await api.getAllMedia()));
+    try {
+      await refresh();
+      setAllMedia(mediaList(await api.getAllMedia()));
+    } catch {
+      // The record is committed; a stale list must not prompt a duplicate add.
+      setMediaError(true);
+    }
   };
 
   const attach = async (mediaId: string) => {

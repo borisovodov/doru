@@ -61,6 +61,7 @@ describe('MediaAddControl', () => {
     fireEvent.click(screen.getByRole('button', { name: nls.t('features.tree.media.linkAdd') }));
 
     await waitFor(() => expect(screen.getByText(nls.t('features.tree.media.linkFailed'))).toBeInTheDocument());
+    expect(screen.getByLabelText(nls.t('features.tree.media.linkLabel'))).toHaveAttribute('aria-invalid', 'true');
     expect(screen.getByRole('dialog')).toBeInTheDocument();
   });
 });

@@ -113,6 +113,9 @@ describe('media ingestion', () => {
     await expect(ingestMediaBytes(ftyp('avis', ['avis', 'mif1']), 'animated.avif')).rejects.toMatchObject({
       reason: 'animated',
     });
+    await expect(ingestMediaBytes(ftyp('mif1', ['avif', 'avis']), 'animated.avif')).rejects.toMatchObject({
+      reason: 'animated',
+    });
   });
 
   it('enforces byte and pixel limits', async () => {
@@ -128,6 +131,11 @@ describe('media ingestion', () => {
     const ingested = await ingestMediaBytes(await jpegBytes(), 'https://example.com/download?id=1', {
       requireExtensionMatch: false,
     });
+    expect(ingested.extension).toBe('avif');
+  });
+
+  it('keeps a local hash character as part of the file name', async () => {
+    const ingested = await ingestMediaBytes(await jpegBytes(), '/photos/Family#1920.jpg');
     expect(ingested.extension).toBe('avif');
   });
 

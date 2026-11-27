@@ -12,6 +12,13 @@ test('the media sidebar offers files and links', async () => {
     await page.getByRole('button', { name: 'Media', exact: true }).click();
     await page.getByRole('button', { name: 'Add media' }).click();
 
+    const sidebarBox = await page.getByRole('complementary', { name: 'Media' }).boundingBox();
+    const menuBox = await page.getByRole('menu').boundingBox();
+    expect(sidebarBox).not.toBeNull();
+    expect(menuBox).not.toBeNull();
+    expect(menuBox!.x).toBeGreaterThanOrEqual(sidebarBox!.x);
+    expect(menuBox!.x + menuBox!.width).toBeLessThanOrEqual(sidebarBox!.x + sidebarBox!.width);
+
     await expect(page.getByRole('menuitem', { name: 'From computer…' })).toBeVisible();
     await page.getByRole('menuitem', { name: 'From link' }).click();
     await expect(page.getByRole('textbox', { name: 'Link' })).toBeVisible();

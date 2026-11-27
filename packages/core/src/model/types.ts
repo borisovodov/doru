@@ -711,7 +711,7 @@ function mediaExtension(path: string | undefined): string | undefined {
     return undefined;
   }
   const normalized = path.replaceAll('\\', '/');
-  const query = normalized.search(/[?#]/);
+  const query = isExternalMediaPath(path) ? normalized.search(/[?#]/) : -1;
   const withoutQuery = query === -1 ? normalized : normalized.slice(0, query);
   const segment = withoutQuery.slice(withoutQuery.lastIndexOf('/') + 1);
   const dot = segment.lastIndexOf('.');

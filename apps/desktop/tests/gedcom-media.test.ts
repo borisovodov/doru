@@ -1,6 +1,6 @@
 import { mkdtemp, readFile, readdir, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { dirname, join } from 'node:path';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { parseGedcom70, type GedcomDataset } from '@doru/gedcom';
 import { prepareGedcomMedia } from '../src/main/gedcom';
@@ -71,7 +71,7 @@ describe('prepareGedcomMedia', () => {
     });
 
     const mapped = paths.get(url);
-    expect(mapped).toMatch(/^media\/[0-9a-f]{32}\.avif$/);
+    expect(mapped).toMatch(/^media\/[0-9a-f]{16}\/[0-9a-f]{32}\.avif$/);
     expect([...(await readFile(join(dir, mapped ?? '')))]).toEqual([1, 2, 3]);
     expect(download).toHaveBeenCalledWith(url, expect.objectContaining({ maxBytes: expect.any(Number) }));
   });
@@ -166,7 +166,7 @@ describe('prepareGedcomMedia', () => {
     expect(paths.size).toBe(6);
   });
 
-  it('skips URLs that fail to download and does not log credentials', async () => {
+  it('keeps failed URLs as external references and does not log credentials', async () => {
     const dir = await makeTempDir();
     const logger = makeLogger();
     const download = vi.fn(async () => {
@@ -181,7 +181,8 @@ describe('prepareGedcomMedia', () => {
       { download, ingest: acceptMedia, logger },
     );
 
-    expect(paths.size).toBe(0);
+    expect(paths.get('https://example.com/missing.jpg')).toBe('https://example.com/missing.jpg');
+    expect(paths.size).toBe(1);
     expect(logger.warn).toHaveBeenCalledWith(
       'gedcom import: could not download media URL',
       expect.stringContaining('example.com'),
@@ -247,7 +248,7 @@ describe('prepareGedcomMedia', () => {
       logger: makeLogger(),
     });
 
-    expect(paths.get('photo.jpg')).toMatch(/^media\/[0-9a-f]{32}\.avif$/);
+    expect(paths.get('photo.jpg')).toMatch(/^media\/[0-9a-f]{16}\/[0-9a-f]{32}\.avif$/);
   });
 
   it('maps identical local contents to one hash file', async () => {
@@ -265,7 +266,9 @@ describe('prepareGedcomMedia', () => {
     );
 
     expect(paths.get('a.jpg')).toBe(paths.get('b.jpg'));
-    expect(await readdir(join(dir, 'media'))).toHaveLength(1);
+    const stored = paths.get('a.jpg');
+    expect(stored).toBeDefined();
+    expect(await readdir(dirname(join(dir, stored ?? '')))).toHaveLength(1);
   });
 
   it('does not copy local files beside a GEDZIP that does not bundle them', async () => {

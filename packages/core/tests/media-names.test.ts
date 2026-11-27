@@ -55,6 +55,7 @@ describe('media names', () => {
     expect(isIngestMediaPath('photos/a.png')).toBe(false);
     expect(isIngestMediaPath('photos/a.heic')).toBe(false);
     expect(isIngestMediaPath('photos/a')).toBe(false);
+    expect(isIngestMediaPath('/photos/Family#1920.jpg')).toBe(true);
 
     expect(isImagePath('media/a.avif')).toBe(true);
     expect(isImagePath('media/a.bmp')).toBe(true);
@@ -62,6 +63,7 @@ describe('media names', () => {
     expect(isImagePath('media/a.heic')).toBe(false);
     expect(isImagePath('media/a.tiff')).toBe(false);
     expect(isImagePath('https://example.com/a.jpg?token=1')).toBe(true);
+    expect(isImagePath('/photos/Family#1920.jpg')).toBe(true);
   });
 
   it('normalizes user-entered media links', () => {

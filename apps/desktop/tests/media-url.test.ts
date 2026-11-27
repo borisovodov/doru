@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import { mkdtemp, readFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
-import { basename, join } from 'node:path';
+import { join } from 'node:path';
 import type { MediaRecord } from '@doru/core';
 import { MediaIngestError } from '../src/main/mediaIngest';
 import { addRemoteMediaRecord, fetchRemoteMedia, RemoteMediaError } from '../src/main/mediaUrl';
@@ -89,7 +89,8 @@ describe('remote media ingestion', () => {
       };
 
       const media = await addRemoteMediaRecord(
-        dir,
+        join(dir, 'media'),
+        'project.doru',
         'example.com/photo.jpg',
         { targetType: 'person', targetId: 'P1' },
         service,
@@ -99,7 +100,7 @@ describe('remote media ingestion', () => {
       expect(media.title).toBe('portrait');
       expect(media).toMatchObject({ targetType: 'person', targetId: 'P1' });
       expect(records).toEqual([media]);
-      expect(await readFile(join(dir, basename(media.path)))).toEqual(Buffer.from(ingested.bytes));
+      expect(await readFile(join(dir, media.path))).toEqual(Buffer.from(ingested.bytes));
     } finally {
       await rm(dir, { recursive: true, force: true });
     }

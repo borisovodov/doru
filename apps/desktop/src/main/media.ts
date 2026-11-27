@@ -13,7 +13,7 @@ import { NodeFileSystem } from './filesystem';
 import { log } from './log';
 import { ingestMediaFile, MediaIngestError, type IngestedMedia } from './mediaIngest';
 import { readMediaFileFacts, type MediaFileFacts } from './mediaFacts';
-import { addStoredMedia, type MediaTarget } from './mediaRecord';
+import { addStoredMedia, isMediaPathPending, type MediaTarget } from './mediaRecord';
 import { redactMediaUrl } from './mediaDownload';
 import { addRemoteMediaRecord, RemoteMediaError } from './mediaUrl';
 import { resolveMediaPath, symlinkChainResolvesTo } from './mediaPaths';
@@ -134,7 +134,14 @@ async function addPickedMedia(
       }
       throw error;
     }
-    const media = await addStoredMedia(mediaDir, ingested, mediaTitleFromPath(source), target, runtime.service);
+    const media = await addStoredMedia(
+      mediaDir,
+      projectPath,
+      ingested,
+      mediaTitleFromPath(source),
+      target,
+      runtime.service,
+    );
     added.push(await withPath(projectPath, media));
   }
   return added;
@@ -146,7 +153,7 @@ async function addRemoteMedia(projectPath: string, value: string, target?: Media
   const mediaDir = join(dirname(runtimeFilePath(projectPath)), MEDIA_DIR_NAME);
   await fs.mkdir(mediaDir);
   try {
-    const media = await addRemoteMediaRecord(mediaDir, value, target, runtime.service);
+    const media = await addRemoteMediaRecord(mediaDir, projectPath, value, target, runtime.service);
     return await withPath(projectPath, media);
   } catch (error) {
     if (error instanceof RemoteMediaError) {
@@ -194,6 +201,10 @@ export async function addStandaloneMediaUrl(projectPath: string, url: string): P
  * treated as derived assets, not undoable state.
  */
 export async function removeMediaFile(projectPath: string, media: MediaRecord): Promise<void> {
+  if (isMediaPathPending(media.path)) {
+    // An in-flight add may commit this file right after the delete.
+    return;
+  }
   const { runtime } = await ensureRuntime(projectPath);
   const references = (): Promise<Set<string>> =>
     resolveMediaReferencePaths(projectPath, () => runtime.service.listAllMedia());
