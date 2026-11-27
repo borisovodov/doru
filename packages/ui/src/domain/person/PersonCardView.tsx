@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import type { KeyboardEventHandler, ReactNode } from 'react';
 import { BookOpenText, ChevronDown, ChevronRight, Image as ImageIcon, StickyNote } from 'lucide-react';
 import type { PedigreeLine, PersonRecord } from '@doru/core';
 import { factOf } from '@doru/core/model';
@@ -28,10 +28,11 @@ export interface PersonCardViewProps {
   /** The in-card draft form shown while `isEditing` is true. */
   editingContent?: ReactNode;
   onToggleCollapse?: ((personId: string) => void) | undefined;
-  /** React Flow handles, rendered inside the card root. */
-  children?: ReactNode;
-  /** The selected-card toolbar, rendered by the caller. */
-  toolbar?: ReactNode;
+  /** Keyboard focus support for the canvas; omitted in the gallery. */
+  tabIndex?: number | undefined;
+  onKeyDown?: KeyboardEventHandler<HTMLDivElement> | undefined;
+  /** Optional drag handle, rendered in the card's top-left corner. */
+  dragHandle?: ReactNode | undefined;
 }
 
 const BADGES = [
@@ -56,8 +57,9 @@ export function PersonCardView({
   isEditing = false,
   editingContent,
   onToggleCollapse,
-  children,
-  toolbar,
+  tabIndex,
+  onKeyDown,
+  dragHandle,
 }: PersonCardViewProps) {
   const deceased = factOf(person, 'DEAT')?.date?.component?.year !== undefined;
   const dates = years(person);
@@ -70,7 +72,6 @@ export function PersonCardView({
         aria-label={nls.t('tree.canvas.addFirstPerson')}
         aria-current={isFocus ? 'true' : undefined}
       >
-        {children}
         {editingContent}
       </div>
     );
@@ -92,8 +93,10 @@ export function PersonCardView({
       role="group"
       aria-label={isDraft ? nls.t('tree.canvas.addFirstPerson') : displayName(person)}
       aria-current={isFocus ? 'true' : undefined}
+      tabIndex={tabIndex}
+      onKeyDown={onKeyDown}
     >
-      {children}
+      {dragHandle}
       <Avatar
         initials={initials(person)}
         tone={person.sex === 'M' ? 'male' : person.sex === 'F' ? 'female' : 'neutral'}
@@ -133,7 +136,6 @@ export function PersonCardView({
           }}
         />
       ) : null}
-      {toolbar}
     </div>
   );
 }

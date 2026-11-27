@@ -551,14 +551,41 @@
                   "!@doru/platform",
                   "!@doru/platform/**",
                   "!@doru/ai",
-                  "!@doru/ai/**"
+                  "!@doru/ai/**",
+                  "!@doru/canvas",
+                  "!@doru/canvas/**"
                 ],
-                "message": "@doru/features may only import the UI, core, platform and AI packages."
+                "message": "@doru/features may only import the UI, core, platform, AI and canvas packages."
               },
               {
                 "group": ["@doru/ai", "@doru/ai/*", "!@doru/ai/reasoning"],
                 "allowTypeImports": true,
                 "message": "UI packages may use AI types, but runtime AI lives in the main process."
+              },
+              {
+                "group": ["@doru/*/src/**"],
+                "message": "Import packages through their public exports, not their src paths."
+              }
+            ]
+          }
+        ]
+      },
+      "plugins": ["typescript"]
+    },
+    {
+      "files": ["packages/canvas/src/**/*.{ts,tsx}"],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "patterns": [
+              {
+                "group": ["electron", "node:*"],
+                "message": "UI packages run in the renderer: no Electron or Node built-ins."
+              },
+              {
+                "group": ["@doru/**"],
+                "message": "@doru/canvas must stay domain-free: no workspace imports."
               },
               {
                 "group": ["@doru/*/src/**"],

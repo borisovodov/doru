@@ -148,10 +148,10 @@ await page.evaluate(
   { project, persons, families },
 );
 await page.reload();
-await page.waitForSelector('.react-flow__node', { timeout: 20_000 });
+await page.waitForSelector('[data-canvas-item]', { timeout: 20_000 });
 console.log('demo project open:', project);
-console.log('nodes:', await page.locator('.react-flow__node').count());
-console.log('edges:', await page.locator('.react-flow__edge').count());
+console.log('nodes:', await page.locator('[data-canvas-item]').count());
+console.log('edges:', await page.locator('[data-canvas-edge]').count());
 
 // Keep the window open until the user closes it.
 await new Promise<void>((resolve) => app.on('close', () => resolve()));
