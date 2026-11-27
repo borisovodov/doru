@@ -67,4 +67,7 @@
   --doru-scrim: rgb(0 0 0 / 55%);
   --doru-scrim-strong: rgb(0 0 0 / 75%);
   --doru-on-scrim: #fff;
+
+  /* Masks: opaque black is the "keep" color, independent of the theme. */
+  --doru-mask: #000;
 }
