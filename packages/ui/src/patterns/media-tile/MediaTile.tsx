@@ -1,7 +1,8 @@
-import { Trash2, Unlink } from 'lucide-react';
+import { Star, Trash2, Unlink } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { IconButton } from '../../atoms/icon-button/IconButton';
 import { cx } from '../../lib/cx';
+import { nls } from '../../nls';
 import styles from './MediaTile.module.css';
 
 interface MediaTileBaseProps {
@@ -11,7 +12,10 @@ interface MediaTileBaseProps {
   openLabel?: string;
   onRemove?: () => void;
   removeLabel?: string;
-  badge?: string;
+  /** Marks this tile as the target's main media; disables the star action. */
+  primary?: boolean;
+  onPrimary?: () => void;
+  primaryLabel?: string;
   muted?: boolean;
   className?: string;
   /** Shown instead of the image for non-previewable (external or non-image) media. */
@@ -25,7 +29,20 @@ export type MediaTileProps = MediaTileBaseProps & (MediaTileDetachProps | MediaT
 
 /** A square media thumbnail with optional open and remove actions. */
 export function MediaTile(props: MediaTileProps) {
-  const { src, alt, onOpen, openLabel, onRemove, removeLabel, badge, muted, className, fallback } = props;
+  const {
+    src,
+    alt,
+    onOpen,
+    openLabel,
+    onRemove,
+    removeLabel,
+    primary = false,
+    onPrimary,
+    primaryLabel,
+    muted,
+    className,
+    fallback,
+  } = props;
   const detach = props.onDetach !== undefined ? { onClick: props.onDetach, label: props.detachLabel } : undefined;
   const image =
     src !== '' ? (
@@ -36,6 +53,7 @@ export function MediaTile(props: MediaTileProps) {
       </span>
     );
   const openName = openLabel === undefined || alt === '' ? (openLabel ?? alt) : `${openLabel}: ${alt}`;
+  const primaryLabelText = primaryLabel ?? nls.t('features.tree.media.primary');
   return (
     <figure className={cx(styles['tile'], muted === true && styles['muted'], className)}>
       {onOpen ? (
@@ -45,7 +63,19 @@ export function MediaTile(props: MediaTileProps) {
       ) : (
         image
       )}
-      {badge !== undefined ? <span className={styles['badge']}>{badge}</span> : null}
+      {primary ? (
+        <span className={styles['primary']} role="img" aria-label={primaryLabelText}>
+          <Star size={14} fill="currentColor" aria-hidden="true" />
+        </span>
+      ) : onPrimary !== undefined ? (
+        <IconButton
+          className={cx(styles['action'], styles['primaryAction'])}
+          size="sm"
+          label={primaryLabelText}
+          icon={<Star size={13} aria-hidden="true" />}
+          onClick={onPrimary}
+        />
+      ) : null}
       {detach !== undefined || onRemove !== undefined ? (
         <span className={styles['actions']}>
           {detach !== undefined ? (

@@ -464,26 +464,27 @@ describe('TreeService attachments', () => {
       expect(
         fixture.repo.listAttachmentsFor('person', 'P1').mediaLinks.find((entry) => entry.link.id === beforeLink.id)
           ?.link,
-      ).toMatchObject({ crop: undefined, primary: undefined });
+      ).toMatchObject({ crop: undefined, primary: true });
     } finally {
       cleanupRepo(fixture);
     }
   });
 
-  it('restores media and its attachments when the last link is detached', () => {
+  it('keeps media and its attachments when the last link is detached', () => {
     const { fixture, service } = makeService();
     try {
+      fixture.repo.insertPerson({ id: 'P1', names: [], sex: 'U', facts: [] });
       service.addMedia({ id: 'M1', path: 'media/photo.jpg', title: 'Portrait', targetType: 'person', targetId: 'P1' });
       service.addNote(note({ targetType: 'media', targetId: 'M1' }));
       expect(fixture.repo.getMedia('M1')).toBeDefined();
 
       const link = fixture.repo.listAttachmentsFor('person', 'P1').mediaLinks[0]!.link;
       service.detachMedia(link);
-      expect(fixture.repo.getMedia('M1')).toBeUndefined();
-      expect(fixture.repo.listNotesFor('media', 'M1')).toEqual([]);
+      expect(fixture.repo.getMedia('M1')).toMatchObject({ id: 'M1', links: [] });
+      expect(fixture.repo.listNotesFor('media', 'M1').map((entry) => entry.id)).toEqual(['N1']);
 
       service.undo();
-      expect(fixture.repo.getMedia('M1')).toBeDefined();
+      expect(fixture.repo.listAttachmentsFor('person', 'P1').mediaLinks).toHaveLength(1);
       expect(fixture.repo.listNotesFor('media', 'M1').map((entry) => entry.id)).toEqual(['N1']);
     } finally {
       cleanupRepo(fixture);

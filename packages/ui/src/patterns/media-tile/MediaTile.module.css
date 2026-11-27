@@ -36,17 +36,22 @@
   opacity: 0.55;
 }
 
-.badge {
+.primary {
   position: absolute;
   bottom: 4px;
   left: 4px;
-  padding: 2px 6px;
+  display: flex;
+  padding: 4px;
   border-radius: var(--doru-radius-sm);
   background: var(--doru-scrim);
   color: var(--doru-on-scrim);
-  font-size: var(--doru-font-size-xs);
-  line-height: 1.3;
   pointer-events: none;
+}
+
+.primaryAction {
+  position: absolute;
+  bottom: 4px;
+  left: 4px;
 }
 
 .actions {

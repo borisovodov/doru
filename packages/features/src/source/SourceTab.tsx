@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import type {
   CitationRecord,
   FactRecord,
@@ -149,8 +149,8 @@ function SourceTabBody({
   const [saveError, setSaveError] = useState(false);
   const [repositories, setRepositories] = useState<RepositoryRecord[]>([]);
   const [titles, setTitles] = useState<TitleRecord[]>([]);
-  const [linkTargets, setLinkTargets] = useState<TargetRef[]>([]);
   const [linkError, setLinkError] = useState(false);
+  const [linkPending, setLinkPending] = useState(false);
   const [citationError, setCitationError] = useState(false);
   const recordRef = useRef(record);
   const draftRef = useRef(draft);
@@ -167,6 +167,25 @@ function SourceTabBody({
   const currentSource = lastSaved ?? record;
   const targetId = currentSource?.id;
   const attachSourceToTargets = api.attachSourceToTargets;
+  const relatedTargets = useMemo(() => {
+    if (targetId === undefined) {
+      return [];
+    }
+    const seen = new Set<string>();
+    const targets: TargetRef[] = [];
+    for (const citation of citations) {
+      if (citation.sourceId !== targetId) {
+        continue;
+      }
+      const key = `${citation.targetType}\u0000${citation.targetId}`;
+      if (seen.has(key)) {
+        continue;
+      }
+      seen.add(key);
+      targets.push({ targetType: citation.targetType, targetId: citation.targetId });
+    }
+    return targets;
+  }, [citations, targetId]);
   const {
     notes: sourceNotes,
     citations: sourceCitations,
@@ -335,6 +354,36 @@ function SourceTabBody({
 
   const deletion = useEntityDelete(autoSave, remove, onClose);
 
+  const updateRelatedTargets = (next: TargetRef[]) => {
+    if (linkPending || currentSource === undefined || attachSourceToTargets === undefined) {
+      return;
+    }
+    const key = (target: TargetRef) => `${target.targetType}\u0000${target.targetId}`;
+    const currentKeys = new Set(relatedTargets.map(key));
+    const nextKeys = new Set(next.map(key));
+    const added = next.filter((target) => !currentKeys.has(key(target)));
+    const removed = relatedTargets.filter((target) => !nextKeys.has(key(target)));
+    if (added.length === 0 && removed.length === 0) {
+      return;
+    }
+    setLinkError(false);
+    setLinkPending(true);
+    const detach = removed.flatMap((target) =>
+      citations
+        .filter(
+          (citation) =>
+            citation.sourceId === currentSource.id &&
+            citation.targetType === target.targetType &&
+            citation.targetId === target.targetId,
+        )
+        .map((citation) => api.detachCitation(citation.id)),
+    );
+    void (added.length > 0 ? attachSourceToTargets(currentSource.id, added) : Promise.resolve())
+      .then(() => Promise.all(detach))
+      .catch(() => setLinkError(true))
+      .finally(() => setLinkPending(false));
+  };
+
   return (
     <EntityTab>
       <SourceEditor
@@ -434,33 +483,11 @@ function SourceTabBody({
             <SectionCard title={nls.t('features.tasks.target')}>
               <TargetPicker
                 allowedTypes={CITATION_TARGET_TYPES}
-                value={linkTargets}
-                onChange={setLinkTargets}
+                value={relatedTargets}
+                onChange={updateRelatedTargets}
+                disabled={linkPending}
                 ariaLabel={nls.t('features.tasks.target')}
               />
-              <Button
-                variant="secondary"
-                size="sm"
-                disabled={linkTargets.length === 0}
-                onClick={() => {
-                  setLinkError(false);
-                  const submitted = linkTargets;
-                  void attachSourceToTargets(currentSource.id, submitted)
-                    .then(() =>
-                      setLinkTargets((current) =>
-                        current.filter(
-                          (target) =>
-                            !submitted.some(
-                              (entry) => entry.targetType === target.targetType && entry.targetId === target.targetId,
-                            ),
-                        ),
-                      ),
-                    )
-                    .catch(() => setLinkError(true));
-                }}
-              >
-                {nls.t('features.tree.sources.attach')}
-              </Button>
               {linkError ? <InlineError>{nls.t('features.tree.autosaveFailed')}</InlineError> : null}
             </SectionCard>
           )}

@@ -66,7 +66,7 @@ describe('media repo edge cases', () => {
     }
   });
 
-  it('removeMediaLink deletes an orphaned record but keeps a shared one', () => {
+  it('removeMediaLink keeps the media record when its last link is removed', () => {
     const fixture = makeRepo();
     try {
       const { repo } = fixture;
@@ -79,8 +79,50 @@ describe('media repo edge cases', () => {
 
       const [second] = repo.listAttachmentsFor('person', 'P2').mediaLinks;
       repo.removeMediaLink(second!.link.id);
-      expect(repo.getMedia('M1')).toBeUndefined();
+      expect(repo.getMedia('M1')).toMatchObject({ id: 'M1', links: [] });
       expect(repo.removeMediaLink('missing')).toBe(false);
+    } finally {
+      cleanupRepo(fixture);
+    }
+  });
+
+  it('keeps exactly one primary link per target across updates and detaches', () => {
+    const fixture = makeRepo();
+    try {
+      const { repo } = fixture;
+      repo.insertMedia({ id: 'M1', path: 'media/a.jpg', targetType: 'person', targetId: 'P1' });
+      repo.insertMedia({ id: 'M2', path: 'media/b.jpg', targetType: 'person', targetId: 'P1' });
+      const first = repo.listAttachmentsFor('person', 'P1').mediaLinks.find((entry) => entry.media.id === 'M1')!;
+      const second = repo.listAttachmentsFor('person', 'P1').mediaLinks.find((entry) => entry.media.id === 'M2')!;
+      expect(first.link.primary).toBe(true);
+      expect(second.link.primary).toBeUndefined();
+
+      repo.updateMediaLink({ ...second.link, primary: true });
+      expect(repo.listMediaLinksFor('person', 'P1').filter((entry) => entry.link.primary === true)).toHaveLength(1);
+      expect(
+        repo.listAttachmentsFor('person', 'P1').mediaLinks.find((entry) => entry.media.id === 'M2')?.link.primary,
+      ).toBe(true);
+
+      repo.removeMediaLink(second.link.id);
+      expect(repo.listAttachmentsFor('person', 'P1').mediaLinks[0]?.link.primary).toBe(true);
+    } finally {
+      cleanupRepo(fixture);
+    }
+  });
+
+  it('promotes another link when the primary media is deleted', () => {
+    const fixture = makeRepo();
+    try {
+      const { repo } = fixture;
+      repo.insertMedia({ id: 'M1', path: 'media/a.jpg', targetType: 'person', targetId: 'P1' });
+      repo.insertMedia({ id: 'M2', path: 'media/b.jpg', targetType: 'person', targetId: 'P1' });
+      const second = repo.listAttachmentsFor('person', 'P1').mediaLinks.find((entry) => entry.media.id === 'M2')!;
+      repo.updateMediaLink({ ...second.link, primary: true });
+
+      repo.deleteMedia('M2');
+      const remaining = repo.listAttachmentsFor('person', 'P1').mediaLinks;
+      expect(remaining).toHaveLength(1);
+      expect(remaining[0]?.link.primary).toBe(true);
     } finally {
       cleanupRepo(fixture);
     }

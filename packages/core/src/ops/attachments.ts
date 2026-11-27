@@ -4,7 +4,6 @@ import type {
   CitationRecord,
   ContactRecord,
   MediaLinkRecord,
-  MediaRecord,
   NoteRecord,
   RepositoryRecord,
   RecordSubmitterLink,
@@ -17,7 +16,6 @@ import {
   attachmentTargetExists,
   attachmentsMatch,
   restoreCitation,
-  restoreMedia,
   restoreRecordSubmitter,
   restoreSource,
   restoreSourceRepository,
@@ -254,21 +252,13 @@ export function detachCitationOp(citation: CitationRecord, attachments: Attachme
 
 // --- media -------------------------------------------------------------------
 
-export function attachMediaOp(link: MediaLinkRecord, media?: MediaRecord, attachments?: AttachmentsSnapshot): Op {
+export function attachMediaOp(link: MediaLinkRecord): Op {
   return {
     ...op(
       crypto.randomUUID(),
       'media.attach',
       (ctx) => ctx.repo.addMediaLink(link.mediaId, link),
-      (ctx) => {
-        ctx.repo.removeMediaLink(link.id);
-        if (ctx.repo.getMedia(link.mediaId) === undefined && media !== undefined) {
-          restoreMedia(ctx, media);
-          if (attachments !== undefined) {
-            ctx.repo.restoreAttachments(attachments);
-          }
-        }
-      },
+      (ctx) => ctx.repo.removeMediaLink(link.id),
     ),
     change: { targetType: 'media', targetId: link.mediaId, kind: 'changed' },
   };
@@ -301,15 +291,14 @@ export function attachMediaLinksOp(links: MediaLinkRecord[]): Op {
     },
     (ctx) => {
       for (const link of links) {
-        ctx.repo.removeMediaLinkOnly(link.id);
+        ctx.repo.removeMediaLink(link.id);
       }
     },
     links[0] === undefined ? undefined : { targetType: 'media', targetId: links[0].mediaId, kind: 'changed' },
   );
 }
 
-export function detachMediaOp(link: MediaLinkRecord, media?: MediaRecord, attachments?: AttachmentsSnapshot): Op {
-  let mediaBaseline = media;
+export function detachMediaOp(link: MediaLinkRecord): Op {
   let linkBaseline = link;
   return {
     ...op(
@@ -317,43 +306,18 @@ export function detachMediaOp(link: MediaLinkRecord, media?: MediaRecord, attach
       'media.detach',
       (ctx) => ctx.repo.removeMediaLink(link.id),
       (ctx) => {
-        if (ctx.repo.getMedia(link.mediaId) === undefined && media !== undefined) {
-          restoreMedia(ctx, media);
-          if (attachments !== undefined) {
-            ctx.repo.restoreAttachments(attachments);
-          }
-        } else if (attachmentTargetExists(ctx, link.targetType, link.targetId)) {
+        if (attachmentTargetExists(ctx, link.targetType, link.targetId)) {
           ctx.repo.addMediaLink(link.mediaId, link);
         }
-        mediaBaseline = ctx.repo.getMedia(link.mediaId) ?? mediaBaseline;
-        linkBaseline = mediaBaseline?.links?.find((entry) => entry.id === link.id) ?? link;
+        linkBaseline = ctx.repo.getMedia(link.mediaId)?.links?.find((entry) => entry.id === link.id) ?? link;
       },
     ),
     change: { targetType: 'media', targetId: link.mediaId, kind: 'changed' },
     redoSafe(ctx) {
-      const current = ctx.repo.getMedia(link.mediaId);
-      const liveLink = current?.links?.find((entry) => entry.id === link.id);
-      if (liveLink === undefined) {
-        const originalLast = (mediaBaseline?.links?.length ?? 0) <= 1;
-        return !(originalLast && current !== undefined);
-      }
-      if (!sameRecord(liveLink, linkBaseline)) {
-        return false;
-      }
-      if (current === undefined) {
-        return true;
-      }
-      const lastLink = (current.links ?? []).length <= 1;
-      if (!lastLink) {
-        return true;
-      }
-      if (mediaBaseline !== undefined && !sameRecord(current, mediaBaseline)) {
-        return false;
-      }
-      if (attachments !== undefined && !attachmentsMatch(ctx, 'media', link.mediaId, attachments)) {
-        return false;
-      }
-      return true;
+      const liveLink = ctx.repo.getMedia(link.mediaId)?.links?.find((entry) => entry.id === link.id);
+      // The record staying linkless is a valid detached state; if the link
+      // is back, redo may only remove the exact row undo restored.
+      return liveLink === undefined || sameRecord(liveLink, linkBaseline);
     },
   };
 }

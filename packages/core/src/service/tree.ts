@@ -1023,8 +1023,7 @@ export class TreeService {
       ) {
         return undefined;
       }
-      const attachments = this.repo.listAttachmentsFor('media', link.mediaId);
-      return attachMediaOp(link, media, attachments);
+      return attachMediaOp(link);
     });
   }
 
@@ -1068,8 +1067,7 @@ export class TreeService {
       if (media === undefined || stored === undefined) {
         return undefined;
       }
-      const attachments = this.repo.listAttachmentsFor('media', link.mediaId);
-      return detachMediaOp(stored, media, attachments);
+      return detachMediaOp(stored);
     });
   }
 

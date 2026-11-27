@@ -19,21 +19,6 @@ export const mediaTab: TabDescriptor = {
       api={{ ...context.tree.mediaAdminApi, openSource: context.tabs.open.source }}
       attachmentsApi={{ ...context.tree.api, openTask: context.tabs.open.task }}
       sources={context.tree.sources}
-      targetData={{
-        persons: context.tree.persons,
-        families: context.tree.families,
-        sources: context.tree.sources,
-        places: context.tree.places,
-        repositories: context.tree.repositories,
-        titles: context.tree.titles,
-        facts: context.tree.facts,
-        citations: context.tree.citations,
-        media: context.tree.media,
-        submitters: context.tree.submitters,
-        addresses: context.tree.addresses,
-        associations: context.tree.associations,
-        tasks: context.tree.tasks,
-      }}
       onClose={() => context.tabs.closeTab(id)}
     />
   ),

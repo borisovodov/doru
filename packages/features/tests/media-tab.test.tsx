@@ -70,7 +70,6 @@ describe('MediaTab', () => {
         api={api}
         attachmentsApi={attachmentsStub()}
         sources={[]}
-        targetData={targetData}
         onClose={vi.fn()}
       />,
     );
@@ -91,7 +90,6 @@ describe('MediaTab', () => {
         api={api}
         attachmentsApi={attachmentsStub()}
         sources={[]}
-        targetData={targetData}
         onClose={vi.fn()}
       />,
     );
@@ -111,7 +109,6 @@ describe('MediaTab', () => {
         api={api}
         attachmentsApi={attachmentsStub()}
         sources={[]}
-        targetData={targetData}
         onClose={vi.fn()}
       />,
     );
@@ -134,7 +131,6 @@ describe('MediaTab', () => {
         api={api}
         attachmentsApi={attachmentsStub()}
         sources={[]}
-        targetData={targetData}
         onClose={vi.fn()}
       />,
     );
@@ -158,7 +154,6 @@ describe('MediaTab', () => {
           api={api}
           attachmentsApi={attachmentsStub()}
           sources={[]}
-          targetData={targetData}
           onClose={vi.fn()}
         />
       </AutoSaveTabProvider>,
@@ -198,7 +193,6 @@ describe('MediaTab', () => {
         api={api}
         attachmentsApi={attachmentsStub()}
         sources={[]}
-        targetData={targetData}
         onClose={vi.fn()}
       />,
     );
@@ -216,7 +210,6 @@ describe('MediaTab', () => {
         api={api}
         attachmentsApi={attachmentsStub()}
         sources={[]}
-        targetData={targetData}
         onClose={vi.fn()}
       />,
     );
@@ -245,7 +238,6 @@ describe('MediaTab', () => {
         api={api}
         attachmentsApi={attachmentsStub()}
         sources={[]}
-        targetData={targetData}
         onClose={vi.fn()}
       />,
     );
@@ -279,7 +271,6 @@ describe('MediaTab', () => {
         api={api}
         attachmentsApi={attachmentsStub()}
         sources={[]}
-        targetData={targetData}
         onClose={vi.fn()}
       />,
     );
@@ -295,7 +286,6 @@ describe('MediaTab', () => {
         api={api}
         attachmentsApi={attachmentsStub()}
         sources={[]}
-        targetData={targetData}
         onClose={vi.fn()}
       />,
     );
@@ -322,7 +312,6 @@ describe('MediaTab', () => {
         api={api}
         attachmentsApi={attachmentsStub()}
         sources={[]}
-        targetData={targetData}
         onClose={vi.fn()}
       />,
     );
@@ -337,7 +326,6 @@ describe('MediaTab', () => {
         api={api}
         attachmentsApi={attachmentsStub()}
         sources={[]}
-        targetData={targetData}
         onClose={vi.fn()}
       />,
     );
@@ -369,7 +357,6 @@ describe('MediaTab', () => {
         api={api}
         attachmentsApi={attachmentsStub()}
         sources={[]}
-        targetData={targetData}
         onClose={vi.fn()}
       />,
     );
@@ -384,7 +371,7 @@ describe('MediaTab', () => {
     await act(async () => second.resolve());
   });
 
-  it('keeps targets selected while an attach request is pending', async () => {
+  it('attaches a picked target immediately and blocks the picker while pending', async () => {
     const pending = deferred();
     const attachMediaToTargets = vi.fn(async () => pending.promise);
     const api = stubApi<MediaAdminApi>({
@@ -408,26 +395,53 @@ describe('MediaTab', () => {
           api={api}
           attachmentsApi={attachmentsStub()}
           sources={[]}
-          targetData={targetData}
           onClose={vi.fn()}
         />
       </TargetDirectoryProvider>,
     );
 
     const related = screen.getByRole('region', { name: nls.t('features.tasks.target') });
-    fireEvent.focus(within(related).getByRole('combobox', { name: nls.t('features.tasks.target') }));
+    const picker = within(related).getByRole('combobox', { name: nls.t('features.tasks.target') });
+    fireEvent.focus(picker);
     fireEvent.click(screen.getByRole('option', { name: 'MoscowPlace' }));
-    fireEvent.click(within(related).getByRole('button', { name: nls.t('features.tree.media.attach') }));
     await waitFor(() => expect(attachMediaToTargets).toHaveBeenCalledTimes(1));
-
-    fireEvent.click(screen.getByRole('option', { name: 'KazanPlace' }));
-    expect(screen.getAllByRole('button', { name: nls.t('features.targets.remove') })).toHaveLength(2);
+    expect(attachMediaToTargets).toHaveBeenCalledWith('M1', [{ targetType: 'place', targetId: 'PL1' }]);
+    expect(picker).toBeDisabled();
 
     await act(async () => pending.resolve());
-    await waitFor(() =>
-      expect(screen.getAllByRole('button', { name: nls.t('features.targets.remove') })).toHaveLength(1),
+    await waitFor(() => expect(picker).toBeEnabled());
+  });
+
+  it('shows existing links and detaches a removed one', async () => {
+    const link = { id: 'L1', mediaId: 'M1', targetType: 'place', targetId: 'PL1' };
+    const detachMedia = vi.fn(async () => undefined);
+    const api = stubApi<MediaAdminApi>({
+      getMediaFor: async () => [],
+      getAllMedia: async () => [],
+      detachMedia,
+    });
+    renderUi(
+      <TargetDirectoryProvider
+        data={{
+          ...targetData,
+          places: [{ id: 'PL1', names: [{ id: 'PN1', kind: 'official', position: 0, value: 'Moscow' }] }],
+        }}
+      >
+        <MediaTab
+          entityId="M1"
+          media={[{ id: 'M1', title: 'Photo', path: 'media/a.jpg', absolutePath: '', links: [link] }]}
+          api={api}
+          attachmentsApi={attachmentsStub()}
+          sources={[]}
+          onClose={vi.fn()}
+        />
+      </TargetDirectoryProvider>,
     );
-    expect(screen.getByText('Kazan')).toBeInTheDocument();
+
+    const related = screen.getByRole('region', { name: nls.t('features.tasks.target') });
+    expect(within(related).getByText('Moscow')).toBeInTheDocument();
+    fireEvent.click(within(related).getByRole('button', { name: nls.t('features.targets.remove') }));
+    await waitFor(() => expect(detachMedia).toHaveBeenCalledWith(link));
   });
 
   it('opens a media-level source from the attachments panel', async () => {
@@ -448,7 +462,6 @@ describe('MediaTab', () => {
         api={api}
         attachmentsApi={attachmentsApi}
         sources={[{ id: 'S1', title: 'Register' }]}
-        targetData={targetData}
         onClose={vi.fn()}
       />,
     );
@@ -458,7 +471,7 @@ describe('MediaTab', () => {
     expect(openSource).toHaveBeenCalledWith('S1');
   });
 
-  it('keeps the picked targets and reports a failed attach', async () => {
+  it('reports a failed attach and re-enables the picker', async () => {
     const attachMediaToTargets = vi.fn(async () => {
       throw new Error('disk full');
     });
@@ -480,20 +493,19 @@ describe('MediaTab', () => {
           api={api}
           attachmentsApi={attachmentsStub()}
           sources={[]}
-          targetData={targetData}
           onClose={vi.fn()}
         />
       </TargetDirectoryProvider>,
     );
 
     const related = screen.getByRole('region', { name: nls.t('features.tasks.target') });
-    fireEvent.focus(within(related).getByRole('combobox', { name: nls.t('features.tasks.target') }));
+    const picker = within(related).getByRole('combobox', { name: nls.t('features.tasks.target') });
+    fireEvent.focus(picker);
     fireEvent.click(screen.getByRole('option', { name: 'MoscowPlace' }));
-    fireEvent.click(within(related).getByRole('button', { name: nls.t('features.tree.media.attach') }));
 
     await waitFor(() => expect(attachMediaToTargets).toHaveBeenCalledTimes(1));
     expect(attachMediaToTargets).toHaveBeenCalledWith('M1', [{ targetType: 'place', targetId: 'PL1' }]);
     expect(await screen.findByText(nls.t('features.tree.autosaveFailed'))).toBeInTheDocument();
-    expect(within(related).getByRole('button', { name: nls.t('features.tree.media.attach') })).toBeEnabled();
+    expect(picker).toBeEnabled();
   });
 });

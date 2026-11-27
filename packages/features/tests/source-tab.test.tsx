@@ -400,7 +400,7 @@ describe('SourceTab', () => {
     resolveSave();
   });
 
-  it('keeps the picked targets and reports a failed attach', async () => {
+  it('reports a failed attach and re-enables the picker', async () => {
     const attachSourceToTargets = vi.fn(async () => {
       throw new Error('disk full');
     });
@@ -443,14 +443,60 @@ describe('SourceTab', () => {
     );
 
     const related = screen.getByRole('region', { name: nls.t('features.tasks.target') });
-    fireEvent.focus(within(related).getByRole('combobox', { name: nls.t('features.tasks.target') }));
+    const picker = within(related).getByRole('combobox', { name: nls.t('features.tasks.target') });
+    fireEvent.focus(picker);
     fireEvent.click(screen.getByRole('option', { name: 'MoscowPlace' }));
-    fireEvent.click(within(related).getByRole('button', { name: nls.t('features.tree.sources.attach') }));
 
     await waitFor(() => expect(attachSourceToTargets).toHaveBeenCalledTimes(1));
     expect(attachSourceToTargets).toHaveBeenCalledWith('S1', [{ targetType: 'place', targetId: 'PL1' }]);
     expect(await screen.findByText(nls.t('features.tree.autosaveFailed'))).toBeInTheDocument();
-    expect(within(related).getByRole('button', { name: nls.t('features.tree.sources.attach') })).toBeEnabled();
+    expect(picker).toBeEnabled();
+  });
+
+  it('shows existing citations in Related to and detaches a removed target', async () => {
+    const detachCitation = vi.fn(async () => undefined);
+    const api = stubApi<SourceEditorApi>({
+      getRepositories: async () => [],
+      getTitles: async () => [],
+      getNotes: async () => [],
+      getCitations: async () => [],
+      getContacts: async () => [],
+      getSubmitters: async () => [],
+      getRecordSubmitters: async () => [],
+      getMediaFor: async () => [],
+      getAllMedia: async () => [],
+      getTasksFor: async () => [],
+      getAllTasks: async () => [],
+      detachCitation,
+    });
+    const mediaApi = stubApi<MediaTargetApi>({ getMediaFor: async () => [], getAllMedia: async () => [] });
+    renderUi(
+      <TargetDirectoryProvider data={targetDirectory}>
+        <SourceTab
+          entityId="S1"
+          sources={[{ id: 'S1', title: 'Book' }]}
+          api={api}
+          persons={[]}
+          families={[]}
+          facts={[]}
+          places={[]}
+          citations={[{ id: 'C1', sourceId: 'S1', targetType: 'place', targetId: 'PL1' }]}
+          notes={[]}
+          media={[]}
+          mediaApi={mediaApi}
+          onOpenPerson={vi.fn()}
+          onOpenMedia={vi.fn()}
+          onOpenSource={vi.fn()}
+          onClose={vi.fn()}
+          onCreated={vi.fn()}
+        />
+      </TargetDirectoryProvider>,
+    );
+
+    const related = screen.getByRole('region', { name: nls.t('features.tasks.target') });
+    expect(within(related).getByText('Moscow')).toBeInTheDocument();
+    fireEvent.click(within(related).getByRole('button', { name: nls.t('features.targets.remove') }));
+    await waitFor(() => expect(detachCitation).toHaveBeenCalledWith('C1'));
   });
 
   it('keeps a citation and reports a failed detach', async () => {

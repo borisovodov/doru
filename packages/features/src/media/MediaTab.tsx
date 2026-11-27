@@ -4,7 +4,6 @@ import {
   isExternalMediaPath,
   isImagePath,
   mediaDisplayName,
-  type MediaLinkRecord,
   type MediaRecord,
   type SourceRecord,
   type TargetRef,
@@ -12,11 +11,9 @@ import {
 } from '@doru/core/model';
 import {
   Button,
-  Checkbox,
   DangerZone,
   EntityViewCard,
   Field,
-  FieldGrid,
   InlineError,
   Input,
   MetadataText,
@@ -31,7 +28,7 @@ import { EntityTab } from '../sidebar';
 import type { AttachmentsPanelApi } from '../attachments';
 import type { MediaAdminApi } from '../person/types';
 import { nls } from '../nls';
-import { createTaskTargetLabeler, type MediaFileFacts, type MediaWithPath, type TaskTargetData } from '@doru/ui/domain';
+import { type MediaFileFacts, type MediaWithPath } from '@doru/ui/domain';
 import styles from './MediaTab.module.css';
 import './MediaTab.css';
 
@@ -51,7 +48,6 @@ export function MediaTab({
   api,
   attachmentsApi,
   sources,
-  targetData,
   onClose,
 }: {
   entityId: string;
@@ -59,7 +55,6 @@ export function MediaTab({
   api: MediaAdminApi;
   attachmentsApi: AttachmentsPanelApi;
   sources: SourceRecord[];
-  targetData: TaskTargetData;
   onClose: () => void;
 }) {
   const mediaId = entityId;
@@ -74,7 +69,6 @@ export function MediaTab({
       api={api}
       attachmentsApi={attachmentsApi}
       sources={sources}
-      targetData={targetData}
       onClose={onClose}
     />
   );
@@ -85,22 +79,23 @@ function MediaTabBody({
   api,
   attachmentsApi,
   sources,
-  targetData,
   onClose,
 }: {
   record: MediaWithPath;
   api: MediaAdminApi;
   attachmentsApi: AttachmentsPanelApi;
   sources: SourceRecord[];
-  targetData: TaskTargetData;
   onClose: () => void;
 }) {
   const [title, setTitle] = useState(record.title ?? '');
   const [date, setDate] = useState(() => toDateDraft(record.date));
-  const [linkTargets, setLinkTargets] = useState<TargetRef[]>([]);
   const [linkError, setLinkError] = useState(false);
-  const targetLabel = createTaskTargetLabeler(targetData);
+  const [linkPending, setLinkPending] = useState(false);
   const attachMediaToTargets = api.attachMediaToTargets;
+  const relatedTargets: TargetRef[] = (record.links ?? []).map((link) => ({
+    targetType: link.targetType,
+    targetId: link.targetId,
+  }));
   const recordRef = useRef(record);
   const baselineRef = useRef<MediaRecord>(record);
   const savedRef = useRef<MediaRecord>(record);
@@ -305,6 +300,45 @@ function MediaTabBody({
     deletion.deleteEntity();
   };
 
+  const updateRelatedTargets = (next: TargetRef[]) => {
+    if (linkPending) {
+      return;
+    }
+    const key = (target: TargetRef) => `${target.targetType}\u0000${target.targetId}`;
+    const currentKeys = new Set(relatedTargets.map(key));
+    const nextKeys = new Set(next.map(key));
+    const added = next.filter((target) => !currentKeys.has(key(target)));
+    const removed = (record.links ?? []).filter((link) => !nextKeys.has(key(link)));
+    if (added.length === 0 && removed.length === 0) {
+      return;
+    }
+    setLinkError(false);
+    setLinkPending(true);
+    const add = async (): Promise<void> => {
+      if (added.length === 0) {
+        return;
+      }
+      if (attachMediaToTargets !== undefined) {
+        await attachMediaToTargets(record.id, added);
+        return;
+      }
+      await Promise.all(
+        added.map((target) =>
+          api.attachMedia({
+            id: crypto.randomUUID(),
+            mediaId: record.id,
+            targetType: target.targetType,
+            targetId: target.targetId,
+          }),
+        ),
+      );
+    };
+    void add()
+      .then(() => Promise.all(removed.map((link) => api.detachMedia(link))))
+      .catch(() => setLinkError(true))
+      .finally(() => setLinkPending(false));
+  };
+
   const external = isExternalMediaPath(record.path);
   const hasPreview = !external && record.absolutePath !== '' && isImagePath(record.path);
   const displayName = mediaDisplayName({ title, path: record.path });
@@ -343,28 +377,6 @@ function MediaTabBody({
         )}
       </SectionCard>
 
-      <SectionCard title={nls.t('features.tree.media.links')}>
-        <ul className="media-link-list">
-          {(record.links ?? []).map((link) => (
-            <MediaLinkRow
-              key={link.id}
-              link={link}
-              targetLabel={targetLabel(link.targetType, link.targetId)}
-              canDetach={(record.links?.length ?? 0) > 1}
-              onSave={(after) => api.updateMediaLink(link, after)}
-              deletingMedia={deletion.deleting}
-              onDetach={() => {
-                if ((record.links?.length ?? 0) > 1) {
-                  void api.detachMedia(link);
-                } else {
-                  remove();
-                }
-              }}
-            />
-          ))}
-        </ul>
-      </SectionCard>
-
       <AttachmentsPanel
         targetType="media"
         targetId={record.id}
@@ -372,105 +384,22 @@ function MediaTabBody({
         sources={sources}
         onOpenSource={(sourceId) => api.openSource?.(sourceId)}
       />
-      {attachMediaToTargets !== undefined && (
-        <SectionCard title={nls.t('features.tasks.target')}>
-          <div className="media-link-add">
-            <TargetPicker
-              allowedTypes={MEDIA_LINK_TARGET_TYPES}
-              value={linkTargets}
-              onChange={setLinkTargets}
-              ariaLabel={nls.t('features.tasks.target')}
-            />
-            <Button
-              variant="secondary"
-              size="sm"
-              disabled={linkTargets.length === 0}
-              onClick={() => {
-                setLinkError(false);
-                const submitted = linkTargets;
-                void attachMediaToTargets(record.id, submitted)
-                  .then(() =>
-                    setLinkTargets((current) =>
-                      current.filter(
-                        (target) =>
-                          !submitted.some(
-                            (entry) => entry.targetType === target.targetType && entry.targetId === target.targetId,
-                          ),
-                      ),
-                    ),
-                  )
-                  .catch(() => setLinkError(true));
-              }}
-            >
-              {nls.t('features.tree.media.attach')}
-            </Button>
-          </div>
-          {linkError ? <InlineError>{nls.t('features.tree.autosaveFailed')}</InlineError> : null}
-        </SectionCard>
-      )}
+      <SectionCard title={nls.t('features.tasks.target')}>
+        <TargetPicker
+          allowedTypes={MEDIA_LINK_TARGET_TYPES}
+          value={relatedTargets}
+          onChange={updateRelatedTargets}
+          disabled={linkPending}
+          ariaLabel={nls.t('features.tasks.target')}
+        />
+        {linkError ? <InlineError>{nls.t('features.tree.autosaveFailed')}</InlineError> : null}
+      </SectionCard>
       <DangerZone>
         <Button variant="danger" size="sm" data-autosave-skip="true" disabled={deletion.deleting} onClick={remove}>
           {nls.t('features.tree.fact.delete')}
         </Button>
       </DangerZone>
     </EntityTab>
-  );
-}
-
-function MediaLinkRow({
-  link,
-  targetLabel,
-  canDetach,
-  onSave,
-  onDetach,
-  deletingMedia,
-}: {
-  link: MediaLinkRecord;
-  targetLabel: string;
-  canDetach: boolean;
-  onSave: (link: MediaLinkRecord) => Promise<void>;
-  onDetach: () => void;
-  deletingMedia: boolean;
-}) {
-  const [draft, setDraft] = useState<MediaLinkRecord>(link);
-  const set = (patch: Partial<MediaLinkRecord>) => setDraft({ ...draft, ...patch });
-
-  return (
-    <li className="media-link-row">
-      <div className="media-link-target">
-        <strong>{link.targetType}</strong>
-        <span>{targetLabel}</span>
-      </div>
-      <FieldGrid columns={2}>
-        {(['top', 'left', 'height', 'width'] as const).map((edge) => (
-          <Field key={edge} label={nls.t(`features.tree.media.crop.${edge}`)}>
-            <Input
-              type="number"
-              value={draft.crop?.[edge] ?? ''}
-              onChange={(event) => {
-                const value = event.target.value === '' ? undefined : Number(event.target.value);
-                set({ crop: { ...draft.crop, [edge]: value } });
-              }}
-            />
-          </Field>
-        ))}
-      </FieldGrid>
-      <div className="media-link-flags">
-        <Checkbox
-          label={nls.t('features.tree.media.primary')}
-          checked={draft.primary === true}
-          onChange={(event) => set({ primary: event.target.checked })}
-        />
-      </div>
-      <div className="media-link-actions">
-        <Button variant="primary" size="sm" onClick={() => void onSave(draft)}>
-          {nls.t('features.tree.save')}
-        </Button>
-        <Button variant="secondary" size="sm" disabled={deletingMedia} onClick={onDetach}>
-          {canDetach ? nls.t('features.tree.media.detach') : nls.t('features.tree.fact.delete')}
-        </Button>
-      </div>
-    </li>
   );
 }
 

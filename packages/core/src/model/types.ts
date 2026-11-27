@@ -679,8 +679,9 @@ export interface MediaLinkRecord {
 }
 
 /**
- * A media record: exactly one file plus its links. `targetType`/`targetId`
- * are projections of the first link, kept for the renderer.
+ * A media record: exactly one file plus zero or more target links. A record
+ * without links stays in the library; `targetType`/`targetId` are projections
+ * of the first link, kept for the renderer.
  */
 export interface MediaRecord extends RecordTimestamps {
   id: string;

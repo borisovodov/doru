@@ -139,7 +139,7 @@ describe('media metadata', () => {
     }
   });
 
-  it('does not mark an excluded media link as primary', () => {
+  it('still assigns a primary when the only imported link is excluded from diagrams', () => {
     const fixture = makeRepo();
     try {
       const parsed = parseDataset(
@@ -162,7 +162,9 @@ describe('media metadata', () => {
       importGedcomDataset(parsed, fixture.repo);
       const person = fixture.repo.listAllPersons()[0]!;
       const link = fixture.repo.listAttachmentsFor('person', person.id).mediaLinks[0]!.link;
-      expect(link.primary).toBeUndefined();
+      // The exclusion flag is not stored in the tree model; a target with
+      // media still needs exactly one primary link.
+      expect(link.primary).toBe(true);
     } finally {
       cleanupRepo(fixture);
     }

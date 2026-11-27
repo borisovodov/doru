@@ -155,7 +155,6 @@ export interface TreeRepository {
   listMediaLinksFor(targetType: string, targetId: string): Array<{ media: MediaRecord; link: MediaLinkRecord }>;
   updateMediaLink(link: MediaLinkRecord): void;
   removeMediaLink(id: string): boolean;
-  removeMediaLinkOnly(id: string): boolean;
   listMediaFor(targetType: string, targetId: string): MediaRecord[];
   listAllMedia(): MediaRecord[];
   insertRepository(repository: RepositoryRecord): void;
@@ -806,18 +805,7 @@ export class SqliteTreeRepository implements TreeRepository {
   }
 
   removeMediaLink(id: string): boolean {
-    return this.transactions.run(() => {
-      const mediaId = this.media.getMediaIdForLink(id);
-      const removed = this.media.removeMediaLink(id);
-      if (removed && mediaId !== undefined && this.media.getMedia(mediaId) === undefined) {
-        this.deleteAttachmentsFor('media', mediaId);
-      }
-      return removed;
-    });
-  }
-
-  removeMediaLinkOnly(id: string): boolean {
-    return this.media.removeMediaLinkOnly(id);
+    return this.media.removeMediaLink(id);
   }
 
   listMediaFor(targetType: string, targetId: string): MediaRecord[] {

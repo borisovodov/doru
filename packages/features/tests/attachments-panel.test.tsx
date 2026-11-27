@@ -134,6 +134,7 @@ describe('AttachmentsPanel contacts', () => {
           addMediaToTarget,
           addMediaUrlToTarget: async () => undefined,
           attachMedia: async () => undefined,
+          updateMediaLink: async () => undefined,
           detachMedia: async () => undefined,
           deleteMedia: async () => undefined,
         }}
@@ -160,6 +161,7 @@ describe('AttachmentsPanel contacts', () => {
           addMediaToTarget: async () => undefined,
           addMediaUrlToTarget,
           attachMedia: async () => undefined,
+          updateMediaLink: async () => undefined,
           detachMedia: async () => undefined,
           deleteMedia: async () => undefined,
         }}
@@ -196,6 +198,7 @@ describe('AttachmentsPanel contacts', () => {
           addMediaToTarget: async () => undefined,
           addMediaUrlToTarget,
           attachMedia: async () => undefined,
+          updateMediaLink: async () => undefined,
           detachMedia: async () => undefined,
           deleteMedia: async () => undefined,
         }}
@@ -233,6 +236,7 @@ describe('AttachmentsPanel contacts', () => {
           addMediaToTarget: async () => undefined,
           addMediaUrlToTarget: async () => undefined,
           attachMedia,
+          updateMediaLink: async () => undefined,
           detachMedia: async () => undefined,
           deleteMedia: async () => undefined,
         }}
@@ -278,6 +282,7 @@ describe('AttachmentsPanel contacts', () => {
             addMediaToTarget: async () => undefined,
             addMediaUrlToTarget: async () => undefined,
             attachMedia: async () => undefined,
+            updateMediaLink: async () => undefined,
             detachMedia,
             deleteMedia,
           }}
@@ -297,7 +302,7 @@ describe('AttachmentsPanel contacts', () => {
     }
   });
 
-  it('offers only deletion for media linked to one record', async () => {
+  it('offers detach and deletion for media linked to one record', async () => {
     const ownerLink: MediaLinkRecord = { id: 'ML1', mediaId: 'M1', targetType: 'person', targetId: 'P1' };
     const item: MediaWithPath = {
       id: 'M1',
@@ -317,6 +322,7 @@ describe('AttachmentsPanel contacts', () => {
           addMediaToTarget: async () => undefined,
           addMediaUrlToTarget: async () => undefined,
           attachMedia: async () => undefined,
+          updateMediaLink: async () => undefined,
           detachMedia: async () => undefined,
           deleteMedia: async () => undefined,
         }}
@@ -324,8 +330,94 @@ describe('AttachmentsPanel contacts', () => {
       />,
     );
 
-    await screen.findByRole('button', { name: nls.t('features.tree.media.delete') });
-    expect(screen.queryByRole('button', { name: nls.t('features.tree.media.detach') })).not.toBeInTheDocument();
+    expect(await screen.findByRole('button', { name: nls.t('features.tree.media.detach') })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: nls.t('features.tree.media.delete') })).toBeInTheDocument();
+  });
+
+  it('marks another media as the target main photo', async () => {
+    const firstLink: MediaLinkRecord = {
+      id: 'ML1',
+      mediaId: 'M1',
+      targetType: 'person',
+      targetId: 'P1',
+      primary: true,
+    };
+    const secondLink: MediaLinkRecord = { id: 'ML2', mediaId: 'M2', targetType: 'person', targetId: 'P1' };
+    const first: MediaWithPath = {
+      id: 'M1',
+      title: 'Portrait of Anna',
+      path: 'media/anna.jpg',
+      absolutePath: '/demo/anna.jpg',
+      links: [firstLink],
+    };
+    const second: MediaWithPath = {
+      id: 'M2',
+      title: 'Wedding photo',
+      path: 'media/wedding.jpg',
+      absolutePath: '/demo/wedding.jpg',
+      links: [secondLink],
+    };
+    const updateMediaLink = vi.fn(async () => undefined);
+    renderUi(
+      <MediaSection
+        targetType="person"
+        targetId="P1"
+        media={[first, second]}
+        api={{
+          getMediaFor: async () => [first, second],
+          getAllMedia: async () => [first, second],
+          addMediaToTarget: async () => undefined,
+          addMediaUrlToTarget: async () => undefined,
+          attachMedia: async () => undefined,
+          updateMediaLink,
+          detachMedia: async () => undefined,
+          deleteMedia: async () => undefined,
+        }}
+        refresh={async () => undefined}
+      />,
+    );
+
+    expect(screen.getByRole('img', { name: nls.t('features.tree.media.primary') })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: nls.t('features.tree.media.makePrimary') }));
+    await waitFor(() => expect(updateMediaLink).toHaveBeenCalledWith(secondLink, { ...secondLink, primary: true }));
+  });
+
+  it('treats the first media as main when no stored link has the flag', async () => {
+    const first: MediaWithPath = {
+      id: 'M1',
+      title: 'Portrait of Anna',
+      path: 'media/anna.jpg',
+      absolutePath: '/demo/anna.jpg',
+      links: [{ id: 'ML1', mediaId: 'M1', targetType: 'person', targetId: 'P1' }],
+    };
+    const second: MediaWithPath = {
+      id: 'M2',
+      title: 'Wedding photo',
+      path: 'media/wedding.jpg',
+      absolutePath: '/demo/wedding.jpg',
+      links: [{ id: 'ML2', mediaId: 'M2', targetType: 'person', targetId: 'P1' }],
+    };
+    renderUi(
+      <MediaSection
+        targetType="person"
+        targetId="P1"
+        media={[first, second]}
+        api={{
+          getMediaFor: async () => [first, second],
+          getAllMedia: async () => [first, second],
+          addMediaToTarget: async () => undefined,
+          addMediaUrlToTarget: async () => undefined,
+          attachMedia: async () => undefined,
+          updateMediaLink: async () => undefined,
+          detachMedia: async () => undefined,
+          deleteMedia: async () => undefined,
+        }}
+        refresh={async () => undefined}
+      />,
+    );
+
+    expect(screen.getByRole('img', { name: nls.t('features.tree.media.primary') })).toBeInTheDocument();
+    expect(screen.getAllByRole('button', { name: nls.t('features.tree.media.makePrimary') })).toHaveLength(1);
   });
 
   it('renders external media as a silent placeholder', async () => {
@@ -346,6 +438,7 @@ describe('AttachmentsPanel contacts', () => {
           addMediaToTarget: async () => undefined,
           addMediaUrlToTarget: async () => undefined,
           attachMedia: async () => undefined,
+          updateMediaLink: async () => undefined,
           detachMedia: async () => undefined,
           deleteMedia: async () => undefined,
         }}
@@ -380,6 +473,7 @@ describe('AttachmentsPanel contacts', () => {
           addMediaToTarget: async () => undefined,
           addMediaUrlToTarget: async () => undefined,
           attachMedia: async () => undefined,
+          updateMediaLink: async () => undefined,
           detachMedia: async () => undefined,
           deleteMedia: async () => undefined,
         }}

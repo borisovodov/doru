@@ -24,6 +24,7 @@ export interface MediaSectionApi {
   addMediaToTarget(targetType: string, targetId: string): Promise<void>;
   addMediaUrlToTarget(targetType: string, targetId: string, url: string): Promise<void>;
   attachMedia(link: MediaLinkRecord): Promise<void>;
+  updateMediaLink(before: MediaLinkRecord, after: MediaLinkRecord): Promise<void>;
   detachMedia(link: MediaLinkRecord): Promise<void>;
   deleteMedia(media: MediaRecord): Promise<void>;
 }
@@ -126,14 +127,32 @@ export function MediaSection({
     }
   };
 
+  const makePrimary = async (item: MediaRecord) => {
+    const link = item.links?.find((entry) => entry.targetType === targetType && entry.targetId === targetId);
+    if (link === undefined || link.primary === true) {
+      return;
+    }
+    setMediaError(false);
+    try {
+      await api.updateMediaLink(link, { ...link, primary: true });
+      await refresh();
+    } catch {
+      setMediaError(true);
+    }
+  };
+
   const linkOf = (item: MediaRecord) =>
     item.links?.find((entry) => entry.targetType === targetType && entry.targetId === targetId);
   const hasDisplayableFile = (item: MediaWithPath): boolean =>
     item.absolutePath !== '' || isExternalMediaPath(item.path);
-  const visibleMedia = media
-    .filter(hasDisplayableFile)
-    .slice()
-    .sort((a, b) => Number(linkOf(b)?.primary === true) - Number(linkOf(a)?.primary === true));
+  const visibleMedia = media.filter(hasDisplayableFile).slice();
+  // The stored flag wins; older projects that predate the primary invariant
+  // still show exactly one main photo, the first visible one.
+  const primaryMedia = visibleMedia.find((item) => linkOf(item)?.primary === true) ?? visibleMedia[0];
+  const orderedMedia =
+    primaryMedia === undefined
+      ? visibleMedia
+      : [primaryMedia, ...visibleMedia.filter((item) => item.id !== primaryMedia.id)];
   const attachable = allMedia.filter(
     (item) =>
       hasDisplayableFile(item) &&
@@ -146,15 +165,13 @@ export function MediaSection({
         <EmptyText>{nls.t('features.tree.media.empty')}</EmptyText>
       ) : (
         <div className={styles['grid']}>
-          {visibleMedia.map((item) => {
-            const link = linkOf(item);
-            const shared = (item.links?.length ?? 0) > 1;
+          {orderedMedia.map((item) => {
+            const isPrimary = item.id === primaryMedia?.id;
             const preview =
               item.absolutePath !== '' && isImagePath(item.path)
                 ? `doru-media://local/?path=${encodeURIComponent(item.absolutePath)}`
                 : '';
             const label = mediaDisplayName(item) ?? item.path;
-            const badge = link?.primary === true ? nls.t('features.tree.media.primary') : undefined;
             return (
               <MediaTile
                 key={item.id}
@@ -166,7 +183,11 @@ export function MediaSection({
                     <span>{label}</span>
                   </span>
                 }
-                {...(badge !== undefined ? { badge } : {})}
+                primary={isPrimary}
+                primaryLabel={
+                  isPrimary ? nls.t('features.tree.media.primary') : nls.t('features.tree.media.makePrimary')
+                }
+                {...(isPrimary ? {} : { onPrimary: () => void makePrimary(item) })}
                 {...(onOpenMedia
                   ? {
                       openLabel: nls.t('features.tree.media.open'),
@@ -175,12 +196,8 @@ export function MediaSection({
                   : {})}
                 removeLabel={nls.t('features.tree.media.delete')}
                 onRemove={() => void remove(item)}
-                {...(shared
-                  ? {
-                      detachLabel: nls.t('features.tree.media.detach'),
-                      onDetach: () => void detach(item),
-                    }
-                  : {})}
+                detachLabel={nls.t('features.tree.media.detach')}
+                onDetach={() => void detach(item)}
               />
             );
           })}

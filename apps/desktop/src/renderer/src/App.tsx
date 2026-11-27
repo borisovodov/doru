@@ -33,16 +33,29 @@ export function App() {
   const tree = useTreeData(projectPath);
 
   // The primary media link supplies the read-only avatar on the tree cards.
+  // A project saved before the primary invariant existed may have no explicit
+  // flag; the first linked photo is the effective main photo there.
   const personPhotos = useMemo(() => {
-    const photos = new Map<string, string>();
+    const fallback = new Map<string, string>();
+    const explicit = new Map<string, string>();
     for (const media of tree.media) {
+      if (media.absolutePath === '') {
+        continue;
+      }
       for (const link of media.links ?? []) {
-        if (media.absolutePath !== '' && link.targetType === 'person' && link.primary === true) {
-          photos.set(link.targetId, `doru-media://local/?path=${encodeURIComponent(media.absolutePath)}`);
+        if (link.targetType !== 'person') {
+          continue;
+        }
+        const url = `doru-media://local/?path=${encodeURIComponent(media.absolutePath)}`;
+        if (!fallback.has(link.targetId)) {
+          fallback.set(link.targetId, url);
+        }
+        if (link.primary === true && !explicit.has(link.targetId)) {
+          explicit.set(link.targetId, url);
         }
       }
     }
-    return photos;
+    return new Map([...fallback, ...explicit]);
   }, [tree.media]);
   const chat = useChat(projectPath, tree.refreshTree);
   const ai = useAiSettings();

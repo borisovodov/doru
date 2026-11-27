@@ -31,6 +31,7 @@ export interface MediaTargetApi {
   addMediaUrlToTarget(targetType: string, targetId: string, url: string): Promise<void>;
   attachMedia(link: MediaLinkRecord): Promise<void>;
   attachMediaToTargets?(mediaId: string, targets: TargetRef[]): Promise<void>;
+  updateMediaLink(before: MediaLinkRecord, after: MediaLinkRecord): Promise<void>;
   detachMedia(link: MediaLinkRecord): Promise<void>;
   deleteMedia(media: MediaRecord): Promise<void>;
 }
@@ -41,7 +42,6 @@ export interface MediaAdminApi extends MediaTargetApi {
   /** Opens a source from a media attachment link. */
   openSource?: ((sourceId: string) => void) | undefined;
   updateMedia(before: MediaRecord, after: MediaRecord): Promise<void>;
-  updateMediaLink(before: MediaLinkRecord, after: MediaLinkRecord): Promise<void>;
 }
 
 export interface AttachmentsApi extends AttachmentApi, MediaTargetApi {

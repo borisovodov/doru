@@ -2252,8 +2252,9 @@ function importMediaLinks(
         targetType,
         targetId,
         ...(link.crop !== undefined ? { crop: link.crop } : {}),
-        // An excluded link must not become a tree-card portrait (the UI no
-        // longer stores the exclusion flag, so drop the primary mark here).
+        // The UI no longer stores the exclusion flag, so an excluded link is
+        // imported as a regular one; the repository still guarantees the
+        // target's primary link when none carries the flag.
         ...(link.primary === true && link.excludeFromDiagrams !== true ? { primary: true } : {}),
       });
     }

@@ -34,3 +34,17 @@ export const DetachAndDelete: DemoCase = {
     removeLabel: 'Delete media',
   },
 };
+
+export const Primary: DemoCase = {
+  args: {
+    primary: true,
+    primaryLabel: 'Main photo',
+  },
+};
+
+export const MakePrimary: DemoCase = {
+  args: {
+    onPrimary: () => undefined,
+    primaryLabel: 'Make main photo',
+  },
+};

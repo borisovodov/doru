@@ -152,9 +152,9 @@ describe('Phase 2: sources and media', () => {
       });
 
       repo.removeMediaLink('L1');
-      // The link removal leaves the record with no links: the cascade removes it.
+      // The link removal leaves the record in the library with no links.
       expect(repo.listMediaFor('person', 'P1')).toEqual([]);
-      expect(repo.getMedia('M1')).toBeUndefined();
+      expect(repo.getMedia('M1')).toMatchObject({ id: 'M1', links: [] });
     } finally {
       cleanupRepo(fixture);
     }

@@ -217,7 +217,7 @@ describe('redo guards for nested attachment targets', () => {
       service.undo();
       repo.updateMediaLink({
         ...repo.getMedia('M1')!.links!.find((link) => link.id === first.link.id)!,
-        primary: true,
+        crop: { top: 1 },
       });
       expect(service.redo().redoBlocked).toBe(true);
     } finally {
@@ -225,7 +225,7 @@ describe('redo guards for nested attachment targets', () => {
     }
   });
 
-  it('blocks media detach redo when the last link gained media evidence', () => {
+  it('allows media detach redo when the media gained evidence after undo', () => {
     const { fixture, service } = makeService();
     const { repo } = fixture;
     try {
@@ -235,7 +235,8 @@ describe('redo guards for nested attachment targets', () => {
       service.detachMedia(link);
       service.undo();
       repo.insertNote({ id: 'N1', text: 'new', targetType: 'media', targetId: 'M1' });
-      expect(service.redo().redoBlocked).toBe(true);
+      expect(service.redo().redoBlocked).toBeUndefined();
+      expect(repo.listNotesFor('media', 'M1').map((entry) => entry.id)).toEqual(['N1']);
     } finally {
       cleanupRepo(fixture);
     }
