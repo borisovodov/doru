@@ -1,5 +1,5 @@
 ---
-source-hash: cb3069f80426
+source-hash: d13261ebcd34
 ---
 
 # Praca z drzewem
@@ -71,9 +71,9 @@ Dzieła, adresy, powiązania i relacje partner/dziecko w rodzinach mają te same
 
 ## Multimedia
 
-Zdjęcia to zwykłe pliki w folderze `media/` obok projektu. Dodawaj je z osoby, rodziny, źródła, miejsca, archiwum, zgłaszającego, dzieła, zadania lub adresu; sekcja **Powiązane z** na karcie multimediów pozwala dołączyć istniejący rekord do dodatkowych celów. Każda karta multimediów zawiera dokładnie jeden plik. Kliknij podgląd, aby otworzyć kartę multimediów, gdzie możesz edytować tytuł i metadane powiązania, takie jak podpis, kolejność, oznaczenie głównego i oznaczenie wykluczenia.
+Zdjęcia to zwykłe pliki w folderze `media/` obok projektu. Dodawaj je z osoby, rodziny, źródła, miejsca, archiwum, zgłaszającego, dzieła, zadania lub adresu; sekcja **Powiązane z** na karcie multimediów zarządza rekordami, do których to multimedia jest dołączone. Każda karta multimediów zawiera dokładnie jeden plik. Kliknij podgląd, aby otworzyć kartę multimediów, gdzie możesz edytować tytuł i datę. Użyj gwiazdki w sekcji Multimedia na karcie celu, aby wybrać jego główne zdjęcie.
 
-Rekord multimediów można powiązać z kilkoma celami. **Odłącz od tego rekordu** pojawia się tylko wtedy, gdy multimedia są powiązane z kilkoma celami; usuwa jedno powiązanie. **Usuń multimedia** usuwa rekord i kopię jego pliku. Usunięcie rekordu docelowego usuwa tylko jego powiązania, więc rekord multimediów może pozostać bez powiązań. Multimedia zaimportowane z GEDCOM `OBJE` z kilkoma plikami stają się osobną kartą dla każdego pliku; alternatywne formaty `TRAN` nie są importowane.
+Rekord multimediów można powiązać z kilkoma celami albo z żadnym. **Odłącz od tego rekordu** usuwa jedno powiązanie i jest dostępne dla każdego powiązania, także ostatniego; multimedia pozostają w bibliotece. **Usuń multimedia** usuwa rekord i kopię jego pliku. Usunięcie rekordu docelowego usuwa tylko jego powiązania, więc rekord multimediów może pozostać bez powiązań. Multimedia zaimportowane z GEDCOM `OBJE` z kilkoma plikami stają się osobną kartą dla każdego pliku; alternatywne formaty `TRAN` nie są importowane.
 
 ## Kolejność
 

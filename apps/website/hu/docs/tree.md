@@ -1,5 +1,5 @@
 ---
-source-hash: cb3069f80426
+source-hash: d13261ebcd34
 ---
 
 # A családfa használata
@@ -49,9 +49,9 @@ A művek, címek, társítások és családi partner/gyermek kapcsolatok ugyanaz
 
 ## Média
 
-A fényképek közönséges fájlok a projekt melletti `media/` mappában. Adja hozzá őket egy személytől, családtól, forrástól, helytől, levéltártól, beküldőtől, műtől, feladattól vagy címtől; a médialap **Kapcsolódó** szakaszában egy meglévő rekordot további célokhoz csatolhat. Minden médiakártya pontosan egy fájlt tartalmaz. Kattintson egy előnézetre a média lap megnyitásához, ahol szerkesztheti a címet és a hivatkozás metaadatait, például a feliratot, a sorrendet, az elsődleges jelzőt és a kizárási jelzőt.
+A fényképek közönséges fájlok a projekt melletti `media/` mappában. Adja hozzá őket egy személytől, családtól, forrástól, helytől, levéltártól, beküldőtől, műtől, feladattól vagy címtől; a médialap **Kapcsolódó** szakasza kezeli azokat a rekordokat, amelyekhez ez a média kapcsolódik. Minden médiakártya pontosan egy fájlt tartalmaz. Kattintson egy előnézetre a média lap megnyitásához, ahol szerkesztheti a címet és a dátumot. A cél Médiája szakaszában lévő csillaggal válassza ki a fő fotót.
 
-Egy médiarekord több célhoz is kapcsolható. A **Leválasztás erről a rekordról** csak akkor jelenik meg, ha a média több célhoz van kapcsolva; egy hivatkozást távolít el. A **Média törlése** eltávolítja a rekordot és a fájlmásolatát. Egy célrekord törlése csak a hivatkozásait távolítja el, így egy médiarekord hivatkozások nélkül is megmaradhat. A több fájlt tartalmazó GEDCOM `OBJE` importja fájlonként egy kártyát hoz létre; az alternatív `TRAN` formátumok nem importálhatók.
+Egy médiarekord több célhoz vagy egyhez sem kapcsolható. A **Leválasztás erről a rekordról** egy hivatkozást távolít el, és minden hivatkozásnál elérhető, beleértve az utolsót is; a média a könyvtárban marad. A **Média törlése** eltávolítja a rekordot és a fájlmásolatát. Egy célrekord törlése csak a hivatkozásait távolítja el, így egy médiarekord hivatkozások nélkül is megmaradhat. A több fájlt tartalmazó GEDCOM `OBJE` importja fájlonként egy kártyát hoz létre; az alternatív `TRAN` formátumok nem importálhatók.
 
 ## Sorrendezés
 

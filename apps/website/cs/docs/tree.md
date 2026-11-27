@@ -1,5 +1,5 @@
 ---
-source-hash: cb3069f80426
+source-hash: d13261ebcd34
 ---
 
 # Práce se stromem
@@ -69,9 +69,9 @@ Díla, adresy, spojení a vazby partnera/dítěte v rodinách mají stejné sekc
 
 ## Média
 
-Fotografie jsou obyčejné soubory ve složce `media/` vedle projektu. Přidejte je z osoby, rodiny, pramene, místa, archivu, odesílatele, díla, úkolu nebo adresy; sekce **Související s** na kartě médií umožňuje připojit existující záznam k dalším cílům. Každá karta média obsahuje právě jeden soubor. Kliknutím na náhled otevřete kartu médií, kde můžete upravit název a metadata propojení, jako je popisek, pořadí, označení hlavního a označení vyloučení.
+Fotografie jsou obyčejné soubory ve složce `media/` vedle projektu. Přidejte je z osoby, rodiny, pramene, místa, archivu, odesílatele, díla, úkolu nebo adresy; sekce **Související s** na kartě médií spravuje záznamy, ke kterým je toto médium připojeno. Každá karta média obsahuje právě jeden soubor. Kliknutím na náhled otevřete kartu médií, kde můžete upravit název a datum. Hvězdičkou v sekci Média na kartě cíle zvolte jeho hlavní fotografii.
 
-Mediální záznam lze propojit s několika cíli. **Odpojit od tohoto záznamu** se zobrazí pouze tehdy, když je médium propojeno s několika cíli; odebere jedno propojení. **Smazat médium** odstraní záznam a kopii jeho souboru. Smazání cílového záznamu odstraní pouze jeho propojení, takže mediální záznam může zůstat bez propojení. Médium importované z GEDCOM `OBJE` s několika soubory se změní na kartu pro každý soubor; alternativní formáty `TRAN` se neimportují.
+Mediální záznam lze propojit s několika cíli nebo s žádným. **Odpojit od tohoto záznamu** odebere jedno propojení a je dostupné pro každé propojení, včetně posledního; médium zůstane v knihovně. **Smazat médium** odstraní záznam a kopii jeho souboru. Smazání cílového záznamu odstraní pouze jeho propojení, takže mediální záznam může zůstat bez propojení. Médium importované z GEDCOM `OBJE` s několika soubory se změní na kartu pro každý soubor; alternativní formáty `TRAN` se neimportují.
 
 ## Řazení
 

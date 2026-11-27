@@ -2,7 +2,6 @@ import { Star, Trash2, Unlink } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { IconButton } from '../../atoms/icon-button/IconButton';
 import { cx } from '../../lib/cx';
-import { nls } from '../../nls';
 import styles from './MediaTile.module.css';
 
 interface MediaTileBaseProps {
@@ -12,10 +11,6 @@ interface MediaTileBaseProps {
   openLabel?: string;
   onRemove?: () => void;
   removeLabel?: string;
-  /** Marks this tile as the target's main media; disables the star action. */
-  primary?: boolean;
-  onPrimary?: () => void;
-  primaryLabel?: string;
   muted?: boolean;
   className?: string;
   /** Shown instead of the image for non-previewable (external or non-image) media. */
@@ -25,7 +20,14 @@ interface MediaTileBaseProps {
 type MediaTileDetachProps = { onDetach: () => void; detachLabel: string };
 type MediaTileNoDetachProps = { onDetach?: undefined; detachLabel?: undefined };
 
-export type MediaTileProps = MediaTileBaseProps & (MediaTileDetachProps | MediaTileNoDetachProps);
+type MediaTilePrimaryProps =
+  | { primary: true; primaryLabel: string; onPrimary?: (() => void) | undefined }
+  | { primary?: false; primaryLabel: string; onPrimary: () => void }
+  | { primary?: false; primaryLabel?: string | undefined; onPrimary?: undefined };
+
+export type MediaTileProps = MediaTileBaseProps &
+  (MediaTileDetachProps | MediaTileNoDetachProps) &
+  MediaTilePrimaryProps;
 
 /** A square media thumbnail with optional open and remove actions. */
 export function MediaTile(props: MediaTileProps) {
@@ -53,7 +55,7 @@ export function MediaTile(props: MediaTileProps) {
       </span>
     );
   const openName = openLabel === undefined || alt === '' ? (openLabel ?? alt) : `${openLabel}: ${alt}`;
-  const primaryLabelText = primaryLabel ?? nls.t('features.tree.media.primary');
+  const primaryLabelText = primaryLabel ?? '';
   return (
     <figure className={cx(styles['tile'], muted === true && styles['muted'], className)}>
       {onOpen ? (

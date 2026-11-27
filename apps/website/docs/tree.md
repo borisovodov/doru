@@ -87,19 +87,9 @@ Contributors or Tasks sections. A media link is not an attachment target.
 
 ## Media
 
-Photos are ordinary files in the `media/` folder next to the project. Add them
-from a person, family, source, place, repository, submitter, title, task or
-address; the media tab's **Related to** section lets you attach an existing
-record to additional targets. Each media card holds exactly one file. Click a
-preview to open the media tab, where you can edit the title and edit link
-metadata such as the caption, sequence, primary flag and exclusion flag.
+Photos are ordinary files in the `media/` folder next to the project. Add them from a person, family, source, place, repository, submitter, title, task or address; the media tab's **Related to** section manages the records this media is attached to. Each media card holds exactly one file. Click a preview to open the media tab, where you can edit the title and date. Use the star on a target's Media section to choose its main photo.
 
-A media record can be linked to several targets. **Detach from this record**
-appears only when the media is linked to several targets; it removes one link.
-**Delete media** removes the record and its file copy. Deleting a target
-record removes only its links, so a media record can remain without links.
-Media imported from a GEDCOM `OBJE` with several files becomes one card per
-file; `TRAN` alternative formats are not imported.
+A media record can be linked to several targets, or to none. **Detach from this record** removes one link and is available for every link, including the last one; the media stays in the library. **Delete media** removes the record and its file copy. Deleting a target record removes only its links, so a media record can remain without links. Media imported from a GEDCOM `OBJE` with several files becomes one card per file; `TRAN` alternative formats are not imported.
 
 ## Ordering
 

@@ -1,5 +1,5 @@
 ---
-source-hash: cb3069f80426
+source-hash: d13261ebcd34
 ---
 
 # Arbeiten mit dem Stammbaum
@@ -74,9 +74,9 @@ Werke, Adressen, Assoziationen und Partner-/Kind-Verknüpfungen von Familien hab
 
 ## Medien
 
-Fotos sind gewöhnliche Dateien im Ordner `media/` neben dem Projekt. Fügen Sie sie von einer Person, Familie, Quelle, einem Ort, Archiv, Einsender, Werk, einer Aufgabe oder Adresse hinzu; im Abschnitt **Verknüpft mit** des Medien-Tabs können Sie einen vorhandenen Datensatz an weitere Ziele anhängen. Jede Medienkarte enthält genau eine Datei. Klicken Sie auf eine Vorschau, um den Medien-Tab zu öffnen, in dem Sie den Titel und Link-Metadaten wie Bildunterschrift, Reihenfolge, Primärmarkierung und Ausschlussmarkierung bearbeiten können.
+Fotos sind gewöhnliche Dateien im Ordner `media/` neben dem Projekt. Fügen Sie sie von einer Person, Familie, Quelle, einem Ort, Archiv, Einsender, Werk, einer Aufgabe oder Adresse hinzu; der Abschnitt **Verknüpft mit** des Medien-Tabs verwaltet die Datensätze, mit denen dieses Medium verknüpft ist. Jede Medienkarte enthält genau eine Datei. Klicken Sie auf eine Vorschau, um den Medien-Tab zu öffnen, in dem Sie den Titel und das Datum bearbeiten können. Verwenden Sie den Stern im Abschnitt Medien einer Zielkarte, um ihr Hauptfoto zu wählen.
 
-Ein Mediendatensatz kann mit mehreren Zielen verknüpft werden. **Von diesem Datensatz lösen** erscheint nur, wenn das Medium mit mehreren Zielen verknüpft ist; es entfernt eine Verknüpfung. **Medien löschen** entfernt den Datensatz und seine Dateikopie. Das Löschen eines Ziel-Datensatzes entfernt nur seine Verknüpfungen, sodass ein Mediendatensatz ohne Verknüpfungen bestehen bleiben kann. Ein aus einem GEDCOM-`OBJE` mit mehreren Dateien importiertes Medium wird zu einer Karte pro Datei; alternative `TRAN`-Formate werden nicht importiert.
+Ein Mediendatensatz kann mit mehreren Zielen oder keinem verknüpft werden. **Von diesem Datensatz lösen** entfernt eine Verknüpfung und ist für jede Verknüpfung verfügbar, auch für die letzte; das Medium bleibt in der Bibliothek. **Medien löschen** entfernt den Datensatz und seine Dateikopie. Das Löschen eines Ziel-Datensatzes entfernt nur seine Verknüpfungen, sodass ein Mediendatensatz ohne Verknüpfungen bestehen bleiben kann. Ein aus einem GEDCOM-`OBJE` mit mehreren Dateien importiertes Medium wird zu einer Karte pro Datei; alternative `TRAN`-Formate werden nicht importiert.
 
 ## Reihenfolge
 

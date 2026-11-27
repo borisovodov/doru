@@ -1,5 +1,5 @@
 ---
-source-hash: cb3069f80426
+source-hash: d13261ebcd34
 ---
 
 # Ağaçla çalışma
@@ -49,9 +49,9 @@ Eserler, adresler, ilişkilendirmeler ve aile partner/çocuk bağlantıları, an
 
 ## Medya
 
-Fotoğraflar, projenin yanındaki `media/` klasöründeki sıradan dosyalardır. Bunları bir kişi, aile, kaynak, yer, depo, gönderen, eser, görev veya adresten ekleyin; medya sekmesindeki **İlgili** bölümü mevcut bir kaydı ek hedeflere bağlamanızı sağlar. Her medya kartı tam olarak bir dosya içerir. Medya sekmesini açmak için bir önizlemeye tıklayın; burada başlığı ve altyazı, sıra, birincil bayrağı ve dışlama bayrağı gibi bağlantı meta verilerini düzenleyebilirsiniz.
+Fotoğraflar, projenin yanındaki `media/` klasöründeki sıradan dosyalardır. Bunları bir kişi, aile, kaynak, yer, depo, gönderen, eser, görev veya adresten ekleyin; medya sekmesindeki **İlgili** bölümü bu medyanın bağlı olduğu kayıtları yönetir. Her medya kartı tam olarak bir dosya içerir. Medya sekmesini açmak için bir önizlemeye tıklayın; burada başlığı ve tarihi düzenleyebilirsiniz. Bir hedefin Medya bölümündeki yıldızı kullanarak ana fotoğrafını seçin.
 
-Bir medya kaydı birkaç hedefe bağlanabilir. **Bu kayıttan ayır** yalnızca medya birkaç hedefe bağlıysa görünür; bir bağlantıyı kaldırır. **Medyayı sil** kaydı ve dosya kopyasını kaldırır. Bir hedef kaydı silmek yalnızca bağlantılarını kaldırır, bu nedenle bir medya kaydı bağlantısız kalabilir. Birden çok dosyalı bir GEDCOM `OBJE` kaydından içe aktarılan medya, her dosya için bir kart olur; alternatif `TRAN` biçimleri içe aktarılmaz.
+Bir medya kaydı birkaç hedefe veya hiçbirine bağlanabilir. **Bu kayıttan ayır** bir bağlantıyı kaldırır ve son bağlantı dahil her bağlantı için kullanılabilir; medya kitaplıkta kalır. **Medyayı sil** kaydı ve dosya kopyasını kaldırır. Bir hedef kaydı silmek yalnızca bağlantılarını kaldırır, bu nedenle bir medya kaydı bağlantısız kalabilir. Birden çok dosyalı bir GEDCOM `OBJE` kaydından içe aktarılan medya, her dosya için bir kart olur; alternatif `TRAN` biçimleri içe aktarılmaz.
 
 ## Sıralama
 

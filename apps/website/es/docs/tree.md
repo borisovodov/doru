@@ -1,5 +1,5 @@
 ---
-source-hash: cb3069f80426
+source-hash: d13261ebcd34
 ---
 
 # Trabajar con el árbol
@@ -73,9 +73,9 @@ Las obras, direcciones, asociaciones y enlaces de pareja/hijo de una familia tie
 
 ## Multimedia
 
-Las fotos son archivos normales en la carpeta `media/` junto al proyecto. Añádelas desde una persona, familia, fuente, lugar, repositorio, remitente, obra, tarea o dirección; la sección **Relacionado con** de la pestaña multimedia permite adjuntar un registro existente a destinos adicionales. Cada tarjeta multimedia contiene exactamente un archivo. Haz clic en una vista previa para abrir la pestaña multimedia, donde puedes editar el título y los metadatos del vínculo, como el pie de foto, la secuencia, la marca principal y la marca de exclusión.
+Las fotos son archivos normales en la carpeta `media/` junto al proyecto. Añádelas desde una persona, familia, fuente, lugar, repositorio, remitente, obra, tarea o dirección; la sección **Relacionado con** de la pestaña multimedia gestiona los registros a los que está vinculado este multimedia. Cada tarjeta multimedia contiene exactamente un archivo. Haz clic en una vista previa para abrir la pestaña multimedia, donde puedes editar el título y la fecha. Usa la estrella en la sección Multimedia de un destino para elegir su foto principal.
 
-Un registro multimedia puede estar vinculado a varios destinos. **Desvincular de este registro** aparece solo cuando el multimedia está vinculado a varios destinos; elimina un vínculo. **Eliminar multimedia** elimina el registro y la copia de su archivo. Eliminar un registro de destino solo elimina sus vínculos, por lo que un registro multimedia puede quedar sin vínculos. Un multimedia importado desde un `OBJE` GEDCOM con varios archivos se convierte en una tarjeta por archivo; los formatos alternativos `TRAN` no se importan.
+Un registro multimedia puede estar vinculado a varios destinos o a ninguno. **Desvincular de este registro** elimina un vínculo y está disponible para cada vínculo, incluido el último; el multimedia permanece en la biblioteca. **Eliminar multimedia** elimina el registro y la copia de su archivo. Eliminar un registro de destino solo elimina sus vínculos, por lo que un registro multimedia puede quedar sin vínculos. Un multimedia importado desde un `OBJE` GEDCOM con varios archivos se convierte en una tarjeta por archivo; los formatos alternativos `TRAN` no se importan.
 
 ## Orden
 

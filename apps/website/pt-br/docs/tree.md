@@ -1,5 +1,5 @@
 ---
-source-hash: cb3069f80426
+source-hash: d13261ebcd34
 ---
 
 # Trabalhando com a árvore
@@ -71,9 +71,9 @@ Obras, endereços, associações e vínculos de parceiro/filho das famílias tê
 
 ## Mídia
 
-As fotos são arquivos comuns na pasta `media/` ao lado do projeto. Adicione-as a partir de uma pessoa, família, fonte, lugar, repositório, submetedor, obra, tarefa ou endereço; a seção **Relacionado a** da aba de mídia permite anexar um registro existente a outros destinos. Cada cartão de mídia contém exatamente um arquivo. Clique em uma prévia para abrir a aba de mídia, onde você pode editar o título e os metadados do vínculo, como legenda, sequência, sinalizador principal e sinalizador de exclusão.
+As fotos são arquivos comuns na pasta `media/` ao lado do projeto. Adicione-as a partir de uma pessoa, família, fonte, lugar, repositório, submetedor, obra, tarefa ou endereço; a seção **Relacionado a** da aba de mídia gerencia os registros aos quais esta mídia está vinculada. Cada cartão de mídia contém exatamente um arquivo. Clique em uma prévia para abrir a aba de mídia, onde você pode editar o título e a data. Use a estrela na seção Mídia de um destino para escolher sua foto principal.
 
-Um registro de mídia pode ser vinculado a vários destinos. **Desvincular deste registro** aparece apenas quando a mídia está vinculada a vários destinos; remove um vínculo. **Excluir mídia** remove o registro e a cópia do seu arquivo. Excluir um registro de destino remove apenas seus vínculos, então um registro de mídia pode permanecer sem vínculos. Uma mídia importada de um `OBJE` GEDCOM com vários arquivos se torna um cartão por arquivo; formatos alternativos `TRAN` não são importados.
+Um registro de mídia pode ser vinculado a vários destinos ou a nenhum. **Desvincular deste registro** remove um vínculo e está disponível para cada vínculo, inclusive o último; a mídia permanece na biblioteca. **Excluir mídia** remove o registro e a cópia do seu arquivo. Excluir um registro de destino remove apenas seus vínculos, então um registro de mídia pode permanecer sem vínculos. Uma mídia importada de um `OBJE` GEDCOM com vários arquivos se torna um cartão por arquivo; formatos alternativos `TRAN` não são importados.
 
 ## Ordenação
 

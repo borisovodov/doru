@@ -1,5 +1,5 @@
 ---
-source-hash: cb3069f80426
+source-hash: d13261ebcd34
 ---
 
 # Travailler avec l'arbre
@@ -75,9 +75,9 @@ Les œuvres, adresses, associations et liens partenaire/enfant d'une famille ont
 
 ## Médias
 
-Les photos sont des fichiers ordinaires dans le dossier `media/` à côté du projet. Ajoutez-les depuis une personne, une famille, une source, un lieu, un dépôt, un déclarant, un titre, une tâche ou une adresse ; la section **Lié à** de l’onglet média permet d’attacher un enregistrement existant à d’autres cibles. Chaque fiche média contient exactement un fichier. Cliquez sur un aperçu pour ouvrir l’onglet média, où vous pouvez modifier le titre et les métadonnées du lien, comme la légende, l’ordre, l’indicateur principal et l’indicateur d’exclusion.
+Les photos sont des fichiers ordinaires dans le dossier `media/` à côté du projet. Ajoutez-les depuis une personne, une famille, une source, un lieu, un dépôt, un déclarant, un titre, une tâche ou une adresse ; la section **Lié à** de l’onglet média gère les enregistrements auxquels ce média est rattaché. Chaque fiche média contient exactement un fichier. Cliquez sur un aperçu pour ouvrir l’onglet média, où vous pouvez modifier le titre et la date. Utilisez l’étoile dans la section Média d’une cible pour choisir sa photo principale.
 
-Un enregistrement média peut être lié à plusieurs cibles. **Détacher de cet enregistrement** n’apparaît que lorsque le média est lié à plusieurs cibles ; cela supprime un lien. **Supprimer le média** supprime l’enregistrement et sa copie de fichier. La suppression d’un enregistrement cible ne supprime que ses liens, de sorte qu’un enregistrement média peut rester sans lien. Un média importé depuis un `OBJE` GEDCOM contenant plusieurs fichiers devient une fiche par fichier ; les formats alternatifs `TRAN` ne sont pas importés.
+Un enregistrement média peut être lié à plusieurs cibles, ou à aucune. **Détacher de cet enregistrement** supprime un lien et est disponible pour chaque lien, y compris le dernier ; le média reste dans la bibliothèque. **Supprimer le média** supprime l’enregistrement et sa copie de fichier. La suppression d’un enregistrement cible ne supprime que ses liens, de sorte qu’un enregistrement média peut rester sans lien. Un média importé depuis un `OBJE` GEDCOM contenant plusieurs fichiers devient une fiche par fichier ; les formats alternatifs `TRAN` ne sont pas importés.
 
 ## Ordre
 
