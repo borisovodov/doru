@@ -322,6 +322,12 @@ decisions about what we deliberately do **not** build, see
   `--doru-overlay-*` (hover/pressed), `--doru-state` colors, `--doru-ring`
   (0.5px elevation ring), geometry (`--doru-radius-sm/md/lg` = 4/6/8px,
   `--doru-control-height` = 28px).
+- **Spacing is one scale**: `--doru-space-*` uses 2px steps (`--doru-space-4`
+  is 8px); the scale also defines larger 28/32/40/56/64/72px steps.
+  `padding`, `margin`, `gap` and inset offsets in the app CSS reference these
+  tokens; `npm run lint:css` rejects literal positive px values. Title bar
+  geometry uses `--doru-titlebar-height` (38px) and `--doru-titlebar-inset`
+  (78px).
 - **Floating panels**: the workbench root is the
   shell — a plain surface in the chrome color. The activity bar and the
   primary side bar share one rounded card (1px border, 8px radius) with a
