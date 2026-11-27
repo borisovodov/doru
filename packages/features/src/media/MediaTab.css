@@ -5,11 +5,3 @@
   object-fit: cover;
   border-radius: var(--doru-radius-md);
 }
-
-.media-file-path {
-  overflow: hidden;
-  color: var(--doru-fg-muted);
-  font-size: 12px;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}

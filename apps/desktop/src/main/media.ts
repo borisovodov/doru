@@ -12,7 +12,6 @@ import {
 import { NodeFileSystem } from './filesystem';
 import { log } from './log';
 import { ingestMediaFile, MediaIngestError, type IngestedMedia } from './mediaIngest';
-import { readMediaFileFacts, type MediaFileFacts } from './mediaFacts';
 import { addStoredMedia, isMediaPathPending, type MediaTarget } from './mediaRecord';
 import { redactMediaUrl } from './mediaDownload';
 import { addRemoteMediaRecord, RemoteMediaError } from './mediaUrl';
@@ -23,12 +22,9 @@ import { focusedWindow } from './windows';
 
 const fs = new NodeFileSystem();
 
-export type { MediaFileFacts };
-
 export interface MediaWithPath extends MediaRecord {
   /** Absolute path of the single file; empty for external/unresolved media. */
   absolutePath: string;
-  facts?: MediaFileFacts | undefined;
 }
 
 /**
@@ -40,37 +36,10 @@ function mediaAbsolutePath(projectPath: string, mediaPath: string): Promise<stri
   return resolveMediaPath(dirname(runtimeFilePath(projectPath)), mediaPath);
 }
 
-const MEDIA_FACT_CONCURRENCY = 4;
-
-/** Maps items with bounded concurrency, preserving the input order. */
-async function mapWithConcurrency<T, R>(
-  items: readonly T[],
-  limit: number,
-  map: (item: T) => Promise<R>,
-): Promise<R[]> {
-  const results = new Array<R>(items.length);
-  let nextIndex = 0;
-  const workers = Array.from({ length: Math.min(limit, items.length) }, async () => {
-    for (;;) {
-      const index = nextIndex;
-      nextIndex += 1;
-      const item = items[index];
-      if (item === undefined) {
-        return;
-      }
-      results[index] = await map(item);
-    }
-  });
-  await Promise.all(workers);
-  return results;
-}
-
 async function withPath(projectPath: string, media: MediaRecord): Promise<MediaWithPath> {
-  const absolutePath = await mediaAbsolutePath(projectPath, media.path);
   return {
     ...media,
-    absolutePath: absolutePath ?? '',
-    ...(absolutePath !== null ? { facts: await readMediaFileFacts(absolutePath) } : {}),
+    absolutePath: (await mediaAbsolutePath(projectPath, media.path)) ?? '',
   };
 }
 
@@ -93,17 +62,13 @@ export async function listMediaForTarget(
   targetId: string,
 ): Promise<MediaWithPath[]> {
   const { runtime } = await ensureRuntime(projectPath);
-  return mapWithConcurrency(runtime.service.listMediaFor(targetType, targetId), MEDIA_FACT_CONCURRENCY, (media) =>
-    withPath(projectPath, media),
-  );
+  return Promise.all(runtime.service.listMediaFor(targetType, targetId).map((media) => withPath(projectPath, media)));
 }
 
 /** Every media record in the project, with resolvable absolute paths. */
 export async function listAllMedia(projectPath: string): Promise<MediaWithPath[]> {
   const { runtime } = await ensureRuntime(projectPath);
-  return mapWithConcurrency(runtime.service.listAllMedia(), MEDIA_FACT_CONCURRENCY, (media) =>
-    withPath(projectPath, media),
-  );
+  return Promise.all(runtime.service.listAllMedia().map((media) => withPath(projectPath, media)));
 }
 
 /** Validates, converts and stores picked files, skipping rejected ones. */
