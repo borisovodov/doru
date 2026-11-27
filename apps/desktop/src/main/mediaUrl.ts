@@ -1,4 +1,5 @@
-import { mediaTitleFromPath, normalizeMediaUrl } from '@doru/core';
+import { mediaTitleFromPath, normalizeMediaUrl, type MediaRecord } from '@doru/core';
+import { addStoredMedia, type MediaRecordService, type MediaTarget } from './mediaRecord';
 import { downloadRemoteMedia } from './mediaDownload';
 import { ingestMediaBytes, isAllowedRemoteMediaType, MediaIngestError, type IngestedMedia } from './mediaIngest';
 
@@ -67,4 +68,19 @@ export async function fetchRemoteMedia(
     ...(title !== undefined ? { title } : {}),
     finalUrl: downloaded.finalUrl,
   };
+}
+
+/**
+ * Fetches a remote image, stores it content-addressed and creates its media
+ * record with the supplied target. The caller owns the project runtime.
+ */
+export async function addRemoteMediaRecord(
+  mediaDir: string,
+  value: string,
+  target: MediaTarget | undefined,
+  service: MediaRecordService,
+  dependencies: RemoteMediaDependencies = {},
+): Promise<MediaRecord> {
+  const fetched = await fetchRemoteMedia(value, dependencies);
+  return addStoredMedia(mediaDir, fetched.ingested, fetched.title, target, service);
 }

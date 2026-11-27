@@ -11,15 +11,15 @@ import {
 } from '@doru/core';
 import { NodeFileSystem } from './filesystem';
 import { log } from './log';
-import { ingestMediaFile, MediaIngestError, storeIngestedMedia, type IngestedMedia } from './mediaIngest';
+import { ingestMediaFile, MediaIngestError, type IngestedMedia } from './mediaIngest';
 import { readMediaFileFacts, type MediaFileFacts } from './mediaFacts';
+import { addStoredMedia, type MediaTarget } from './mediaRecord';
 import { redactMediaUrl } from './mediaDownload';
-import { fetchRemoteMedia, RemoteMediaError } from './mediaUrl';
+import { addRemoteMediaRecord, RemoteMediaError } from './mediaUrl';
 import { resolveMediaPath, symlinkChainResolvesTo } from './mediaPaths';
 import { nls } from './nls';
 import { ensureRuntime, runtimeFilePath } from './runtime';
 import { focusedWindow } from './windows';
-import type { ProjectRuntime } from './state';
 
 const fs = new NodeFileSystem();
 
@@ -106,35 +106,6 @@ export async function listAllMedia(projectPath: string): Promise<MediaWithPath[]
   );
 }
 
-interface MediaTarget {
-  targetType: string;
-  targetId: string;
-}
-
-async function addStoredMedia(
-  projectPath: string,
-  runtime: ProjectRuntime,
-  mediaDir: string,
-  ingested: IngestedMedia,
-  title: string | undefined,
-  target?: MediaTarget,
-): Promise<MediaWithPath> {
-  const name = await storeIngestedMedia(mediaDir, ingested);
-  const media: MediaRecord = {
-    id: randomUUID(),
-    ...(title !== undefined ? { title } : {}),
-    path: join(MEDIA_DIR_NAME, name),
-    ...(target !== undefined ? { targetType: target.targetType, targetId: target.targetId } : {}),
-  };
-  try {
-    runtime.service.addMedia(media);
-  } catch (error) {
-    await fs.remove(join(mediaDir, name));
-    throw error;
-  }
-  return withPath(projectPath, media);
-}
-
 /** Validates, converts and stores picked files, skipping rejected ones. */
 async function addPickedMedia(
   projectPath: string,
@@ -163,25 +134,27 @@ async function addPickedMedia(
       }
       throw error;
     }
-    added.push(await addStoredMedia(projectPath, runtime, mediaDir, ingested, mediaTitleFromPath(source), target));
+    const media = await addStoredMedia(mediaDir, ingested, mediaTitleFromPath(source), target, runtime.service);
+    added.push(await withPath(projectPath, media));
   }
   return added;
 }
 
 /** Downloads a direct image URL, converts it and stores a normal media record. */
 async function addRemoteMedia(projectPath: string, value: string, target?: MediaTarget): Promise<MediaWithPath> {
-  let fetched: Awaited<ReturnType<typeof fetchRemoteMedia>>;
-  try {
-    fetched = await fetchRemoteMedia(value);
-  } catch (error) {
-    const code = error instanceof RemoteMediaError ? error.code : 'download-failed';
-    log.warn('skipped media URL', redactMediaUrl(value), code);
-    throw new Error('media URL could not be added', { cause: error });
-  }
   const { runtime } = await ensureRuntime(projectPath);
   const mediaDir = join(dirname(runtimeFilePath(projectPath)), MEDIA_DIR_NAME);
   await fs.mkdir(mediaDir);
-  return addStoredMedia(projectPath, runtime, mediaDir, fetched.ingested, fetched.title, target);
+  try {
+    const media = await addRemoteMediaRecord(mediaDir, value, target, runtime.service);
+    return await withPath(projectPath, media);
+  } catch (error) {
+    if (error instanceof RemoteMediaError) {
+      log.warn('skipped media URL', redactMediaUrl(value), error.code);
+      throw new Error('media URL could not be added', { cause: error });
+    }
+    throw error;
+  }
 }
 
 export async function addMediaToTarget(

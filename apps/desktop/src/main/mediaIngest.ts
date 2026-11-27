@@ -214,14 +214,24 @@ export function mediaContentName(bytes: Uint8Array): string {
   return `${hash.slice(0, MEDIA_HASH_PREFIX_LENGTH)}.avif`;
 }
 
-/** Writes an ingested image under the project's media folder. */
-export async function storeIngestedMedia(mediaDir: string, ingested: IngestedMedia): Promise<string> {
+/** A stored media file and whether this call created it. */
+export interface StoredMedia {
+  name: string;
+  created: boolean;
+}
+
+/**
+ * Writes an ingested image under the project's media folder. An existing
+ * content-addressed file with the same bytes is reused and reported as
+ * `created: false`.
+ */
+export async function storeIngestedMedia(mediaDir: string, ingested: IngestedMedia): Promise<StoredMedia> {
   const name = mediaContentName(ingested.bytes);
   const destination = join(mediaDir, name);
   try {
     const existing = await stat(destination);
     if (existing.isFile() && existing.size === ingested.bytes.byteLength) {
-      return name;
+      return { name, created: false };
     }
   } catch {
     // The file does not exist yet; write it below.
@@ -238,11 +248,11 @@ export async function storeIngestedMedia(mediaDir: string, ingested: IngestedMed
       const existing = await stat(destination).catch(() => undefined);
       if (existing?.isFile() === true && existing.size === ingested.bytes.byteLength) {
         await rm(temporary, { force: true });
-        return name;
+        return { name, created: false };
       }
       throw error;
     }
-    return name;
+    return { name, created: true };
   } catch (error) {
     await rm(temporary, { force: true }).catch(() => undefined);
     throw error;

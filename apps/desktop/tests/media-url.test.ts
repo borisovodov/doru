@@ -1,6 +1,10 @@
 import { describe, expect, it, vi } from 'vitest';
+import { mkdtemp, readFile, rm } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { basename, join } from 'node:path';
+import type { MediaRecord } from '@doru/core';
 import { MediaIngestError } from '../src/main/mediaIngest';
-import { fetchRemoteMedia, RemoteMediaError } from '../src/main/mediaUrl';
+import { addRemoteMediaRecord, fetchRemoteMedia, RemoteMediaError } from '../src/main/mediaUrl';
 
 const bytes = new Uint8Array([1, 2, 3]);
 const ingested = { bytes: new Uint8Array([4, 5, 6]), extension: 'avif' as const, width: 10, height: 10 };
@@ -71,5 +75,33 @@ describe('remote media ingestion', () => {
     const error = new RemoteMediaError('invalid-url');
     expect(error.name).toBe('RemoteMediaError');
     expect(error.code).toBe('invalid-url');
+  });
+
+  it('stores a fetched URL and creates a targeted media record', async () => {
+    const dir = await mkdtemp(join(tmpdir(), 'doru-remote-media-'));
+    try {
+      const records: MediaRecord[] = [];
+      const service = {
+        addMedia: (media: MediaRecord) => {
+          records.push(media);
+        },
+        listAllMedia: () => records,
+      };
+
+      const media = await addRemoteMediaRecord(
+        dir,
+        'example.com/photo.jpg',
+        { targetType: 'person', targetId: 'P1' },
+        service,
+        { download: downloadMock('https://cdn.example.com/portrait.jpg'), ingest: ingestMock },
+      );
+
+      expect(media.title).toBe('portrait');
+      expect(media).toMatchObject({ targetType: 'person', targetId: 'P1' });
+      expect(records).toEqual([media]);
+      expect(await readFile(join(dir, basename(media.path)))).toEqual(Buffer.from(ingested.bytes));
+    } finally {
+      await rm(dir, { recursive: true, force: true });
+    }
   });
 });

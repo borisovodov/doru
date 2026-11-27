@@ -150,11 +150,12 @@ describe('media ingestion', () => {
     const ingested = await ingestMediaFile(source);
     const mediaDir = join(dir, 'media');
     await mkdir(mediaDir);
-    const name = await storeIngestedMedia(mediaDir, ingested);
+    const stored = await storeIngestedMedia(mediaDir, ingested);
 
     const hash = createHash('sha256').update(ingested.bytes).digest('hex').slice(0, 32);
-    expect(name).toBe(`${hash}.avif`);
-    expect((await readFile(join(mediaDir, name))).length).toBeGreaterThan(0);
+    expect(stored.name).toBe(`${hash}.avif`);
+    expect(stored.created).toBe(true);
+    expect((await readFile(join(mediaDir, stored.name))).length).toBeGreaterThan(0);
   });
 
   it('deduplicates identical content under one hash name', async () => {
@@ -164,13 +165,17 @@ describe('media ingestion', () => {
 
     const first = await ingestMediaBytes(await jpegBytes(), 'portrait.jpg');
     const copy = await ingestMediaBytes(await jpegBytes(), 'copy-of-portrait.jpg');
-    const name = await storeIngestedMedia(mediaDir, first);
-    expect(await storeIngestedMedia(mediaDir, copy)).toBe(name);
-    expect(await storeIngestedMedia(mediaDir, first)).toBe(name);
-    expect(await readdir(mediaDir)).toEqual([name]);
+    const stored = await storeIngestedMedia(mediaDir, first);
+    expect(stored.created).toBe(true);
+    const duplicate = await storeIngestedMedia(mediaDir, copy);
+    expect(duplicate).toEqual({ name: stored.name, created: false });
+    expect(await storeIngestedMedia(mediaDir, first)).toEqual({ name: stored.name, created: false });
+    expect(await readdir(mediaDir)).toEqual([stored.name]);
 
     const other = await ingestMediaBytes(await jpegBytes(9, 7), 'other.jpg');
-    expect(await storeIngestedMedia(mediaDir, other)).not.toBe(name);
+    const otherStored = await storeIngestedMedia(mediaDir, other);
+    expect(otherStored.name).not.toBe(stored.name);
+    expect(otherStored.created).toBe(true);
     expect(await readdir(mediaDir)).toHaveLength(2);
   });
 
