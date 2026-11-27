@@ -21,6 +21,7 @@ import { PersonCard } from './PersonCard';
 import { TreeEdges } from './PedigreeEdges';
 import { CARD_HEIGHT, CARD_WIDTH, ROW_HEIGHT } from './sizes';
 import { buildTreeView } from './view';
+import treeCanvasStyles from './TreeCanvas.module.css';
 import type { PersonCounts, RelativeRelation, TreeCanvasProps } from './types';
 import './TreeCanvas.css';
 
@@ -288,7 +289,16 @@ function TreeCanvasInner({
         fitOptions={FIT_OPTIONS}
         onPaneClick={handleClearSelection}
       >
-        <CanvasBackground gap={24} size={1} color="var(--doru-border)" />
+        <CanvasBackground
+          gap={64}
+          size={2}
+          minGap={8}
+          minSize={2}
+          fadeGap={32}
+          minOpacity={0.2}
+          color="var(--tree-canvas-dot)"
+          className={treeCanvasStyles['dots']}
+        />
         <CanvasWorld>
           {layout &&
             view?.bands.map(({ generation, y }) => (

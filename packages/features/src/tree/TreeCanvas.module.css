@@ -1,0 +1,4 @@
+.dots {
+  /* A little stronger than a hairline so panning reads on an empty canvas. */
+  --tree-canvas-dot: color-mix(in srgb, var(--doru-fg) 32%, transparent);
+}
