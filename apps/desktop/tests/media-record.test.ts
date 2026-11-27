@@ -54,7 +54,7 @@ describe('addStoredMedia', () => {
     );
 
     expect(isProjectMediaPath(media.path)).toBe(true);
-    expect(media.path).toMatch(new RegExp(`^media/[0-9a-f]{16}/[0-9a-f]{32}\\.avif$`));
+    expect(media.path.replaceAll('\\', '/')).toMatch(new RegExp(`^media/[0-9a-f]{16}/[0-9a-f]{32}\\.avif$`));
     expect(media.title).toBe('Portrait');
     expect(media).toMatchObject({ targetType: 'person', targetId: 'P1' });
     expect(records).toEqual([media]);
