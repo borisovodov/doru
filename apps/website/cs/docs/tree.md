@@ -1,5 +1,5 @@
 ---
-source-hash: e68af9c8211a
+source-hash: 7638270f30c2
 ---
 
 # Práce se stromem
@@ -65,7 +65,7 @@ adresy přímo na místě.
 
 Úkoly mají datum vytvoření a datum připomenutí. Uzavření úkolu mění pouze jeho stav; samostatné datum dokončení se neukládá. Většina editorů má sekci **Úkoly**: přidejte tam úkol a automaticky se propojí s daným záznamem. Výjimkou jsou editor úkolu a editor odesílatele a řádek mediální vazby má pouze sekci Prameny: karta úkolu si ponechává Poznámky a Média, karta odesílatele nemá sekci Úkoly a mediální vazba není cílem úkolů. Události, jména a citace mají vlastní sekci Úkoly ve svém panelu příloh. **Související s** propojí úkol s jedním nebo několika záznamy ve stromu — osobou, rodinou, událostí, jménem, zdrojem, citací, médiem, místem, archivem, adresou nebo dílem, ale ne s dalším úkolem, odesílatelem nebo mediální vazbou; ponechte prázdné pro samostatný úkol. Úkol je sdílený: úprava kdekoli aktualizuje stejný záznam a smazání souvisejícího záznamu úkol ponechá na místě. Pomocí **Připojit existující úkol** můžete znovu použít sdílený úkol místo vytvoření nového.
 
-Díla, adresy, spojení a vazby partnera/dítěte v rodinách mají stejné sekce Poznámky, Prameny, Přispěvatelé a Úkoly jako karty hlavních entit. Kontakty patří osobě, události, archivu nebo odesílateli, který je popisuje, ne adrese. Úkoly si zachovávají Poznámky a Média, ale nemají Prameny, Kontakty, Přispěvatele ani Úkoly. Mediální vazba má pouze Prameny.
+Díla, adresy, spojení a vazby partnera/dítěte v rodinách mají stejné sekce Poznámky, Prameny a Úkoly jako karty hlavních entit. Kontakty patří osobě, události, archivu nebo odesílateli, který je popisuje, ne adrese. Úkoly si zachovávají Poznámky a Média, ale nemají Prameny, Kontakty, Přispěvatele ani Úkoly. Mediální vazba má pouze Prameny. Přispěvatelé jsou dostupní pouze na kartách osoby a rodiny.
 
 ## Média
 

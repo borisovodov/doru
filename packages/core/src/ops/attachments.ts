@@ -280,6 +280,35 @@ export function updateMediaLinkOp(before: MediaLinkRecord, after: MediaLinkRecor
   };
 }
 
+/** Applies several link-row updates as one undo step, without re-normalizing primary flags. */
+export function updateMediaLinksOp(pairs: Array<{ before: MediaLinkRecord; after: MediaLinkRecord }>): Op {
+  const first = pairs[0];
+  return {
+    ...op(
+      crypto.randomUUID(),
+      'media.linkUpdate',
+      (ctx) => {
+        for (const pair of pairs) {
+          ctx.repo.updateMediaLinkRow(pair.after);
+        }
+      },
+      (ctx) => {
+        for (const pair of pairs) {
+          ctx.repo.updateMediaLinkRow(pair.before);
+        }
+      },
+    ),
+    ...(first === undefined
+      ? {}
+      : { change: { targetType: 'media', targetId: first.before.mediaId, kind: 'changed' } }),
+    redoSafe: (ctx) =>
+      pairs.every((pair) => {
+        const current = ctx.repo.getMedia(pair.before.mediaId)?.links?.find((link) => link.id === pair.before.id);
+        return current !== undefined && sameRecord(current, pair.before);
+      }),
+  };
+}
+
 export function attachMediaLinksOp(links: MediaLinkRecord[]): Op {
   return op(
     crypto.randomUUID(),

@@ -27,6 +27,7 @@ export {
   detachCitationOp,
   detachMediaOp,
   updateMediaLinkOp,
+  updateMediaLinksOp,
   updateAddressOp,
   updateCitationOp,
   updateNoteOp,

@@ -79,10 +79,11 @@ record, and deleting one related record leaves the task in place. Use
 one.
 
 Titles, addresses, associations and family partner/child links have the same
-Notes, Sources, Contributors and Tasks sections as the main entity
-tabs. Contacts belong to the person, fact, repository or submitter they describe, not to an address. Tasks keep Notes and Media, but have no
-Sources, Contacts, Contributors or Tasks sections. A media link
-has Sources only.
+Notes, Sources and Tasks sections as the main entity
+tabs. Contributors are available only on person and family cards. Contacts
+belong to the person, fact, repository or submitter they describe, not to an
+address. Tasks keep Notes and Media, but have no Sources, Contacts,
+Contributors or Tasks sections. A media link has Sources only.
 
 ## Media
 

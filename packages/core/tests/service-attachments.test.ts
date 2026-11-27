@@ -476,6 +476,37 @@ describe('TreeService attachments', () => {
     }
   });
 
+  it('restores the previous primary link when a primary switch is undone', () => {
+    const { fixture, service } = makeService();
+    try {
+      service.addPerson({ id: 'P1', names: [], sex: 'U', facts: [] });
+      service.addMedia({ id: 'M1', path: 'media/a.jpg', targetType: 'person', targetId: 'P1' });
+      service.addMedia({ id: 'M2', path: 'media/b.jpg', targetType: 'person', targetId: 'P1' });
+      const first = fixture.repo
+        .listAttachmentsFor('person', 'P1')
+        .mediaLinks.find((entry) => entry.media.id === 'M1')!.link;
+      const second = fixture.repo
+        .listAttachmentsFor('person', 'P1')
+        .mediaLinks.find((entry) => entry.media.id === 'M2')!.link;
+      expect(first.primary).toBe(true);
+
+      service.updateMediaLink(second, { ...second, primary: true });
+      service.updateMediaLink(first, { ...first, primary: true });
+      expect(
+        fixture.repo.listAttachmentsFor('person', 'P1').mediaLinks.find((entry) => entry.media.id === 'M2')?.link
+          .primary,
+      ).toBeUndefined();
+
+      service.undo();
+
+      const restored = fixture.repo.listAttachmentsFor('person', 'P1').mediaLinks;
+      expect(restored.find((entry) => entry.media.id === 'M1')?.link.primary).toBeUndefined();
+      expect(restored.find((entry) => entry.media.id === 'M2')?.link.primary).toBe(true);
+    } finally {
+      cleanupRepo(fixture);
+    }
+  });
+
   it('keeps media and its attachments when the last link is detached', () => {
     const { fixture, service } = makeService();
     try {

@@ -45,6 +45,7 @@ import {
   addMediaOp,
   updateMediaOp,
   updateMediaLinkOp,
+  updateMediaLinksOp,
   addNoteOp,
   addPersonOp,
   addPlaceOp,
@@ -1057,7 +1058,46 @@ export class TreeService {
 
   updateMediaLink(before: MediaLinkRecord, after: MediaLinkRecord): UndoRedoState {
     assertTargetAllowed('mediaLink', after.targetType);
-    return this.apply(updateMediaLinkOp(before, after));
+    return this.applyAfterCommit(() => {
+      const stored = this.repo.getMedia(before.mediaId)?.links?.find((link) => link.id === before.id);
+      if (stored === undefined) {
+        return undefined;
+      }
+      if (stored.targetType !== after.targetType || stored.targetId !== after.targetId) {
+        // Moving a link between targets keeps the repository's normalization
+        // path; it is not used by the editor, which only changes metadata.
+        return updateMediaLinkOp(stored, after);
+      }
+      const currentLinks = this.repo.listMediaLinksFor(stored.targetType, stored.targetId).map((entry) => entry.link);
+      const nextLinks = currentLinks.map((link) => (link.id === stored.id ? { ...after } : { ...link }));
+      if (after.primary === true) {
+        for (const link of nextLinks) {
+          link.primary = link.id === stored.id ? true : false;
+        }
+      } else {
+        const primary = nextLinks.find((link) => link.primary === true);
+        if (primary === undefined) {
+          const first = nextLinks[0];
+          if (first !== undefined) {
+            first.primary = true;
+          }
+        } else {
+          for (const link of nextLinks) {
+            if (link.id !== primary.id) {
+              link.primary = false;
+            }
+          }
+        }
+      }
+      const nextById = new Map(nextLinks.map((link) => [link.id, link]));
+      const pairs = currentLinks.flatMap((link) => {
+        const next = nextById.get(link.id);
+        return next === undefined || JSON.stringify(next) === JSON.stringify(link)
+          ? []
+          : [{ before: link, after: next }];
+      });
+      return pairs.length === 0 ? undefined : updateMediaLinksOp(pairs);
+    });
   }
 
   detachMedia(link: MediaLinkRecord): UndoRedoState {

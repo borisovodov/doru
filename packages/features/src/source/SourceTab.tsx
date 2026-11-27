@@ -365,6 +365,11 @@ function SourceTabBody({
     }
     setLinkError(false);
     setLinkPending(true);
+    // TODO(citations): a Related to chip is per target, but GEDCOM allows
+    // several citations from one source to the same target with different
+    // page/quality metadata. Removing the chip currently detaches all of
+    // them; revisit this together with the citations/sources UI instead of
+    // treating the target-level removal as final.
     const detach = removed.flatMap((target) =>
       citations
         .filter(

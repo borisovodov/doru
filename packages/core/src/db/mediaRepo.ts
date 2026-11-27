@@ -168,6 +168,26 @@ export class MediaRepo {
     });
   }
 
+  /** Writes one link row without applying the primary invariant. */
+  updateMediaLinkRow(link: MediaLinkRecord): void {
+    this.db
+      .prepare(
+        `UPDATE media_link SET target_type = ?, target_id = ?, crop_top = ?, crop_left = ?,
+           crop_height = ?, crop_width = ?, primary_flag = ?
+         WHERE id = ?`,
+      )
+      .run(
+        link.targetType,
+        link.targetId,
+        link.crop?.top ?? null,
+        link.crop?.left ?? null,
+        link.crop?.height ?? null,
+        link.crop?.width ?? null,
+        link.primary ? 1 : 0,
+        link.id,
+      );
+  }
+
   updateMediaLink(link: MediaLinkRecord): void {
     this.transactions.run(() => {
       const before = this.db.prepare('SELECT target_type, target_id FROM media_link WHERE id = ?').get(link.id) as
@@ -176,22 +196,7 @@ export class MediaRepo {
       if (before === undefined) {
         return;
       }
-      this.db
-        .prepare(
-          `UPDATE media_link SET target_type = ?, target_id = ?, crop_top = ?, crop_left = ?,
-             crop_height = ?, crop_width = ?, primary_flag = ?
-           WHERE id = ?`,
-        )
-        .run(
-          link.targetType,
-          link.targetId,
-          link.crop?.top ?? null,
-          link.crop?.left ?? null,
-          link.crop?.height ?? null,
-          link.crop?.width ?? null,
-          link.primary ? 1 : 0,
-          link.id,
-        );
+      this.updateMediaLinkRow(link);
       if (link.primary === true) {
         this.db
           .prepare('UPDATE media_link SET primary_flag = 0 WHERE target_type = ? AND target_id = ? AND id != ?')

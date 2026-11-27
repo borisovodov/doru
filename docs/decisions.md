@@ -363,11 +363,14 @@ Sources and notes attach to the media card (`media`), never to a link row.
 An inline 5.5.1 `NOTE` or `SOUR` under the link is hoisted onto the media
 record; a pointer-form link note or citation has no slot and is dropped. A
 media link stores only the crop and the primary flag; it is not an attachment
-target at all. An imported link marked `_EXCL` is not stored as primary, so an
-excluded photo never becomes the automatic tree-card portrait. The GEDCOM
-parser still reads the link-level display fields (`CROP`, `_PRIM`, `_SCBK`,
-`_SSHOW`, `_THUM`, `_SEQ`, `_EXCL`, `_CAPT`) so `@doru/gedcom` stays faithful,
-but the tree keeps only `crop` and `primary`.
+target at all. The tree does not store the `_EXCL` exclusion flag. Every
+target with media has exactly one primary link, so an excluded link is still
+eligible for the primary fallback; if it is the only linked media, an excluded
+photo may become the automatic tree-card portrait. This is accepted until
+exclusion is modeled separately. The GEDCOM parser still reads the link-level
+display fields (`CROP`, `_PRIM`, `_SCBK`, `_SSHOW`, `_THUM`, `_SEQ`, `_EXCL`,
+`_CAPT`) so `@doru/gedcom` stays faithful, but the tree keeps only `crop` and
+`primary`.
 
 ## API stability before 1.0.0
 

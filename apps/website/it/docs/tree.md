@@ -1,5 +1,5 @@
 ---
-source-hash: e68af9c8211a
+source-hash: 7638270f30c2
 ---
 
 # Lavorare con l'albero
@@ -68,7 +68,7 @@ indirizzo** e **Modifica indirizzo** per modificare un indirizzo sul posto.
 
 Le attività hanno una data di creazione e una data di promemoria. Chiudere un'attività cambia solo il suo stato; non viene salvata una data di completamento separata. La maggior parte degli editor ha una sezione **Attività**: aggiungi un'attività lì e viene collegata automaticamente a quel record. Fanno eccezione l'editor delle attività e quello dei mittenti, e una riga di collegamento multimediale ha solo la sezione Fonti: la scheda di un'attività conserva Note e Media, quella di un mittente non ha la sezione Attività, e un collegamento multimediale non è una destinazione per le attività. Eventi, nomi e citazioni hanno la propria sezione Attività nel loro pannello degli allegati. **Collegato a** collega un'attività a uno o più record dell'albero — una persona, famiglia, evento, nome, fonte, citazione, media, luogo, archivio, indirizzo o opera, ma non un'altra attività, un mittente o un collegamento multimediale; lascialo vuoto per un'attività indipendente. Un'attività è condivisa: modificarla ovunque aggiorna lo stesso record e l'eliminazione di un record collegato lascia l'attività al suo posto. Usa **Allega un'attività esistente** per riutilizzare un'attività condivisa invece di crearne una nuova.
 
-Opere, indirizzi, associazioni e collegamenti partner/figlio delle famiglie hanno le stesse sezioni Note, Fonti, Contributori e Attività delle schede delle entità principali. I contatti appartengono alla persona, all'evento, all'archivio o al mittente che descrivono, non a un indirizzo. Le attività mantengono Note e Media, ma non hanno Fonti, Contatti, Contributori o Attività. Un collegamento multimediale ha solo Fonti.
+Opere, indirizzi, associazioni e collegamenti partner/figlio delle famiglie hanno le stesse sezioni Note, Fonti e Attività delle schede delle entità principali. I contatti appartengono alla persona, all'evento, all'archivio o al mittente che descrivono, non a un indirizzo. Le attività mantengono Note e Media, ma non hanno Fonti, Contatti, Contributori o Attività. Un collegamento multimediale ha solo Fonti. I contributori sono disponibili solo sulle schede di persona e famiglia.
 
 ## Media
 

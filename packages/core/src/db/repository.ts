@@ -154,6 +154,7 @@ export interface TreeRepository {
   /** Direct media links of a target, without recursive attachment collection. */
   listMediaLinksFor(targetType: string, targetId: string): Array<{ media: MediaRecord; link: MediaLinkRecord }>;
   updateMediaLink(link: MediaLinkRecord): void;
+  updateMediaLinkRow(link: MediaLinkRecord): void;
   removeMediaLink(id: string): boolean;
   listMediaFor(targetType: string, targetId: string): MediaRecord[];
   listAllMedia(): MediaRecord[];
@@ -802,6 +803,10 @@ export class SqliteTreeRepository implements TreeRepository {
 
   updateMediaLink(link: MediaLinkRecord): void {
     this.media.updateMediaLink(link);
+  }
+
+  updateMediaLinkRow(link: MediaLinkRecord): void {
+    this.media.updateMediaLinkRow(link);
   }
 
   removeMediaLink(id: string): boolean {
