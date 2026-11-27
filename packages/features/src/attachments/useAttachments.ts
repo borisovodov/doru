@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import type { CitationRecord, ContactRecord, NoteRecord, RecordSubmitterLink, SubmitterRecord } from '@doru/core';
+import type { CitationRecord, ContactRecord, NoteRecord, SubmitterLink, SubmitterRecord } from '@doru/core';
 
 /** The read methods every entity editor needs for its attachment sections. */
 export interface AttachmentApi {
@@ -11,19 +11,19 @@ export interface AttachmentApi {
 /** The read and write contract every editor with contributors shares. */
 export interface ContributorApi {
   getSubmitters(): Promise<SubmitterRecord[]>;
-  getRecordSubmitters(targetType: string, targetId: string): Promise<RecordSubmitterLink[]>;
-  addRecordSubmitter(
+  getSubmitterLinks(targetType: string, targetId: string): Promise<SubmitterLink[]>;
+  addSubmitterLink(
     submitterId: string,
     targetType: string,
     targetId: string,
-    kind?: RecordSubmitterLink['kind'],
+    kind?: SubmitterLink['kind'],
   ): Promise<void>;
-  deleteRecordSubmitter(
+  deleteSubmitterLink(
     id: string,
     submitterId: string,
     targetType: string,
     targetId: string,
-    kind?: RecordSubmitterLink['kind'],
+    kind?: SubmitterLink['kind'],
   ): Promise<void>;
 }
 
@@ -35,7 +35,7 @@ export interface AttachmentData {
   citations: CitationRecord[];
   contacts: ContactRecord[];
   submitters: SubmitterRecord[];
-  contributors: RecordSubmitterLink[];
+  contributors: SubmitterLink[];
 }
 
 const emptyAttachments = (): AttachmentData => ({
@@ -92,7 +92,7 @@ export function useAttachments(
     const submitterApi = api as SubmitterAttachmentApi;
     const [submitters, contributors] = await Promise.all([
       submitterApi.getSubmitters(),
-      submitterApi.getRecordSubmitters(targetType, targetId),
+      submitterApi.getSubmitterLinks(targetType, targetId),
     ]);
     return {
       notes,

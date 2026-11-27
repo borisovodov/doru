@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Plus, Unlink } from 'lucide-react';
-import type { RecordSubmitterLink, SubmitterRecord } from '@doru/core';
+import type { SubmitterLink, SubmitterRecord } from '@doru/core';
 import { nls } from '../../nls';
 import { Button } from '../../atoms/button/Button';
 import { Chip } from '../../atoms/display/Chip';
@@ -12,7 +12,7 @@ import { ActionBar } from '../../patterns/action-bar/ActionBar';
 import { SectionCard } from '../../patterns/section-card/SectionCard';
 import styles from './SubmitterLinksSection.module.css';
 
-export type SubmitterLinkKind = NonNullable<RecordSubmitterLink['kind']>;
+export type SubmitterLinkKind = NonNullable<SubmitterLink['kind']>;
 
 /**
  * A list of record-to-submitter links, shared by ordinary contributors and
@@ -45,22 +45,17 @@ export function SubmitterLinksSection({
   targetType: string;
   targetId: string;
   submitters: SubmitterRecord[];
-  links: RecordSubmitterLink[];
+  links: SubmitterLink[];
   kinds: readonly SubmitterLinkKind[];
   defaultKind: SubmitterLinkKind;
   showKindLabel: boolean;
-  onAdd: (
-    submitterId: string,
-    targetType: string,
-    targetId: string,
-    kind: RecordSubmitterLink['kind'],
-  ) => Promise<void>;
+  onAdd: (submitterId: string, targetType: string, targetId: string, kind: SubmitterLink['kind']) => Promise<void>;
   onDelete: (
     id: string,
     submitterId: string,
     targetType: string,
     targetId: string,
-    kind: RecordSubmitterLink['kind'],
+    kind: SubmitterLink['kind'],
   ) => Promise<void>;
   /** False when the caller wants a read-only list of legacy links. */
   canAdd?: boolean;

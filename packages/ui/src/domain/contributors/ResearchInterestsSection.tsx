@@ -1,4 +1,4 @@
-import type { RecordSubmitterLink, SubmitterRecord } from '@doru/core';
+import type { SubmitterLink, SubmitterRecord } from '@doru/core';
 import { nls } from '../../nls';
 import { SubmitterLinksSection } from './SubmitterLinksSection';
 
@@ -19,19 +19,14 @@ export function ResearchInterestsSection({
   targetType: string;
   targetId: string;
   submitters: SubmitterRecord[];
-  links: RecordSubmitterLink[];
-  onAdd: (
-    submitterId: string,
-    targetType: string,
-    targetId: string,
-    kind: RecordSubmitterLink['kind'],
-  ) => Promise<void>;
+  links: SubmitterLink[];
+  onAdd: (submitterId: string, targetType: string, targetId: string, kind: SubmitterLink['kind']) => Promise<void>;
   onDelete: (
     id: string,
     submitterId: string,
     targetType: string,
     targetId: string,
-    kind: RecordSubmitterLink['kind'],
+    kind: SubmitterLink['kind'],
   ) => Promise<void>;
   canAdd?: boolean;
 }) {

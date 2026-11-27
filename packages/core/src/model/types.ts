@@ -899,7 +899,7 @@ export interface ContactRecord {
 }
 
 /** A submitter link: contributor or an ANCI/DESI research interest. */
-export interface RecordSubmitterLink {
+export interface SubmitterLink {
   id: string;
   submitterId: string;
   targetType: string;
@@ -927,7 +927,7 @@ export interface AttachmentsSnapshot {
   contacts: ContactRecord[];
   /** Task links targeting this record; the tasks themselves survive. */
   taskLinks: TaskTargetLink[];
-  recordSubmitters: RecordSubmitterLink[];
+  submitterLinks: SubmitterLink[];
 }
 
 export function emptyAttachments(): AttachmentsSnapshot {
@@ -939,7 +939,7 @@ export function emptyAttachments(): AttachmentsSnapshot {
     mediaAttachments: [],
     contacts: [],
     taskLinks: [],
-    recordSubmitters: [],
+    submitterLinks: [],
   };
 }
 

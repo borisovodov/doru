@@ -25,7 +25,7 @@ const SECTION_TARGET_KIND: Readonly<Record<AttachmentSection, AttachmentTargetKi
   sources: 'citation',
   media: 'mediaLink',
   contacts: 'contact',
-  contributors: 'recordSubmitter',
+  contributors: 'submitterLink',
   tasks: 'taskLink',
 };
 
@@ -71,7 +71,7 @@ export function AttachmentsPanel({
     isAttachmentTargetAllowed(SECTION_TARGET_KIND[section], targetType),
   );
   const include = new Set(availableSections);
-  const canAddContributor = isAttachmentTargetAllowed('recordSubmitter', targetType);
+  const canAddContributor = isAttachmentTargetAllowed('submitterLink', targetType);
   const canAddTask = isAttachmentTargetAllowed('taskLink', targetType);
   return (
     <>
@@ -142,11 +142,11 @@ export function AttachmentsPanel({
           links={contributors}
           canAdd={canAddContributor}
           onAdd={async (submitterId, type, id, kind) => {
-            await api.addRecordSubmitter(submitterId, type, id, kind);
+            await api.addSubmitterLink(submitterId, type, id, kind);
             await refresh();
           }}
           onDelete={async (id, submitterId, type, target, kind) => {
-            await api.deleteRecordSubmitter(id, submitterId, type, target, kind);
+            await api.deleteSubmitterLink(id, submitterId, type, target, kind);
             await refresh();
           }}
         />

@@ -109,7 +109,7 @@ describe('Phase 3: research layer', () => {
         targets: [{ id: 'TL1', taskId: 'T1', targetType: 'person', targetId: 'P1' }],
       });
       repo.insertSubmitter({ id: 'S1', name: 'Sub' });
-      repo.insertRecordSubmitter('RS1', 'S1', 'person', 'P1');
+      repo.insertSubmitterLink('RS1', 'S1', 'person', 'P1');
 
       svc.deletePerson(p);
       expect(repo.listTasksFor('person', 'P1')).toEqual([]);

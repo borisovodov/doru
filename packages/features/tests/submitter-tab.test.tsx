@@ -28,7 +28,7 @@ function apiStub(): RegistriesEditorApi {
     getCitations: async () => [],
     getContacts: async () => [],
     getSubmitters: async () => [],
-    getRecordSubmitters: async () => [],
+    getSubmitterLinks: async () => [],
     getMediaFor: async () => [],
     getAllMedia: async () => [],
     getRepositories: async () => [],
@@ -54,7 +54,7 @@ describe('SubmitterTab', () => {
         sources={[]}
         media={[]}
         mediaApi={mediaApiStub()}
-        recordSubmitters={[]}
+        submitterLinks={[]}
         targetData={targetData}
         onOpenSource={vi.fn()}
         onOpenMedia={vi.fn()}

@@ -154,7 +154,7 @@ those sets; there is no global runtime target list and no second UI list.
 | Media link | Every target type except `media` and `media_link`; a task is a valid media target. |
 | Contact | `person`, `fact`, `repository`, `submitter`. |
 | Task link | Every target type except `task`, `submitter`, and `media_link`; `source` is valid. |
-| Contributor link | `person`, `family`. GEDCOM has standard `SUBM` pointers only on individuals and families; `ANCI`/`DESI` research interests are also individual-only. |
+| Submitter link (`contributor`, ANCI/DESI) | `person`, `family`. GEDCOM has standard `SUBM` pointers only on individuals and families; `ANCI`/`DESI` research interests are also individual-only. |
 
 Consequences: a source has nothing to cite on a task (a task asserts nothing),
 a task card keeps Notes and Media only, a submitter card has no Tasks or

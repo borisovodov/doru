@@ -61,7 +61,7 @@ export const submitterTab: TabDescriptor = {
       sources={context.tree.sources}
       media={context.tree.media}
       mediaApi={context.tree.mediaApi}
-      recordSubmitters={context.tree.recordSubmitters}
+      submitterLinks={context.tree.submitterLinks}
       targetData={{
         persons: context.tree.persons,
         families: context.tree.families,

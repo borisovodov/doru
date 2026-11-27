@@ -51,10 +51,10 @@ export const DORU_APPLICATION_ID = 0x444f5255;
  * Bumped whenever the schema changes. There are no migrations before 1.0.0:
  * a newer version may simply not understand files written by older ones
  * (the store refuses to open them with a loud error). This schema uses
- * version 27, above every version written by an earlier build (the old model
+ * version 28, above every version written by an earlier build (the old model
  * reached 18), so the open guard cannot mistake an old file for this one.
  */
-export const SCHEMA_VERSION = 27;
+export const SCHEMA_VERSION = 28;
 
 export const SCHEMA_SQL = `
 CREATE TABLE IF NOT EXISTS person (
@@ -431,7 +431,7 @@ CREATE TABLE IF NOT EXISTS submitter_language (
   PRIMARY KEY (submitter_id, language)
 );
 
-CREATE TABLE IF NOT EXISTS record_submitter (
+CREATE TABLE IF NOT EXISTS submitter_link (
   id TEXT PRIMARY KEY,
   submitter_id TEXT NOT NULL REFERENCES submitter(id) ON DELETE CASCADE,
   target_type TEXT NOT NULL,
@@ -590,8 +590,8 @@ CREATE INDEX IF NOT EXISTS idx_citation_template_field_citation ON citation_temp
 CREATE INDEX IF NOT EXISTS idx_media_link_media ON media_link(media_id);
 CREATE INDEX IF NOT EXISTS idx_media_link_target ON media_link(target_type, target_id);
 CREATE INDEX IF NOT EXISTS idx_submitter_language ON submitter_language(submitter_id);
-CREATE INDEX IF NOT EXISTS idx_record_submitter_submitter ON record_submitter(submitter_id);
-CREATE INDEX IF NOT EXISTS idx_record_submitter_target ON record_submitter(target_type, target_id);
+CREATE INDEX IF NOT EXISTS idx_submitter_link_submitter ON submitter_link(submitter_id);
+CREATE INDEX IF NOT EXISTS idx_submitter_link_target ON submitter_link(target_type, target_id);
 CREATE INDEX IF NOT EXISTS idx_address_line_address ON address_line(address_id);
 CREATE INDEX IF NOT EXISTS idx_contact_target ON contact(target_type, target_id);
 CREATE INDEX IF NOT EXISTS idx_association_person ON association(person_id);

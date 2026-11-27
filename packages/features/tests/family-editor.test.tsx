@@ -28,7 +28,7 @@ async function renderEditor(draft = emptyFamilyDraft()) {
     getPlaces: async () => [],
     getAddresses: async () => [],
     getSubmitters: async () => [],
-    getRecordSubmitters: async () => [],
+    getSubmitterLinks: async () => [],
   });
 
   renderUi(

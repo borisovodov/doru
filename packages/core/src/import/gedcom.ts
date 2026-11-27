@@ -1989,7 +1989,7 @@ function importSubmitterLinks(
   for (const submitter of submitters ?? []) {
     const submitterId = ctx.submitterIds.get(submitter);
     if (submitterId !== undefined) {
-      ctx.repo.insertRecordSubmitter(crypto.randomUUID(), submitterId, targetType, targetId, kind);
+      ctx.repo.insertSubmitterLink(crypto.randomUUID(), submitterId, targetType, targetId, kind);
     }
   }
 }

@@ -2,7 +2,7 @@
 
 A Dóru project is a single `.doru` file: a SQLite database branded with
 `application_id = 0x444F5255` ("DORU") and versioned with `user_version`.
-This document is the field-level reference for **schema version 27**. The
+This document is the field-level reference for **schema version 28**. The
 source of truth is [`packages/core/src/db/schema.ts`](../packages/core/src/db/schema.ts);
 the domain shapes that the repositories map onto the rows live in
 [`packages/core/src/model/types.ts`](../packages/core/src/model/types.ts).
@@ -805,7 +805,7 @@ erDiagram
     repository }o--o| address : "address_id"
     submitter }o--o| address : "address_id"
     submitter ||--o{ submitter_language : "languages"
-    submitter ||--o{ record_submitter : "record links"
+    submitter ||--o{ submitter_link : "record links"
 
     address {
         TEXT id PK
@@ -837,7 +837,7 @@ erDiagram
         TEXT language PK
     }
 
-    record_submitter {
+    submitter_link {
         TEXT id PK
         TEXT submitter_id FK
         TEXT target_type "NOT NULL, polymorphic target"
@@ -854,12 +854,13 @@ erDiagram
     }
 ```
 
-`record_submitter.kind` is `contributor`, `ancestor_interest`, or
+`submitter_link.kind` is `contributor`, `ancestor_interest`, or
 `descendant_interest`. The target is any type in
-`RECORD_SUBMITTER_TARGET_TYPES`; `task`, `media_link`, and `submitter` are
-absent, so a contributor link cannot point at a task, a media link, or another
-submitter. `family_partner` and `family_child` link rows remain valid
-contributor targets.
+`SUBMITTER_LINK_TARGET_TYPES` (`person` or `family`); task, media links,
+submitters, nested family links and all other record types are not allowed.
+Only a person or family record carries contributor links; research interests
+use the same table with `ancestor_interest`/`descendant_interest` kinds and
+only on a person.
 
 ## Attachments and research
 
@@ -951,7 +952,7 @@ is no global runtime target list.
 | `media_link` | `MEDIA_LINK_TARGET_TYPES` | person, family, family_partner, family_child, family_marriage_status, fact, name, name_part, source, citation, place, place_name, place_hierarchy, repository, submitter, address, address_line, association, task, title |
 | `contact` | `CONTACT_TARGET_TYPES` | person, fact, repository, submitter |
 | `task_link` | `TASK_LINK_TARGET_TYPES` | person, family, family_partner, family_child, family_marriage_status, fact, name, name_part, source, citation, media, place, place_name, place_hierarchy, repository, address, address_line, association, title |
-| `record_submitter` | `RECORD_SUBMITTER_TARGET_TYPES` | person, family, family_partner, family_child, family_marriage_status, fact, name, name_part, source, citation, media, place, place_name, place_hierarchy, repository, address, address_line, association, title |
+| `submitter_link` | `SUBMITTER_LINK_TARGET_TYPES` | person, family |
 
 `name` refers to the `person_name` table. `family_witness` is deliberately
 absent from every set: it is free text without stable identity. A note record
@@ -1036,7 +1037,7 @@ The schema has 69 regular indexes:
 - Parent/child lookups are indexed on the child columns: `person_name`,
   `name_part`, `family_partner`, `family_child`, `fact_*`, `place_*`,
   `source_*`, `citation_*`, `media_*`, `address_line`,
-  `submitter_language`, `record_submitter`, and the rest.
+  `submitter_language`, `submitter_link`, and the rest.
 - Ordered child lists use `(parent_id, position)`.
 - Polymorphic attachment tables use `(target_type, target_id)`.
 - Every date slot has its own index (`person_name.period_date_id`,
@@ -1059,7 +1060,7 @@ edited inside a parent card or through an attachment section.
 | `source:` | `source`, `source_text`, `source_data_event`, `source_repository`, `call_number`, `source_template_field`, `citation` |
 | `place:` | `place`, `place_name`, `place_hierarchy`, `place_postal_code` |
 | `repository:` | `repository`, `address`, `source_repository`, `title` |
-| `submitter:` | `submitter`, `submitter_language`, `record_submitter` |
+| `submitter:` | `submitter`, `submitter_language`, `submitter_link` |
 | `address:` | `address`, `address_line` |
 | `task:` | `task`, `task_link` |
 | `media:` | `media`, `media_link` |

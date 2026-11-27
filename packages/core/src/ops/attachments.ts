@@ -6,7 +6,7 @@ import type {
   MediaLinkRecord,
   NoteRecord,
   RepositoryRecord,
-  RecordSubmitterLink,
+  SubmitterLink,
   SourceRecord,
   SubmitterRecord,
   TitleRecord,
@@ -16,7 +16,7 @@ import {
   attachmentTargetExists,
   attachmentsMatch,
   restoreCitation,
-  restoreRecordSubmitter,
+  restoreSubmitterLink,
   restoreSource,
   restoreSourceRepository,
   sameRecord,
@@ -478,7 +478,7 @@ export function updateSubmitterOp(before: SubmitterRecord, after: SubmitterRecor
 
 /** Record links that the submitter FK cascade removes. */
 export interface SubmitterConsumers {
-  recordSubmitters?: RecordSubmitterLink[];
+  submitterLinks?: SubmitterLink[];
 }
 
 export function deleteSubmitterOp(
@@ -486,7 +486,7 @@ export function deleteSubmitterOp(
   attachments: AttachmentsSnapshot,
   consumers: SubmitterConsumers = {},
 ): Op {
-  let baselineRecordSubmitters = consumers.recordSubmitters ?? [];
+  let baselineSubmitterLinks = consumers.submitterLinks ?? [];
   let attachmentBaseline = attachments;
   return {
     ...op(
@@ -496,18 +496,16 @@ export function deleteSubmitterOp(
       (ctx) => {
         ctx.repo.insertSubmitter(submitter);
         ctx.repo.restoreAttachments(attachments);
-        for (const link of consumers.recordSubmitters ?? []) {
+        for (const link of consumers.submitterLinks ?? []) {
           // restoreAttachments may already have restored the same link when
           // it belongs to a media link's attachment snapshot.
           if (
-            !ctx.repo
-              .listRecordSubmittersFor(link.targetType, link.targetId)
-              .some((existing) => existing.id === link.id)
+            !ctx.repo.listSubmitterLinksFor(link.targetType, link.targetId).some((existing) => existing.id === link.id)
           ) {
-            restoreRecordSubmitter(ctx, link);
+            restoreSubmitterLink(ctx, link);
           }
         }
-        baselineRecordSubmitters = ctx.repo.listRecordSubmittersForSubmitter(submitter.id);
+        baselineSubmitterLinks = ctx.repo.listSubmitterLinksForSubmitter(submitter.id);
         attachmentBaseline = ctx.repo.listAttachmentsFor('submitter', submitter.id);
       },
     ),
@@ -521,9 +519,9 @@ export function deleteSubmitterOp(
       if (!attachmentsMatch(ctx, 'submitter', submitter.id, attachmentBaseline)) {
         return false;
       }
-      const captured = baselineRecordSubmitters.map((link) => JSON.stringify(link)).sort();
+      const captured = baselineSubmitterLinks.map((link) => JSON.stringify(link)).sort();
       const live = ctx.repo
-        .listRecordSubmittersForSubmitter(submitter.id)
+        .listSubmitterLinksForSubmitter(submitter.id)
         .map((link) => JSON.stringify(link))
         .sort();
       return JSON.stringify(captured) === JSON.stringify(live);
@@ -532,35 +530,35 @@ export function deleteSubmitterOp(
 }
 
 /** Links a submitter as the contributor of a record (GEDCOM SUBM on INDI/FAM). */
-export function addRecordSubmitterOp(
+export function addSubmitterLinkOp(
   submitterId: string,
   targetType: string,
   targetId: string,
-  kind: RecordSubmitterLink['kind'] = 'contributor',
+  kind: SubmitterLink['kind'] = 'contributor',
 ): Op {
   const id = crypto.randomUUID();
   const created = op(
     id,
-    'record_submitter.add',
-    (ctx) => ctx.repo.insertRecordSubmitter(id, submitterId, targetType, targetId, kind),
-    (ctx) => ctx.repo.deleteRecordSubmitter(id),
+    'submitter_link.add',
+    (ctx) => ctx.repo.insertSubmitterLink(id, submitterId, targetType, targetId, kind),
+    (ctx) => ctx.repo.deleteSubmitterLink(id),
     { targetType, targetId, kind: 'changed' },
   );
   return { ...created, dependsOn: [targetId] };
 }
 
-export function deleteRecordSubmitterOp(
+export function deleteSubmitterLinkOp(
   id: string,
   submitterId: string,
   targetType: string,
   targetId: string,
-  kind: RecordSubmitterLink['kind'] = 'contributor',
+  kind: SubmitterLink['kind'] = 'contributor',
 ): Op {
   return op(
     crypto.randomUUID(),
-    'record_submitter.delete',
-    (ctx) => ctx.repo.deleteRecordSubmitter(id),
-    (ctx) => restoreRecordSubmitter(ctx, { id, submitterId, targetType, targetId, kind }),
+    'submitter_link.delete',
+    (ctx) => ctx.repo.deleteSubmitterLink(id),
+    (ctx) => restoreSubmitterLink(ctx, { id, submitterId, targetType, targetId, kind }),
     { targetType, targetId, kind: 'changed' },
   );
 }

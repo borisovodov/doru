@@ -12,7 +12,7 @@ import {
   restoreMedia,
   restorePerson,
   restorePlace,
-  restoreRecordSubmitter,
+  restoreSubmitterLink,
   restoreSource,
   restoreSourceRepository,
   restoreTitle,
@@ -240,7 +240,7 @@ describe('undo restore sanitizers', () => {
 
       repo.insertSubmitter({ id: 'SU1', name: 'Submitter' });
       expect(
-        restoreRecordSubmitter(ctx, {
+        restoreSubmitterLink(ctx, {
           id: 'RS1',
           submitterId: 'SU1',
           targetType: 'person',
@@ -249,7 +249,7 @@ describe('undo restore sanitizers', () => {
         }),
       ).toBe(true);
       expect(
-        restoreRecordSubmitter(ctx, {
+        restoreSubmitterLink(ctx, {
           id: 'RS2',
           submitterId: 'missing',
           targetType: 'person',
@@ -257,7 +257,7 @@ describe('undo restore sanitizers', () => {
         }),
       ).toBe(false);
       expect(
-        restoreRecordSubmitter(ctx, {
+        restoreSubmitterLink(ctx, {
           id: 'RS3',
           submitterId: 'SU1',
           targetType: 'person',
@@ -325,7 +325,7 @@ describe('undo restore sanitizers', () => {
       const ctx = context(fixture);
       repo.insertSubmitter({ id: 'SU1', name: 'Submitter' });
       expect(
-        restoreRecordSubmitter(ctx, {
+        restoreSubmitterLink(ctx, {
           id: 'RS1',
           submitterId: 'SU1',
           targetType: 'person',
@@ -449,7 +449,7 @@ describe('undo restore sanitizers', () => {
       repo.insertMedia({ id: 'M1', path: 'media/m1.jpg', title: 'Photo', targetType: 'person', targetId: 'P1' });
       repo.insertContact({ id: 'CT1', targetType: 'person', targetId: 'P1', kind: 'email', value: 'a@b.c' });
       repo.insertSubmitter({ id: 'SU1', name: 'Submitter' });
-      repo.insertRecordSubmitter('RS1', 'SU1', 'person', 'P1', 'contributor');
+      repo.insertSubmitterLink('RS1', 'SU1', 'person', 'P1', 'contributor');
       const rich = repo.listAttachmentsFor('person', 'P1');
       expect(attachmentsMatch(ctx, 'person', 'P1', rich)).toBe(true);
       repo.updateCitation({ ...rich.citations[0]!, page: '2' });

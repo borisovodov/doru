@@ -5,7 +5,7 @@ import {
   CONTACT_TARGET_TYPES,
   MEDIA_LINK_TARGET_TYPES,
   NOTE_TARGET_TYPES,
-  RECORD_SUBMITTER_TARGET_TYPES,
+  SUBMITTER_LINK_TARGET_TYPES,
   TASK_LINK_TARGET_TYPES,
   isAttachmentTargetAllowed,
   type AttachmentTargetKind,
@@ -45,7 +45,7 @@ const FAMILIES: Array<[AttachmentTargetKind, readonly string[]]> = [
   ['mediaLink', MEDIA_LINK_TARGET_TYPES],
   ['contact', CONTACT_TARGET_TYPES],
   ['taskLink', TASK_LINK_TARGET_TYPES],
-  ['recordSubmitter', RECORD_SUBMITTER_TARGET_TYPES],
+  ['submitterLink', SUBMITTER_LINK_TARGET_TYPES],
 ];
 
 describe('attachment target policy', () => {
@@ -85,14 +85,14 @@ describe('attachment target policy', () => {
     ['taskLink', 'task', false],
     ['taskLink', 'submitter', false],
     ['taskLink', 'media_link', false],
-    ['recordSubmitter', 'person', true],
-    ['recordSubmitter', 'family', true],
-    ['recordSubmitter', 'source', false],
-    ['recordSubmitter', 'media', false],
-    ['recordSubmitter', 'place', false],
-    ['recordSubmitter', 'submitter', false],
-    ['recordSubmitter', 'task', false],
-    ['recordSubmitter', 'media_link', false],
+    ['submitterLink', 'person', true],
+    ['submitterLink', 'family', true],
+    ['submitterLink', 'source', false],
+    ['submitterLink', 'media', false],
+    ['submitterLink', 'place', false],
+    ['submitterLink', 'submitter', false],
+    ['submitterLink', 'task', false],
+    ['submitterLink', 'media_link', false],
   ] satisfies Array<[AttachmentTargetKind, string, boolean]>)('allows %s → %s: %s', (kind, targetType, allowed) => {
     expect(isAttachmentTargetAllowed(kind, targetType)).toBe(allowed);
   });

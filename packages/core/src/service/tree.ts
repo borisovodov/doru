@@ -13,7 +13,7 @@ import type {
   PersonName,
   PersonRecord,
   PlaceRecord,
-  RecordSubmitterLink,
+  SubmitterLink,
   RecordTimestamps,
   RepositoryRecord,
   SourceRecord,
@@ -52,7 +52,7 @@ import {
   addRepositoryOp,
   addSourceOp,
   addSubmitterOp,
-  addRecordSubmitterOp,
+  addSubmitterLinkOp,
   addTaskLinkOp,
   addTaskOp,
   addTitleOp,
@@ -74,7 +74,7 @@ import {
   deleteRepositoryOp,
   deleteSourceOp,
   deleteSubmitterOp,
-  deleteRecordSubmitterOp,
+  deleteSubmitterLinkOp,
   deleteTaskLinkOp,
   deleteTaskOp,
   deleteTitleOp,
@@ -1153,45 +1153,45 @@ export class TreeService {
         return undefined;
       }
       const attachments = this.repo.listAttachmentsFor('submitter', current.id);
-      const consumers = { recordSubmitters: this.repo.listRecordSubmittersForSubmitter(current.id) };
+      const consumers = { submitterLinks: this.repo.listSubmitterLinksForSubmitter(current.id) };
       return deleteSubmitterOp(current, attachments, consumers);
     });
   }
 
   /** The submitters linked as contributors of a record (GEDCOM SUBM on INDI/FAM). */
-  listRecordSubmittersFor(targetType: string, targetId: string): RecordSubmitterLink[] {
-    return this.repo.listRecordSubmittersFor(targetType, targetId);
+  listSubmitterLinksFor(targetType: string, targetId: string): SubmitterLink[] {
+    return this.repo.listSubmitterLinksFor(targetType, targetId);
   }
 
   /** Every submitter link in the tree, for the global registries. */
-  listAllRecordSubmitters(): RecordSubmitterLink[] {
-    return this.repo.listAllRecordSubmitters();
+  listAllSubmitterLinks(): SubmitterLink[] {
+    return this.repo.listAllSubmitterLinks();
   }
 
-  addRecordSubmitter(
+  addSubmitterLink(
     submitterId: string,
     targetType: string,
     targetId: string,
-    kind: RecordSubmitterLink['kind'] = 'contributor',
+    kind: SubmitterLink['kind'] = 'contributor',
   ): UndoRedoState {
-    assertTargetAllowed('recordSubmitter', targetType);
-    return this.apply(addRecordSubmitterOp(submitterId, targetType, targetId, kind));
+    assertTargetAllowed('submitterLink', targetType);
+    return this.apply(addSubmitterLinkOp(submitterId, targetType, targetId, kind));
   }
 
-  deleteRecordSubmitter(
+  deleteSubmitterLink(
     id: string,
     _submitterId: string,
     _targetType: string,
     _targetId: string,
-    _kind: RecordSubmitterLink['kind'] = 'contributor',
+    _kind: SubmitterLink['kind'] = 'contributor',
   ): UndoRedoState {
     return this.applyAfterCommit(() => {
       // The caller may omit the kind; the inverse must preserve the stored one.
-      const current = this.repo.getRecordSubmitter(id);
+      const current = this.repo.getSubmitterLink(id);
       if (current === undefined) {
         return undefined;
       }
-      return deleteRecordSubmitterOp(
+      return deleteSubmitterLinkOp(
         current.id,
         current.submitterId,
         current.targetType,

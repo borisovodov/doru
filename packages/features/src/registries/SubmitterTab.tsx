@@ -4,7 +4,7 @@ import { Input } from '@doru/ui';
 import { SectionCard } from '@doru/ui';
 import { Field, FieldGrid, InlineForm } from '@doru/ui';
 import { Plus, User, X } from 'lucide-react';
-import type { AddressRecord, RecordSubmitterLink, SourceRecord, SubmitterRecord } from '@doru/core';
+import type { AddressRecord, SubmitterLink, SourceRecord, SubmitterRecord } from '@doru/core';
 import { AttachmentsPanel, CitationAttachments, useAttachments } from '../attachments';
 import { AutoSaveError } from '../autoSaveFeedback';
 import { useEntityDelete } from '../entityDelete';
@@ -37,7 +37,7 @@ export function SubmitterTab({
   sources,
   media,
   mediaApi,
-  recordSubmitters,
+  submitterLinks,
   targetData,
   onOpenSource,
   onOpenMedia,
@@ -53,7 +53,7 @@ export function SubmitterTab({
   sources: SourceRecord[];
   media: MediaWithPath[];
   mediaApi: MediaTargetApi;
-  recordSubmitters: RecordSubmitterLink[];
+  submitterLinks: SubmitterLink[];
   targetData: TaskTargetData;
   onOpenSource: (sourceId: string) => void;
   onOpenMedia: (mediaId: string) => void;
@@ -77,7 +77,7 @@ export function SubmitterTab({
       sources={sources}
       media={media}
       mediaApi={mediaApi}
-      recordSubmitters={recordSubmitters}
+      submitterLinks={submitterLinks}
       targetData={targetData}
       onOpenSource={onOpenSource}
       onOpenMedia={onOpenMedia}
@@ -97,7 +97,7 @@ function SubmitterTabBody({
   sources,
   media,
   mediaApi,
-  recordSubmitters,
+  submitterLinks,
   targetData,
   onOpenSource,
   onOpenMedia,
@@ -113,7 +113,7 @@ function SubmitterTabBody({
   sources: SourceRecord[];
   media: MediaWithPath[];
   mediaApi: MediaTargetApi;
-  recordSubmitters: RecordSubmitterLink[];
+  submitterLinks: SubmitterLink[];
   targetData: TaskTargetData;
   onOpenSource: (sourceId: string) => void;
   onOpenMedia: (mediaId: string) => void;
@@ -232,8 +232,8 @@ function SubmitterTabBody({
   const deletion = useEntityDelete(autoSave, remove, onClose);
 
   const referencedBy = useMemo(
-    () => (targetId !== undefined ? recordSubmitters.filter((link) => link.submitterId === targetId) : []),
-    [recordSubmitters, targetId],
+    () => (targetId !== undefined ? submitterLinks.filter((link) => link.submitterId === targetId) : []),
+    [submitterLinks, targetId],
   );
   const targetLabels = useMemo(() => {
     const labels = new Map<string, string>();

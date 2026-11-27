@@ -25,10 +25,10 @@ describe('redo guards for nested attachment targets', () => {
       service.addPerson(person('P1'));
       service.addPerson(person('P2'));
       service.addSubmitter({ id: 'SU1', name: 'Researcher' });
-      service.addRecordSubmitter('SU1', 'person', 'P1');
+      service.addSubmitterLink('SU1', 'person', 'P1');
       service.deleteSubmitter(repo.getSubmitter('SU1')!);
       service.undo();
-      repo.insertRecordSubmitter('RS2', 'SU1', 'person', 'P2', 'ancestor_interest');
+      repo.insertSubmitterLink('RS2', 'SU1', 'person', 'P2', 'ancestor_interest');
       expect(service.redo().redoBlocked).toBe(true);
     } finally {
       cleanupRepo(fixture);
@@ -407,12 +407,12 @@ describe('redo guards for nested attachment targets', () => {
     try {
       service.addPerson(person('P1'));
       service.addSubmitter({ id: 'SU1', name: 'Researcher' });
-      service.addRecordSubmitter('SU1', 'person', 'P1');
+      service.addSubmitterLink('SU1', 'person', 'P1');
       service.deleteSubmitter(repo.getSubmitter('SU1')!);
       repo.deletePerson('P1');
       service.undo();
       expect(repo.getSubmitter('SU1')?.id).toBe('SU1');
-      expect(repo.listRecordSubmittersForSubmitter('SU1')).toEqual([]);
+      expect(repo.listSubmitterLinksForSubmitter('SU1')).toEqual([]);
       expect(service.redo().redoBlocked).toBeUndefined();
       expect(repo.getSubmitter('SU1')).toBeUndefined();
     } finally {

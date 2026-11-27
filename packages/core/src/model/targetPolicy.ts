@@ -120,7 +120,7 @@ export const TASK_LINK_TARGET_TYPES = [
  * individuals); the UI deliberately does not expose vendor `_SUBM` links on
  * other record types.
  */
-export const RECORD_SUBMITTER_TARGET_TYPES = ['person', 'family'] as const;
+export const SUBMITTER_LINK_TARGET_TYPES = ['person', 'family'] as const;
 
 /** Every polymorphic attachment family, keyed by its link kind. */
 export const ATTACHMENT_TARGET_TYPES = {
@@ -129,7 +129,7 @@ export const ATTACHMENT_TARGET_TYPES = {
   mediaLink: MEDIA_LINK_TARGET_TYPES,
   contact: CONTACT_TARGET_TYPES,
   taskLink: TASK_LINK_TARGET_TYPES,
-  recordSubmitter: RECORD_SUBMITTER_TARGET_TYPES,
+  submitterLink: SUBMITTER_LINK_TARGET_TYPES,
 } as const;
 
 /** The polymorphic attachment families. */

@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import { act, renderHook, waitFor } from '@testing-library/react';
-import type { FamilyRecord, PersonRecord, RecordSubmitterLink } from '@doru/core';
+import type { FamilyRecord, PersonRecord, SubmitterLink } from '@doru/core';
 import { useTreeSnapshot } from '../src/renderer/src/hooks/tree/useTreeSnapshot';
 
 const ada: PersonRecord = {
@@ -17,7 +17,7 @@ const grace: PersonRecord = {
   facts: [],
 };
 
-const recordSubmitters: RecordSubmitterLink[] = [
+const submitterLinks: SubmitterLink[] = [
   { id: 'rs1', submitterId: 'su1', targetType: 'person', targetId: 'p1', kind: 'contributor' },
 ];
 type TreeData = { persons: PersonRecord[]; families: FamilyRecord[] };
@@ -53,7 +53,7 @@ function installDoru(all?: () => Promise<TreeData>) {
     getPlaces: empty,
     getRepositories: empty,
     getSubmitters: empty,
-    getAllRecordSubmitters: async () => recordSubmitters,
+    getAllSubmitterLinks: async () => submitterLinks,
     listAddresses: empty,
     getTasks: empty,
     getTitles: empty,
@@ -76,7 +76,7 @@ describe('useTreeSnapshot', () => {
     const { result } = renderHook(() => useTreeSnapshot('tree.doru'));
 
     await waitFor(() => expect(result.current.persons).toEqual([ada]));
-    expect(result.current.recordSubmitters).toEqual(recordSubmitters);
+    expect(result.current.submitterLinks).toEqual(submitterLinks);
     expect(doru.loadCount()).toBe(1);
 
     await act(async () => result.current.refreshTree());
@@ -98,12 +98,12 @@ describe('useTreeSnapshot', () => {
     );
 
     await waitFor(() => expect(result.current.persons).toEqual([ada]));
-    expect(result.current.recordSubmitters).toEqual(recordSubmitters);
+    expect(result.current.submitterLinks).toEqual(submitterLinks);
 
     rerender({ path: null });
     expect(result.current.persons).toEqual([]);
     expect(result.current.families).toEqual([]);
-    expect(result.current.recordSubmitters).toEqual([]);
+    expect(result.current.submitterLinks).toEqual([]);
   });
 
   it('ignores an older reload that resolves after a newer one', async () => {
