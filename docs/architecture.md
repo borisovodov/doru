@@ -88,9 +88,13 @@ decisions about what we deliberately do **not** build, see
   remote URLs) runs the same ingest: the format is detected from the bytes and
   checked by a decoder, so renaming a PDF or PNG cannot pass as an image. A
   remote URL is judged by its Content-Type and bytes, never by its extension.
-  Unsupported files are logged and skipped. New media rows therefore always
-  point at `.avif` files; existing projects may still contain older displayable
-  formats.
+  Unsupported files are logged and skipped.
+- New project files are content-addressed: the file name is the first 32 hex
+  characters of the SHA-256 of the stored AVIF plus `.avif`. Identical bytes
+  therefore share one file, and several `media` rows may point at the same
+  path. Deleting a row removes the file only when no other row references it.
+  Existing projects may still contain older UUID names and non-AVIF
+  displayable formats; they are left untouched.
 - The renderer's `isImagePath` is a display capability, not the ingest policy:
   it includes formats Chromium can render directly and excludes TIFF/HEIC,
   which Electron cannot display. TIFF and HEIC are not accepted for new media

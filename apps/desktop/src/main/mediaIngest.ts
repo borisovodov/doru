@@ -1,4 +1,4 @@
-import { randomUUID } from 'node:crypto';
+import { createHash, randomUUID } from 'node:crypto';
 import { readFile, rename, rm, stat, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import sharp from 'sharp';
@@ -202,14 +202,46 @@ export async function ingestMediaFile(path: string, options: MediaIngestOptions 
   return ingestMediaBytes(await readFile(path), path, options);
 }
 
+/** The stored copy is always content-addressed by a SHA-256 prefix. */
+const MEDIA_HASH_PREFIX_LENGTH = 32;
+
+/**
+ * The content-addressed name of a stored image: the first 32 hex characters
+ * of SHA-256, plus `.avif`. Identical bytes always map to the same file.
+ */
+export function mediaContentName(bytes: Uint8Array): string {
+  const hash = createHash('sha256').update(bytes).digest('hex');
+  return `${hash.slice(0, MEDIA_HASH_PREFIX_LENGTH)}.avif`;
+}
+
 /** Writes an ingested image under the project's media folder. */
 export async function storeIngestedMedia(mediaDir: string, ingested: IngestedMedia): Promise<string> {
-  const name = `${randomUUID()}.${ingested.extension}`;
+  const name = mediaContentName(ingested.bytes);
   const destination = join(mediaDir, name);
+  try {
+    const existing = await stat(destination);
+    if (existing.isFile() && existing.size === ingested.bytes.byteLength) {
+      return name;
+    }
+  } catch {
+    // The file does not exist yet; write it below.
+  }
+
   const temporary = `${destination}.tmp-${randomUUID()}`;
   try {
     await writeFile(temporary, ingested.bytes);
-    await rename(temporary, destination);
+    try {
+      await rename(temporary, destination);
+    } catch (error) {
+      // Windows refuses to replace an existing file. A racing writer may have
+      // produced the same content; in that case the copy is already correct.
+      const existing = await stat(destination).catch(() => undefined);
+      if (existing?.isFile() === true && existing.size === ingested.bytes.byteLength) {
+        await rm(temporary, { force: true });
+        return name;
+      }
+      throw error;
+    }
     return name;
   } catch (error) {
     await rm(temporary, { force: true }).catch(() => undefined);

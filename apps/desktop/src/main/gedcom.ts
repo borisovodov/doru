@@ -1,5 +1,4 @@
 import { dialog } from 'electron';
-import { randomUUID } from 'node:crypto';
 import { stat } from 'node:fs/promises';
 import { basename, dirname, join, resolve } from 'node:path';
 import {
@@ -20,7 +19,13 @@ import {
 } from '@doru/gedcom';
 import { NodeFileSystem } from './filesystem';
 import { downloadRemoteMedia, isDownloadableMediaUrl, isExternalMediaUrl } from './mediaDownload';
-import { ingestMediaBytes, isAllowedRemoteMediaType, MediaIngestError, type IngestedMedia } from './mediaIngest';
+import {
+  ingestMediaBytes,
+  isAllowedRemoteMediaType,
+  mediaContentName,
+  MediaIngestError,
+  type IngestedMedia,
+} from './mediaIngest';
 import { resolveImportFile, resolveMediaPath } from './mediaPaths';
 import { log } from './log';
 import { nls } from './nls';
@@ -49,6 +54,8 @@ export interface GedcomMediaDependencies {
   download?: typeof downloadRemoteMedia | undefined;
   write?: ((path: string, contents: Uint8Array) => Promise<void>) | undefined;
   ingest?: typeof ingestMediaBytes | undefined;
+  /** Content-addressed file name; injectable for budget and failure tests. */
+  name?: ((contents: Uint8Array) => string) | undefined;
   logger?: GedcomMediaLogger | undefined;
 }
 
@@ -134,10 +141,12 @@ export async function prepareGedcomMedia(
   const download = dependencies.download ?? downloadRemoteMedia;
   const write = dependencies.write ?? ((path: string, contents: Uint8Array) => fs.writeBinary(path, contents));
   const ingest = dependencies.ingest ?? ingestMediaBytes;
+  const nameFor = dependencies.name ?? mediaContentName;
   const logger = dependencies.logger ?? log;
   const paths = new Map<string, string>();
   const mediaDir = join(tempDir, MEDIA_DIR_NAME);
   await fs.mkdir(mediaDir);
+  const storedNames = new Set<string>();
   /**
    * Validates and stores one image. Rejected files are skipped with a log
    * entry; write failures still abort the import.
@@ -153,8 +162,14 @@ export async function prepareGedcomMedia(
       }
       throw error;
     }
-    const name = `${randomUUID()}.${ingested.extension}`;
-    await write(join(mediaDir, name), ingested.bytes);
+    const name = nameFor(ingested.bytes);
+    const destination = join(mediaDir, name);
+    if (!storedNames.has(name)) {
+      storedNames.add(name);
+      if (!(await fs.exists(destination))) {
+        await write(destination, ingested.bytes);
+      }
+    }
     paths.set(original, `${MEDIA_DIR_NAME}/${name}`);
     return true;
   };

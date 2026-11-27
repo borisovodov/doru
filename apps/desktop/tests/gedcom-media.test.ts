@@ -1,4 +1,4 @@
-import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import { mkdtemp, readFile, readdir, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -29,6 +29,12 @@ function makeLogger() {
 
 /** Skips real AVIF encoding; the ingest pipeline has its own tests. */
 const acceptMedia = async (bytes: Uint8Array) => ({ bytes, extension: 'avif' as const });
+
+/** Distinct names for tests whose fake payloads cannot be hashed. */
+function uniqueNames(): () => string {
+  let index = 0;
+  return () => `${String(index++).padStart(32, '0')}.avif`;
+}
 
 function deferred(): { promise: Promise<void>; resolve: () => void } {
   let resolve!: () => void;
@@ -65,7 +71,7 @@ describe('prepareGedcomMedia', () => {
     });
 
     const mapped = paths.get(url);
-    expect(mapped).toMatch(/^media\/[0-9a-f-]+\.avif$/);
+    expect(mapped).toMatch(/^media\/[0-9a-f]{32}\.avif$/);
     expect([...(await readFile(join(dir, mapped ?? '')))]).toEqual([1, 2, 3]);
     expect(download).toHaveBeenCalledWith(url, expect.objectContaining({ maxBytes: expect.any(Number) }));
   });
@@ -82,6 +88,7 @@ describe('prepareGedcomMedia', () => {
       download,
       write: vi.fn(async () => undefined),
       ingest: acceptMedia,
+      name: uniqueNames(),
       logger: makeLogger(),
     });
 
@@ -105,6 +112,7 @@ describe('prepareGedcomMedia', () => {
       download,
       write: vi.fn(async () => undefined),
       ingest: acceptMedia,
+      name: uniqueNames(),
       logger: makeLogger(),
     });
 
@@ -134,6 +142,7 @@ describe('prepareGedcomMedia', () => {
       download,
       write: vi.fn(async () => undefined),
       ingest: acceptMedia,
+      name: uniqueNames(),
       logger: makeLogger(),
     });
 
@@ -238,7 +247,25 @@ describe('prepareGedcomMedia', () => {
       logger: makeLogger(),
     });
 
-    expect(paths.get('photo.jpg')).toMatch(/^media\/[0-9a-f-]+\.avif$/);
+    expect(paths.get('photo.jpg')).toMatch(/^media\/[0-9a-f]{32}\.avif$/);
+  });
+
+  it('maps identical local contents to one hash file', async () => {
+    const dir = await makeTempDir();
+    const bytes = Buffer.from([0xff, 0xd8, 0xff]);
+    await writeFile(join(dir, 'a.jpg'), bytes);
+    await writeFile(join(dir, 'b.jpg'), bytes);
+
+    const paths = await prepareGedcomMedia(
+      datasetWithFiles(['a.jpg', 'b.jpg']),
+      undefined,
+      join(dir, 'tree.ged'),
+      dir,
+      { download: vi.fn(), ingest: acceptMedia, logger: makeLogger() },
+    );
+
+    expect(paths.get('a.jpg')).toBe(paths.get('b.jpg'));
+    expect(await readdir(join(dir, 'media'))).toHaveLength(1);
   });
 
   it('does not copy local files beside a GEDZIP that does not bundle them', async () => {
@@ -274,6 +301,7 @@ describe('prepareGedcomMedia', () => {
         download,
         write,
         ingest: acceptMedia,
+        name: uniqueNames(),
         logger: makeLogger(),
       }),
     ).rejects.toThrow('disk full');
@@ -299,6 +327,7 @@ describe('prepareGedcomMedia', () => {
         download,
         write,
         ingest: acceptMedia,
+        name: uniqueNames(),
         logger: makeLogger(),
       }),
     ).rejects.toThrow('disk full');

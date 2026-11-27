@@ -1,4 +1,5 @@
-import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import { createHash } from 'node:crypto';
+import { mkdir, mkdtemp, readFile, readdir, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
@@ -151,8 +152,26 @@ describe('media ingestion', () => {
     await mkdir(mediaDir);
     const name = await storeIngestedMedia(mediaDir, ingested);
 
-    expect(name).toMatch(/^[0-9a-f-]+\.avif$/);
+    const hash = createHash('sha256').update(ingested.bytes).digest('hex').slice(0, 32);
+    expect(name).toBe(`${hash}.avif`);
     expect((await readFile(join(mediaDir, name))).length).toBeGreaterThan(0);
+  });
+
+  it('deduplicates identical content under one hash name', async () => {
+    const dir = await makeTempDir();
+    const mediaDir = join(dir, 'media');
+    await mkdir(mediaDir);
+
+    const first = await ingestMediaBytes(await jpegBytes(), 'portrait.jpg');
+    const copy = await ingestMediaBytes(await jpegBytes(), 'copy-of-portrait.jpg');
+    const name = await storeIngestedMedia(mediaDir, first);
+    expect(await storeIngestedMedia(mediaDir, copy)).toBe(name);
+    expect(await storeIngestedMedia(mediaDir, first)).toBe(name);
+    expect(await readdir(mediaDir)).toEqual([name]);
+
+    const other = await ingestMediaBytes(await jpegBytes(9, 7), 'other.jpg');
+    expect(await storeIngestedMedia(mediaDir, other)).not.toBe(name);
+    expect(await readdir(mediaDir)).toHaveLength(2);
   });
 
   it('surfaces the rejection reason', () => {
