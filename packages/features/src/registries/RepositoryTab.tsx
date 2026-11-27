@@ -14,7 +14,6 @@ import type { MediaWithPath } from '@doru/ui/domain';
 import {
   AddressLinkField,
   ContactsSection,
-  ContributorsSection,
   NotesSection,
   SourcesSection,
   TasksSection,
@@ -129,8 +128,6 @@ function RepositoryTabBody({
     notes: repositoryNotes,
     citations: repositoryCitations,
     contacts,
-    submitters,
-    contributors,
     refresh: refreshAttachments,
   } = useAttachments('repository', targetId, api, true);
 
@@ -366,14 +363,6 @@ function RepositoryTabBody({
             api={mediaApi}
             refresh={async () => undefined}
             onOpenMedia={onOpenMedia}
-          />
-          <ContributorsSection
-            targetType="repository"
-            targetId={targetId}
-            submitters={submitters}
-            links={contributors}
-            onAdd={api.addRecordSubmitter}
-            onDelete={api.deleteRecordSubmitter}
           />
           <TasksSection targetType="repository" targetId={targetId} api={api} />
         </>

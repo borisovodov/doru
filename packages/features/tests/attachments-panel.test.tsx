@@ -80,6 +80,19 @@ describe('AttachmentsPanel target policy', () => {
 
     expect(sectionVisible(nls.t('features.tasks.title'))).toBe(true);
   });
+
+  it('shows contributors on persons and families only', () => {
+    const views = renderUi(
+      <div>
+        {(['person', 'family', 'source', 'citation'] as const).map((type) => (
+          <div key={type}>{panel(type)}</div>
+        ))}
+      </div>,
+    );
+
+    expect(screen.getAllByText(nls.t('features.tree.contributors.title'))).toHaveLength(2);
+    views.unmount();
+  });
 });
 
 describe('AttachmentsPanel contacts', () => {

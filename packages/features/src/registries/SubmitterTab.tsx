@@ -15,7 +15,6 @@ import type { MediaWithPath, TaskTargetData } from '@doru/ui/domain';
 import {
   AddressLinkField,
   ContactsSection,
-  ContributorsSection,
   NotesSection,
   SourcesSection,
   addressDraftEmpty,
@@ -137,8 +136,6 @@ function SubmitterTabBody({
     notes: submitterNotes,
     citations: submitterCitations,
     contacts,
-    submitters: contributorOptions,
-    contributors,
     refresh: refreshAttachments,
   } = useAttachments('submitter', targetId, api, true);
 
@@ -418,14 +415,6 @@ function SubmitterTabBody({
             api={mediaApi}
             refresh={async () => undefined}
             onOpenMedia={onOpenMedia}
-          />
-          <ContributorsSection
-            targetType="submitter"
-            targetId={targetId}
-            submitters={contributorOptions}
-            links={contributors}
-            onAdd={api.addRecordSubmitter}
-            onDelete={api.deleteRecordSubmitter}
           />
         </>
       )}

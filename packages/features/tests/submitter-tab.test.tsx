@@ -44,7 +44,7 @@ function mediaApiStub(): MediaTargetApi {
 }
 
 describe('SubmitterTab', () => {
-  it('does not render a Tasks section', () => {
+  it('does not render Tasks or Contributors sections', () => {
     renderUi(
       <SubmitterTab
         entityId="SU1"
@@ -66,6 +66,7 @@ describe('SubmitterTab', () => {
     );
 
     expect(screen.queryByText(nls.t('features.tasks.title'))).not.toBeInTheDocument();
-    expect(screen.getByText(nls.t('features.tree.contributors.title'))).toBeInTheDocument();
+    expect(screen.queryByText(nls.t('features.tree.contributors.title'))).not.toBeInTheDocument();
+    expect(screen.getByText(nls.t('features.tree.submitter.referencedBy'))).toBeInTheDocument();
   });
 });

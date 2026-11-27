@@ -10,7 +10,6 @@ import { useEntityDelete } from '../entityDelete';
 import { Button, DangerZone, InlineError, useAutoSaveOnBlur } from '@doru/ui';
 import type { MediaWithPath } from '@doru/ui/domain';
 import {
-  ContributorsSection,
   NotesSection,
   SourcesSection,
   TasksSection,
@@ -282,8 +281,6 @@ function FamilyTabBody({
   const {
     notes: familyNotes,
     citations: familyCitations,
-    submitters,
-    contributors,
     refresh: refreshAttachments,
   } = useAttachments('family', record.id, api, true);
   const recordRef = useRef(record);
@@ -442,14 +439,6 @@ function FamilyTabBody({
         api={mediaApi}
         refresh={async () => undefined}
         onOpenMedia={onOpenMedia}
-      />
-      <ContributorsSection
-        targetType="family"
-        targetId={record.id}
-        submitters={submitters}
-        links={contributors}
-        onAdd={api.addRecordSubmitter}
-        onDelete={api.deleteRecordSubmitter}
       />
       <TasksSection targetType="family" targetId={record.id} api={api} />
       <DangerZone>

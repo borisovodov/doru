@@ -269,10 +269,22 @@ describe('TreeService attachments', () => {
     const { fixture, service } = makeService();
     try {
       expect(() => service.addRecordSubmitter('SU1', 'task', 'T1')).toThrow('A recordSubmitter cannot target a task.');
+      expect(() => service.addRecordSubmitter('SU1', 'source', 'S1')).toThrow(
+        'A recordSubmitter cannot target a source.',
+      );
+      expect(() => service.addRecordSubmitter('SU1', 'media', 'M1')).toThrow(
+        'A recordSubmitter cannot target a media.',
+      );
+      expect(() => service.addRecordSubmitter('SU1', 'place', 'PL1')).toThrow(
+        'A recordSubmitter cannot target a place.',
+      );
       expect(() => service.addRecordSubmitter('SU1', 'media_link', 'ML1')).toThrow(
         'A recordSubmitter cannot target a media_link.',
       );
       expect(fixture.repo.listRecordSubmittersFor('task', 'T1')).toEqual([]);
+      expect(fixture.repo.listRecordSubmittersFor('source', 'S1')).toEqual([]);
+      expect(fixture.repo.listRecordSubmittersFor('media', 'M1')).toEqual([]);
+      expect(fixture.repo.listRecordSubmittersFor('place', 'PL1')).toEqual([]);
       expect(fixture.repo.listRecordSubmittersFor('media_link', 'ML1')).toEqual([]);
     } finally {
       cleanupRepo(fixture);
@@ -641,16 +653,17 @@ describe('TreeService attachments', () => {
   it('restores submitter links and contributor rows exactly once on undo', () => {
     const { fixture, service } = makeService();
     try {
+      service.addPerson({ id: 'P1', names: [], sex: 'U', facts: [] });
       service.addSubmitter(submitter());
       service.addMedia({ id: 'M1', path: 'media/scan.jpg', title: 'Scan' });
       service.attachMedia({ id: 'ML1', mediaId: 'M1', targetType: 'submitter', targetId: 'SU1' });
-      service.addRecordSubmitter('SU1', 'media', 'M1');
-      const link = fixture.repo.listRecordSubmittersFor('media', 'M1')[0]!;
+      service.addRecordSubmitter('SU1', 'person', 'P1');
+      const link = fixture.repo.listRecordSubmittersFor('person', 'P1')[0]!;
 
       service.deleteSubmitter(submitter());
       expect(fixture.repo.getSubmitter('SU1')).toBeUndefined();
       expect(fixture.repo.getMedia('M1')?.links).toEqual([]);
-      expect(fixture.repo.listRecordSubmittersFor('media', 'M1')).toEqual([]);
+      expect(fixture.repo.listRecordSubmittersFor('person', 'P1')).toEqual([]);
 
       service.undo();
 
@@ -658,7 +671,7 @@ describe('TreeService attachments', () => {
       expect(fixture.repo.getMedia('M1')?.links).toEqual([
         expect.objectContaining({ id: 'ML1', targetType: 'submitter', targetId: 'SU1' }),
       ]);
-      expect(fixture.repo.listRecordSubmittersFor('media', 'M1')).toEqual([link]);
+      expect(fixture.repo.listRecordSubmittersFor('person', 'P1')).toEqual([link]);
     } finally {
       cleanupRepo(fixture);
     }
@@ -706,6 +719,7 @@ describe('TreeService attachments', () => {
   it('restores repository, submitter and title consumers on undo', () => {
     const { fixture, service } = makeService();
     try {
+      service.addPerson({ id: 'P1', names: [], sex: 'U', facts: [] });
       service.addRepository(repository());
       service.addSubmitter(submitter());
       service.addTitle({ id: 'TL1', name: 'The Parish Registers' });
@@ -721,7 +735,7 @@ describe('TreeService attachments', () => {
           titleId: 'TL1',
         }),
       );
-      service.addRecordSubmitter('SU1', 'source', 'S1');
+      service.addRecordSubmitter('SU1', 'person', 'P1');
 
       service.deleteRepository(repository());
       expect(fixture.repo.getSource('S1')?.repositories).toBeUndefined();
@@ -735,10 +749,10 @@ describe('TreeService attachments', () => {
       ]);
 
       service.deleteSubmitter(submitter());
-      expect(fixture.repo.listRecordSubmittersFor('source', 'S1')).toEqual([]);
+      expect(fixture.repo.listRecordSubmittersFor('person', 'P1')).toEqual([]);
       service.undo();
-      expect(fixture.repo.listRecordSubmittersFor('source', 'S1')).toEqual([
-        expect.objectContaining({ submitterId: 'SU1', targetType: 'source', targetId: 'S1' }),
+      expect(fixture.repo.listRecordSubmittersFor('person', 'P1')).toEqual([
+        expect.objectContaining({ submitterId: 'SU1', targetType: 'person', targetId: 'P1' }),
       ]);
 
       service.deleteTitle({ id: 'TL1', name: 'The Parish Registers' });

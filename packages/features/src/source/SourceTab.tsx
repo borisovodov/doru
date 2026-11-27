@@ -22,7 +22,6 @@ import type { MediaTargetApi, SourceEditorApi } from '../person/types';
 import { SourceEditor } from './SourceEditor';
 import type { MediaWithPath } from '@doru/ui/domain';
 import {
-  ContributorsSection,
   NotesSection,
   SourcesSection,
   TargetPicker,
@@ -189,8 +188,6 @@ function SourceTabBody({
   const {
     notes: sourceNotes,
     citations: sourceCitations,
-    submitters,
-    contributors,
     refresh: refreshAttachments,
   } = useAttachments('source', targetId, api, true);
 
@@ -467,14 +464,6 @@ function SourceTabBody({
                 api={mediaApi}
                 refresh={async () => undefined}
                 onOpenMedia={onOpenMedia}
-              />
-              <ContributorsSection
-                targetType="source"
-                targetId={targetId}
-                submitters={submitters}
-                links={contributors}
-                onAdd={api.addRecordSubmitter}
-                onDelete={api.deleteRecordSubmitter}
               />
               <TasksSection targetType="source" targetId={targetId} api={api} />
             </>

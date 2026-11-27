@@ -763,8 +763,9 @@ file facts (MIME, size, dimensions) are not persisted: `@doru/gedcom` parses
 them, and the core mapping drops them. A media link stores the crop and the
 primary flag. It is not an attachment target: notes, citations, media,
 contacts, contributors and tasks may not point at it. Media-level notes,
-citations, tasks and contributors target `media` directly; there is no
-separate file target.
+citations and tasks target `media` directly; contributors are limited to
+persons and families and are not offered on media. There is no separate file
+target.
 
 ## Notes
 
@@ -793,8 +794,9 @@ erDiagram
 
 An address is shared: `person`, `repository`, and `submitter` all point at the
 same address row through `address_id`. Address lines are separate ordered
-rows. A submitter is a contributor record with languages and links to any
-attachable target.
+rows. A submitter is a contributor record with languages and links to persons
+and families; `ANCI`/`DESI` research interests are person links with a
+different kind.
 
 ```mermaid
 erDiagram
