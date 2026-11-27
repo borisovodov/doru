@@ -7,7 +7,7 @@
   height: 100%;
   box-sizing: border-box;
   overflow: auto;
-  padding: 72px 24px;
+  padding: var(--doru-space-36) var(--doru-space-12);
   text-align: center;
 
   /* Nothing on this page is selectable text. */
@@ -30,7 +30,7 @@
 }
 
 .empty-editor-shortcuts-title {
-  margin: 56px 0 12px;
+  margin: var(--doru-space-28) 0 var(--doru-space-6);
   font-size: 12px;
   font-weight: 600;
   text-transform: uppercase;
@@ -44,7 +44,7 @@
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: var(--doru-space-2);
   width: 100%;
   max-width: 480px;
   text-align: left;
@@ -54,8 +54,8 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 24px;
-  padding: 6px 12px;
+  gap: var(--doru-space-12);
+  padding: var(--doru-space-3) var(--doru-space-6);
   border-radius: var(--doru-radius-md);
 }
 
@@ -66,6 +66,6 @@
 
 .empty-editor-keys {
   display: inline-flex;
-  gap: 4px;
+  gap: var(--doru-space-2);
   flex-shrink: 0;
 }

@@ -17,7 +17,7 @@
 .tree-zoom {
   display: flex;
   flex-direction: row;
-  margin: 10px;
+  margin: var(--doru-space-5);
   overflow: hidden;
   border-radius: var(--doru-radius-sm);
   box-shadow: var(--doru-ring);
@@ -43,8 +43,8 @@
 
 .card-toolbar {
   display: flex;
-  gap: 2px;
-  padding: 3px;
+  gap: var(--doru-space-1);
+  padding: var(--doru-space-2);
   background: var(--doru-bg-raised);
   border: 1px solid var(--doru-border);
   border-radius: var(--doru-radius-md);

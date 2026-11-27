@@ -17,8 +17,8 @@
 .sidebar-header {
   display: flex;
   flex-direction: column;
-  gap: 2px;
-  padding: 18px 16px 14px;
+  gap: var(--doru-space-1);
+  padding: var(--doru-space-9) var(--doru-space-8) var(--doru-space-7);
   border-bottom: 1px solid var(--doru-border);
 }
 
@@ -38,8 +38,8 @@
   display: flex;
   flex: 1;
   flex-direction: column;
-  gap: 2px;
-  padding: 8px;
+  gap: var(--doru-space-1);
+  padding: var(--doru-space-4);
   overflow-y: auto;
 }
 
@@ -47,10 +47,10 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
+  gap: var(--doru-space-4);
   width: 100%;
   min-height: 30px;
-  padding: 6px 10px;
+  padding: var(--doru-space-3) var(--doru-space-5);
   border: 0;
   border-radius: var(--doru-radius-sm);
   background: transparent;
@@ -88,9 +88,9 @@
   flex: 0 0 auto;
   align-items: center;
   justify-content: space-between;
-  gap: 16px;
+  gap: var(--doru-space-8);
   min-height: 52px;
-  padding: 8px 20px;
+  padding: var(--doru-space-4) var(--doru-space-10);
   border-bottom: 1px solid var(--doru-border);
   background: var(--doru-bg-chrome);
 }
@@ -108,13 +108,13 @@
 .toolbar-controls {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: var(--doru-space-6);
 }
 
 .control {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--doru-space-3);
   color: var(--doru-fg-muted);
   font-size: var(--doru-font-size-sm);
   white-space: nowrap;
@@ -122,7 +122,7 @@
 
 .control select {
   height: var(--doru-control-height);
-  padding: 0 8px;
+  padding: 0 var(--doru-space-4);
   border: 1px solid var(--doru-border-strong);
   border-radius: var(--doru-radius-sm);
   background: var(--doru-bg-input);
@@ -139,7 +139,7 @@
 
 .mode-switch button {
   height: var(--doru-control-height);
-  padding: 0 10px;
+  padding: 0 var(--doru-space-5);
   border: 0;
   background: transparent;
   color: var(--doru-fg-muted);
@@ -154,14 +154,14 @@
 
 .content {
   flex: 1;
-  padding: 24px;
+  padding: var(--doru-space-12);
   overflow: auto;
 }
 
 .demo-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-  gap: 20px;
+  gap: var(--doru-space-10);
   align-items: start;
 }
 
@@ -173,7 +173,7 @@
 }
 
 .demo-card-header {
-  padding: 10px 14px;
+  padding: var(--doru-space-5) var(--doru-space-7);
   border-bottom: 1px solid var(--doru-border);
 }
 
@@ -186,7 +186,7 @@
 
 .demo-card-canvas {
   min-height: 72px;
-  padding: 24px;
+  padding: var(--doru-space-12);
   overflow: auto;
   background: var(--doru-bg-canvas);
 }

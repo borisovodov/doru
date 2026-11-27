@@ -25,7 +25,7 @@
 .title-bar {
   grid-area: titlebar;
   position: relative;
-  height: 38px;
+  height: var(--doru-titlebar-height);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -43,35 +43,35 @@
    window Back/Forward controls on every platform. */
 .title-bar-leading {
   position: absolute;
-  left: 10px;
+  left: var(--doru-space-5);
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--doru-space-3);
   -webkit-app-region: no-drag;
 }
 
 .title-bar-nav {
   display: inline-flex;
   align-items: center;
-  gap: 2px;
+  gap: var(--doru-space-1);
 }
 
 .title-bar-actions {
   position: absolute;
-  right: 10px;
+  right: var(--doru-space-5);
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--doru-space-3);
   -webkit-app-region: no-drag;
 }
 
 /* macOS: reserve space for the traffic lights on the left. */
 .title-bar-mac {
-  padding-left: 78px;
+  padding-left: var(--doru-titlebar-inset);
 }
 
 .title-bar-mac .title-bar-leading {
-  left: 78px;
+  left: var(--doru-titlebar-inset);
 }
 
 /* Windows/Linux: reserve space for the window-control overlay buttons on the right. */
@@ -106,11 +106,11 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding-top: 6px;
+  padding-top: var(--doru-space-3);
 
   /* The vertical gap matches the 6px side inset of the 36px buttons in the
      48px rail, so spacing reads uniform around every button. */
-  gap: 6px;
+  gap: var(--doru-space-3);
 }
 
 .activity-bar-item {
@@ -139,7 +139,7 @@
 
 .activity-bar-bottom {
   margin-top: auto;
-  margin-bottom: 6px;
+  margin-bottom: var(--doru-space-3);
 }
 
 .side-bar {
@@ -152,7 +152,7 @@
   /* The leading hairline is the seam that splits the shared card in two. */
   border-left: 1px solid var(--doru-border);
   overflow: hidden;
-  padding: 12px 0;
+  padding: var(--doru-space-6) 0;
 }
 
 .agent-chat-panel {
@@ -170,12 +170,12 @@
 
 /* Resize sashes between the panels (pointer-based, no native drag session).
    They sit in the 4px gutters between the floating cards, spanning the cards'
-   height (below the 38px title bar, above the 4px bottom gutter). */
+   height (below the title bar, above the bottom gutter). */
 
 .sash {
   position: absolute;
-  top: 38px;
-  bottom: 4px;
+  top: var(--doru-titlebar-height);
+  bottom: var(--doru-space-2);
   width: 8px;
   z-index: 5;
   cursor: col-resize;
@@ -248,10 +248,14 @@
 }
 
 .side-sash {
+  /* Fallback only: the live position is set from the workbench state. */
+  /* stylelint-disable-next-line declaration-property-value-disallowed-list */
   left: var(--doru-side-sash-left, 312px);
 }
 
 .agent-chat-sash {
+  /* Fallback only: the live position is set from the workbench state. */
+  /* stylelint-disable-next-line declaration-property-value-disallowed-list */
   right: var(--doru-agent-chat-sash-right, 322px);
 }
 
@@ -315,7 +319,7 @@ body.sash-resizing * {
   background: var(--doru-bg-canvas);
   overflow: hidden;
   flex: none;
-  padding: 2px;
+  padding: var(--doru-space-1);
 }
 
 .tab {
@@ -331,8 +335,8 @@ body.sash-resizing * {
   max-width: 160px;
 
   /* 2px on each side + the strip's own padding: 4px between pill fills. */
-  margin: 0 2px;
-  padding: 0 8px 0 6px;
+  margin: 0 var(--doru-space-1);
+  padding: 0 var(--doru-space-4) 0 var(--doru-space-3);
   background: transparent;
   border-radius: var(--doru-radius-sm);
   color: var(--doru-fg-muted);
@@ -395,7 +399,7 @@ body.sash-resizing * {
 .tab-close {
   position: absolute;
   top: 50%;
-  right: 6px;
+  right: var(--doru-space-3);
   transform: translateY(-50%);
   border: none;
   padding: 0;
@@ -425,7 +429,7 @@ body.sash-resizing * {
    shifts when the close action appears. */
 .tab-bar-mac .tab-close {
   right: auto;
-  left: 6px;
+  left: var(--doru-space-3);
 }
 
 .tab:hover .tab-close,
@@ -434,7 +438,7 @@ body.sash-resizing * {
 }
 
 .tab-bar-mac .tab:not(.no-close) .tab-label {
-  padding-left: 20px;
+  padding-left: var(--doru-space-10);
 }
 
 /* With the close action on the left the right edge stays free, so the
@@ -495,7 +499,7 @@ body.tab-reordering * {
   display: flex;
   align-items: center;
   height: 24px;
-  padding: 0 8px 0 6px;
+  padding: 0 var(--doru-space-4) 0 var(--doru-space-3);
   border-radius: var(--doru-radius-sm);
   background: var(--doru-bg-raised);
   box-shadow: var(--doru-shadow-tooltip), var(--doru-ring);
@@ -512,8 +516,8 @@ body.tab-reordering * {
 
 /* Side bar note (e.g. truncated lists on large trees). */
 .side-bar-note {
-  margin: 8px 0;
-  padding: 0 6px;
+  margin: var(--doru-space-4) 0;
+  padding: 0 var(--doru-space-3);
   font-size: 12px;
   color: var(--doru-fg-muted);
 }

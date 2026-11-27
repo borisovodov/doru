@@ -1,16 +1,16 @@
 /* ── Placeholders ──────────────────────────────────────────────────── */
 
 .placeholder-view h3 {
-  margin: 0 0 6px;
+  margin: 0 0 var(--doru-space-3);
   font-size: var(--doru-font-size);
 }
 
 .placeholder-view p {
-  margin: 0 0 12px;
+  margin: 0 0 var(--doru-space-6);
   color: var(--doru-fg-muted);
 }
 
 .person-missing {
-  margin: 16px;
+  margin: var(--doru-space-8);
   color: var(--doru-fg-muted);
 }

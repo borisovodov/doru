@@ -7,7 +7,7 @@
   height: 100%;
   box-sizing: border-box;
   overflow: auto;
-  padding: 72px 24px;
+  padding: var(--doru-space-36) var(--doru-space-12);
 
   /* Nothing on this page is selectable text. */
   user-select: none;
@@ -16,13 +16,13 @@
 .welcome-hero {
   text-align: center;
   max-width: 520px;
-  margin-bottom: 64px;
+  margin-bottom: var(--doru-space-32);
 }
 
 /* The same wordmark as the empty editor page: the website display face
    with the muted gradient. */
 .welcome-name {
-  margin: 0 0 32px;
+  margin: 0 0 var(--doru-space-16);
   font-family: 'Berkshire Swash', 'Apple Chancery', 'Snell Roundhand', cursive;
   font-weight: 400;
   font-size: clamp(64px, 12vw, 144px);
@@ -36,7 +36,7 @@
 
 .welcome-actions {
   display: flex;
-  gap: 10px;
+  gap: var(--doru-space-5);
   justify-content: center;
   flex-wrap: wrap;
 }
@@ -47,7 +47,7 @@
 }
 
 .welcome-recent h2 {
-  margin: 0 0 10px;
+  margin: 0 0 var(--doru-space-5);
   font-size: 12px;
   font-weight: 600;
   text-transform: uppercase;

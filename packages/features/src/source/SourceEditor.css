@@ -2,7 +2,7 @@
 
 .source-sub-row {
   display: flex;
-  gap: 6px;
+  gap: var(--doru-space-3);
   align-items: center;
 }
 
@@ -13,14 +13,14 @@
 }
 
 .source-call-number {
-  margin-left: 12px;
-  padding-left: 8px;
+  margin-left: var(--doru-space-6);
+  padding-left: var(--doru-space-4);
   border-left: 2px solid var(--doru-border);
 }
 
 .source-actions {
   display: flex;
-  gap: 8px;
+  gap: var(--doru-space-4);
   align-items: center;
 }
 

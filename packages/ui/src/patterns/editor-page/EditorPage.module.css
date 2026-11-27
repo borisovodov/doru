@@ -1,4 +1,4 @@
 .page {
   max-width: 560px;
-  padding: 8px 16px;
+  padding: var(--doru-space-4) var(--doru-space-8);
 }

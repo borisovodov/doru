@@ -11,8 +11,8 @@
 .notesRow {
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 2px 0;
+  gap: var(--doru-space-3);
+  padding: var(--doru-space-1) 0;
 }
 
 .notesText {
@@ -25,7 +25,7 @@
 .notesEdit {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: var(--doru-space-3);
 }
 
 .notesEdit textarea {
@@ -34,14 +34,14 @@
 
 .notesEditActions {
   display: flex;
-  gap: 6px;
+  gap: var(--doru-space-3);
   align-items: center;
 }
 
 .notesAdd {
   display: flex;
   align-items: flex-end;
-  gap: 8px;
+  gap: var(--doru-space-4);
 }
 
 .notesAdd textarea {

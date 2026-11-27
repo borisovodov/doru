@@ -2,7 +2,7 @@
   position: relative;
   display: flex;
   align-items: center;
-  gap: var(--doru-space-1);
+  gap: var(--doru-space-2);
   min-width: 0;
 }
 
@@ -24,13 +24,13 @@
 
 .popover {
   position: absolute;
-  top: calc(100% + var(--doru-space-1));
+  top: calc(100% + var(--doru-space-2));
   right: 0;
   z-index: 200;
   width: 264px;
-  max-width: calc(100vw - var(--doru-space-4));
+  max-width: calc(100vw - var(--doru-space-6));
   box-sizing: border-box;
-  padding: var(--doru-space-3);
+  padding: var(--doru-space-4);
   background: var(--doru-bg-popover);
   border: 1px solid var(--doru-border);
   border-radius: var(--doru-radius-md);
@@ -41,8 +41,8 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: var(--doru-space-3);
-  margin-top: var(--doru-space-2);
-  padding-top: var(--doru-space-2);
+  gap: var(--doru-space-4);
+  margin-top: var(--doru-space-3);
+  padding-top: var(--doru-space-3);
   border-top: 1px solid var(--doru-border);
 }
