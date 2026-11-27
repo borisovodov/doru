@@ -288,7 +288,15 @@ function TreeCanvasInner({
         fitOptions={FIT_OPTIONS}
         onPaneClick={handleClearSelection}
       >
-        <CanvasBackground gap={24} size={1} color="var(--doru-border)" />
+        <CanvasBackground
+          gap={64}
+          size={2}
+          minGap={8}
+          minSize={2}
+          fadeGap={32}
+          minOpacity={0.2}
+          color="var(--doru-canvas-dot)"
+        />
         <CanvasWorld>
           {layout &&
             view?.bands.map(({ generation, y }) => (

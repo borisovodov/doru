@@ -72,7 +72,10 @@ children of the provider.
 - `CanvasOverlay` is anchored to a world rectangle but stays at a constant
   screen size (used for the selected card's action toolbar).
 - `CanvasBackground` draws the dots pattern in screen space, offset and scaled
-  by the viewport.
+  by the viewport, with a minimum on-screen gap and dot size so the pattern
+  stays readable at low zoom instead of collapsing into a solid tint. It can
+  also fade the pattern down to a configurable minimum opacity as the gap
+  shrinks, before it becomes visual noise.
 - Elements with `data-canvas-no-pan` do not start a pan; elements with
   `data-canvas-no-wheel` do not pan on wheel.
 

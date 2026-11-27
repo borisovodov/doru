@@ -10,6 +10,9 @@
   flex: 1;
   min-height: 0;
   background: var(--doru-bg-canvas);
+
+  /* A little stronger than a hairline so panning reads on an empty canvas. */
+  --doru-canvas-dot: color-mix(in srgb, var(--doru-fg) 32%, transparent);
 }
 
 /* ── Overlay panels ───────────────────────────────────────────────── */
