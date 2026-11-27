@@ -479,6 +479,35 @@ describe('TreeService attachments', () => {
     }
   });
 
+  it('restores primary flags on both targets when a target move is undone', () => {
+    const { fixture, service } = makeService();
+    try {
+      service.addPerson({ id: 'P1', names: [], sex: 'U', facts: [] });
+      service.addPerson({ id: 'P2', names: [], sex: 'U', facts: [] });
+      service.addMedia({ id: 'M1', path: 'media/a.jpg', targetType: 'person', targetId: 'P1' });
+      service.addMedia({ id: 'M2', path: 'media/b.jpg', targetType: 'person', targetId: 'P2' });
+      const moved = fixture.repo
+        .listAttachmentsFor('person', 'P1')
+        .mediaLinks.find((entry) => entry.media.id === 'M1')!.link;
+
+      service.updateMediaLink(moved, { ...moved, targetType: 'person', targetId: 'P2', primary: true });
+      expect(
+        fixture.repo.listAttachmentsFor('person', 'P2').mediaLinks.find((entry) => entry.media.id === 'M2')?.link
+          .primary,
+      ).toBeUndefined();
+
+      service.undo();
+
+      expect(fixture.repo.listAttachmentsFor('person', 'P1').mediaLinks[0]?.link.primary).toBe(true);
+      expect(
+        fixture.repo.listAttachmentsFor('person', 'P2').mediaLinks.find((entry) => entry.media.id === 'M2')?.link
+          .primary,
+      ).toBe(true);
+    } finally {
+      cleanupRepo(fixture);
+    }
+  });
+
   it('restores the previous primary link when a primary attach is undone', () => {
     const { fixture, service } = makeService();
     try {

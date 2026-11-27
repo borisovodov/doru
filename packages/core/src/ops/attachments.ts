@@ -263,16 +263,13 @@ export function attachMediaOp(link: MediaLinkRecord, primaryBefore?: MediaLinkRe
         // Restore only the primary flags this attachment cleared. A concurrent
         // writer may have changed a sibling's crop or target since the capture,
         // so keep those current fields instead of writing the whole row back.
+        restorePrimaryFlags(ctx, primaryBefore ?? []);
         const targets = new Map<string, { targetType: string; targetId: string }>();
         for (const before of primaryBefore ?? []) {
           targets.set(`${before.targetType}\u0000${before.targetId}`, {
             targetType: before.targetType,
             targetId: before.targetId,
           });
-          const current = ctx.repo.getMedia(before.mediaId)?.links?.find((entry) => entry.id === before.id);
-          if (current !== undefined) {
-            ctx.repo.updateMediaLinkRow({ ...current, primary: before.primary });
-          }
         }
         for (const target of targets.values()) {
           ctx.repo.normalizePrimaryLink(target.targetType, target.targetId);
@@ -283,13 +280,49 @@ export function attachMediaOp(link: MediaLinkRecord, primaryBefore?: MediaLinkRe
   };
 }
 
-export function updateMediaLinkOp(before: MediaLinkRecord, after: MediaLinkRecord): Op {
+type MediaPrimarySnapshot = {
+  oldTarget: MediaLinkRecord[];
+  newTarget: MediaLinkRecord[];
+};
+
+function restorePrimaryFlags(ctx: MutationContext, links: readonly MediaLinkRecord[]): void {
+  for (const before of links) {
+    const current = ctx.repo.getMedia(before.mediaId)?.links?.find((link) => link.id === before.id);
+    if (current === undefined || current.targetType !== before.targetType || current.targetId !== before.targetId) {
+      continue;
+    }
+    ctx.repo.updateMediaLinkRow({ ...current, primary: before.primary });
+  }
+}
+
+export function updateMediaLinkOp(
+  before: MediaLinkRecord,
+  after: MediaLinkRecord,
+  primaryBefore?: MediaPrimarySnapshot,
+): Op {
   return {
     ...op(
       crypto.randomUUID(),
       'media.linkUpdate',
       (ctx) => ctx.repo.updateMediaLink(after),
-      (ctx) => ctx.repo.updateMediaLink(before),
+      (ctx) => {
+        ctx.repo.updateMediaLink(before);
+        if (primaryBefore === undefined) {
+          return;
+        }
+        restorePrimaryFlags(ctx, primaryBefore.oldTarget);
+        restorePrimaryFlags(ctx, primaryBefore.newTarget);
+        const targets = new Map<string, { targetType: string; targetId: string }>();
+        for (const link of [...primaryBefore.oldTarget, ...primaryBefore.newTarget]) {
+          targets.set(`${link.targetType}\u0000${link.targetId}`, {
+            targetType: link.targetType,
+            targetId: link.targetId,
+          });
+        }
+        for (const target of targets.values()) {
+          ctx.repo.normalizePrimaryLink(target.targetType, target.targetId);
+        }
+      },
     ),
     change: { targetType: 'media', targetId: before.mediaId, kind: 'changed' },
     redoSafe: (ctx) => {

@@ -1069,8 +1069,11 @@ export class TreeService {
       const desired: MediaLinkRecord = { ...after, id: stored.id, mediaId: stored.mediaId };
       if (stored.targetType !== desired.targetType || stored.targetId !== desired.targetId) {
         // Moving a link between targets keeps the repository's normalization
-        // path; it is not used by the editor, which only changes metadata.
-        return updateMediaLinkOp(stored, desired);
+        // path; capture both targets so undo can restore their sibling flags.
+        return updateMediaLinkOp(stored, desired, {
+          oldTarget: this.repo.listMediaLinksFor(stored.targetType, stored.targetId).map((entry) => entry.link),
+          newTarget: this.repo.listMediaLinksFor(desired.targetType, desired.targetId).map((entry) => entry.link),
+        });
       }
       const currentLinks = this.repo.listMediaLinksFor(stored.targetType, stored.targetId).map((entry) => entry.link);
       const nextLinks = currentLinks.map((link) => (link.id === stored.id ? { ...desired } : { ...link }));

@@ -38,10 +38,10 @@
 
 .primary {
   position: absolute;
-  bottom: 4px;
-  left: 4px;
+  bottom: var(--doru-space-1);
+  left: var(--doru-space-1);
   display: flex;
-  padding: 4px;
+  padding: var(--doru-space-1);
   border-radius: var(--doru-radius-sm);
   background: var(--doru-scrim);
   color: var(--doru-on-scrim);
@@ -50,8 +50,8 @@
 
 .primaryAction {
   position: absolute;
-  bottom: 4px;
-  left: 4px;
+  bottom: var(--doru-space-1);
+  left: var(--doru-space-1);
 }
 
 .actions {

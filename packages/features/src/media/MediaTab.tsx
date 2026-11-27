@@ -327,6 +327,9 @@ function MediaTabBody({
       // not shown by the picker must stay attached.
       const removed = currentLinks.filter((link) => previousKeys.has(key(link)) && !nextKeys.has(key(link)));
       if (added.length === 0 && removed.length === 0) {
+        // Another editor may already have detached a displayed target; keep
+        // the picker aligned with the user's selection.
+        setCommittedTargets({ targets: next, record });
         return;
       }
       if (added.length > 0) {
