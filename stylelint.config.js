@@ -1,6 +1,8 @@
 // Raw color literals are banned outside the token layer: a component that
-// hardcodes a color stops following the selected theme.
-const colorLiteral = /(#[0-9a-f]{3,8}\b|\b(?:rgba?|hsla?|hwb|lab|lch|oklab|oklch|color)\(|\blight-dark\()/i;
+// hardcodes a color stops following the selected theme. Hex colors use
+// Stylelint's syntax-aware rule so SVG url(#id) fragments are not mistaken
+// for colors.
+const colorLiteral = /\b(?:rgba?|hsla?|hwb|lab|lch|oklab|oklch|color)\(|\blight-dark\(/i;
 
 export default {
   extends: ['stylelint-config-standard'],
@@ -43,10 +45,12 @@ export default {
       '/^text-decoration$/': [colorLiteral],
       '/^text-emphasis$/': [colorLiteral],
       '/^column-rule$/': [colorLiteral],
+      '/^list-style/': [colorLiteral],
       '/^(fill|stroke)$/': [colorLiteral],
       '/^filter$/': [colorLiteral],
     },
     'color-named': 'never',
+    'color-no-hex': true,
   },
   overrides: [
     {
@@ -54,6 +58,7 @@ export default {
       rules: {
         'declaration-property-value-disallowed-list': null,
         'color-named': null,
+        'color-no-hex': null,
       },
     },
   ],
