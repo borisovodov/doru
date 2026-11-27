@@ -85,7 +85,6 @@ describe('remote media ingestion', () => {
         addMedia: (media: MediaRecord) => {
           records.push(media);
         },
-        listAllMedia: () => records,
       };
 
       const media = await addRemoteMediaRecord(

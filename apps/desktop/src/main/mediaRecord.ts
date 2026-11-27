@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import { mkdir, rm } from 'node:fs/promises';
+import { mkdir } from 'node:fs/promises';
 import { join } from 'node:path';
 import { MEDIA_DIR_NAME, type MediaRecord } from '@doru/core';
 import { mediaContentName, storeIngestedMedia, type IngestedMedia } from './mediaIngest';
@@ -12,7 +12,6 @@ export interface MediaTarget {
 /** The subset of the tree service used to add a media card. */
 export interface MediaRecordService {
   addMedia(media: MediaRecord): unknown;
-  listAllMedia(): MediaRecord[];
 }
 
 /** Media paths with an add in flight, keyed by their normalized path. */
@@ -43,9 +42,10 @@ function unmarkPending(path: string): void {
 }
 
 /**
- * Stores an ingested image in a project-scoped media folder and creates its
- * media record. A failed database insert removes the file only when this call
- * created it, no other record references it, and no other add is pending.
+ * Stores an ingested image and creates its media record. The pending marker
+ * covers storage and the record insert so a concurrent delete cannot remove
+ * the file before the record commits. A failed insert keeps the stored copy;
+ * another add may already be reusing the same content-addressed file.
  */
 export async function addStoredMedia(
   mediaDir: string,
@@ -58,9 +58,8 @@ export async function addStoredMedia(
   const name = mediaContentName(ingested.bytes);
   const mediaPath = join(MEDIA_DIR_NAME, name);
   markPending(mediaPath);
-  let stored: Awaited<ReturnType<typeof storeIngestedMedia>>;
   try {
-    stored = await storeIngestedMedia(mediaDir, ingested);
+    await storeIngestedMedia(mediaDir, ingested);
   } catch (error) {
     unmarkPending(mediaPath);
     throw error;
@@ -71,29 +70,12 @@ export async function addStoredMedia(
     path: mediaPath,
     ...(target !== undefined ? { targetType: target.targetType, targetId: target.targetId } : {}),
   };
-  let failed = false;
-  let failure: unknown;
   try {
     service.addMedia(media);
   } catch (error) {
-    failed = true;
-    failure = error;
+    unmarkPending(mediaPath);
+    throw error;
   }
   unmarkPending(mediaPath);
-  if (failed) {
-    if (stored.created && !isMediaPathPending(mediaPath)) {
-      let referenced = true;
-      try {
-        const normalizedPath = normalizeMediaPath(mediaPath);
-        referenced = service.listAllMedia().some((entry) => normalizeMediaPath(entry.path) === normalizedPath);
-      } catch {
-        // Never delete a file when its references cannot be verified.
-      }
-      if (!referenced) {
-        await rm(join(mediaDir, name), { force: true }).catch(() => undefined);
-      }
-    }
-    throw failure;
-  }
   return media;
 }

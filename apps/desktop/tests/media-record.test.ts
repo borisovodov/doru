@@ -33,7 +33,6 @@ function serviceWith(records: MediaRecord[], fail: () => boolean): MediaRecordSe
       records.push(media);
       return undefined;
     },
-    listAllMedia: () => records,
   };
 }
 
@@ -69,7 +68,7 @@ describe('addStoredMedia', () => {
     expect(await readdir(mediaDir(dir))).toEqual([basename(first.path)]);
   });
 
-  it('removes a newly created file when the record cannot be added', async () => {
+  it('keeps a newly created file when the record cannot be added', async () => {
     const dir = await makeTempDir();
     await expect(
       addStoredMedia(
@@ -80,7 +79,7 @@ describe('addStoredMedia', () => {
         serviceWith([], () => true),
       ),
     ).rejects.toThrow('database unavailable');
-    expect(await readdir(mediaDir(dir))).toEqual([]);
+    expect(await readdir(mediaDir(dir))).toHaveLength(1);
   });
 
   it('keeps a shared file when a duplicate record cannot be added', async () => {
@@ -95,7 +94,6 @@ describe('addStoredMedia', () => {
         records.push(media);
         return undefined;
       },
-      listAllMedia: () => records,
     };
 
     const first = await addStoredMedia(mediaDir(dir), ingested, 'First', undefined, service);
@@ -114,7 +112,6 @@ describe('addStoredMedia', () => {
         pendingDuringInsert = isMediaPathPending(media.path);
         throw new Error('database unavailable');
       },
-      listAllMedia: () => [],
     };
 
     await expect(addStoredMedia(mediaDir(dir), ingested, undefined, undefined, service)).rejects.toThrow(
@@ -123,39 +120,5 @@ describe('addStoredMedia', () => {
     const hash = createHash('sha256').update(ingested.bytes).digest('hex').slice(0, 32);
     expect(pendingDuringInsert).toBe(true);
     expect(isMediaPathPending(`media/${hash}.avif`)).toBe(false);
-  });
-
-  it('keeps a new file when references cannot be checked after a failed insert', async () => {
-    const dir = await makeTempDir();
-    const service: MediaRecordService = {
-      addMedia: () => {
-        throw new Error('database unavailable');
-      },
-      listAllMedia: () => {
-        throw new Error('database unavailable');
-      },
-    };
-
-    await expect(addStoredMedia(mediaDir(dir), ingested, undefined, undefined, service)).rejects.toThrow(
-      'database unavailable',
-    );
-    expect(await readdir(mediaDir(dir))).toHaveLength(1);
-  });
-
-  it('keeps a new file referenced through a forward-slash path', async () => {
-    const dir = await makeTempDir();
-    const hash = createHash('sha256').update(ingested.bytes).digest('hex').slice(0, 32);
-    const existing = { id: 'M1', path: `media/${hash}.avif` };
-    const service: MediaRecordService = {
-      addMedia: () => {
-        throw new Error('database unavailable');
-      },
-      listAllMedia: () => [existing],
-    };
-
-    await expect(addStoredMedia(mediaDir(dir), ingested, undefined, undefined, service)).rejects.toThrow(
-      'database unavailable',
-    );
-    expect(await readdir(mediaDir(dir))).toEqual([`${hash}.avif`]);
   });
 });
