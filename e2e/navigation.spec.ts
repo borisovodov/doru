@@ -34,8 +34,8 @@ test('window history navigates tree focus and editor tabs', async () => {
   await expect(ivan).toHaveAttribute('aria-current', 'true');
 
   const platform = await page.evaluate(() => window.doru.platform);
-  const backKey = platform === 'darwin' ? 'Meta+[' : 'Alt+Left';
-  const forwardKey = platform === 'darwin' ? 'Meta+]' : 'Alt+Right';
+  const backKey = platform === 'darwin' ? 'Meta+[' : 'Alt+ArrowLeft';
+  const forwardKey = platform === 'darwin' ? 'Meta+]' : 'Alt+ArrowRight';
   await page.keyboard.press(backKey);
   await expect(petr).toHaveAttribute('aria-current', 'true');
   await page.keyboard.press(forwardKey);
