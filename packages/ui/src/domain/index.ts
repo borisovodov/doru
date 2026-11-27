@@ -13,3 +13,4 @@ export * from './notes';
 export * from './attachments';
 export * from './contributors';
 export * from './date';
+export * from './media';

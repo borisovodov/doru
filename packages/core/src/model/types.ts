@@ -740,6 +740,31 @@ export function isExternalMediaPath(path: string): boolean {
   return /^(?:https?|ftp|file):\/\//i.test(path.replaceAll('\\', '/'));
 }
 
+/**
+ * Normalizes a user-entered media link. A missing scheme becomes HTTPS;
+ * anything outside HTTP(S) (or an unparsable value) is rejected.
+ */
+export function normalizeMediaUrl(value: string): string | undefined {
+  const trimmed = value.trim();
+  if (trimmed === '') {
+    return undefined;
+  }
+  const candidate = trimmed.startsWith('//')
+    ? `https:${trimmed}`
+    : /^[a-z][a-z0-9+.-]*:\/\//i.test(trimmed)
+      ? trimmed
+      : `https://${trimmed}`;
+  try {
+    const url = new URL(candidate);
+    if (url.protocol !== 'http:' && url.protocol !== 'https:') {
+      return undefined;
+    }
+    return url.toString();
+  } catch {
+    return undefined;
+  }
+}
+
 /** The last non-empty segment of a slash-separated path, percent-decoded. */
 function lastMediaPathSegment(path: string): string | undefined {
   const segments = path

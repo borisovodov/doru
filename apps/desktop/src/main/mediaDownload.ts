@@ -37,6 +37,16 @@ export function isExternalMediaUrl(value: string): boolean {
   return /^(?:https?|ftp|file):\/\//i.test(value.replaceAll('\\', '/'));
 }
 
+/** Keeps credentials, query tokens and fragments out of logs. */
+export function redactMediaUrl(value: string): string {
+  try {
+    const url = new URL(value);
+    return `${url.protocol}//${url.host}/…`;
+  } catch {
+    return 'invalid media URL';
+  }
+}
+
 /** True for URLs this importer is allowed to download. */
 export function isDownloadableMediaUrl(value: string): boolean {
   try {

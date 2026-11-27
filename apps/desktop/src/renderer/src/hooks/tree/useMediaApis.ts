@@ -20,6 +20,15 @@ export function useMediaApis(projectPath: string | null | undefined, refreshTree
     await refreshAfterWrite(refreshTree);
   }, [projectPath, refreshTree]);
 
+  const addStandaloneMediaUrl = useCallback(
+    async (url: string) => {
+      if (!projectPath) return;
+      await window.doru.addStandaloneMediaUrl(projectPath, url);
+      await refreshAfterWrite(refreshTree);
+    },
+    [projectPath, refreshTree],
+  );
+
   const mediaApi = useMemo<MediaTargetApi>(
     () => ({
       getMediaFor: (targetType, targetId) =>
@@ -30,6 +39,13 @@ export function useMediaApis(projectPath: string | null | undefined, refreshTree
           return;
         }
         await window.doru.addMedia(projectPath, targetType, targetId);
+        await refreshAfterWrite(refreshTree);
+      },
+      addMediaUrlToTarget: async (targetType, targetId, url) => {
+        if (!projectPath) {
+          return;
+        }
+        await window.doru.addMediaUrl(projectPath, targetType, targetId, url);
         await refreshAfterWrite(refreshTree);
       },
       attachMedia: async (link) => {
@@ -91,5 +107,5 @@ export function useMediaApis(projectPath: string | null | undefined, refreshTree
     }),
     [mediaApi, projectPath, refreshTree],
   );
-  return { addStandaloneMedia, mediaApi, mediaAdminApi };
+  return { addStandaloneMedia, addStandaloneMediaUrl, mediaApi, mediaAdminApi };
 }

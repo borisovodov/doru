@@ -62,6 +62,7 @@ export {
   mediaDisplayName,
   mediaFileName,
   mediaTitleFromPath,
+  normalizeMediaUrl,
   normalizeTaskPriority,
   normalizeTaskStatus,
   placeName,

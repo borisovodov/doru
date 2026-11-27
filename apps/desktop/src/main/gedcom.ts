@@ -18,7 +18,7 @@ import {
   type GedzipMediaEntry,
 } from '@doru/gedcom';
 import { NodeFileSystem } from './filesystem';
-import { downloadRemoteMedia, isDownloadableMediaUrl, isExternalMediaUrl } from './mediaDownload';
+import { downloadRemoteMedia, isDownloadableMediaUrl, isExternalMediaUrl, redactMediaUrl } from './mediaDownload';
 import {
   ingestMediaBytes,
   isAllowedRemoteMediaType,
@@ -57,16 +57,6 @@ export interface GedcomMediaDependencies {
   /** Content-addressed file name; injectable for budget and failure tests. */
   name?: ((contents: Uint8Array) => string) | undefined;
   logger?: GedcomMediaLogger | undefined;
-}
-
-/** Keeps credentials, query tokens and fragments out of the import log. */
-function redactMediaUrl(value: string): string {
-  try {
-    const url = new URL(value);
-    return `${url.protocol}//${url.host}/…`;
-  } catch {
-    return 'invalid media URL';
-  }
 }
 
 /** A log-safe label: a bare file name or a redacted URL. */

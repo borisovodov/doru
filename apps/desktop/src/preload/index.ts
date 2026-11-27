@@ -256,8 +256,12 @@ const api = {
   getAllMedia: (projectPath: string): Promise<unknown> => ipcRenderer.invoke('tree:allMedia', { projectPath }),
   addMedia: (projectPath: string, targetType: string, targetId: string): Promise<unknown> =>
     ipcRenderer.invoke('tree:addMedia', { projectPath, targetType, targetId }),
+  addMediaUrl: (projectPath: string, targetType: string, targetId: string, url: string): Promise<unknown> =>
+    ipcRenderer.invoke('tree:addMediaUrl', { projectPath, targetType, targetId, url }),
   addStandaloneMedia: (projectPath: string): Promise<unknown> =>
     ipcRenderer.invoke('tree:addStandaloneMedia', { projectPath }),
+  addStandaloneMediaUrl: (projectPath: string, url: string): Promise<unknown> =>
+    ipcRenderer.invoke('tree:addStandaloneMediaUrl', { projectPath, url }),
   updateMedia: (projectPath: string, before: unknown, after: unknown): Promise<unknown> =>
     ipcRenderer.invoke('tree:updateMedia', { projectPath, before, after }),
   deleteMedia: (projectPath: string, media: unknown): Promise<unknown> =>

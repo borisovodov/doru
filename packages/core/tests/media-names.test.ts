@@ -5,6 +5,7 @@ import {
   mediaDisplayName,
   mediaFileName,
   mediaTitleFromPath,
+  normalizeMediaUrl,
 } from '../src/model/types';
 
 describe('media names', () => {
@@ -61,5 +62,17 @@ describe('media names', () => {
     expect(isImagePath('media/a.heic')).toBe(false);
     expect(isImagePath('media/a.tiff')).toBe(false);
     expect(isImagePath('https://example.com/a.jpg?token=1')).toBe(true);
+  });
+
+  it('normalizes user-entered media links', () => {
+    expect(normalizeMediaUrl('example.com/photo.jpg')).toBe('https://example.com/photo.jpg');
+    expect(normalizeMediaUrl('http://example.com/photo.jpg')).toBe('http://example.com/photo.jpg');
+    expect(normalizeMediaUrl('//example.com/photo.jpg')).toBe('https://example.com/photo.jpg');
+    expect(normalizeMediaUrl('https://example.com/photo.jpg?size=large')).toBe(
+      'https://example.com/photo.jpg?size=large',
+    );
+    expect(normalizeMediaUrl('ftp://example.com/photo.jpg')).toBeUndefined();
+    expect(normalizeMediaUrl('file:///tmp/photo.jpg')).toBeUndefined();
+    expect(normalizeMediaUrl('  ')).toBeUndefined();
   });
 });

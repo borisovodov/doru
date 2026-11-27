@@ -13,10 +13,13 @@ import { NodeFileSystem } from './filesystem';
 import { log } from './log';
 import { ingestMediaFile, MediaIngestError, storeIngestedMedia, type IngestedMedia } from './mediaIngest';
 import { readMediaFileFacts, type MediaFileFacts } from './mediaFacts';
+import { redactMediaUrl } from './mediaDownload';
+import { fetchRemoteMedia, RemoteMediaError } from './mediaUrl';
 import { resolveMediaPath, symlinkChainResolvesTo } from './mediaPaths';
 import { nls } from './nls';
 import { ensureRuntime, runtimeFilePath } from './runtime';
 import { focusedWindow } from './windows';
+import type { ProjectRuntime } from './state';
 
 const fs = new NodeFileSystem();
 
@@ -108,6 +111,30 @@ interface MediaTarget {
   targetId: string;
 }
 
+async function addStoredMedia(
+  projectPath: string,
+  runtime: ProjectRuntime,
+  mediaDir: string,
+  ingested: IngestedMedia,
+  title: string | undefined,
+  target?: MediaTarget,
+): Promise<MediaWithPath> {
+  const name = await storeIngestedMedia(mediaDir, ingested);
+  const media: MediaRecord = {
+    id: randomUUID(),
+    ...(title !== undefined ? { title } : {}),
+    path: join(MEDIA_DIR_NAME, name),
+    ...(target !== undefined ? { targetType: target.targetType, targetId: target.targetId } : {}),
+  };
+  try {
+    runtime.service.addMedia(media);
+  } catch (error) {
+    await fs.remove(join(mediaDir, name));
+    throw error;
+  }
+  return withPath(projectPath, media);
+}
+
 /** Validates, converts and stores picked files, skipping rejected ones. */
 async function addPickedMedia(
   projectPath: string,
@@ -136,23 +163,25 @@ async function addPickedMedia(
       }
       throw error;
     }
-    const name = await storeIngestedMedia(mediaDir, ingested);
-    const title = mediaTitleFromPath(source);
-    const media: MediaRecord = {
-      id: randomUUID(),
-      ...(title !== undefined ? { title } : {}),
-      path: join(MEDIA_DIR_NAME, name),
-      ...(target !== undefined ? { targetType: target.targetType, targetId: target.targetId } : {}),
-    };
-    try {
-      runtime.service.addMedia(media);
-    } catch (error) {
-      await fs.remove(join(mediaDir, name));
-      throw error;
-    }
-    added.push(await withPath(projectPath, media));
+    added.push(await addStoredMedia(projectPath, runtime, mediaDir, ingested, mediaTitleFromPath(source), target));
   }
   return added;
+}
+
+/** Downloads a direct image URL, converts it and stores a normal media record. */
+async function addRemoteMedia(projectPath: string, value: string, target?: MediaTarget): Promise<MediaWithPath> {
+  let fetched: Awaited<ReturnType<typeof fetchRemoteMedia>>;
+  try {
+    fetched = await fetchRemoteMedia(value);
+  } catch (error) {
+    const code = error instanceof RemoteMediaError ? error.code : 'download-failed';
+    log.warn('skipped media URL', redactMediaUrl(value), code);
+    throw new Error('media URL could not be added', { cause: error });
+  }
+  const { runtime } = await ensureRuntime(projectPath);
+  const mediaDir = join(dirname(runtimeFilePath(projectPath)), MEDIA_DIR_NAME);
+  await fs.mkdir(mediaDir);
+  return addStoredMedia(projectPath, runtime, mediaDir, fetched.ingested, fetched.title, target);
 }
 
 export async function addMediaToTarget(
@@ -164,10 +193,23 @@ export async function addMediaToTarget(
   return addPickedMedia(projectPath, sources, { targetType, targetId });
 }
 
+export async function addMediaUrlToTarget(
+  projectPath: string,
+  targetType: string,
+  targetId: string,
+  url: string,
+): Promise<MediaWithPath> {
+  return addRemoteMedia(projectPath, url, { targetType, targetId });
+}
+
 /** Picks files and creates media records without attaching them to a target. */
 export async function addStandaloneMedia(projectPath: string): Promise<MediaWithPath[]> {
   const sources = await pickMediaFiles();
   return addPickedMedia(projectPath, sources);
+}
+
+export async function addStandaloneMediaUrl(projectPath: string, url: string): Promise<MediaWithPath> {
+  return addRemoteMedia(projectPath, url);
 }
 
 /**

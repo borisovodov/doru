@@ -20,7 +20,15 @@ import type {
   TaskTargetLink,
   TitleRecord,
 } from '@doru/core';
-import { addMediaToTarget, addStandaloneMedia, listAllMedia, listMediaForTarget, removeMediaFile } from './media';
+import {
+  addMediaToTarget,
+  addMediaUrlToTarget,
+  addStandaloneMedia,
+  addStandaloneMediaUrl,
+  listAllMedia,
+  listMediaForTarget,
+  removeMediaFile,
+} from './media';
 import { ensureRuntime } from './runtime';
 
 /**
@@ -544,6 +552,16 @@ export function registerTreeIpc(): void {
 
   ipcMain.handle('tree:addStandaloneMedia', async (_event, options: { projectPath: string }) =>
     addStandaloneMedia(options.projectPath),
+  );
+
+  ipcMain.handle(
+    'tree:addMediaUrl',
+    async (_event, options: { projectPath: string; targetType: string; targetId: string; url: string }) =>
+      addMediaUrlToTarget(options.projectPath, options.targetType, options.targetId, options.url),
+  );
+
+  ipcMain.handle('tree:addStandaloneMediaUrl', async (_event, options: { projectPath: string; url: string }) =>
+    addStandaloneMediaUrl(options.projectPath, options.url),
   );
 
   ipcMain.handle(

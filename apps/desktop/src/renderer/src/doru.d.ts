@@ -200,7 +200,9 @@ declare global {
       getMedia(projectPath: string, targetType: string, targetId: string): Promise<MediaWithPath[]>;
       getAllMedia(projectPath: string): Promise<MediaWithPath[]>;
       addMedia(projectPath: string, targetType: string, targetId: string): Promise<MediaWithPath[]>;
+      addMediaUrl(projectPath: string, targetType: string, targetId: string, url: string): Promise<MediaWithPath>;
       addStandaloneMedia(projectPath: string): Promise<MediaWithPath[]>;
+      addStandaloneMediaUrl(projectPath: string, url: string): Promise<MediaWithPath>;
       updateMedia(projectPath: string, before: MediaRecord, after: MediaRecord): Promise<UndoRedoState>;
       deleteMedia(projectPath: string, media: MediaRecord): Promise<UndoRedoState>;
       attachMedia(projectPath: string, link: MediaLinkRecord): Promise<UndoRedoState>;

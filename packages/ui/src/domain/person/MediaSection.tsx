@@ -8,12 +8,12 @@ import {
 import { FileImage } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { nls } from '../../nls';
-import { Button } from '../../atoms/button/Button';
 import { EmptyText } from '../../atoms/feedback/EmptyText';
 import { InlineError } from '../../atoms/feedback/InlineError';
 import { AttachExisting } from '../../patterns/attach-existing/AttachExisting';
 import { MediaTile } from '../../patterns/media-tile/MediaTile';
 import { SectionCard } from '../../patterns/section-card/SectionCard';
+import { MediaAddControl } from '../media/MediaAddControl';
 import type { MediaWithPath } from './types';
 import styles from './MediaSection.module.css';
 
@@ -22,6 +22,7 @@ export interface MediaSectionApi {
   getMediaFor(targetType: string, targetId: string): Promise<MediaWithPath[]>;
   getAllMedia(): Promise<MediaWithPath[]>;
   addMediaToTarget(targetType: string, targetId: string): Promise<void>;
+  addMediaUrlToTarget(targetType: string, targetId: string, url: string): Promise<void>;
   attachMedia(link: MediaLinkRecord): Promise<void>;
   detachMedia(link: MediaLinkRecord): Promise<void>;
   deleteMedia(media: MediaRecord): Promise<void>;
@@ -70,6 +71,13 @@ export function MediaSection({
     } catch {
       setMediaError(true);
     }
+  };
+
+  const addUrl = async (url: string) => {
+    setMediaError(false);
+    await api.addMediaUrlToTarget(targetType, targetId, url);
+    await refresh();
+    setAllMedia(mediaList(await api.getAllMedia()));
   };
 
   const attach = async (mediaId: string) => {
@@ -174,9 +182,7 @@ export function MediaSection({
         </div>
       )}
       <div className={styles['actions']}>
-        <Button variant="secondary" onClick={() => void add()}>
-          {nls.t('features.tree.media.add')}
-        </Button>
+        <MediaAddControl label={nls.t('features.tree.media.add')} onAddFiles={() => void add()} onAddUrl={addUrl} />
         <AttachExisting
           className={styles['attach']}
           label={nls.t('features.tree.media.attachExisting')}

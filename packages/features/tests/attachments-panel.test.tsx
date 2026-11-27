@@ -132,6 +132,7 @@ describe('AttachmentsPanel contacts', () => {
           getMediaFor: async () => [],
           getAllMedia: async () => [],
           addMediaToTarget,
+          addMediaUrlToTarget: async () => undefined,
           attachMedia: async () => undefined,
           detachMedia: async () => undefined,
           deleteMedia: async () => undefined,
@@ -141,7 +142,42 @@ describe('AttachmentsPanel contacts', () => {
     );
 
     fireEvent.click(screen.getByRole('button', { name: nls.t('features.tree.media.add') }));
+    fireEvent.click(screen.getByRole('menuitem', { name: nls.t('features.tree.media.addFromComputer') }));
     await waitFor(() => expect(addMediaToTarget).toHaveBeenCalledWith('person', 'P1'));
+  });
+
+  it('adds media from a link to the current target', async () => {
+    const addMediaUrlToTarget = vi.fn(async () => undefined);
+    const refresh = vi.fn(async () => undefined);
+    renderUi(
+      <MediaSection
+        targetType="person"
+        targetId="P1"
+        media={[]}
+        api={{
+          getMediaFor: async () => [],
+          getAllMedia: async () => [],
+          addMediaToTarget: async () => undefined,
+          addMediaUrlToTarget,
+          attachMedia: async () => undefined,
+          detachMedia: async () => undefined,
+          deleteMedia: async () => undefined,
+        }}
+        refresh={refresh}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: nls.t('features.tree.media.add') }));
+    fireEvent.click(screen.getByRole('menuitem', { name: nls.t('features.tree.media.addFromLink') }));
+    fireEvent.change(screen.getByLabelText(nls.t('features.tree.media.linkLabel')), {
+      target: { value: 'https://example.com/photo.jpg' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: nls.t('features.tree.media.linkAdd') }));
+
+    await waitFor(() =>
+      expect(addMediaUrlToTarget).toHaveBeenCalledWith('person', 'P1', 'https://example.com/photo.jpg'),
+    );
+    expect(refresh).toHaveBeenCalled();
   });
 
   it('attaches existing media to the current target', async () => {
@@ -161,6 +197,7 @@ describe('AttachmentsPanel contacts', () => {
           getMediaFor: async () => [],
           getAllMedia: async () => [candidate],
           addMediaToTarget: async () => undefined,
+          addMediaUrlToTarget: async () => undefined,
           attachMedia,
           detachMedia: async () => undefined,
           deleteMedia: async () => undefined,
@@ -205,6 +242,7 @@ describe('AttachmentsPanel contacts', () => {
             getMediaFor: async () => [item],
             getAllMedia: async () => [item],
             addMediaToTarget: async () => undefined,
+            addMediaUrlToTarget: async () => undefined,
             attachMedia: async () => undefined,
             detachMedia,
             deleteMedia,
@@ -243,6 +281,7 @@ describe('AttachmentsPanel contacts', () => {
           getMediaFor: async () => [item],
           getAllMedia: async () => [item],
           addMediaToTarget: async () => undefined,
+          addMediaUrlToTarget: async () => undefined,
           attachMedia: async () => undefined,
           detachMedia: async () => undefined,
           deleteMedia: async () => undefined,
@@ -271,6 +310,7 @@ describe('AttachmentsPanel contacts', () => {
           getMediaFor: async () => [item],
           getAllMedia: async () => [item],
           addMediaToTarget: async () => undefined,
+          addMediaUrlToTarget: async () => undefined,
           attachMedia: async () => undefined,
           detachMedia: async () => undefined,
           deleteMedia: async () => undefined,
@@ -304,6 +344,7 @@ describe('AttachmentsPanel contacts', () => {
           getMediaFor: async () => [],
           getAllMedia: async () => [],
           addMediaToTarget: async () => undefined,
+          addMediaUrlToTarget: async () => undefined,
           attachMedia: async () => undefined,
           detachMedia: async () => undefined,
           deleteMedia: async () => undefined,

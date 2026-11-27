@@ -372,6 +372,7 @@ export function App() {
             onNewPerson={tabs.openNew.person}
             onNewPlace={tabs.openNew.place}
             onNewMedia={() => void tree.addStandaloneMedia()}
+            onNewMediaUrl={tree.addStandaloneMediaUrl}
             onNewSource={tabs.openNew.source}
             onNewRepository={tabs.openNew.repository}
             onNewSubmitter={tabs.openNew.submitter}

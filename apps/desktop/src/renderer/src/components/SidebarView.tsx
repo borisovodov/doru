@@ -16,7 +16,7 @@ import type {
   TitleRecord,
   TaskRecord,
 } from '@doru/core';
-import { PersonList, TasksView } from '@doru/ui/domain';
+import { MediaAddControl, PersonList, TasksView } from '@doru/ui/domain';
 import {
   AddressList,
   RepositoryList,
@@ -66,6 +66,7 @@ export function SidebarView({
   onNewPerson,
   onNewPlace,
   onNewMedia,
+  onNewMediaUrl,
   onNewSource,
   onNewRepository,
   onNewSubmitter,
@@ -106,6 +107,7 @@ export function SidebarView({
   onNewPerson: () => void;
   onNewPlace: () => void;
   onNewMedia: () => void;
+  onNewMediaUrl: (url: string) => Promise<void>;
   onNewSource: () => void;
   onNewRepository: () => void;
   onNewSubmitter: () => void;
@@ -178,7 +180,15 @@ export function SidebarView({
       return (
         <SideBarLayout
           title={nls.t('workbench.activityBar.media')}
-          actions={<AddButton label={nls.t('features.tree.media.add')} onClick={onNewMedia} disabled={!canCreate} />}
+          actions={
+            <MediaAddControl
+              compact
+              label={nls.t('features.tree.media.add')}
+              onAddFiles={onNewMedia}
+              onAddUrl={onNewMediaUrl}
+              disabled={!canCreate}
+            />
+          }
         >
           {visibleMedia.length === 0 ? (
             <SideBarEmpty>{nls.t('features.media.placeholder')}</SideBarEmpty>

@@ -95,6 +95,10 @@ decisions about what we deliberately do **not** build, see
   path. Deleting a row removes the file only when no other row references it.
   Existing projects may still contain older UUID names and non-AVIF
   displayable formats; they are left untouched.
+- The media add control offers a file picker and a direct link. URL media is
+  downloaded by the main process with the same content-type and byte checks
+  as remote GEDCOM media, then stored as a normal content-addressed AVIF copy;
+  the source URL is not persisted on the media record.
 - The renderer's `isImagePath` is a display capability, not the ingest policy:
   it includes formats Chromium can render directly and excludes TIFF/HEIC,
   which Electron cannot display. TIFF and HEIC are not accepted for new media

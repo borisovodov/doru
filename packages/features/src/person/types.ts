@@ -28,6 +28,7 @@ export interface MediaTargetApi {
   getMediaFor(targetType: string, targetId: string): Promise<MediaWithPath[]>;
   getAllMedia(): Promise<MediaWithPath[]>;
   addMediaToTarget(targetType: string, targetId: string): Promise<void>;
+  addMediaUrlToTarget(targetType: string, targetId: string, url: string): Promise<void>;
   attachMedia(link: MediaLinkRecord): Promise<void>;
   attachMediaToTargets?(mediaId: string, targets: TargetRef[]): Promise<void>;
   detachMedia(link: MediaLinkRecord): Promise<void>;
