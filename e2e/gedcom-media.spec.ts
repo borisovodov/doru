@@ -48,7 +48,7 @@ test('GEDCOM media is converted to AVIF and unsupported images are skipped', asy
     expect(state.media).toHaveLength(1);
     const [media] = state.media;
     expect(media?.title).toBe('family');
-    expect(media?.path).toMatch(/^media\/[0-9a-f]{16}\/[0-9a-f]{32}\.avif$/);
+    expect(media?.path).toMatch(/^media\/[0-9a-f]{32}\.avif$/);
     expect(media?.absolutePath).toMatch(/\.avif$/);
     const bytes = readFileSync(media?.absolutePath ?? '');
     expect(bytes.toString('ascii', 4, 8)).toBe('ftyp');

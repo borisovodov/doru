@@ -23,7 +23,6 @@ import {
   ingestMediaBytes,
   isAllowedRemoteMediaType,
   mediaContentName,
-  mediaProjectScope,
   MediaIngestError,
   type IngestedMedia,
 } from './mediaIngest';
@@ -137,9 +136,6 @@ export async function prepareGedcomMedia(
   const paths = new Map<string, string>();
   const mediaDir = join(tempDir, MEDIA_DIR_NAME);
   await fs.mkdir(mediaDir);
-  const scope = mediaProjectScope(tempDir);
-  const scopedMediaDir = join(mediaDir, scope);
-  await fs.mkdir(scopedMediaDir);
   const storedNames = new Set<string>();
   /**
    * Validates and stores one image. Rejected files are skipped with a log
@@ -157,14 +153,14 @@ export async function prepareGedcomMedia(
       throw error;
     }
     const name = nameFor(ingested.bytes);
-    const destination = join(scopedMediaDir, name);
+    const destination = join(mediaDir, name);
     if (!storedNames.has(name)) {
       storedNames.add(name);
       if (!(await fs.exists(destination))) {
         await write(destination, ingested.bytes);
       }
     }
-    paths.set(original, `${MEDIA_DIR_NAME}/${scope}/${name}`);
+    paths.set(original, `${MEDIA_DIR_NAME}/${name}`);
     return true;
   };
   if (entries !== undefined) {

@@ -2,7 +2,7 @@ import { randomUUID } from 'node:crypto';
 import { mkdir, rm } from 'node:fs/promises';
 import { join } from 'node:path';
 import { MEDIA_DIR_NAME, type MediaRecord } from '@doru/core';
-import { mediaProjectScope, mediaContentName, storeIngestedMedia, type IngestedMedia } from './mediaIngest';
+import { mediaContentName, storeIngestedMedia, type IngestedMedia } from './mediaIngest';
 
 export interface MediaTarget {
   targetType: string;
@@ -49,21 +49,18 @@ function unmarkPending(path: string): void {
  */
 export async function addStoredMedia(
   mediaDir: string,
-  projectKey: string,
   ingested: IngestedMedia,
   title: string | undefined,
   target: MediaTarget | undefined,
   service: MediaRecordService,
 ): Promise<MediaRecord> {
-  const scope = mediaProjectScope(projectKey);
-  const scopedDir = join(mediaDir, scope);
-  await mkdir(scopedDir, { recursive: true });
+  await mkdir(mediaDir, { recursive: true });
   const name = mediaContentName(ingested.bytes);
-  const mediaPath = join(MEDIA_DIR_NAME, scope, name);
+  const mediaPath = join(MEDIA_DIR_NAME, name);
   markPending(mediaPath);
   let stored: Awaited<ReturnType<typeof storeIngestedMedia>>;
   try {
-    stored = await storeIngestedMedia(scopedDir, ingested);
+    stored = await storeIngestedMedia(mediaDir, ingested);
   } catch (error) {
     unmarkPending(mediaPath);
     throw error;
@@ -93,7 +90,7 @@ export async function addStoredMedia(
         // Never delete a file when its references cannot be verified.
       }
       if (!referenced) {
-        await rm(join(scopedDir, name), { force: true }).catch(() => undefined);
+        await rm(join(mediaDir, name), { force: true }).catch(() => undefined);
       }
     }
     throw failure;

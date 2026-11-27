@@ -90,7 +90,6 @@ describe('remote media ingestion', () => {
 
       const media = await addRemoteMediaRecord(
         join(dir, 'media'),
-        'project.doru',
         'example.com/photo.jpg',
         { targetType: 'person', targetId: 'P1' },
         service,

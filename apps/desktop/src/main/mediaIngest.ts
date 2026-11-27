@@ -215,11 +215,6 @@ export function mediaContentName(bytes: Uint8Array): string {
   return `${hash.slice(0, MEDIA_HASH_PREFIX_LENGTH)}.avif`;
 }
 
-/** The per-project media namespace; projects in one folder stay isolated. */
-export function mediaProjectScope(projectKey: string): string {
-  return createHash('sha256').update(projectKey).digest('hex').slice(0, 16);
-}
-
 /** A stored media file and whether this call created it. */
 export interface StoredMedia {
   name: string;

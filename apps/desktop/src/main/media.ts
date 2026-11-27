@@ -134,14 +134,7 @@ async function addPickedMedia(
       }
       throw error;
     }
-    const media = await addStoredMedia(
-      mediaDir,
-      projectPath,
-      ingested,
-      mediaTitleFromPath(source),
-      target,
-      runtime.service,
-    );
+    const media = await addStoredMedia(mediaDir, ingested, mediaTitleFromPath(source), target, runtime.service);
     added.push(await withPath(projectPath, media));
   }
   return added;
@@ -153,7 +146,7 @@ async function addRemoteMedia(projectPath: string, value: string, target?: Media
   const mediaDir = join(dirname(runtimeFilePath(projectPath)), MEDIA_DIR_NAME);
   await fs.mkdir(mediaDir);
   try {
-    const media = await addRemoteMediaRecord(mediaDir, projectPath, value, target, runtime.service);
+    const media = await addRemoteMediaRecord(mediaDir, value, target, runtime.service);
     return await withPath(projectPath, media);
   } catch (error) {
     if (error instanceof RemoteMediaError) {

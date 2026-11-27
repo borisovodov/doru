@@ -725,12 +725,11 @@ SQLite; the `path` is either a project-relative path under `media/` or an
 external URL. New media is accepted only as JPEG or AVIF and stored as an
 AVIF copy, so a new row's local path always ends in `.avif`; existing projects
 may still contain older displayable formats. New file names are the first 32
-hex characters of the SHA-256 of the stored AVIF, under a per-project scope
-directory: identical bytes within one project share one file, several media
-rows may reference the same path, and projects sharing a folder do not share
-blobs. Each media record may be linked to several targets. A GEDCOM `OBJE`
-with several `FILE` rows is split into one media record per file on import;
-`TRAN` is not stored.
+hex characters of the SHA-256 of the stored AVIF: identical bytes share one
+file, and several media rows may reference the same path.
+Each media record may be linked to several targets. A GEDCOM `OBJE` with
+several `FILE` rows is split into one media record per file on import; `TRAN`
+is not stored.
 
 ```mermaid
 erDiagram

@@ -89,13 +89,12 @@ decisions about what we deliberately do **not** build, see
   checked by a decoder, so renaming a PDF or PNG cannot pass as an image. A
   remote URL is judged by its Content-Type and bytes, never by its extension.
   Unsupported files are logged and skipped.
-- New project files are content-addressed inside a per-project namespace:
-  `media/<scope>/<sha256-prefix>.avif`. The scope is derived from the project
-  key, so several `.doru` files sharing one directory cannot share or delete
-  each other's blobs. Identical bytes within one project share one file, and
-  several `media` rows may point at the same path. Deleting a row removes the
-  file only when no other row references it. Existing projects may still
-  contain older UUID names and flat paths; they are left untouched.
+- New project files are content-addressed: the file name is the first 32 hex
+  characters of the SHA-256 of the stored AVIF plus `.avif`. Identical bytes
+  therefore share one file, and several `media` rows may point at the same
+  path. Deleting a row removes the file only when no other row references it.
+  Existing projects may still contain older UUID names and non-AVIF
+  displayable formats; they are left untouched.
 - The media add control offers a file picker and a direct link. URL media is
   downloaded by the main process with the same content-type and byte checks
   as remote GEDCOM media, then stored as a normal content-addressed AVIF copy;
