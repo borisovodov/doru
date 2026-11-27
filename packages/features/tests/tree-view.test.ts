@@ -13,7 +13,6 @@ function card(overrides: Partial<LaidOutCard> = {}): LaidOutCard {
     familyId: null,
     generation: 0,
     line: null,
-    hasSubtree: false,
     x: 0,
     y: 0,
     ...overrides,
@@ -43,7 +42,6 @@ describe('buildTreeView', () => {
         ],
       }),
       [person('P1'), person('P2')],
-      new Set(),
       {},
       new Map(),
     );
@@ -54,7 +52,7 @@ describe('buildTreeView', () => {
     ]);
   });
 
-  it('maps cards to persons, focus, collapse, counts and photos', () => {
+  it('maps cards to persons, focus, counts and photos', () => {
     const view = buildTreeView(
       layout({
         focusKey: 'focus',
@@ -62,14 +60,12 @@ describe('buildTreeView', () => {
           card({
             key: 'focus',
             personId: 'P1',
-            hasSubtree: true,
             x: 100,
             y: 200,
           }),
         ],
       }),
       [person('P1')],
-      new Set(['P1']),
       { P1: { notes: 2, sources: 1, media: 0 } },
       new Map([['P1', 'doru-media://local/?path=photo.jpg']]),
     );
@@ -79,20 +75,13 @@ describe('buildTreeView', () => {
       card: { key: 'focus', x: 100, y: 200 },
       person: person('P1'),
       isFocus: true,
-      collapsed: true,
       counts: { notes: 2, sources: 1, media: 0 },
       photo: 'doru-media://local/?path=photo.jpg',
     });
   });
 
   it('substitutes a fallback person and default counts for unknown ids', () => {
-    const view = buildTreeView(
-      layout({ cards: [card({ key: 'ghost', personId: 'MISSING' })] }),
-      [],
-      new Set(),
-      {},
-      new Map(),
-    );
+    const view = buildTreeView(layout({ cards: [card({ key: 'ghost', personId: 'MISSING' })] }), [], {}, new Map());
 
     expect(view.cards[0]).toMatchObject({
       person: { id: 'MISSING', names: [], sex: 'U', facts: [] },
@@ -111,7 +100,7 @@ describe('buildTreeView', () => {
       familyId: 'F1',
       geometry: { from: { x: 0, y: 0 }, to: { x: 100, y: 0 } },
     };
-    const view = buildTreeView(layout({ edges: [edge] }), [], new Set(), {}, new Map());
+    const view = buildTreeView(layout({ edges: [edge] }), [], {}, new Map());
     expect(view.edges).toEqual([edge]);
   });
 });

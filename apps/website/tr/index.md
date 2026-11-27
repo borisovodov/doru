@@ -1,5 +1,5 @@
 ---
-source-hash: 3bbc12ca0a98
+source-hash: d012277cf0bf
 layout: home
 
 hero:
@@ -15,7 +15,7 @@ features:
     details: "Uygulamanın tamamı YZ-yerel. Yerleşik asistan Dóru AI, yerelde ve çevrimdışı çalışır — hesap gerekmez. Veya istediğiniz herhangi bir sağlayıcıyı bağlayın — Ollama, LM Studio, bir bulut API'si, bir ACP ajanı."
   - icon: 🌳
     title: Tüm ağaç, tek bir tuval
-    details: "Dört görünüm — atalar, torunlar, kum saati, aile — tek bir yakınlaştırılabilir tuvalde. Kişileri yerinde ekleyin, ebeveyn değiştirmek için sürükleyin, tarihler, kaynaklar ve notlar için tam editörler açın."
+    details: "Odağın üstünde atalar, altında torunlar tek bir yakınlaştırılabilir tuvalde. Kişileri yerinde ekleyin, tarihler, kaynaklar ve notlar için tam editörler açın."
   - icon: 💾
     title: GEDCOM içe ve dışa aktarma
     details: "GEDCOM 5.5 ve 5.5.1 içe aktarma, GEDCOM 7.0 dışa aktarma — .gdz arşivleri dahil. Gerçek yazılımlardan yüzlerce satıcı etiketi tanınır ve Dóru modeline eşlenir."

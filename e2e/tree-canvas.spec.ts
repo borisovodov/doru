@@ -5,35 +5,19 @@ import { join } from 'node:path';
 import { launchApp } from './launch';
 import { seedFamilyTree } from './seed';
 
-test('canvas editing cycle: add a child, reparent by drag, undo everything', async () => {
+test('canvas editing cycle: add a child and undo', async () => {
   const project = join(mkdtempSync(join(tmpdir(), 'doru-canvas-e2e-')), 'family.doru');
   const { app, page } = await launchApp({ project });
 
-  // Seed: the base family, give Ivan a second family (Kid2), and give
-  // Kid2 an empty family of their own (the reparent drop target).
   await seedFamilyTree(page, project);
-  await page.evaluate(
-    async ({ project }) => {
-      await window.doru.addPerson(project, {
-        id: 'KID2',
-        names: [{ id: 'NKID2', given: 'Kid2', surname: 'Ivanov' }],
-        sex: 'U',
-        facts: [],
-      });
-      await window.doru.addFamily(project, { id: 'F3', partners: ['I1'], children: ['KID2'] });
-      await window.doru.addFamily(project, { id: 'F4', partners: ['KID2'], children: [] });
-    },
-    { project },
-  );
   await page.reload();
   await expect(page.getByRole('group', { name: 'Ivan Ivanov', exact: true })).toBeVisible({ timeout: 20_000 });
+  // The canvas has no chart switcher: ancestors and descendants are always shown.
+  await expect(page.getByRole('button', { name: 'Descendants' })).toHaveCount(0);
 
-  // Refocus on Ivan and look at his descendants (Petr + Kid2).
+  // Refocus on Ivan: his ancestors and descendants are always visible.
   await page.getByRole('group', { name: 'Ivan Ivanov', exact: true }).dblclick();
   await page.waitForTimeout(600);
-  await page.getByRole('button', { name: 'Descendants' }).click();
-  await page.waitForTimeout(600);
-  await expect(page.getByRole('group', { name: 'Kid2 Ivanov', exact: true })).toBeVisible();
 
   // Add a child to Ivan via the card toolbar: the new card edits in place.
   const ivan = page.getByRole('group', { name: 'Ivan Ivanov', exact: true });
@@ -46,47 +30,26 @@ test('canvas editing cycle: add a child, reparent by drag, undo everything', asy
   await draftCard.getByRole('button', { name: 'Save' }).click();
   await expect(page.getByRole('group', { name: 'TestKid', exact: true })).toBeVisible();
 
-  // Drag TestKid onto Kid2 → reparents into family F4.
-  const kid = page.getByRole('group', { name: 'TestKid', exact: true });
-  const kid2 = page.getByRole('group', { name: 'Kid2 Ivanov', exact: true });
-  const kbox = await kid.boundingBox();
-  const k2box = await kid2.boundingBox();
-  // Card re-parenting starts from the grip in the top-left corner; dragging
-  // the card body pans the canvas.
-  await page.mouse.move(kbox!.x + 8, kbox!.y + 7);
-  await page.mouse.down();
-  // Cross the 4px drag threshold first so the gesture reliably starts.
-  await page.mouse.move(kbox!.x + 28, kbox!.y + 7);
-  await page.mouse.move(k2box!.x + k2box!.width / 2, k2box!.y + k2box!.height / 2, { steps: 10 });
-  await page.mouse.up();
-  await page.waitForTimeout(900);
-
   const kidId = await page.evaluate(async (p) => {
     const persons = await window.doru.listPersons(p);
     return persons.find((person) => person.names.some((name) => name.given === 'TestKid'))?.id;
   }, project);
   expect(kidId).toBeDefined();
-  const afterReparent = await page.evaluate((p) => window.doru.getFamilies(p), project);
-  const f1 = afterReparent.find((family) => family.id === 'F1');
-  const f4 = afterReparent.find((family) => family.id === 'F4');
-  expect(f1?.children).not.toContain(kidId);
-  expect(f4?.children).toContain(kidId);
+  const afterAdd = await page.evaluate((p) => window.doru.getFamilies(p), project);
+  expect(afterAdd.find((family) => family.id === 'F1')?.children).toContain(kidId);
 
-  // One undo restores the reparent (the whole compound op).
+  // One undo removes the added person and the family link.
   await page.keyboard.press('Meta+z');
   await page.waitForTimeout(900);
-  const afterUndoReparent = await page.evaluate((p) => window.doru.getFamilies(p), project);
-  expect(afterUndoReparent.find((family) => family.id === 'F1')?.children).toContain(kidId);
-  expect(afterUndoReparent.find((family) => family.id === 'F4')?.children).not.toContain(kidId);
-
-  // A second undo removes the added person entirely.
-  await page.keyboard.press('Meta+z');
-  await page.waitForTimeout(900);
-  const afterUndoAdd = await page.evaluate(async (p) => {
-    const persons = await window.doru.listPersons(p);
-    return persons.some((person) => person.names.some((name) => name.given === 'TestKid'));
+  const afterUndo = await page.evaluate(async (p) => {
+    const [persons, families] = await Promise.all([window.doru.listPersons(p), window.doru.getFamilies(p)]);
+    return {
+      exists: persons.some((person) => person.names.some((name) => name.given === 'TestKid')),
+      children: families.find((family) => family.id === 'F1')?.children ?? [],
+    };
   }, project);
-  expect(afterUndoAdd).toBe(false);
+  expect(afterUndo.exists).toBe(false);
+  expect(afterUndo.children).not.toContain(kidId);
 
   await app.close();
 });
@@ -105,7 +68,8 @@ test('clicking a person in the People sidebar focuses the canvas', async () => {
   await peopleList.getByRole('button', { name: /Ivan Ivanov/ }).click();
 
   // The canvas (kept alive in the hidden pane) refocuses on Ivan.
-  await expect(page.getByRole('list', { name: 'Focus trail', includeHidden: true })).toHaveText(/Ivan Ivanov/);
+  const ivanCard = page.getByRole('group', { name: 'Ivan Ivanov', exact: true, includeHidden: true });
+  await expect(ivanCard).toHaveAttribute('aria-current', 'true');
   await app.close();
 });
 
@@ -245,29 +209,6 @@ test('a card click tolerates tiny pointer movement and the platform zoom modifie
   await page.mouse.wheel(0, -120);
   await page.keyboard.up(zoomModifier);
   await expect.poll(async () => (await ivan.boundingBox())?.width ?? 0).toBeGreaterThan(before!.width);
-
-  await app.close();
-});
-
-test('keyboard activation of the collapse button collapses the branch', async () => {
-  const project = join(mkdtempSync(join(tmpdir(), 'doru-canvas-keyboard-e2e-')), 'family.doru');
-  const { app, page } = await launchApp({ project });
-  await seedFamilyTree(page, project);
-  await page.reload();
-  const ivan = page.getByRole('group', { name: 'Ivan Ivanov', exact: true });
-  await expect(ivan).toBeVisible({ timeout: 20_000 });
-
-  await ivan.dblclick();
-  await page.getByRole('button', { name: 'Descendants' }).click();
-  await expect(ivan).toBeVisible();
-  const petr = page.getByRole('group', { name: 'Petr Ivanov', exact: true });
-  await expect(petr).toBeVisible();
-  await ivan.hover();
-  const collapse = page.getByRole('button', { name: 'Collapse branch', exact: true });
-  await expect(collapse).toBeVisible();
-  await collapse.focus();
-  await page.keyboard.press('Enter');
-  await expect(petr).toHaveCount(0);
 
   await app.close();
 });

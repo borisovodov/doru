@@ -1,5 +1,5 @@
 ---
-source-hash: 162b59a48ae2
+source-hash: e68af9c8211a
 ---
 
 # Lavorare con l'albero
@@ -12,16 +12,11 @@ delle attività a sinistra.
 
 - **Panoramica** trascinando lo sfondo, **zoom** con la rotellina del mouse o
   il trackpad; i pulsanti dello zoom si trovano nell'angolo della tela.
-- **Ricentra** una persona con un doppio clic sulla sua scheda. La barra degli
-  strumenti mantiene una cronologia: frecce indietro/avanti e un percorso di
-  navigazione.
-- **Diagrammi**: passa tra le viste *Antenati*, *Discendenti*, *Clessidra* e
-  *Famiglia* nella barra degli strumenti. La vista famiglia mostra la coppia in
-  focus, i loro figli ed entrambi i lati dei genitori.
+- **Ricentra** una persona con un doppio clic sulla sua scheda. I pulsanti Indietro/Avanti della finestra riportano alle schede e alle posizioni precedenti dell'albero.
+- **Antenati e discendenti** sono sempre mostrati insieme: genitori e nonni sopra il focus,
+  figli sotto.
 - **Ricerca**: digita un nome nella casella di ricerca della barra degli
   strumenti e scegli un risultato per passare a quella persona.
-- **Comprimi** un ramo con il chevron su una scheda (oppure comprimi/espandi
-  tutti i rami dalla barra degli strumenti).
 
 ## Schede
 
@@ -43,9 +38,6 @@ Seleziona una scheda per mostrare la barra degli strumenti delle azioni:
   calendario «23 Nivôse» che non corrisponde al gregoriano), famiglie, eventi,
   fonti, note e media.
 - **Elimina** — rimuove la persona dall'albero e da ogni famiglia.
-- **Cambia genitori**: trascina una scheda su quella di un'altra persona per
-  spostare la persona trascinata come figlio in quella famiglia (il bersaglio
-  valido si illumina durante il trascinamento).
 
 Un albero nuovo (vuoto) mostra una scheda vuota: fai clic, digita il nome,
 conferma con il segno di spunta e la prima persona appare sulla tela.

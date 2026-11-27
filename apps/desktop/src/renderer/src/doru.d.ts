@@ -49,7 +49,6 @@ declare global {
       addPerson(projectPath: string, person: PersonRecord): Promise<UndoRedoState>;
       updatePerson(projectPath: string, before: PersonRecord, after: PersonRecord): Promise<UndoRedoState>;
       deletePerson(projectPath: string, person: PersonRecord): Promise<UndoRedoState>;
-      reparent(projectPath: string, childId: string, newParentId: string): Promise<UndoRedoState>;
       addRelative(
         projectPath: string,
         relation: 'child' | 'spouse' | 'parent',

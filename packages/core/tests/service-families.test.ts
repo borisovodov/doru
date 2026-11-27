@@ -57,7 +57,6 @@ describe('TreeService families, persons and facts', () => {
       service.addFamily(family({ partners: ['P1'], children: ['P2'] }));
       service.addFamily(family({ id: 'F2', partners: ['P2'], children: ['P3'] }));
 
-      expect(() => service.reparent('P1', 'P3')).toThrow(ParentCycleError);
       expect(() => service.addFamily(family({ id: 'F3', partners: ['P1'], children: ['P1'] }))).toThrow(
         ParentCycleError,
       );
@@ -71,45 +70,6 @@ describe('TreeService families, persons and facts', () => {
         }),
       ).toThrow(ParentCycleError);
       expect(fixture.repo.getFamily('F1')).toMatchObject({ partners: ['P1'], children: ['P2'] });
-
-      service.reparent('P3', 'P1');
-      expect(fixture.repo.getFamily('F1')?.children).toContain('P3');
-    } finally {
-      cleanupRepo(fixture);
-    }
-  });
-
-  it('keeps evidence on active and challenged child links when reparenting', () => {
-    const { fixture, service } = makeService();
-    try {
-      service.addPerson(person('P1'));
-      service.addPerson(person('K1'));
-      service.addFamily(
-        family({
-          partners: ['P1'],
-          children: ['K1'],
-          childLinks: [{ id: 'FC1', childId: 'K1', status: 'challenged', statusPhrase: 'maybe' }],
-        }),
-      );
-      service.reparent('K1', 'P1');
-      expect(fixture.repo.getFamily('F1')?.childLinks?.find((link) => link.childId === 'K1')).toMatchObject({
-        id: 'FC1',
-        status: 'challenged',
-        statusPhrase: 'maybe',
-      });
-
-      const before = fixture.repo.getFamily('F1')!;
-      service.updateFamily(before, {
-        ...before,
-        childLinks: [{ id: 'FC1', childId: 'K1', status: 'disproven', statusPhrase: 'not the father' }],
-      });
-      service.reparent('K1', 'P1');
-      expect(fixture.repo.getFamily('F1')?.childLinks?.find((link) => link.childId === 'K1')).toMatchObject({
-        id: 'FC1',
-      });
-      const reactivated = fixture.repo.getFamily('F1')?.childLinks?.find((link) => link.childId === 'K1');
-      expect(reactivated?.status).toBeUndefined();
-      expect(reactivated?.statusPhrase).toBeUndefined();
     } finally {
       cleanupRepo(fixture);
     }

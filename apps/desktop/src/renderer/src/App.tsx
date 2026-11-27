@@ -5,17 +5,20 @@ import { TargetDirectoryProvider } from '@doru/ui/domain/targets';
 import { ChatPanel, ChatSetupPlaceholder, EmptyEditorPage, WelcomePage } from '@doru/features';
 import { Workbench, nls, type ActivityViewId } from '@doru/workbench';
 import { setSystemLocale } from '@doru/platform';
+import { suggestFocusPerson } from '@doru/core/layout';
 import type { ProjectBinding } from '@doru/core';
 import { SidebarView } from './components/SidebarView';
 import { useChat } from './hooks/useChat';
 import { useAiSettings } from './hooks/useAiSettings';
 import { useProject } from './hooks/useProject';
 import { useAppCommands } from './hooks/useAppCommands';
+import { useNavigationHistory } from './hooks/useNavigationHistory';
 import { useTabs } from './hooks/useTabs';
 import { useTheme } from './hooks/useTheme';
 import { useTreeData } from './hooks/useTreeData';
+import type { NavigationLocation, ReachableLocation } from './navigation/state';
 import { renderTab } from './tabs/registry';
-import { SETTINGS_TAB_ID, type TabRenderContext } from './tabs/types';
+import { SETTINGS_TAB_ID, TREE_TAB_ID, type TabRenderContext } from './tabs/types';
 
 export function App() {
   const [projectPath, setProjectPath] = useState<string | null | undefined>(undefined);
@@ -23,7 +26,7 @@ export function App() {
   const [untitledName, setUntitledName] = useState<string | null>(null);
   const [activeView, setActiveView] = useState<ActivityViewId>('tree');
   const [searchFocusNonce, setSearchFocusNonce] = useState(0);
-  const [canvasFocus, setCanvasFocus] = useState<{ personId: string; nonce: number } | null>(null);
+  const [treeFocusPersonId, setTreeFocusPersonId] = useState<string | null>(null);
   const [projectTransfer, setProjectTransfer] = useState(false);
   const [bindVersion, setBindVersion] = useState(0);
 
@@ -55,10 +58,71 @@ export function App() {
     tree.titles,
     tree.media,
   );
+  const suggestedTreeFocus = useMemo(
+    () => suggestFocusPerson(tree.persons, tree.families) ?? null,
+    [tree.persons, tree.families],
+  );
+  const effectiveTreeFocus = useMemo(
+    () =>
+      treeFocusPersonId !== null && tree.persons.some((person) => person.id === treeFocusPersonId)
+        ? treeFocusPersonId
+        : suggestedTreeFocus,
+    [treeFocusPersonId, tree.persons, suggestedTreeFocus],
+  );
+  const openTabIds = useMemo(() => new Set(tabs.openTabs.map((tab) => tab.id)), [tabs.openTabs]);
+  const isNavigationReachable = useCallback<ReachableLocation>(
+    (entry) => {
+      if (!openTabIds.has(entry.tabId)) {
+        return false;
+      }
+      if (entry.tabId !== TREE_TAB_ID) {
+        return true;
+      }
+      // A tree location is valid only while its focus person still exists.
+      // A focusless tree is valid only for an empty tree.
+      return entry.treeFocusPersonId === null
+        ? tree.persons.length === 0
+        : tree.persons.some((person) => person.id === entry.treeFocusPersonId);
+    },
+    [openTabIds, tree.persons],
+  );
+  const navigationLocation = useMemo<NavigationLocation | null>(() => {
+    if (tabs.activeTabId === null) {
+      return null;
+    }
+    return {
+      tabId: tabs.activeTabId,
+      treeFocusPersonId: tabs.activeTabId === TREE_TAB_ID ? effectiveTreeFocus : null,
+    };
+  }, [tabs.activeTabId, effectiveTreeFocus]);
+  const applyNavigation = useCallback(
+    (target: NavigationLocation) => {
+      tabs.setActiveTabId(target.tabId);
+      if (target.tabId === TREE_TAB_ID) {
+        setTreeFocusPersonId(target.treeFocusPersonId);
+      }
+    },
+    // oxlint-disable-next-line react/exhaustive-deps -- the tabs hook object changes every render
+    [tabs.setActiveTabId],
+  );
+  const navigation = useNavigationHistory(navigationLocation, isNavigationReachable, applyNavigation);
   const project = useProject(projectPath, tabs.ensureTreeTab);
   const theme = useTheme();
-  const { commands, keybindings } = useAppCommands(project, tabs, tree);
+  const { commands, keybindings } = useAppCommands(project, tabs, tree, navigation);
   const [version, setVersion] = useState('');
+
+  // A project switch starts a fresh navigation history. The effect runs after
+  // the tab reset, so the new project's first tree location is the only entry.
+  const resetNavigation = navigation.reset;
+  const navigationProjectRef = useRef(projectPath);
+  useEffect(() => {
+    if (navigationProjectRef.current === projectPath) {
+      return;
+    }
+    navigationProjectRef.current = projectPath;
+    resetNavigation();
+    setTreeFocusPersonId(null);
+  }, [projectPath, resetNavigation]);
 
   useEffect(() => window.doru.onFlushAutosaves(() => flushAllAutoSaves()), []);
 
@@ -128,6 +192,7 @@ export function App() {
       if (!(await tabs.resetToTree())) {
         return;
       }
+      setTreeFocusPersonId(null);
       setProjectPath(info.path);
       setProjectUntitled(info.untitled);
       setUntitledName(info.untitled ? info.name : null);
@@ -184,7 +249,7 @@ export function App() {
   const openPersonAndFocus = useCallback(
     (personId: string) => {
       tabs.open.person(personId);
-      setCanvasFocus((current) => ({ personId, nonce: (current?.nonce ?? 0) + 1 }));
+      setTreeFocusPersonId(personId);
     },
     // oxlint-disable-next-line react/exhaustive-deps -- the tabs hook object changes every render
     [tabs.open.person],
@@ -195,7 +260,8 @@ export function App() {
     tabs,
     projectPath,
     personPhotos,
-    canvasFocus,
+    treeFocusPersonId: effectiveTreeFocus,
+    onFocusPerson: setTreeFocusPersonId,
     openPersonAndFocus,
     theme,
     ai,
@@ -248,6 +314,12 @@ export function App() {
             : nls.t('app.name')
         }
         platform={window.doru.platform}
+        navigation={{
+          canGoBack: navigation.canGoBack,
+          canGoForward: navigation.canGoForward,
+          onGoBack: navigation.goBack,
+          onGoForward: navigation.goForward,
+        }}
         titleMenu={
           window.doru.platform === 'darwin' ? undefined : (
             <AppMenu

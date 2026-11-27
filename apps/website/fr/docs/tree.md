@@ -1,5 +1,5 @@
 ---
-source-hash: 162b59a48ae2
+source-hash: e68af9c8211a
 ---
 
 # Travailler avec l'arbre
@@ -12,15 +12,11 @@ la barre d'activité de gauche.
 
 - **Panoramique** en faisant glisser l'arrière-plan, **zoom** avec la molette ou
   le trackpad ; les boutons de zoom se trouvent dans le coin du canevas.
-- **Recentrer** sur une personne en double-cliquant sur sa carte. La barre
-  d'outils tient un historique : flèches retour/avant et fil d'Ariane.
-- **Graphiques** : basculez entre les vues *Ancêtres*, *Descendants*, *Sablier* et
-  *Famille* dans la barre d'outils. La vue Famille montre le couple au centre, ses
-  enfants et les parents des deux côtés.
+- **Recentrer** sur une personne en double-cliquant sur sa carte. Les boutons Précédent/Suivant de la fenêtre ramènent aux onglets et positions précédents de l’arbre.
+- **Ancêtres et descendants** sont toujours affichés ensemble : parents et grands-parents
+  au-dessus du focus, enfants en dessous.
 - **Recherche** : saisissez un nom dans le champ de recherche de la barre d'outils
   et choisissez un résultat pour sauter à cette personne.
-- **Replier** une branche avec le chevron d'une carte (ou replier/déplier toutes
-  les branches depuis la barre d'outils).
 
 ## Cartes
 
@@ -43,9 +39,6 @@ Sélectionnez une carte pour révéler la barre d'actions :
   ne correspond pas au calendrier grégorien), familles, événements, sources,
   notes et médias.
 - **Supprimer** — retire la personne de l'arbre et de toutes les familles.
-- **Changer de parents** : faites glisser une carte sur la carte d'une autre
-  personne pour déplacer la personne glissée comme enfant dans cette famille (la
-  cible valide s'illumine pendant le glissement).
 
 Un nouvel arbre (vide) affiche une carte vide : cliquez dessus, saisissez le nom,
 confirmez avec la coche, et la première personne apparaît sur le canevas. Ensuite,

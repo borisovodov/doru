@@ -4,6 +4,7 @@ import { nls } from '@doru/workbench';
 import type { useProject } from './useProject';
 import type { useTabs } from './useTabs';
 import type { useTreeData } from './useTreeData';
+import type { NavigationHistoryApi } from './useNavigationHistory';
 
 type ProjectApi = ReturnType<typeof useProject>;
 type TabsApi = ReturnType<typeof useTabs>;
@@ -13,8 +14,14 @@ type TreeHistory = Pick<ReturnType<typeof useTreeData>, 'undo' | 'redo'>;
  * Registers the renderer commands shared by the menu, the native menu and the
  * keybindings, and returns the command service with its keybinding table.
  */
-export function useAppCommands(project: ProjectApi, tabs: TabsApi, tree: TreeHistory) {
+export function useAppCommands(
+  project: ProjectApi,
+  tabs: TabsApi,
+  tree: TreeHistory,
+  navigation: NavigationHistoryApi,
+) {
   const commands = useMemo(() => new CommandService(), []);
+  const isMac = window.doru.platform === 'darwin';
 
   useEffect(() => {
     const removeOpen = commands.register({
@@ -57,6 +64,16 @@ export function useAppCommands(project: ProjectApi, tabs: TabsApi, tree: TreeHis
       title: nls.t('workbench.prevTab'),
       handler: () => tabs.prevTab(),
     });
+    const removeGoBack = commands.register({
+      id: 'workbench.goBack',
+      title: nls.t('workbench.goBack'),
+      handler: () => navigation.goBack(),
+    });
+    const removeGoForward = commands.register({
+      id: 'workbench.goForward',
+      title: nls.t('workbench.goForward'),
+      handler: () => navigation.goForward(),
+    });
     const removeSwitchToTab = commands.register({
       id: 'workbench.switchToTab',
       title: nls.t('workbench.switchToTab'),
@@ -81,6 +98,8 @@ export function useAppCommands(project: ProjectApi, tabs: TabsApi, tree: TreeHis
       removeOpenSettings.dispose();
       removeNextTab.dispose();
       removePrevTab.dispose();
+      removeGoBack.dispose();
+      removeGoForward.dispose();
       removeSwitchToTab.dispose();
       removeUndo.dispose();
       removeRedo.dispose();
@@ -95,6 +114,8 @@ export function useAppCommands(project: ProjectApi, tabs: TabsApi, tree: TreeHis
     tabs.nextTab,
     tabs.prevTab,
     tabs.openTabAt,
+    navigation.goBack,
+    navigation.goForward,
     tree.undo,
     tree.redo,
   ]);
@@ -119,6 +140,15 @@ export function useAppCommands(project: ProjectApi, tabs: TabsApi, tree: TreeHis
       { key: 'meta+shift+[', command: 'workbench.prevTab' },
       { key: 'ctrl+tab', command: 'workbench.nextTab' },
       { key: 'ctrl+shift+tab', command: 'workbench.prevTab' },
+      ...(isMac
+        ? [
+            { key: 'meta+[', command: 'workbench.goBack' },
+            { key: 'meta+]', command: 'workbench.goForward' },
+          ]
+        : [
+            { key: 'alt+left', command: 'workbench.goBack' },
+            { key: 'alt+right', command: 'workbench.goForward' },
+          ]),
       ...(GEDCOM_INTEROP_VISIBLE
         ? [
             { key: 'meta+shift+e', command: 'workbench.exportGedcom' },
@@ -132,7 +162,7 @@ export function useAppCommands(project: ProjectApi, tabs: TabsApi, tree: TreeHis
         { key: `ctrl+${index + 1}`, command: 'workbench.switchToTab', args: [index + 1] },
       ]).flat(),
     ],
-    [],
+    [isMac],
   );
 
   return { commands, keybindings };

@@ -183,45 +183,6 @@ describe('redo guards for nested attachment targets', () => {
     }
   });
 
-  it('allows reparent redo when the graph is unchanged', () => {
-    const { fixture, service } = makeService();
-    const { repo } = fixture;
-    try {
-      service.addPerson(person('P1'));
-      service.addPerson(person('P2'));
-      service.addPerson(person('C'));
-      service.addFamily(family('F1', { partners: ['P1'], children: ['C'] }));
-      service.addFamily(family('F2', { partners: ['P2'], children: [] }));
-      service.reparent('C', 'P2');
-      service.undo();
-      expect(repo.getFamily('F1')?.children).toContain('C');
-      expect(repo.getFamily('F2')?.children).not.toContain('C');
-      expect(service.redo().redoBlocked).toBeUndefined();
-      expect(repo.getFamily('F2')?.children).toContain('C');
-      expect(repo.getFamily('F1')?.children).not.toContain('C');
-    } finally {
-      cleanupRepo(fixture);
-    }
-  });
-
-  it('rejects reparent redo when the graph gained a cycle', () => {
-    const { fixture, service } = makeService();
-    const { repo } = fixture;
-    try {
-      service.addPerson(person('P1'));
-      service.addPerson(person('P2'));
-      service.addPerson(person('C'));
-      service.addFamily(family('F1', { partners: ['P1'], children: ['C'] }));
-      service.addFamily(family('F2', { partners: ['P2'], children: [] }));
-      service.reparent('C', 'P2');
-      service.undo();
-      repo.insertFamily({ id: 'F3', partners: ['C'], children: ['P2'] });
-      expect(service.redo().redoBlocked).toBe(true);
-    } finally {
-      cleanupRepo(fixture);
-    }
-  });
-
   it('blocks place-update redo when a removed name gained evidence', () => {
     const { fixture, service } = makeService();
     const { repo } = fixture;

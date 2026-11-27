@@ -226,47 +226,6 @@ export function deletePersonOp(
 }
 
 /**
- * Moves a person (as a child) into another family: detaches them from their
- * current families and attaches them to the target one, creating it when it
- * does not exist. One undo step restores everything.
- */
-export function reparentOp(
-  familyLinks: Array<{ before: FamilyRecord; after: FamilyRecord }>,
-  created: FamilyRecord | undefined,
-  personId: string,
-  linkAttachments: FamilyLinkAttachments[] = [],
-  redoSafe?: NonNullable<Op['redoSafe']>,
-): Op {
-  return {
-    ...(redoSafe ? { redoSafe } : {}),
-    id: crypto.randomUUID(),
-    kind: 'person.reparent',
-    timestamp: new Date().toISOString(),
-    change: { targetType: 'person', targetId: personId, kind: 'changed' },
-    snapshots: linkAttachments.map((link) => link.attachments),
-    apply(ctx) {
-      for (const link of familyLinks) {
-        ctx.repo.updateFamily(link.after);
-      }
-      if (created) {
-        ctx.repo.insertFamily(created);
-      }
-    },
-    inverse(ctx) {
-      if (created) {
-        ctx.repo.deleteFamily(created.id);
-      }
-      for (const link of [...familyLinks].reverse()) {
-        ctx.repo.updateFamily(link.before);
-      }
-      for (const link of linkAttachments) {
-        ctx.repo.restoreAttachments(link.attachments);
-      }
-    },
-  };
-}
-
-/**
  * Adds a person linked to an anchor (as a child, spouse or parent): creates
  * the person, updates or creates the linking family. One undo step removes
  * the person and the link.

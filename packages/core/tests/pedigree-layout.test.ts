@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { isDescendantOf, layoutPedigree, suggestFocusPerson, type LaidOutCard } from '../src/layout/pedigree';
+import { layoutPedigree, suggestFocusPerson, type LaidOutCard } from '../src/layout/pedigree';
 import type { FamilyRecord, PersonRecord } from '../src/model/types';
 
 const person = (id: string, sex: PersonRecord['sex'] = 'U', birthYear?: number): PersonRecord => ({
@@ -166,7 +166,7 @@ describe('layoutPedigree — descendants', () => {
       person('daughter', 'F', 1998),
     ];
     const families = [family('F1', ['focus', 'wife'], ['son', 'daughter'])];
-    const layout = layoutPedigree('focus', persons, families, { kind: 'descendants' });
+    const layout = layoutPedigree('focus', persons, families);
     const byKey = new Map(layout?.cards.map((card) => [card.key, card]));
     const focus = byKey.get('person:focus@focus');
     const wife = byKey.get('person:wife@spouse:F1');
@@ -191,7 +191,6 @@ describe('layoutPedigree — descendants', () => {
     const persons = [person('focus', 'M'), person('wife1', 'F'), person('wife2', 'F'), person('kid1'), person('kid2')];
     const families = [family('F1', ['focus', 'wife1'], ['kid1']), family('F2', ['focus', 'wife2'], ['kid2'])];
     const layout = layoutPedigree('focus', persons, families, {
-      kind: 'descendants',
       nodeWidth: 180,
       coupleGap: 16,
     });
@@ -209,7 +208,6 @@ describe('layoutPedigree — descendants', () => {
     const persons = [person('focus', 'M'), person('wife', 'F'), person('kid')];
     const families = [family('F1', ['focus', 'wife'], ['kid'])];
     const layout = layoutPedigree('focus', persons, families, {
-      kind: 'descendants',
       nodeWidth: 180,
       coupleGap: 16,
     });
@@ -223,7 +221,7 @@ describe('layoutPedigree — descendants', () => {
   it('duplicates a child who belongs to two families of the focus', () => {
     const persons = [person('focus', 'M'), person('wife1', 'F'), person('wife2', 'F'), person('kid')];
     const families = [family('F1', ['focus', 'wife1'], ['kid']), family('F2', ['focus', 'wife2'], ['kid'])];
-    const layout = layoutPedigree('focus', persons, families, { kind: 'descendants' });
+    const layout = layoutPedigree('focus', persons, families);
     const kid = layout?.cards.filter((card) => card.personId === 'kid');
     expect(kid?.map((card) => card.key).sort()).toEqual(['person:kid@child:F1', 'person:kid@child:F2']);
   });
@@ -232,7 +230,6 @@ describe('layoutPedigree — descendants', () => {
     const persons = [person('focus', 'M'), person('kid'), person('gkid')];
     const families = [family('F1', ['focus'], ['kid']), family('F2', ['kid'], ['gkid'])];
     const layout = layoutPedigree('focus', persons, families, {
-      kind: 'descendants',
       maxGenerations: 1,
     });
     const ids = layout?.cards.map((card) => card.personId);
@@ -241,7 +238,7 @@ describe('layoutPedigree — descendants', () => {
   });
 });
 
-describe('layoutPedigree — hourglass', () => {
+describe('layoutPedigree — integrated tree', () => {
   it('merges ancestors above and descendants below one focus card', () => {
     const persons = [
       person('focus', 'M'),
@@ -251,7 +248,7 @@ describe('layoutPedigree — hourglass', () => {
       person('mother', 'F'),
     ];
     const families = [family('F1', ['focus', 'wife'], ['kid']), family('F2', ['father', 'mother'], ['focus'])];
-    const layout = layoutPedigree('focus', persons, families, { kind: 'hourglass' });
+    const layout = layoutPedigree('focus', persons, families);
     const byKey = new Map(layout?.cards.map((card) => [card.key, card]));
     const focus = byKey.get('person:focus@focus');
     expect(focus?.x).toBe(0);
@@ -269,110 +266,11 @@ describe('layoutPedigree — hourglass', () => {
   });
 });
 
-describe('layoutPedigree — family view', () => {
-  const fixture = () => ({
-    persons: [
-      person('focus', 'M'),
-      person('wife', 'F'),
-      person('kid1', 'M', 2010),
-      person('kid2', 'F', 2012),
-      person('father', 'M'),
-      person('mother', 'F'),
-      person('wifeFather', 'M'),
-      person('wifeMother', 'F'),
-    ],
-    families: [
-      family('F1', ['focus', 'wife'], ['kid1', 'kid2']),
-      family('F2', ['father', 'mother'], ['focus']),
-      family('F3', ['wifeFather', 'wifeMother'], ['wife']),
-    ],
-  });
-
-  it('shows the couple, children below and both sides of parents above', () => {
-    const { persons, families } = fixture();
-    const layout = layoutPedigree('focus', persons, families, { kind: 'family' });
-    const byKey = new Map(layout?.cards.map((card) => [card.key, card]));
-    expect(byKey.get('person:focus@focus')?.y).toBe(0);
-    expect(byKey.get('person:wife@spouse:F1')?.y).toBe(0);
-    expect(byKey.get('person:kid1@child:F1')?.y).toBeGreaterThan(0);
-    expect(byKey.get('person:father@spouse:F2')?.y).toBeLessThan(0);
-    expect(byKey.get('person:wifeFather@spouse:F3')?.y).toBeLessThan(0);
-    // Marriage edges: focus-wife + both parent couples.
-    const marriages = layout?.edges.filter((edge) => edge.kind === 'marriage') ?? [];
-    expect(marriages).toHaveLength(3);
-    // Focus's parents carry paternal/maternal lines; the wife's do not.
-    expect(byKey.get('person:father@spouse:F2')?.line).toBe('paternal');
-    expect(byKey.get('person:mother@spouse:F2')?.line).toBe('maternal');
-    expect(byKey.get('person:wifeFather@spouse:F3')?.line).toBeNull();
-    // Pedigree edges: focus parents→focus, wife parents→wife, focus+wife→kids.
-    const pedigree = layout?.edges.filter((edge) => edge.kind === 'pedigree') ?? [];
-    expect(pedigree).toHaveLength(2 + 2 + 4);
-  });
-
-  it('keeps same-row cards from overlapping', () => {
-    const { persons, families } = fixture();
-    const layout = layoutPedigree('focus', persons, families, { kind: 'family', nodeWidth: 180, columnGap: 24 });
-    const byRow = new Map<number, LaidOutCard[]>();
-    for (const card of layout?.cards ?? []) {
-      const list = byRow.get(card.generation) ?? [];
-      list.push(card);
-      byRow.set(card.generation, list);
-    }
-    for (const cards of byRow.values()) {
-      const sorted = [...cards].sort((a, b) => a.x - b.x);
-      for (let i = 1; i < sorted.length; i += 1) {
-        const left = sorted[i - 1];
-        const right = sorted[i];
-        if (!left || !right) {
-          continue;
-        }
-        expect(right.x - left.x).toBeGreaterThanOrEqual(180);
-      }
-    }
-  });
-});
-
-describe('layoutPedigree — collapse', () => {
-  it('keeps the collapsed card but hides its subtree', () => {
-    const persons = [person('focus', 'M'), person('kid'), person('gkid')];
-    const families = [family('F1', ['focus'], ['kid']), family('F2', ['kid'], ['gkid'])];
-    const layout = layoutPedigree('focus', persons, families, {
-      kind: 'descendants',
-      collapsed: new Set(['kid']),
-    });
-    const ids = layout?.cards.map((card) => card.personId);
-    expect(ids).toContain('kid');
-    expect(ids).not.toContain('gkid');
-    expect(layout?.cards.find((card) => card.personId === 'kid')?.hasSubtree).toBe(false);
-  });
-
-  it('marks cards that have a collapsible subtree', () => {
-    const persons = [person('focus', 'M'), person('kid')];
-    const families = [family('F1', ['focus'], ['kid'])];
-    const layout = layoutPedigree('focus', persons, families, { kind: 'descendants' });
-    expect(layout?.cards.find((card) => card.personId === 'focus')?.hasSubtree).toBe(true);
-    expect(layout?.cards.find((card) => card.personId === 'kid')?.hasSubtree).toBe(false);
-  });
-
-  it('hides ancestors above a collapsed person in the ancestors chart', () => {
-    const persons = [person('child'), person('p'), person('gp')];
-    const families = [family('F1', ['p'], ['child']), family('F2', ['gp'], ['p'])];
-    const layout = layoutPedigree('child', persons, families, {
-      kind: 'ancestors',
-      collapsed: new Set(['p']),
-    });
-    const ids = layout?.cards.map((card) => card.personId);
-    expect(ids).toContain('p');
-    expect(ids).not.toContain('gp');
-  });
-});
-
 describe('layoutPedigree — cycles and see-also', () => {
   it('adds a see-also edge instead of recursing into an ancestry cycle', () => {
     const persons = [person('kid'), person('adult', 'M')];
     const families = [family('F1', ['adult'], ['kid']), family('F2', ['kid'], ['adult'])];
     const layout = layoutPedigree('kid', persons, families, {
-      kind: 'ancestors',
       maxGenerations: 10,
     });
     const seeAlso = layout?.edges.filter((edge) => edge.kind === 'see-also') ?? [];
@@ -386,7 +284,7 @@ describe('layoutPedigree — lines', () => {
   it('marks paternal and maternal lines in the ancestors chart', () => {
     const persons = [person('child'), person('father', 'M'), person('mother', 'F')];
     const families = [family('F1', ['father', 'mother'], ['child'])];
-    const layout = layoutPedigree('child', persons, families, { kind: 'ancestors' });
+    const layout = layoutPedigree('child', persons, families);
     const byKey = new Map(layout?.cards.map((card) => [card.key, card]));
     expect(byKey.get('person:father@spouse:F1')?.line).toBe('paternal');
     expect(byKey.get('person:mother@spouse:F1')?.line).toBe('maternal');
@@ -394,34 +292,41 @@ describe('layoutPedigree — lines', () => {
   });
 });
 
-describe('isDescendantOf', () => {
-  const family = (id: string, partners: string[], children: string[]): FamilyRecord => ({
-    id,
-    partners,
-    children,
-  });
-
-  it('detects a direct parent', () => {
-    expect(isDescendantOf([family('F1', ['dad'], ['kid'])], 'dad', 'kid')).toBe(true);
-  });
-
-  it('walks the ancestry chain', () => {
-    const fs = [family('F1', ['dad'], ['kid']), family('F2', ['gpa'], ['dad'])];
-    expect(isDescendantOf(fs, 'gpa', 'kid')).toBe(true);
-  });
-
-  it('returns false for unrelated persons and reversed order', () => {
-    expect(isDescendantOf([family('F1', ['a'], ['b'])], 'a', 'b')).toBe(true);
-    expect(isDescendantOf([family('F1', ['a'], ['b'])], 'b', 'a')).toBe(false);
-    expect(isDescendantOf([], 'a', 'b')).toBe(false);
-  });
-
-  it('treats a person as their own descendant', () => {
-    expect(isDescendantOf([], 'a', 'a')).toBe(true);
-  });
-});
-
 describe('layoutPedigree — geometry', () => {
+  it('anchors focus edges to the shared focus card', () => {
+    const persons = [
+      person('focus', 'M'),
+      person('wife', 'F'),
+      person('kid'),
+      person('father', 'M'),
+      person('mother', 'F'),
+    ];
+    const families = [family('F1', ['focus', 'wife'], ['kid']), family('F2', ['father', 'mother'], ['focus'])];
+    const layout = layoutPedigree('focus', persons, families);
+    const byKey = new Map(layout?.cards.map((card) => [card.key, card]));
+    const focus = byKey.get('person:focus@focus');
+    const wife = byKey.get('person:wife@spouse:F1');
+    const kid = byKey.get('person:kid@child:F1');
+    expect(focus).toBeDefined();
+    expect(wife).toBeDefined();
+    expect(kid).toBeDefined();
+    if (!focus || !wife || !kid) {
+      return;
+    }
+
+    const marriage = layout?.edges.find((edge) => edge.kind === 'marriage' && edge.familyId === 'F1');
+    expect(marriage?.geometry.from.x).toBeCloseTo(focus.x + 90);
+    expect(marriage?.geometry.to.x).toBeCloseTo(wife.x - 90);
+    expect(marriage?.geometry.from.y).toBe(focus.y);
+    expect(marriage?.geometry.to.y).toBe(wife.y);
+
+    const toKid = layout?.edges.find(
+      (edge) => edge.kind === 'pedigree' && edge.source === focus.key && edge.target === kid.key,
+    );
+    expect(toKid?.geometry.from).toEqual({ x: focus.x, y: focus.y + 32 });
+    expect(toKid?.geometry.to).toEqual({ x: kid.x, y: kid.y - 32 });
+  });
+
   it('emits bracket geometry between parent and child rows', () => {
     const { persons, families } = nuclear();
     const layout = layoutPedigree('child', persons, families, {

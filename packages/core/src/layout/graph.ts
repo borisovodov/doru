@@ -92,7 +92,6 @@ export function buildDirectionalGraph(
   families: FamilyRecord[],
   direction: 'ancestors' | 'descendants',
   maxGenerations: number,
-  collapsed: ReadonlySet<string>,
 ): GraphBuilder | null {
   const personById = new Map(persons.map((person) => [person.id, person]));
   if (!personById.has(focusId)) {
@@ -121,8 +120,8 @@ export function buildDirectionalGraph(
       ownerKey: null,
       children: [],
     };
-    if (row >= maxGenerations || collapsed.has(id)) {
-      cards.push({ key, personId: id, role, familyId, generation: row, line, hasSubtree: false });
+    if (row >= maxGenerations) {
+      cards.push({ key, personId: id, role, familyId, generation: row, line });
       return item;
     }
     const nextPath = new Set(path).add(id);
@@ -183,7 +182,6 @@ export function buildDirectionalGraph(
             familyId: family.id,
             generation: row,
             line: null,
-            hasSubtree: false,
           });
         }
         for (const childId of orderChildren(family.children, personById)) {
@@ -197,7 +195,7 @@ export function buildDirectionalGraph(
         }
       }
     }
-    cards.push({ key, personId: id, role, familyId, generation: row, line, hasSubtree: item.children.length > 0 });
+    cards.push({ key, personId: id, role, familyId, generation: row, line });
     return item;
   };
 

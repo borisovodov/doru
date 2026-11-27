@@ -80,7 +80,6 @@ import {
   deleteTitleOp,
   detachCitationOp,
   detachMediaOp,
-  reparentOp,
   updateAddressOp,
   updateAssociationOp,
   updateCitationOp,
@@ -98,7 +97,7 @@ import {
   type FamilyLinkAttachments,
 } from '../ops';
 import { OpQueue, type NestedAttachments, type Op } from '../ops/op';
-import { attachmentsMatch, sameRecord } from '../ops/restore';
+import { sameRecord } from '../ops/restore';
 
 export type RelativeRelation = 'child' | 'spouse' | 'parent';
 
@@ -163,7 +162,7 @@ function sameRecordContent<T extends RecordTimestamps>(left: T, right: T): boole
  * an op on the project's queue (one undo step per call), and every read goes
  * through the repository. The UI (IPC handlers) and the agents (MCP backend)
  * are thin adapters over this class — the domain rules (linking relatives,
- * detaching a deleted person, reparenting) live here and nowhere else.
+ * detaching a deleted person) live here and nowhere else.
  */
 export class TreeService {
   constructor(
@@ -441,95 +440,6 @@ export class TreeService {
         .filter((entry) => !ownFactIds.has(entry.factId));
       const linkAttachments = links.flatMap(({ before, after }) => this.removedLinkAttachments(before, after));
       return deletePersonOp(current, links, attachments, nested, linkAttachments, associations, aliases, participants);
-    });
-  }
-
-  /**
-   * Moves a person (as a child) into the family of `newParentId`, creating
-   * that family when it does not exist — one undo step.
-   */
-  reparent(childId: string, newParentId: string): UndoRedoState {
-    return this.applyAfterCommit(() => {
-      // Every read, validation and snapshot runs inside the write
-      // transaction: a concurrent writer cannot introduce a cycle between
-      // the check and the commit.
-      if (this.isAncestor(childId, newParentId, this.repo.listFamilies())) {
-        throw new ParentCycleError(childId, newParentId);
-      }
-      const now = Date.now();
-      const target = this.repo.listFamiliesForPerson(newParentId).find((entry) => entry.partners.includes(newParentId));
-      const links: Array<{ before: FamilyRecord; after: FamilyRecord }> = [];
-      for (const family of this.repo
-        .listFamiliesForPerson(childId)
-        .filter((entry) => entry.children.includes(childId) && entry.id !== target?.id)) {
-        links.push({
-          before: family,
-          after: stampRecordEdit(
-            family,
-            {
-              ...family,
-              children: family.children.filter((id) => id !== childId),
-              childLinks: family.childLinks?.filter((link) => link.childId !== childId),
-            },
-            now,
-          ),
-        });
-      }
-      if (target) {
-        const existing = (target.childLinks ?? []).find((link) => link.childId === childId);
-        // Only activating a disproven link clears its evidence; an already
-        // active (or challenged) link keeps its status and phrase.
-        const childLinks = existing
-          ? (target.childLinks ?? []).map((link) =>
-              link.childId === childId && link.status === 'disproven'
-                ? { ...link, status: undefined, statusPhrase: undefined }
-                : link,
-            )
-          : [...(target.childLinks ?? []), { id: crypto.randomUUID(), childId }];
-        const after = {
-          ...target,
-          children: target.children.includes(childId) ? target.children : [...target.children, childId],
-          childLinks,
-        };
-        this.assertFamilyAcyclic(after);
-        links.push({ before: target, after: stampRecordEdit(target, after, now) });
-      }
-      const created = target
-        ? undefined
-        : stampNewRecord<FamilyRecord>({ id: crypto.randomUUID(), partners: [newParentId], children: [childId] }, now);
-      const linkAttachments = links.flatMap(({ before, after }) => this.removedLinkAttachments(before, after));
-      return reparentOp(links, created, childId, linkAttachments, (ctx) => {
-        if (ctx.repo.getPerson(childId) === undefined || ctx.repo.getPerson(newParentId) === undefined) {
-          return false;
-        }
-        for (const link of linkAttachments) {
-          if (!attachmentsMatch(ctx, link.targetType, link.targetId, link.attachments)) {
-            return false;
-          }
-        }
-        for (const link of links) {
-          if (!sameRecord(ctx.repo.getFamily(link.before.id), link.before)) {
-            return false;
-          }
-        }
-        const changed = new Set(links.map((link) => link.after.id));
-        const graph = [
-          ...ctx.repo.listFamilies().filter((entry) => !changed.has(entry.id)),
-          ...links.map((link) => link.after),
-          ...(created ? [created] : []),
-        ];
-        const proposed = [...links.map((link) => link.after), ...(created ? [created] : [])];
-        for (const family of proposed) {
-          for (const child of this.activeChildIds(family)) {
-            for (const parent of this.partnerIds(family)) {
-              if (this.isAncestor(child, parent, graph)) {
-                return false;
-              }
-            }
-          }
-        }
-        return true;
-      });
     });
   }
 

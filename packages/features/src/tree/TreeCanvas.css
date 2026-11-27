@@ -17,10 +17,6 @@
 
 /* ── Overlay panels ───────────────────────────────────────────────── */
 
-.tree-toolbar-panel {
-  margin: 15px;
-}
-
 .tree-zoom {
   display: flex;
   flex-direction: row;
@@ -28,16 +24,6 @@
   overflow: hidden;
   border-radius: var(--doru-radius-sm);
   box-shadow: var(--doru-ring);
-}
-
-.tree-drop-error {
-  margin: 10px;
-  padding: 6px 10px;
-  color: var(--doru-danger);
-  background: var(--doru-bg-raised);
-  border: 1px solid var(--doru-danger);
-  border-radius: var(--doru-radius-sm);
-  font-size: 12px;
 }
 
 /* ── Generation bands ─────────────────────────────────────────────── */

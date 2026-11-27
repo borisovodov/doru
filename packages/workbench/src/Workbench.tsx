@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
-import { PanelRight } from 'lucide-react';
+import { ArrowLeft, ArrowRight, PanelRight } from 'lucide-react';
 import { CommandService, KeybindingService, SEARCH_VISIBLE } from '@doru/platform';
 import { IconButton } from '@doru/ui';
 import { nls } from './nls';
@@ -16,6 +16,8 @@ export interface WorkbenchProps {
   keybindings?: Array<{ key: string; command: string; args?: unknown[] }>;
   title?: string;
   platform?: string;
+  /** Window-level Back/Forward controls shown in the title bar leading slot. */
+  navigation?: TitleBarNavigation;
   /** Extra actions rendered in the title bar, before the built-in toggle. */
   titleActions?: ReactNode;
   /** Leading title bar content (e.g. the in-window menu on Windows/Linux). */
@@ -34,6 +36,13 @@ export interface WorkbenchProps {
   onOpenSettings?: () => void;
 }
 
+export interface TitleBarNavigation {
+  canGoBack: boolean;
+  canGoForward: boolean;
+  onGoBack(): void;
+  onGoForward(): void;
+}
+
 const DEFAULT_SIDE_BAR_WIDTH = 260;
 const DEFAULT_AGENT_CHAT_WIDTH = 320;
 const MIN_SIDE_BAR_WIDTH = 160;
@@ -50,6 +59,7 @@ export function Workbench({
   title,
   titleActions,
   titleMenu,
+  navigation,
   platform,
   sidebar,
   agentChat,
@@ -163,7 +173,29 @@ export function Workbench({
   return (
     <div className={layoutClasses.join(' ')} style={layoutStyle}>
       <header className={isMac ? 'title-bar title-bar-mac' : 'title-bar title-bar-overlay'}>
-        <div className="title-bar-leading">{titleMenu}</div>
+        <div className="title-bar-leading">
+          {titleMenu}
+          {navigation !== undefined && (
+            <div className="title-bar-nav">
+              <IconButton
+                size="md"
+                label={nls.t('workbench.goBack')}
+                shortcut={isMac ? '⌘[' : 'Alt+←'}
+                icon={<ArrowLeft size={16} aria-hidden="true" />}
+                disabled={!navigation.canGoBack}
+                onClick={navigation.onGoBack}
+              />
+              <IconButton
+                size="md"
+                label={nls.t('workbench.goForward')}
+                shortcut={isMac ? '⌘]' : 'Alt+→'}
+                icon={<ArrowRight size={16} aria-hidden="true" />}
+                disabled={!navigation.canGoForward}
+                onClick={navigation.onGoForward}
+              />
+            </div>
+          )}
+        </div>
         <span className="title-bar-title">{title}</span>
         <div className="title-bar-actions">
           {titleActions}

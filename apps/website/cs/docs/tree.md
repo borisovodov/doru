@@ -1,5 +1,5 @@
 ---
-source-hash: 162b59a48ae2
+source-hash: e68af9c8211a
 ---
 
 # Práce se stromem
@@ -11,15 +11,11 @@ seznam osob žije v pohledu **Osoby** na levém panelu aktivit.
 
 - **Posouvejte** tažením pozadí, **přibližujte** kolečkem myši nebo
   trackpadem; tlačítka přiblížení jsou v rohu plátna.
-- **Znovu zaostřete** na osobu dvojklikem na její kartu. Panel nástrojů si
-  uchovává historii: šipky zpět/vpřed a stopu fokusu.
-- **Grafy**: přepínejte mezi pohledy *Předci*, *Potomci*, *Přesýpací hodiny* a
-  *Rodina* na panelu nástrojů. Pohled rodiny zobrazuje pár ve fokusu, jeho
-  děti a obě strany rodičů.
+- **Znovu zaostřete** na osobu dvojklikem na její kartu. Tlačítka Zpět/Vpřed v okně vás vrátí na předchozí karty a pozice ve stromu.
+- **Předci a potomci** se vždy zobrazují společně: rodiče a prarodiče nad fokusem, děti pod
+  ním.
 - **Hledání**: napište jméno do vyhledávacího pole na panelu nástrojů a
   vyberte výsledek, abyste na danou osobu přeskočili.
-- **Sbalte** větev pomocí šipky na kartě (nebo sbalte/rozbalte všechny větve z
-  panelu nástrojů).
 
 ## Karty
 
@@ -40,9 +36,6 @@ Vyberte kartu a zobrazí se panel nástrojů akcí:
   volného textu pro datum (např. kalendářní datum „23 Nivôse“, které
   neodpovídá gregoriánskému), rodiny, události, prameny, poznámky a média.
 - **Smazat** — odstraní osobu ze stromu a ze všech rodin.
-- **Změnit rodiče**: přetáhněte kartu na kartu jiné osoby, abyste
-  přetahovanou osobu přesunuli jako dítě do této rodiny (platný cíl se během
-  přetahování zvýrazní).
 
 Nový (prázdný) strom zobrazuje jednu prázdnou kartu: klikněte na ni, napište
 jméno, potvrďte zaškrtnutím a na plátně se objeví první osoba. Poté nechte

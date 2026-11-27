@@ -1,5 +1,5 @@
 ---
-source-hash: 3bbc12ca0a98
+source-hash: d012277cf0bf
 layout: home
 
 hero:
@@ -15,7 +15,7 @@ features:
     details: "Az egész alkalmazás MI-natív. A Dóru AI, a beépített asszisztens, helyben és offline fut — fiók nélkül. Vagy csatlakoztasson bármilyen szolgáltatót — Ollama, LM Studio, felhő API, ACP-ügynök."
   - icon: 🌳
     title: Az egész fa, egyetlen vászon
-    details: "Négy nézet — ősök, leszármazottak, homokóra, család — egyetlen nagyítható vásznon. Adjon hozzá embereket helyben, húzással rendezze át a szülőket, nyisson teljes szerkesztőket dátumokhoz, forrásokhoz és jegyzetekhez."
+    details: "Ősök felül, utódok alul a fókusz körül egyetlen nagyítható vásznon. Adjon hozzá embereket helyben, és nyisson teljes szerkesztőket dátumokhoz, forrásokhoz és jegyzetekhez."
   - icon: 💾
     title: GEDCOM import és export
     details: "GEDCOM 5.5 és 5.5.1 import, GEDCOM 7.0 export — a .gdz archívumokat is beleértve. Valódi szoftverek több száz gyártói tagját ismeri fel, és a Dóru modelljébe képezi le őket."

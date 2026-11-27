@@ -54,12 +54,12 @@ The name comes from Proto-Indo-European _\*dóru_ — “tree”.
 
 ### Genealogy
 
-- **Interactive tree canvas** — the tree tab is one zoomable canvas with four
-  charts (ancestors, descendants, hourglass, family), focus navigation with
-  history and breadcrumbs, search-to-jump, and collapsible branches. Cards
-  show an avatar, years, sex and line marks, and notes/sources/media badges.
-- **Editing on the canvas** — add children, spouses and parents, rename,
-  delete, and drag a card onto another person to reparent; the full editor
+- **Interactive tree canvas** — the tree tab is one zoomable canvas with
+  ancestors above and descendants below the focus, focus navigation,
+  search-to-jump, and window-level Back/Forward history. Cards show an avatar,
+  years, sex and line marks, and notes/sources/media badges.
+- **Editing on the canvas** — add children, spouses and parents, rename and
+  delete; the full editor
   (names, sex, birth/death dates with a quality marker — *exact / about /
   before / after* — plus a free-text form for dates that do not map to
   Gregorian) opens as a tab. Every action is one undoable step.

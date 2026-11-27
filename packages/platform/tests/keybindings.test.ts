@@ -62,6 +62,15 @@ describe('KeybindingService', () => {
     });
   });
 
+  test('matches arrow keys by name', () => {
+    const service = new KeybindingService();
+    service.register('alt+left', 'workbench.goBack');
+    expect(service.onKeydown(event({ key: 'ArrowLeft', code: 'ArrowLeft', altKey: true }))).toEqual({
+      command: 'workbench.goBack',
+      args: [],
+    });
+  });
+
   test('passes through registered args', () => {
     const service = new KeybindingService();
     service.register('meta+2', 'workbench.switchToTab', [2]);

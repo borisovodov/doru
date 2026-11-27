@@ -1,5 +1,5 @@
 ---
-source-hash: 162b59a48ae2
+source-hash: e68af9c8211a
 ---
 
 # Trabajar con el árbol
@@ -12,16 +12,11 @@ actividad izquierda.
 
 - **Desplazamiento** arrastrando el fondo, **zoom** con la rueda del ratón o el
   trackpad; los botones de zoom están en la esquina del lienzo.
-- **Recentrar** en una persona haciendo doble clic en su tarjeta. La barra de
-  herramientas guarda un historial: flechas atrás/adelante y una ruta de
-  navegación.
-- **Gráficos**: cambia entre las vistas *Antepasados*, *Descendientes*, *Reloj de
-  arena* y *Familia* en la barra de herramientas. La vista Familia muestra la
-  pareja central, sus hijos y los padres de ambos lados.
+- **Recentrar** en una persona haciendo doble clic en su tarjeta. Los botones Atrás/Adelante de la ventana vuelven a pestañas y posiciones anteriores del árbol.
+- **Antepasados y descendientes** se muestran siempre juntos: padres y abuelos encima del
+  foco, hijos debajo.
 - **Buscar**: escribe un nombre en el cuadro de búsqueda de la barra de
   herramientas y elige un resultado para saltar a esa persona.
-- **Contraer** una rama con el chevron de una tarjeta (o contraer/expandir todas
-  las ramas desde la barra de herramientas).
 
 ## Tarjetas
 
@@ -44,9 +39,6 @@ Selecciona una tarjeta para mostrar la barra de acciones:
   fecha de calendario «23 Nivôse» que no se corresponde con el gregoriano),
   familias, eventos, fuentes, notas y multimedia.
 - **Eliminar** — quita a la persona del árbol y de todas las familias.
-- **Cambiar de progenitores**: arrastra una tarjeta sobre la tarjeta de otra
-  persona para mover a la persona arrastrada como hijo a esa familia (el destino
-  válido se ilumina durante el arrastre).
 
 Un árbol nuevo (vacío) muestra una tarjeta vacía: haz clic en ella, escribe el
 nombre, confirma con la marca de verificación y la primera persona aparece en el

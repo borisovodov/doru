@@ -39,15 +39,21 @@
   color: var(--doru-fg-muted);
 }
 
-/* Leading title bar slot: the in-window menu lives here on Windows/Linux.
-   Rendered on the right-hand platforms only, so the macOS traffic-light
-   padding never applies to it. */
+/* Leading title bar slot: the in-window menu on Windows/Linux and the
+   window Back/Forward controls on every platform. */
 .title-bar-leading {
   position: absolute;
   left: 10px;
   display: flex;
   align-items: center;
+  gap: 6px;
   -webkit-app-region: no-drag;
+}
+
+.title-bar-nav {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
 }
 
 .title-bar-actions {
@@ -62,6 +68,10 @@
 /* macOS: reserve space for the traffic lights on the left. */
 .title-bar-mac {
   padding-left: 78px;
+}
+
+.title-bar-mac .title-bar-leading {
+  left: 78px;
 }
 
 /* Windows/Linux: reserve space for the window-control overlay buttons on the right. */

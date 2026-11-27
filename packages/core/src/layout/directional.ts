@@ -3,7 +3,7 @@ import type { FamilyRecord, PersonRecord } from '../model/types';
 import type { LaidOutCard, PedigreeEdge, PedigreeEdgeKind, PedigreeLayoutOptions } from './types';
 import { buildDirectionalGraph, type SeeAlso, type TreeItem } from './graph';
 
-interface DirectionalLayout {
+export interface DirectionalLayout {
   cards: LaidOutCard[];
   edges: PedigreeEdge[];
   focusKey: string;
@@ -21,7 +21,7 @@ export function layoutDirectional(
   direction: 'ancestors' | 'descendants',
   merged: Required<PedigreeLayoutOptions>,
 ): DirectionalLayout | null {
-  const built = buildDirectionalGraph(focusId, persons, families, direction, merged.maxGenerations, merged.collapsed);
+  const built = buildDirectionalGraph(focusId, persons, families, direction, merged.maxGenerations);
   if (!built) {
     return null;
   }

@@ -29,10 +29,7 @@ const meta = {
     person,
     line: 'paternal',
     isFocus: true,
-    hasSubtree: true,
-    collapsed: false,
     counts: { notes: 2, sources: 1, media: 3 },
-    isDropTarget: false,
     selected: true,
   },
 } satisfies DemoMeta<typeof PersonCardView>;

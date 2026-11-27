@@ -1,5 +1,5 @@
 ---
-source-hash: 162b59a48ae2
+source-hash: e68af9c8211a
 ---
 
 # Trabalhando com a árvore
@@ -11,16 +11,11 @@ lista de pessoas fica na visão **Pessoas** da barra de atividades à esquerda.
 
 - **Desloque** arrastando o fundo, **aplique zoom** com a roda do mouse ou o
   trackpad; os botões de zoom ficam no canto da tela.
-- **Recentralize** uma pessoa com um clique duplo no cartão dela. A barra de
-  ferramentas mantém um histórico: setas para trás/para frente e uma trilha de
-  foco.
-- **Gráficos**: alterne entre as visões *Antepassados*, *Descendentes*,
-  *Ampulheta* e *Família* na barra de ferramentas. A visão de família mostra o
-  casal em foco, seus filhos e ambos os lados dos pais.
+- **Recentralize** uma pessoa com um clique duplo no cartão dela. Os botões Voltar/Avançar da janela retornam às abas e posições anteriores da árvore.
+- **Ancestrais e descendentes** são sempre exibidos juntos: pais e avós acima do foco,
+  filhos abaixo.
 - **Pesquisa**: digite um nome na caixa de pesquisa da barra de ferramentas e
   escolha um resultado para ir até essa pessoa.
-- **Recolha** um ramo com o chevron em um cartão (ou recolha/expanda todos os
-  ramos pela barra de ferramentas).
 
 ## Cartões
 
@@ -42,9 +37,6 @@ Selecione um cartão para revelar a barra de ferramentas de ações:
   data do calendário “23 Nivôse” que não corresponde ao gregoriano), famílias,
   eventos, fontes, notas e mídia.
 - **Excluir** — remove a pessoa da árvore e de todas as famílias.
-- **Alterar pais**: arraste um cartão sobre o cartão de outra pessoa para mover
-  a pessoa arrastada como filho para aquela família (o destino válido se
-  destaca durante o arraste).
 
 Uma árvore nova (vazia) mostra um cartão vazio: clique nele, digite o nome,
 confirme com a marca de seleção e a primeira pessoa aparece na tela. Depois

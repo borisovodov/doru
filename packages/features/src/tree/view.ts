@@ -6,7 +6,6 @@ export interface TreeCardView {
   person: PersonRecord;
   photo?: string;
   isFocus: boolean;
-  collapsed: boolean;
   counts: PersonCounts;
 }
 
@@ -29,13 +28,12 @@ const fallbackPerson = (id: string): PersonRecord => ({ id, names: [], sex: 'U',
 
 /**
  * Maps a pure pedigree layout to the data the canvas renders. All visual state
- * (selection, drag target) stays in the canvas component; this is only the
- * domain-to-view mapping.
+ * (selection) stays in the canvas component; this is only the domain-to-view
+ * mapping.
  */
 export function buildTreeView(
   layout: PedigreeLayout,
   persons: PersonRecord[],
-  collapsed: ReadonlySet<string>,
   counts: Record<string, PersonCounts>,
   photos: ReadonlyMap<string, string>,
 ): TreeView {
@@ -55,7 +53,6 @@ export function buildTreeView(
       person: personById.get(card.personId) ?? fallbackPerson(card.personId),
       ...(photo === undefined ? {} : { photo }),
       isFocus: card.key === layout.focusKey,
-      collapsed: collapsed.has(card.personId),
       counts: counts[card.personId] ?? EMPTY_COUNTS,
     };
   });

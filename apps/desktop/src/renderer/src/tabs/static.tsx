@@ -8,19 +8,19 @@ export const treeTab: TabDescriptor = {
   id: TREE_TAB_ID,
   label: () => nls.t('features.tree.title'),
   render: (_id, context) => (
-    // Keying by the project path resets canvas state (focus history,
-    // direction) when the user switches projects.
+    // Keying by the project path resets canvas state (chart kind,
+    // selection) when the user switches projects.
     <TreeCanvas
       key={context.projectPath ?? 'none'}
       persons={context.tree.persons}
       families={context.tree.families}
       photos={context.personPhotos}
-      focusRequest={context.canvasFocus}
+      focusPersonId={context.treeFocusPersonId}
+      onFocusPerson={context.onFocusPerson}
       api={{
         addPerson: context.tree.api.addPerson,
         addRelative: context.tree.addRelative,
         deletePerson: context.tree.deletePerson,
-        reparent: context.tree.reparent,
         updatePerson: context.tree.api.updatePerson,
         getPersonCounts: context.tree.personCounts,
         openEditor: context.tabs.open.person,

@@ -1,10 +1,8 @@
 import { memo, type KeyboardEvent } from 'react';
-import { GripVertical } from 'lucide-react';
 import type { LaidOutCard, PersonRecord } from '@doru/core';
-import { CanvasItem, usePointerDrag } from '@doru/canvas';
+import { CanvasItem } from '@doru/canvas';
 import { PersonCardView, type PersonCounts } from '@doru/ui/domain';
 import { CARD_HEIGHT, CARD_WIDTH } from './sizes';
-import styles from './PersonCard.module.css';
 
 export interface PersonCardProps {
   card: LaidOutCard;
@@ -13,21 +11,14 @@ export interface PersonCardProps {
   photo?: string | undefined;
   isFocus: boolean;
   selected: boolean;
-  isDropTarget: boolean;
-  collapsed: boolean;
   onSelect(cardKey: string): void;
   onClearSelection(): void;
   onActivate(cardKey: string): void;
-  onToggleCollapse(personId: string): void;
-  onDragStart(cardKey: string): void;
-  onDragMove(cardKey: string, dx: number, dy: number): void;
-  onDragEnd(cardKey: string, dx: number, dy: number, cancelled: boolean): void;
 }
 
 /**
- * A positioned person card. Layout fixes its world position; dragging only
- * carries a temporary offset and is interpreted by the canvas as a reparent
- * gesture, never as a new permanent position.
+ * A positioned person card. Layout fixes its world position; the canvas owns
+ * panning and cards themselves are not draggable.
  */
 export const PersonCard = memo(function PersonCard({
   card,
@@ -36,39 +27,21 @@ export const PersonCard = memo(function PersonCard({
   photo,
   isFocus,
   selected,
-  isDropTarget,
-  collapsed,
   onSelect,
   onClearSelection,
   onActivate,
-  onToggleCollapse,
-  onDragStart,
-  onDragMove,
-  onDragEnd,
 }: PersonCardProps) {
-  const drag = usePointerDrag({
-    onStart: () => onDragStart(card.key),
-    onMove: (dx, dy) => onDragMove(card.key, dx, dy),
-    onEnd: (dx, dy, cancelled) => onDragEnd(card.key, dx, dy, cancelled),
-  });
-
   const handleClick = (): void => {
-    if (drag.consumeClickSuppression()) {
-      return;
-    }
     onSelect(card.key);
   };
 
   const handleDoubleClick = (): void => {
-    if (drag.consumeClickSuppression()) {
-      return;
-    }
     onActivate(card.key);
   };
 
   const handleKeyDown = (event: KeyboardEvent<HTMLDivElement>): void => {
-    // Only the focused card itself selects on Enter/Space. Descendants such
-    // as the collapse button keep their native keyboard activation.
+    // Only the focused card itself selects on Enter/Space; descendants keep
+    // their native keyboard activation.
     if ((event.key === 'Enter' || event.key === ' ') && event.target === event.currentTarget) {
       event.preventDefault();
       onSelect(card.key);
@@ -83,7 +56,6 @@ export const PersonCard = memo(function PersonCard({
       y={card.y - CARD_HEIGHT / 2}
       width={CARD_WIDTH}
       height={CARD_HEIGHT}
-      style={drag.dragging ? { transform: `translate(${drag.dx}px, ${drag.dy}px)`, zIndex: 10 } : undefined}
       onClick={handleClick}
       onDoubleClick={handleDoubleClick}
     >
@@ -91,21 +63,11 @@ export const PersonCard = memo(function PersonCard({
         person={person}
         line={card.line}
         isFocus={isFocus}
-        hasSubtree={card.hasSubtree}
-        collapsed={collapsed}
         counts={counts}
-        isDropTarget={isDropTarget}
         {...(photo === undefined ? {} : { photo })}
         selected={selected}
-        dragging={drag.dragging}
-        onToggleCollapse={onToggleCollapse}
         tabIndex={0}
         onKeyDown={handleKeyDown}
-        dragHandle={
-          <div className={styles['handle']} data-canvas-no-pan aria-hidden="true" {...drag.handlers}>
-            <GripVertical size={12} aria-hidden="true" />
-          </div>
-        }
       />
     </CanvasItem>
   );

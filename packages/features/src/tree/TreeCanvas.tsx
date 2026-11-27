@@ -1,6 +1,6 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { layoutPedigree, suggestFocusPerson, isDescendantOf } from '@doru/core/layout';
-import type { ChartKind, PedigreeLayout, PersonRecord } from '@doru/core';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { layoutPedigree, suggestFocusPerson } from '@doru/core/layout';
+import type { PedigreeLayout, PersonRecord } from '@doru/core';
 import { Minus, Plus, Scan } from 'lucide-react';
 import {
   Canvas,
@@ -10,19 +10,18 @@ import {
   CanvasPanel,
   CanvasProvider,
   CanvasWorld,
-  rectsIntersect,
   useCanvas,
   type Rect,
 } from '@doru/canvas';
 import { IconButton } from '@doru/ui';
-import { PersonCardEditor, PersonCardView, TreeToolbar, type CardAction } from '@doru/ui/domain';
+import { PersonCardEditor, PersonCardView, type CardAction } from '@doru/ui/domain';
 import { nls } from '../nls';
 import { CardToolbar } from './CardToolbar';
 import { PersonCard } from './PersonCard';
 import { TreeEdges } from './PedigreeEdges';
 import { CARD_HEIGHT, CARD_WIDTH, ROW_HEIGHT } from './sizes';
 import { buildTreeView } from './view';
-import type { FocusHistory, PersonCounts, RelativeRelation, TreeCanvasProps } from './types';
+import type { PersonCounts, RelativeRelation, TreeCanvasProps } from './types';
 import './TreeCanvas.css';
 
 export type { PersonCounts, RelativeRelation, TreeCanvasApi, TreeCanvasProps } from './types';
@@ -62,40 +61,38 @@ export function TreeCanvas(props: TreeCanvasProps) {
   );
 }
 
-function TreeCanvasInner({ persons, families, photos = new Map(), api, focusRequest }: TreeCanvasProps) {
-  const { addPerson, addRelative, deletePerson, reparent, getPersonCounts, openEditor } = api;
-  const [kind, setKind] = useState<ChartKind>('ancestors');
-  const [history, setHistory] = useState<FocusHistory | null>(null);
-  const [collapsed, setCollapsed] = useState<ReadonlySet<string>>(() => new Set<string>());
+function TreeCanvasInner({
+  persons,
+  families,
+  photos = new Map(),
+  api,
+  focusPersonId,
+  onFocusPerson,
+}: TreeCanvasProps) {
+  const { addPerson, addRelative, deletePerson, getPersonCounts, openEditor } = api;
   const [drafts, setDrafts] = useState<DraftCard[]>([]);
   const [selectedKey, setSelectedKey] = useState<string | null>(null);
-  const [draggingKey, setDraggingKey] = useState<string | null>(null);
-  const [dropTargetKey, setDropTargetKey] = useState<string | null>(null);
-  const [dropError, setDropError] = useState(false);
   const [countResult, setCountResult] = useState<{
     layout: PedigreeLayout;
     counts: Record<string, PersonCounts>;
   } | null>(null);
-  const draggingKeyRef = useRef<string | null>(null);
 
   const suggested = suggestFocusPerson(persons, families);
-  const focusId = history ? history.stack[history.index] : suggested;
-  // Fall back to the suggested focus when the history points at a person
-  // that no longer exists (deleted by an edit or an agent).
-  const effectiveFocus = focusId !== undefined && persons.some((person) => person.id === focusId) ? focusId : suggested;
+  // Fall back to the suggested focus when the navigation history points at a
+  // person that no longer exists (deleted by an edit or an agent).
+  const effectiveFocus =
+    focusPersonId !== null && persons.some((person) => person.id === focusPersonId) ? focusPersonId : suggested;
 
   const layout = useMemo(() => {
     if (!effectiveFocus) {
       return null;
     }
     return layoutPedigree(effectiveFocus, persons, families, {
-      kind,
       maxGenerations: 4,
-      collapsed,
       nodeWidth: CARD_WIDTH,
       nodeHeight: CARD_HEIGHT,
     });
-  }, [effectiveFocus, persons, families, kind, collapsed]);
+  }, [effectiveFocus, persons, families]);
 
   const activeCounts = layout !== null && countResult?.layout === layout ? countResult.counts : EMPTY_COUNTS;
 
@@ -103,8 +100,8 @@ function TreeCanvasInner({ persons, families, photos = new Map(), api, focusRequ
     if (!layout) {
       return null;
     }
-    return buildTreeView(layout, persons, collapsed, activeCounts, photos);
-  }, [layout, persons, collapsed, activeCounts, photos]);
+    return buildTreeView(layout, persons, activeCounts, photos);
+  }, [layout, persons, activeCounts, photos]);
 
   const isEmpty = persons.length === 0;
 
@@ -139,23 +136,6 @@ function TreeCanvasInner({ persons, families, photos = new Map(), api, focusRequ
     };
   }, [layout, getPersonCounts]);
 
-  const refocus = useCallback(
-    (personId: string) => {
-      if (!persons.some((person) => person.id === personId)) {
-        return;
-      }
-      setHistory((current) => {
-        const stack = current ? current.stack.slice(0, current.index + 1) : [];
-        if (stack[stack.length - 1] === personId) {
-          return current;
-        }
-        stack.push(personId);
-        return { stack, index: stack.length - 1 };
-      });
-    },
-    [persons],
-  );
-
   const handleAction = useCallback(
     (action: CardAction, personId: string) => {
       const person = persons.find((entry) => entry.id === personId);
@@ -181,18 +161,6 @@ function TreeCanvasInner({ persons, families, photos = new Map(), api, focusRequ
     },
     [persons, openEditor, deletePerson],
   );
-
-  const toggleCollapse = useCallback((personId: string) => {
-    setCollapsed((current) => {
-      const next = new Set(current);
-      if (next.has(personId)) {
-        next.delete(personId);
-      } else {
-        next.add(personId);
-      }
-      return next;
-    });
-  }, []);
 
   /** Saving a draft card creates the real person it stands for. */
   const handleDraftSave = useCallback(
@@ -227,37 +195,6 @@ function TreeCanvasInner({ persons, families, photos = new Map(), api, focusRequ
     });
   }, []);
 
-  // External focus requests (e.g. a click in the People sidebar).
-  const lastFocusRequestRef = useRef(0);
-  useEffect(() => {
-    if (focusRequest && focusRequest.nonce !== lastFocusRequestRef.current) {
-      lastFocusRequestRef.current = focusRequest.nonce;
-      refocus(focusRequest.personId);
-    }
-  }, [focusRequest, refocus]);
-
-  const goBack = useCallback(() => {
-    setHistory((current) => (current && current.index > 0 ? { ...current, index: current.index - 1 } : current));
-  }, []);
-
-  const goForward = useCallback(() => {
-    setHistory((current) =>
-      current && current.index < current.stack.length - 1 ? { ...current, index: current.index + 1 } : current,
-    );
-  }, []);
-
-  const jumpTo = useCallback((index: number) => {
-    setHistory((current) => (current ? { ...current, index } : current));
-  }, []);
-
-  const collapseAll = useCallback(() => {
-    setCollapsed(new Set(persons.map((person) => person.id)));
-  }, [persons]);
-
-  const expandAll = useCallback(() => {
-    setCollapsed(new Set());
-  }, []);
-
   const handleSelect = useCallback((cardKey: string) => {
     setSelectedKey(cardKey);
   }, []);
@@ -270,96 +207,10 @@ function TreeCanvasInner({ persons, families, photos = new Map(), api, focusRequ
     (cardKey: string) => {
       const entry = view?.cards.find((card) => card.card.key === cardKey);
       if (entry) {
-        refocus(entry.person.id);
+        onFocusPerson(entry.person.id);
       }
     },
-    [view, refocus],
-  );
-
-  const findDropTarget = useCallback(
-    (cardKey: string, dx: number, dy: number): string | null => {
-      if (!layout) {
-        return null;
-      }
-      const dragged = layout.cards.find((card) => card.key === cardKey);
-      if (!dragged) {
-        return null;
-      }
-      const draggedRect = {
-        x: dragged.x - CARD_WIDTH / 2 + dx,
-        y: dragged.y - CARD_HEIGHT / 2 + dy,
-        width: CARD_WIDTH,
-        height: CARD_HEIGHT,
-      };
-      const target = layout.cards.find((card) => {
-        if (card.key === cardKey || card.personId === dragged.personId) {
-          return false;
-        }
-        if (isDescendantOf(families, dragged.personId, card.personId)) {
-          return false;
-        }
-        const rect = {
-          x: card.x - CARD_WIDTH / 2,
-          y: card.y - CARD_HEIGHT / 2,
-          width: CARD_WIDTH,
-          height: CARD_HEIGHT,
-        };
-        return rectsIntersect(draggedRect, rect);
-      });
-      return target?.key ?? null;
-    },
-    [layout, families],
-  );
-
-  const handleDragStart = useCallback((cardKey: string) => {
-    // One pointer gesture owns the shared drop highlight at a time.
-    if (draggingKeyRef.current !== null) {
-      return;
-    }
-    draggingKeyRef.current = cardKey;
-    setDraggingKey(cardKey);
-    setSelectedKey(cardKey);
-    setDropTargetKey(null);
-  }, []);
-
-  const handleDragMove = useCallback(
-    (cardKey: string, dx: number, dy: number) => {
-      if (draggingKeyRef.current !== cardKey) {
-        return;
-      }
-      const targetKey = findDropTarget(cardKey, dx, dy);
-      setDropTargetKey((current) => (current === targetKey ? current : targetKey));
-    },
-    [findDropTarget],
-  );
-
-  const handleDragEnd = useCallback(
-    (cardKey: string, dx: number, dy: number, cancelled: boolean) => {
-      if (draggingKeyRef.current !== cardKey) {
-        return;
-      }
-      draggingKeyRef.current = null;
-      setDraggingKey(null);
-      setDropTargetKey(null);
-      if (cancelled || !layout) {
-        return;
-      }
-      // Resolve the target at release for this specific card. A shared
-      // last-move target could belong to another pointer on a touch screen.
-      const targetKey = findDropTarget(cardKey, dx, dy);
-      if (targetKey === null) {
-        return;
-      }
-      const dragged = layout.cards.find((card) => card.key === cardKey);
-      const target = layout.cards.find((card) => card.key === targetKey);
-      if (!dragged || !target) {
-        return;
-      }
-      void reparent(dragged.personId, target.personId)
-        .then(() => setDropError(false))
-        .catch(() => setDropError(true));
-    },
-    [findDropTarget, layout, reparent],
+    [view, onFocusPerson],
   );
 
   const fitBounds = useMemo<Rect | undefined>(() => {
@@ -381,15 +232,13 @@ function TreeCanvasInner({ persons, families, photos = new Map(), api, focusRequ
     }
     return [
       layout.focusKey,
-      kind,
-      [...collapsed].sort().join(','),
       layout.cards.map((card) => card.key).join('|'),
       layout.minX,
       layout.minY,
       layout.width,
       layout.height,
     ].join('§');
-  }, [layout, kind, collapsed, isEmpty]);
+  }, [layout, isEmpty]);
 
   const selectedCard = view?.cards.find((entry) => entry.card.key === effectiveSelectedKey);
   const selectedRect = selectedCard
@@ -429,8 +278,6 @@ function TreeCanvasInner({ persons, families, photos = new Map(), api, focusRequ
     });
   }, [visibleDrafts, view]);
 
-  const breadcrumbs = history ? history.stack.slice(0, history.index + 1) : [];
-
   return (
     <div className="tree-view">
       <Canvas
@@ -465,7 +312,6 @@ function TreeCanvasInner({ persons, families, photos = new Map(), api, focusRequ
                 width: layout.width,
                 height: layout.height,
               }}
-              hiddenKey={draggingKey}
             />
           )}
           {view?.cards.map((entry) => (
@@ -477,15 +323,9 @@ function TreeCanvasInner({ persons, families, photos = new Map(), api, focusRequ
               photo={entry.photo}
               isFocus={entry.isFocus}
               selected={effectiveSelectedKey === entry.card.key}
-              isDropTarget={dropTargetKey === entry.card.key}
-              collapsed={entry.collapsed}
               onSelect={handleSelect}
               onClearSelection={handleClearSelection}
               onActivate={handleActivate}
-              onToggleCollapse={toggleCollapse}
-              onDragStart={handleDragStart}
-              onDragMove={handleDragMove}
-              onDragEnd={handleDragEnd}
             />
           ))}
           {draftItems.map(({ draft, x, y }) => (
@@ -500,35 +340,10 @@ function TreeCanvasInner({ persons, families, photos = new Map(), api, focusRequ
             />
           ))}
         </CanvasWorld>
-        {dropError && (
-          <CanvasPanel position="top-right">
-            <div className="tree-drop-error" role="status">
-              {nls.t('tree.canvas.cycle')}
-            </div>
-          </CanvasPanel>
-        )}
         <CanvasPanel position="bottom-left">
           <ZoomControls fitBounds={fitBounds} />
         </CanvasPanel>
-        <CanvasPanel position="top-left">
-          <div className="tree-toolbar-panel">
-            <TreeToolbar
-              kind={kind}
-              onKindChange={setKind}
-              canGoBack={history !== null && history.index > 0}
-              canGoForward={history !== null && history.index < history.stack.length - 1}
-              onBack={goBack}
-              onForward={goForward}
-              onCollapseAll={collapseAll}
-              onExpandAll={expandAll}
-              breadcrumbs={breadcrumbs}
-              focusPersonId={effectiveFocus}
-              persons={persons}
-              onJump={jumpTo}
-            />
-          </div>
-        </CanvasPanel>
-        {selectedCard && selectedRect && draggingKey === null && (
+        {selectedCard && selectedRect && (
           <CanvasOverlay anchor={selectedRect} position="top" offset={8}>
             <CardToolbar personId={selectedCard.person.id} onAction={handleAction} />
           </CanvasOverlay>
@@ -599,10 +414,7 @@ function DraftPersonCard({
         person={{ id: draft.id, names: [], sex: 'U', facts: [] }}
         line={null}
         isFocus={false}
-        hasSubtree={false}
-        collapsed={false}
         counts={EMPTY_PERSON_COUNTS}
-        isDropTarget={false}
         isDraft
         isEditing={draft.editing}
         editingContent={draft.editing ? <PersonCardEditor autoFocus onSave={onSave} onCancel={onCancel} /> : undefined}

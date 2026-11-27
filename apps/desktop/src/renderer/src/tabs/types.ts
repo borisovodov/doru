@@ -96,7 +96,9 @@ export interface TabRenderContext {
   tabs: TabsApi;
   projectPath: string | null | undefined;
   personPhotos: ReadonlyMap<string, string>;
-  canvasFocus: { personId: string; nonce: number } | null;
+  /** Focused person in the tree, owned by the window navigation history. */
+  treeFocusPersonId: string | null;
+  onFocusPerson: (personId: string) => void;
   openPersonAndFocus: (personId: string) => void;
   theme: ReturnType<typeof useTheme>;
   ai: ReturnType<typeof useAiSettings>;

@@ -12,8 +12,6 @@ export interface TreeCanvasApi {
   addRelative(relation: RelativeRelation, anchorId: string, person: PersonRecord): Promise<void>;
   /** Detaches the person from all families and deletes the record. */
   deletePerson(person: PersonRecord): Promise<void>;
-  /** Moves a person (as a child) into the family of `newParentId`. */
-  reparent(childId: string, newParentId: string): Promise<void>;
   /** Updates the person record (rename, dates). */
   updatePerson(before: PersonRecord, after: PersonRecord): Promise<void>;
   /** Badge counts (notes, sources, media) for the given persons. */
@@ -28,11 +26,8 @@ export interface TreeCanvasProps {
   /** Person id → primary media URL, used for the card avatar. */
   photos?: ReadonlyMap<string, string> | undefined;
   api: TreeCanvasApi;
-  /** External focus request (e.g. a click in the People sidebar). */
-  focusRequest?: { personId: string; nonce: number } | null;
-}
-
-export interface FocusHistory {
-  stack: string[];
-  index: number;
+  /** Focused person owned by the window-level navigation history. */
+  focusPersonId: string | null;
+  /** Reports a new focus (double-click on a card) to the owner. */
+  onFocusPerson(personId: string): void;
 }
