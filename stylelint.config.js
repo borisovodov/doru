@@ -4,6 +4,10 @@
 // for colors.
 const colorLiteral = /\b(?:rgba?|hsla?|hwb|lab|lch|oklab|oklch|color)\(|\blight-dark\(/i;
 
+// Spacing and inset values come from --doru-space-* tokens. Negative offsets
+// are optical nudges and stay literal; everything else must be tokenized.
+const spacingLiteral = /(?<![\d.-])\d+(?:\.\d+)?px/i;
+
 export default {
   extends: ['stylelint-config-standard'],
   ignoreFiles: [
@@ -49,6 +53,7 @@ export default {
       '/^(?:-webkit-)?mask(-|$)/i': [colorLiteral],
       '/^(fill|stroke)$/i': [colorLiteral],
       '/^filter$/i': [colorLiteral],
+      '/^(padding|margin|gap|row-gap|column-gap|inset|top|right|bottom|left)(-|$)/i': [spacingLiteral],
     },
     'color-named': 'never',
     'color-no-hex': true,
