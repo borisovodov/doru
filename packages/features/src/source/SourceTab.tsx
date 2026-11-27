@@ -195,7 +195,7 @@ function SourceTabBody({
     notes: sourceNotes,
     citations: sourceCitations,
     refresh: refreshAttachments,
-  } = useAttachments('source', targetId, api, true);
+  } = useAttachments('source', targetId, api);
 
   // Reset the draft only when it still equals the previous stored source —
   // i.e. the user has no unsaved edits. Unrelated tree reloads must not

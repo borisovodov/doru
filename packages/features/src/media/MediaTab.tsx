@@ -322,7 +322,7 @@ function MediaTabBody({
       const currentKeys = new Set(currentLinks.map((link) => key(link)));
       const previousKeys = new Set(previous.map(key));
       const nextKeys = new Set(next.map(key));
-      const added = next.filter((target) => !currentKeys.has(key(target)));
+      const added = next.filter((target) => !previousKeys.has(key(target)) && !currentKeys.has(key(target)));
       // Detach only links that were visible before this edit; committed links
       // not shown by the picker must stay attached.
       const removed = currentLinks.filter((link) => previousKeys.has(key(link)) && !nextKeys.has(key(link)));

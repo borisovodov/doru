@@ -341,7 +341,8 @@ belong to, which keeps the sidebar focused on records with their own tabs.
 
 Dóru models one media card as exactly one file. A GEDCOM `OBJE` with several
 `FILE` rows is split into one card per file on import; the record notes,
-citations, submitters and links are duplicated onto every card. The imported
+citations and links are duplicated onto every card. Submitter links on media
+are dropped by the current target policy. The imported
 xref is not stored; every card receives a fresh export identifier. `TRAN` is
 ignored. GEDZIP bytes and reachable local `FILE` paths are copied into the
 project's `media/` folder. Plain `http(s)`

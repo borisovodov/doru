@@ -129,7 +129,7 @@ function RepositoryTabBody({
     citations: repositoryCitations,
     contacts,
     refresh: refreshAttachments,
-  } = useAttachments('repository', targetId, api, true);
+  } = useAttachments('repository', targetId, api);
 
   const [saveError, setSaveError] = useState(false);
   const creatingRef = useRef(false);

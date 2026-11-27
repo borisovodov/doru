@@ -260,10 +260,22 @@ export function attachMediaOp(link: MediaLinkRecord, primaryBefore?: MediaLinkRe
       (ctx) => ctx.repo.addMediaLink(link.mediaId, link),
       (ctx) => {
         ctx.repo.removeMediaLink(link.id);
-        // addMediaLink may have cleared the previous primary; restore the
-        // captured sibling flags exactly instead of running normalization.
+        // Restore only the primary flags this attachment cleared. A concurrent
+        // writer may have changed a sibling's crop or target since the capture,
+        // so keep those current fields instead of writing the whole row back.
+        const targets = new Map<string, { targetType: string; targetId: string }>();
         for (const before of primaryBefore ?? []) {
-          ctx.repo.updateMediaLinkRow(before);
+          targets.set(`${before.targetType}\u0000${before.targetId}`, {
+            targetType: before.targetType,
+            targetId: before.targetId,
+          });
+          const current = ctx.repo.getMedia(before.mediaId)?.links?.find((entry) => entry.id === before.id);
+          if (current !== undefined) {
+            ctx.repo.updateMediaLinkRow({ ...current, primary: before.primary });
+          }
+        }
+        for (const target of targets.values()) {
+          ctx.repo.normalizePrimaryLink(target.targetType, target.targetId);
         }
       },
     ),

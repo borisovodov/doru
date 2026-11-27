@@ -137,7 +137,7 @@ function SubmitterTabBody({
     citations: submitterCitations,
     contacts,
     refresh: refreshAttachments,
-  } = useAttachments('submitter', targetId, api, true);
+  } = useAttachments('submitter', targetId, api);
 
   const [saveError, setSaveError] = useState(false);
   const creatingRef = useRef(false);

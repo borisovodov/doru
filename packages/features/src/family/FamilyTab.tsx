@@ -282,7 +282,7 @@ function FamilyTabBody({
     notes: familyNotes,
     citations: familyCitations,
     refresh: refreshAttachments,
-  } = useAttachments('family', record.id, api, true);
+  } = useAttachments('family', record.id, api);
   const recordRef = useRef(record);
   const savedRef = useRef(record);
   const submittedRef = useRef<FamilyDraft | undefined>(undefined);

@@ -145,7 +145,7 @@ function PlaceTabBody({
     notes: placeNotes,
     citations: placeCitations,
     refresh: refreshAttachments,
-  } = useAttachments('place', targetId, api, true);
+  } = useAttachments('place', targetId, api);
 
   // Reset the draft only when it still equals the previous stored place —
   // i.e. the user has no unsaved edits. Unrelated tree reloads must not
