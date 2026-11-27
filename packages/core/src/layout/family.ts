@@ -53,7 +53,6 @@ export function layoutFamilyView(
     familyId: null,
     generation: 0,
     line: null,
-    hasSubtree: false,
     x: 0,
     y: 0,
   };
@@ -99,7 +98,6 @@ export function layoutFamilyView(
       familyId: spouseEntry.familyId,
       generation: 0,
       line: null,
-      hasSubtree: false,
       x: left ? -halfPair : halfPair,
       y: 0,
     };
@@ -115,7 +113,6 @@ export function layoutFamilyView(
         familyId: entry.familyId,
         generation: 0,
         line: null,
-        hasSubtree: false,
         x: index % 2 === 0 ? spouseSpacing : -spouseSpacing,
         y: 0,
       };
@@ -176,7 +173,6 @@ export function layoutFamilyView(
         familyId: block.familyId,
         generation: -1,
         line: block.focusLine ? (index === 0 ? 'paternal' : 'maternal') : null,
-        hasSubtree: false,
         x: block.members.length > 1 ? center + (index === 0 ? -halfPair : halfPair) : center,
         y: -rowHeight,
       };
@@ -210,7 +206,6 @@ export function layoutFamilyView(
         familyId: entry.familyId,
         generation: 1,
         line: null,
-        hasSubtree: false,
         x: childX + nodeWidth / 2,
         y: rowHeight,
       };

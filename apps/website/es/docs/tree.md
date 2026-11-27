@@ -1,5 +1,5 @@
 ---
-source-hash: 162b59a48ae2
+source-hash: 385c34608fc6
 ---
 
 # Trabajar con el árbol
@@ -20,8 +20,6 @@ actividad izquierda.
   pareja central, sus hijos y los padres de ambos lados.
 - **Buscar**: escribe un nombre en el cuadro de búsqueda de la barra de
   herramientas y elige un resultado para saltar a esa persona.
-- **Contraer** una rama con el chevron de una tarjeta (o contraer/expandir todas
-  las ramas desde la barra de herramientas).
 
 ## Tarjetas
 
@@ -44,9 +42,6 @@ Selecciona una tarjeta para mostrar la barra de acciones:
   fecha de calendario «23 Nivôse» que no se corresponde con el gregoriano),
   familias, eventos, fuentes, notas y multimedia.
 - **Eliminar** — quita a la persona del árbol y de todas las familias.
-- **Cambiar de progenitores**: arrastra una tarjeta sobre la tarjeta de otra
-  persona para mover a la persona arrastrada como hijo a esa familia (el destino
-  válido se ilumina durante el arrastre).
 
 Un árbol nuevo (vacío) muestra una tarjeta vacía: haz clic en ella, escribe el
 nombre, confirma con la marca de verificación y la primera persona aparece en el

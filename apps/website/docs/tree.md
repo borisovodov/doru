@@ -15,8 +15,6 @@ activity bar.
   children and both sides of parents.
 - **Search**: type a name into the toolbar search box and pick a result to
   jump to that person.
-- **Collapse** a branch with the chevron on a card (or collapse/expand all
-  branches from the toolbar).
 
 ## Cards
 
@@ -37,9 +35,6 @@ Select a card to reveal the action toolbar:
   free-text form (e.g. a calendar date “23 Nivôse” that does not map to
   Gregorian), families, events, sources, notes and media.
 - **Delete** — removes the person from the tree and every family.
-- **Reparent**: drag a card onto another person's card to move the dragged
-  person as a child into that family (the valid target lights up while
-  dragging).
 
 A new (empty) tree shows one empty card: click it, type the name, confirm
 with the checkmark, and the first person appears on the canvas. After that,

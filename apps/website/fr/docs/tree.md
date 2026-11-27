@@ -1,5 +1,5 @@
 ---
-source-hash: 162b59a48ae2
+source-hash: 385c34608fc6
 ---
 
 # Travailler avec l'arbre
@@ -19,8 +19,6 @@ la barre d'activité de gauche.
   enfants et les parents des deux côtés.
 - **Recherche** : saisissez un nom dans le champ de recherche de la barre d'outils
   et choisissez un résultat pour sauter à cette personne.
-- **Replier** une branche avec le chevron d'une carte (ou replier/déplier toutes
-  les branches depuis la barre d'outils).
 
 ## Cartes
 
@@ -43,9 +41,6 @@ Sélectionnez une carte pour révéler la barre d'actions :
   ne correspond pas au calendrier grégorien), familles, événements, sources,
   notes et médias.
 - **Supprimer** — retire la personne de l'arbre et de toutes les familles.
-- **Changer de parents** : faites glisser une carte sur la carte d'une autre
-  personne pour déplacer la personne glissée comme enfant dans cette famille (la
-  cible valide s'illumine pendant le glissement).
 
 Un nouvel arbre (vide) affiche une carte vide : cliquez dessus, saisissez le nom,
 confirmez avec la coche, et la première personne apparaît sur le canevas. Ensuite,

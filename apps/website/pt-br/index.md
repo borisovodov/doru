@@ -1,5 +1,5 @@
 ---
-source-hash: 3bbc12ca0a98
+source-hash: 21be4abca28e
 layout: home
 
 hero:
@@ -15,7 +15,7 @@ features:
     details: "O app inteiro é nativo de IA. O Dóru AI, o assistente integrado, roda localmente e offline — sem conta. Ou conecte qualquer provedor — Ollama, LM Studio, uma API na nuvem, um agente ACP."
   - icon: 🌳
     title: Toda a árvore, uma única tela
-    details: "Quatro visões — ancestrais, descendentes, ampulheta, família — em uma única tela com zoom. Adicione pessoas no lugar, arraste para trocar de pais e abra editores completos de datas, fontes e notas."
+    details: "Quatro visões — ancestrais, descendentes, ampulheta, família — em uma única tela com zoom. Adicione pessoas no lugar e abra editores completos de datas, fontes e notas."
   - icon: 💾
     title: Importação e exportação GEDCOM
     details: "Importe GEDCOM 5.5 e 5.5.1, exporte GEDCOM 7.0 — arquivos .gdz incluídos. Centenas de tags de fornecedores de software real são reconhecidas e mapeadas para o modelo do Dóru."

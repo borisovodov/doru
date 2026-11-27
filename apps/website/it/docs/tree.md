@@ -1,5 +1,5 @@
 ---
-source-hash: 162b59a48ae2
+source-hash: 385c34608fc6
 ---
 
 # Lavorare con l'albero
@@ -20,8 +20,6 @@ delle attività a sinistra.
   focus, i loro figli ed entrambi i lati dei genitori.
 - **Ricerca**: digita un nome nella casella di ricerca della barra degli
   strumenti e scegli un risultato per passare a quella persona.
-- **Comprimi** un ramo con il chevron su una scheda (oppure comprimi/espandi
-  tutti i rami dalla barra degli strumenti).
 
 ## Schede
 
@@ -43,9 +41,6 @@ Seleziona una scheda per mostrare la barra degli strumenti delle azioni:
   calendario «23 Nivôse» che non corrisponde al gregoriano), famiglie, eventi,
   fonti, note e media.
 - **Elimina** — rimuove la persona dall'albero e da ogni famiglia.
-- **Cambia genitori**: trascina una scheda su quella di un'altra persona per
-  spostare la persona trascinata come figlio in quella famiglia (il bersaglio
-  valido si illumina durante il trascinamento).
 
 Un albero nuovo (vuoto) mostra una scheda vuota: fai clic, digita il nome,
 conferma con il segno di spunta e la prima persona appare sulla tela.

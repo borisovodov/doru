@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { isDescendantOf, layoutPedigree, suggestFocusPerson, type LaidOutCard } from '../src/layout/pedigree';
+import { layoutPedigree, suggestFocusPerson, type LaidOutCard } from '../src/layout/pedigree';
 import type { FamilyRecord, PersonRecord } from '../src/model/types';
 
 const person = (id: string, sex: PersonRecord['sex'] = 'U', birthYear?: number): PersonRecord => ({
@@ -332,41 +332,6 @@ describe('layoutPedigree — family view', () => {
   });
 });
 
-describe('layoutPedigree — collapse', () => {
-  it('keeps the collapsed card but hides its subtree', () => {
-    const persons = [person('focus', 'M'), person('kid'), person('gkid')];
-    const families = [family('F1', ['focus'], ['kid']), family('F2', ['kid'], ['gkid'])];
-    const layout = layoutPedigree('focus', persons, families, {
-      kind: 'descendants',
-      collapsed: new Set(['kid']),
-    });
-    const ids = layout?.cards.map((card) => card.personId);
-    expect(ids).toContain('kid');
-    expect(ids).not.toContain('gkid');
-    expect(layout?.cards.find((card) => card.personId === 'kid')?.hasSubtree).toBe(false);
-  });
-
-  it('marks cards that have a collapsible subtree', () => {
-    const persons = [person('focus', 'M'), person('kid')];
-    const families = [family('F1', ['focus'], ['kid'])];
-    const layout = layoutPedigree('focus', persons, families, { kind: 'descendants' });
-    expect(layout?.cards.find((card) => card.personId === 'focus')?.hasSubtree).toBe(true);
-    expect(layout?.cards.find((card) => card.personId === 'kid')?.hasSubtree).toBe(false);
-  });
-
-  it('hides ancestors above a collapsed person in the ancestors chart', () => {
-    const persons = [person('child'), person('p'), person('gp')];
-    const families = [family('F1', ['p'], ['child']), family('F2', ['gp'], ['p'])];
-    const layout = layoutPedigree('child', persons, families, {
-      kind: 'ancestors',
-      collapsed: new Set(['p']),
-    });
-    const ids = layout?.cards.map((card) => card.personId);
-    expect(ids).toContain('p');
-    expect(ids).not.toContain('gp');
-  });
-});
-
 describe('layoutPedigree — cycles and see-also', () => {
   it('adds a see-also edge instead of recursing into an ancestry cycle', () => {
     const persons = [person('kid'), person('adult', 'M')];
@@ -391,33 +356,6 @@ describe('layoutPedigree — lines', () => {
     expect(byKey.get('person:father@spouse:F1')?.line).toBe('paternal');
     expect(byKey.get('person:mother@spouse:F1')?.line).toBe('maternal');
     expect(byKey.get('person:child@focus')?.line).toBeNull();
-  });
-});
-
-describe('isDescendantOf', () => {
-  const family = (id: string, partners: string[], children: string[]): FamilyRecord => ({
-    id,
-    partners,
-    children,
-  });
-
-  it('detects a direct parent', () => {
-    expect(isDescendantOf([family('F1', ['dad'], ['kid'])], 'dad', 'kid')).toBe(true);
-  });
-
-  it('walks the ancestry chain', () => {
-    const fs = [family('F1', ['dad'], ['kid']), family('F2', ['gpa'], ['dad'])];
-    expect(isDescendantOf(fs, 'gpa', 'kid')).toBe(true);
-  });
-
-  it('returns false for unrelated persons and reversed order', () => {
-    expect(isDescendantOf([family('F1', ['a'], ['b'])], 'a', 'b')).toBe(true);
-    expect(isDescendantOf([family('F1', ['a'], ['b'])], 'b', 'a')).toBe(false);
-    expect(isDescendantOf([], 'a', 'b')).toBe(false);
-  });
-
-  it('treats a person as their own descendant', () => {
-    expect(isDescendantOf([], 'a', 'a')).toBe(true);
   });
 });
 

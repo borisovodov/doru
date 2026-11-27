@@ -12,8 +12,6 @@ export interface TreeCanvasApi {
   addRelative(relation: RelativeRelation, anchorId: string, person: PersonRecord): Promise<void>;
   /** Detaches the person from all families and deletes the record. */
   deletePerson(person: PersonRecord): Promise<void>;
-  /** Moves a person (as a child) into the family of `newParentId`. */
-  reparent(childId: string, newParentId: string): Promise<void>;
   /** Updates the person record (rename, dates). */
   updatePerson(before: PersonRecord, after: PersonRecord): Promise<void>;
   /** Badge counts (notes, sources, media) for the given persons. */

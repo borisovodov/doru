@@ -20,7 +20,6 @@ export const treeTab: TabDescriptor = {
         addPerson: context.tree.api.addPerson,
         addRelative: context.tree.addRelative,
         deletePerson: context.tree.deletePerson,
-        reparent: context.tree.reparent,
         updatePerson: context.tree.api.updatePerson,
         getPersonCounts: context.tree.personCounts,
         openEditor: context.tabs.open.person,

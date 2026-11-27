@@ -21,7 +21,7 @@ export function layoutDirectional(
   direction: 'ancestors' | 'descendants',
   merged: Required<PedigreeLayoutOptions>,
 ): DirectionalLayout | null {
-  const built = buildDirectionalGraph(focusId, persons, families, direction, merged.maxGenerations, merged.collapsed);
+  const built = buildDirectionalGraph(focusId, persons, families, direction, merged.maxGenerations);
   if (!built) {
     return null;
   }

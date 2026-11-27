@@ -64,41 +64,6 @@ export function suggestFocusPerson(persons: PersonRecord[], families: FamilyReco
   return persons[0]?.id;
 }
 
-/**
- * Whether `ancestorId` sits on the ancestry chain above `personId` (i.e.
- * `personId` descends from `ancestorId`). Used to reject reparenting that
- * would create an ancestry cycle.
- */
-export function isDescendantOf(families: FamilyRecord[], ancestorId: string, personId: string): boolean {
-  if (ancestorId === personId) {
-    return true;
-  }
-  const parentsByChild = new Map<string, string[]>();
-  for (const family of families) {
-    for (const childId of family.children) {
-      const list = parentsByChild.get(childId) ?? [];
-      list.push(...family.partners);
-      parentsByChild.set(childId, list);
-    }
-  }
-  const queue = [personId];
-  const visited = new Set<string>();
-  while (queue.length > 0) {
-    const current = queue.shift();
-    if (current === undefined || visited.has(current)) {
-      continue;
-    }
-    visited.add(current);
-    for (const parentId of parentsByChild.get(current) ?? []) {
-      if (parentId === ancestorId) {
-        return true;
-      }
-      queue.push(parentId);
-    }
-  }
-  return false;
-}
-
 interface EdgeHost {
   cards: LaidOutCard[];
   edges: PedigreeEdge[];

@@ -3,8 +3,8 @@ your disk, works fully offline, and is driven by AI agents — through the
 built-in chat or any MCP/ACP client.
 
 - **Your tree, one canvas.** Four views — ancestors, descendants, hourglass,
-  family — on one zoomable canvas. Add people in place, drag to reparent, and
-  open full editors for dates, sources, and notes.
+  family — on one zoomable canvas. Add people in place and open full editors
+  for dates, sources, and notes.
 - **AI-native.** Agent chat with tree tools, a built-in assistant (Dóru AI)
   that runs entirely offline, any provider you like (Ollama, LM Studio, a
   cloud API, an ACP agent), an MCP server mode for Claude Desktop and Cursor,

@@ -1,11 +1,10 @@
 import type { KeyboardEventHandler, ReactNode } from 'react';
-import { BookOpenText, ChevronDown, ChevronRight, Image as ImageIcon, StickyNote } from 'lucide-react';
+import { BookOpenText, Image as ImageIcon, StickyNote } from 'lucide-react';
 import type { PedigreeLine, PersonRecord } from '@doru/core';
 import { factOf } from '@doru/core/model';
 import { cx } from '../../lib/cx';
 import { Avatar } from '../../atoms/display/Avatar';
 import { Badge } from '../../atoms/display/Badge';
-import { IconButton } from '../../atoms/icon-button/IconButton';
 import { nls } from '../../nls';
 import { displayName, initials, years } from '../format/format';
 import type { PersonCounts } from './types';
@@ -15,24 +14,17 @@ export interface PersonCardViewProps {
   person: PersonRecord;
   line: PedigreeLine;
   isFocus: boolean;
-  hasSubtree: boolean;
-  collapsed: boolean;
   counts: PersonCounts;
-  isDropTarget: boolean;
   /** The primary media URL, when the person has a main photo. */
   photo?: string | undefined;
   selected?: boolean | undefined;
-  dragging?: boolean | undefined;
   isDraft?: boolean | undefined;
   isEditing?: boolean | undefined;
   /** The in-card draft form shown while `isEditing` is true. */
   editingContent?: ReactNode;
-  onToggleCollapse?: ((personId: string) => void) | undefined;
   /** Keyboard focus support for the canvas; omitted in the gallery. */
   tabIndex?: number | undefined;
   onKeyDown?: KeyboardEventHandler<HTMLDivElement> | undefined;
-  /** Optional drag handle, rendered in the card's top-left corner. */
-  dragHandle?: ReactNode | undefined;
 }
 
 const BADGES = [
@@ -46,20 +38,14 @@ export function PersonCardView({
   person,
   line,
   isFocus,
-  hasSubtree,
-  collapsed,
   counts,
-  isDropTarget,
   photo,
   selected = false,
-  dragging = false,
   isDraft = false,
   isEditing = false,
   editingContent,
-  onToggleCollapse,
   tabIndex,
   onKeyDown,
-  dragHandle,
 }: PersonCardViewProps) {
   const deceased = factOf(person, 'DEAT')?.date?.component?.year !== undefined;
   const dates = years(person);
@@ -86,8 +72,6 @@ export function PersonCardView({
         selected && styles['selected'],
         isFocus && styles['focus'],
         deceased && styles['deceased'],
-        dragging && styles['dragging'],
-        isDropTarget && styles['dropTarget'],
         isDraft && styles['draft'],
       )}
       role="group"
@@ -96,7 +80,6 @@ export function PersonCardView({
       tabIndex={tabIndex}
       onKeyDown={onKeyDown}
     >
-      {dragHandle}
       <Avatar
         initials={initials(person)}
         tone={person.sex === 'M' ? 'male' : person.sex === 'F' ? 'female' : 'neutral'}
@@ -122,20 +105,6 @@ export function PersonCardView({
           ) : null,
         )}
       </div>
-      {hasSubtree ? (
-        <IconButton
-          className={styles['collapse'] ?? ''}
-          size="sm"
-          label={collapsed ? nls.t('tree.canvas.expand') : nls.t('tree.canvas.collapse')}
-          icon={
-            collapsed ? <ChevronRight size={14} aria-hidden="true" /> : <ChevronDown size={14} aria-hidden="true" />
-          }
-          onClick={(event) => {
-            event.stopPropagation();
-            onToggleCollapse?.(person.id);
-          }}
-        />
-      ) : null}
     </div>
   );
 }

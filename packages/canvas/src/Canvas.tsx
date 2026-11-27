@@ -67,8 +67,8 @@ function createCanvasController(
 
   const zoomBehavior: ZoomBehavior<HTMLDivElement, unknown> = zoom<HTMLDivElement, unknown>()
     .scaleExtent([config.minZoom, config.maxZoom])
-    // Keep clicks inside the same 4px tolerance as the card drag gesture.
-    // Without this, d3 suppresses a click on any 1px pointer movement.
+    // Keep clicks inside a 4px tolerance. Without this, d3 suppresses a
+    // click on any 1px pointer movement.
     .clickDistance(4)
     .extent(() => [
       [0, 0],

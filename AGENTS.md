@@ -92,8 +92,8 @@ non-goals: [docs/decisions.md](docs/decisions.md).
   with zero tabs — it is not a window type of its own. `Cmd/Ctrl+W` closes the
   active tab via renderer keybindings, not via the application menu.
 - **UI drags are pointer-based, not HTML5 drag-and-drop** (tab reorder,
-  side-bar sashes, canvas card re-parenting): `setPointerCapture` + a gesture
-  threshold + Escape cancel. Native drag sessions flash the macOS copy cursor and fight our
+  side-bar sashes): `setPointerCapture` + a gesture threshold + Escape
+  cancel. Native drag sessions flash the macOS copy cursor and fight our
   cursor/ghost styling. Use custom tooltips instead of `title` (broken under
   the drag region on macOS); `IconButton` renders one from its required
   `label`. Always reset `padding: 0` on icon-only buttons — the UA button
@@ -143,15 +143,14 @@ non-goals: [docs/decisions.md](docs/decisions.md).
   state; renderers must ignore streamed events that arrive after the reply
   finalizes it.
 - **The tree canvas is `@doru/canvas`, not a general node-graph framework.**
-  The package owns viewport pan/zoom, the world transform, screen-space
-  overlays and the pointer-drag gesture; the tree feature maps
-  `PedigreeLayout` to positioned cards and edge paths. Positions are never
-  stored and never measured: cards have fixed sizes, layout is the only source
-  of coordinates, and there is no free-form card dragging or multi-select.
-  Dragging a card body pans the canvas; re-parenting starts from the grip in
-  the card's top-left corner.
+  The package owns viewport pan/zoom, the world transform and screen-space
+  overlays; the tree feature maps `PedigreeLayout` to positioned cards and
+  edge paths. Positions are never stored and never measured: cards have fixed
+  sizes, layout is the only source of coordinates, and there is no free-form
+  card dragging or multi-select. Dragging the canvas pans it; cards
+  themselves are not draggable.
   Fit runs on first show and when the chart shape changes (focus, chart kind,
-  collapsed set, card keys, bounds), not on every rename or container resize.
+  card keys, bounds), not on every rename or container resize.
   The canvas has no per-node ResizeObserver; its only observer reads the
   container size and never changes layout. React Flow and its attribution are
   gone — do not reintroduce a node-graph dependency for this canvas.

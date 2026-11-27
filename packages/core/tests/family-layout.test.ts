@@ -16,7 +16,7 @@ const family = (id: string, partners: string[], children: string[]): FamilyRecor
   children,
 });
 
-const merged = { ...DEFAULT_OPTIONS, collapsed: new Set<string>() };
+const merged = { ...DEFAULT_OPTIONS };
 
 describe('layoutFamilyView', () => {
   it('returns null when the focus person is not in the tree', () => {

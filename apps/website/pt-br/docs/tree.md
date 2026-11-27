@@ -1,5 +1,5 @@
 ---
-source-hash: 162b59a48ae2
+source-hash: 385c34608fc6
 ---
 
 # Trabalhando com a árvore
@@ -19,8 +19,6 @@ lista de pessoas fica na visão **Pessoas** da barra de atividades à esquerda.
   casal em foco, seus filhos e ambos os lados dos pais.
 - **Pesquisa**: digite um nome na caixa de pesquisa da barra de ferramentas e
   escolha um resultado para ir até essa pessoa.
-- **Recolha** um ramo com o chevron em um cartão (ou recolha/expanda todos os
-  ramos pela barra de ferramentas).
 
 ## Cartões
 
@@ -42,9 +40,6 @@ Selecione um cartão para revelar a barra de ferramentas de ações:
   data do calendário “23 Nivôse” que não corresponde ao gregoriano), famílias,
   eventos, fontes, notas e mídia.
 - **Excluir** — remove a pessoa da árvore e de todas as famílias.
-- **Alterar pais**: arraste um cartão sobre o cartão de outra pessoa para mover
-  a pessoa arrastada como filho para aquela família (o destino válido se
-  destaca durante o arraste).
 
 Uma árvore nova (vazia) mostra um cartão vazio: clique nele, digite o nome,
 confirme com a marca de seleção e a primeira pessoa aparece na tela. Depois

@@ -1,5 +1,5 @@
 ---
-source-hash: 162b59a48ae2
+source-hash: 385c34608fc6
 ---
 
 # Práce se stromem
@@ -18,8 +18,6 @@ seznam osob žije v pohledu **Osoby** na levém panelu aktivit.
   děti a obě strany rodičů.
 - **Hledání**: napište jméno do vyhledávacího pole na panelu nástrojů a
   vyberte výsledek, abyste na danou osobu přeskočili.
-- **Sbalte** větev pomocí šipky na kartě (nebo sbalte/rozbalte všechny větve z
-  panelu nástrojů).
 
 ## Karty
 
@@ -40,9 +38,6 @@ Vyberte kartu a zobrazí se panel nástrojů akcí:
   volného textu pro datum (např. kalendářní datum „23 Nivôse“, které
   neodpovídá gregoriánskému), rodiny, události, prameny, poznámky a média.
 - **Smazat** — odstraní osobu ze stromu a ze všech rodin.
-- **Změnit rodiče**: přetáhněte kartu na kartu jiné osoby, abyste
-  přetahovanou osobu přesunuli jako dítě do této rodiny (platný cíl se během
-  přetahování zvýrazní).
 
 Nový (prázdný) strom zobrazuje jednu prázdnou kartu: klikněte na ni, napište
 jméno, potvrďte zaškrtnutím a na plátně se objeví první osoba. Poté nechte

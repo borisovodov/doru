@@ -17,8 +17,6 @@ const meta = {
     canGoForward: false,
     onBack: () => undefined,
     onForward: () => undefined,
-    onCollapseAll: () => undefined,
-    onExpandAll: () => undefined,
     breadcrumbs: ['P1', 'P2'],
     focusPersonId: 'P2',
     persons,

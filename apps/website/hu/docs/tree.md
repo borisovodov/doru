@@ -1,5 +1,5 @@
 ---
-source-hash: 162b59a48ae2
+source-hash: 385c34608fc6
 ---
 
 # A családfa használata
@@ -12,7 +12,6 @@ A fa interaktív vászonként nyílik meg. Az alábbiak mind a vásznon történ
 - **Fókuszálás** egy személyre a kártyájára való dupla kattintással. Az eszköztár előzményt tart: vissza/előre nyilak és egy morzsamenü.
 - **Diagramok**: váltson *Ősök*, *Utódok*, *Homokóra* és *Család* nézet között az eszköztáron. A családnézet a fókuszban lévő párt, gyermekeiket és mindkét oldali szülőket mutatja.
 - **Keresés**: írjon be egy nevet az eszköztár keresőmezőjébe, és válasszon egy találatot az adott személyhez ugráshoz.
-- **Összecsukás**: csukjon össze egy ágat a kártyán lévő chevronnal (vagy az eszköztárról az összes ág összecsukása/kinyitása).
 
 ## Kártyák
 
@@ -25,7 +24,6 @@ Válasszon ki egy kártyát a műveleti eszköztár megjelenítéséhez:
 - **Gyermek / házastárs / szülő hozzáadása** — egy új, üres kártya jelenik meg a személy mellett; írja be a nevet közvetlenül a kártyára, és erősítse meg a pipával (az X elveti).
 - **Szerkesztés** — megnyitja a teljes személyszerkesztőt lapként: nevek, nem, születési/halálozási dátumok minőségjelölővel (*Pontos / Körülbelül / Előtt / Után*) és szabad szöveges formával (például egy „23 Nivôse” naptári dátum, amely nem feleltethető meg a Gergely-naptárnak), családok, események, források, jegyzetek és média.
 - **Törlés** — eltávolítja a személyt a fából és minden családból.
-- **Szülő áthelyezése**: húzzon egy kártyát egy másik személy kártyájára, hogy a húzott személyt gyermekként áthelyezze abba a családba (húzás közben az érvényes cél kivilágosodik).
 
 Egy új (üres) fa egyetlen üres kártyát mutat: kattintson rá, írja be a nevet, erősítse meg a pipával, és az első személy megjelenik a vásznon. Ezután a fát magukról a kártyákról növesztheti.
 

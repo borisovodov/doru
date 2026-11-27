@@ -20,22 +20,6 @@ export function usePeopleActions(projectPath: string | null | undefined, refresh
     [projectPath, refreshTree],
   );
 
-  /**
-   * Moves a person (as a child) into the family of `newParentId`, creating
-   * that family when it does not exist. A single compound op — one undo
-   * restores everything.
-   */
-  const reparent = useCallback(
-    async (childId: string, newParentId: string) => {
-      if (!projectPath || childId === newParentId) {
-        return;
-      }
-      await window.doru.reparent(projectPath, childId, newParentId);
-      await refreshTree();
-    },
-    [projectPath, refreshTree],
-  );
-
   const personCounts = useCallback(
     (personIds: string[]) => {
       if (!projectPath || personIds.length === 0) {
@@ -60,5 +44,5 @@ export function usePeopleActions(projectPath: string | null | undefined, refresh
     },
     [projectPath, refreshTree],
   );
-  return { addRelative, reparent, personCounts, deletePerson };
+  return { addRelative, personCounts, deletePerson };
 }

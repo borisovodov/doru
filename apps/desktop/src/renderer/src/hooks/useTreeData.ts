@@ -15,7 +15,7 @@ export function useTreeData(projectPath: string | null | undefined) {
   const snapshot = useTreeSnapshot(projectPath);
   const { refreshTree } = snapshot;
   const { undo, redo } = useTreeHistory(projectPath, refreshTree);
-  const { addRelative, reparent, personCounts, deletePerson } = usePeopleActions(projectPath, refreshTree);
+  const { addRelative, personCounts, deletePerson } = usePeopleActions(projectPath, refreshTree);
   const { addStandaloneMedia, mediaApi, mediaAdminApi } = useMediaApis(projectPath, refreshTree);
   const api = usePersonEditorApi(projectPath, refreshTree, mediaApi);
   const attachmentMethods = useAttachmentMethods(projectPath, refreshTree, mediaApi);
@@ -32,7 +32,6 @@ export function useTreeData(projectPath: string | null | undefined) {
     redo,
     addRelative,
     deletePerson,
-    reparent,
     personCounts,
     addStandaloneMedia,
     mediaApi,

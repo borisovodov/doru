@@ -1,5 +1,5 @@
 ---
-source-hash: 162b59a48ae2
+source-hash: 385c34608fc6
 ---
 
 # Ağaçla çalışma
@@ -12,7 +12,6 @@ Ağaç, etkileşimli bir tuval olarak açılır. Aşağıdaki her şey tuvalin k
 - Bir kişinin kartına çift tıklayarak **yeniden odaklanın**. Araç çubuğu bir geçmiş tutar: geri/ileri okları ve bir sayfa yolu izi.
 - **Grafikler**: araç çubuğunda *Atalar*, *Torunlar*, *Kum saati* ve *Aile* görünümleri arasında geçiş yapın. Aile görünümü odak çiftini, çocuklarını ve ebeveynlerin her iki tarafını gösterir.
 - **Arama**: araç çubuğundaki arama kutusuna bir ad yazın ve o kişiye gitmek için bir sonuç seçin.
-- Bir karttaki chevron ile bir dalı **daraltın** (veya araç çubuğundan tüm dalları daraltın/genişletin).
 
 ## Kartlar
 
@@ -25,7 +24,6 @@ Eylem araç çubuğunu göstermek için bir kart seçin:
 - **Çocuk / eş / ebeveyn ekle** — kişinin yanında yeni boş bir kart belirir; adı doğrudan karta yazın ve onay işaretiyle onaylayın (çarpı onu atar).
 - **Düzenle** — tam kişi düzenleyicisini sekme olarak açar: adlar, cinsiyet, kalite işaretli doğum/ölüm tarihleri (*Kesin / Yaklaşık / Önce / Sonra*) ve serbest metin formu (ör. Gregoryen takvime karşılık gelmeyen “23 Nivôse” takvim tarihi), aileler, olaylar, kaynaklar, notlar ve medya.
 - **Sil** — kişiyi ağaçtan ve her aileden kaldırır.
-- **Ebeveyn değiştir**: sürüklenen kişiyi çocuk olarak o aileye taşımak için bir kartı başka bir kişinin kartına sürükleyin (sürükleme sırasında geçerli hedef parlar).
 
 Yeni (boş) bir ağaç tek bir boş kart gösterir: karta tıklayın, adı yazın, onay işaretiyle onaylayın ve ilk kişi tuvalde görünür. Ardından ağacı kartların kendisinden büyütün.
 

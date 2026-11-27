@@ -16,8 +16,6 @@ export interface PedigreeCard {
   generation: number;
   /** Father's side / mother's side in ancestor charts; null elsewhere. */
   line: PedigreeLine;
-  /** Whether the card has a collapsible subtree above/below it. */
-  hasSubtree: boolean;
 }
 
 export type PedigreeEdgeKind = 'marriage' | 'pedigree' | 'see-also';
@@ -62,8 +60,6 @@ export interface PedigreeLayoutOptions {
   kind?: ChartKind;
   /** Number of ancestor/descendant rows around the focus (default 4). */
   maxGenerations?: number;
-  /** Person ids whose subtrees are collapsed (cards stay, branches hide). */
-  collapsed?: ReadonlySet<string>;
   /** Uniform card width, must match the rendered card CSS (default 180). */
   nodeWidth?: number;
   /** Uniform card height, must match the rendered card CSS (default 64). */
@@ -79,7 +75,6 @@ export interface PedigreeLayoutOptions {
 export const DEFAULT_OPTIONS: Required<PedigreeLayoutOptions> = {
   kind: 'ancestors',
   maxGenerations: 4,
-  collapsed: new Set<string>(),
   nodeWidth: 180,
   nodeHeight: 64,
   coupleGap: 16,

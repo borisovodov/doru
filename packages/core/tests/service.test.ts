@@ -70,27 +70,6 @@ describe('TreeService', () => {
     }
   });
 
-  it('reparents a child between families and restores both on undo', () => {
-    const { fixture, service } = makeService();
-    try {
-      for (const id of ['A', 'B', 'K']) {
-        service.addPerson(person(id));
-      }
-      service.addFamily({ id: 'F1', partners: ['A'], children: ['K'] });
-      service.addFamily({ id: 'F2', partners: ['B'], children: [] });
-
-      service.reparent('K', 'B');
-      expect(fixture.repo.getFamily('F1')?.children).toEqual([]);
-      expect(fixture.repo.getFamily('F2')?.children).toEqual(['K']);
-
-      service.undo();
-      expect(fixture.repo.getFamily('F1')?.children).toEqual(['K']);
-      expect(fixture.repo.getFamily('F2')?.children).toEqual([]);
-    } finally {
-      cleanupRepo(fixture);
-    }
-  });
-
   it('deletes a person detaching them from their families, restorable in one undo', () => {
     const { fixture, service } = makeService();
     try {

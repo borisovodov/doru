@@ -58,30 +58,13 @@ fraction and clamps zoom. `Canvas` accepts `fitBounds` and `fitKey`:
 - fit again when `fitKey` changes;
 - never fit on window/container resize or on data edits that keep the shape.
 
-The feature builds `fitKey` from the chart shape (focus, kind, collapsed set,
-card keys and bounds), not from person-record identity. That is why a rename
-does not reset the user's camera.
+The feature builds `fitKey` from the chart shape (focus, kind, card keys and
+bounds), not from person-record identity. That is why a rename does not reset
+the user's camera.
 
 `useCanvas()` exposes `fit`, `setViewport`, `zoomIn`, `zoomOut`,
 `getViewport`, `screenToWorld` and `worldToScreen` for buttons and other
 children of the provider.
-
-## Pointer drag
-
-`usePointerDrag` is the generic gesture primitive:
-
-- left button only;
-- 4px screen threshold before a drag starts;
-- `setPointerCapture`, so the card keeps receiving pointer events;
-- Escape cancels;
-- the trailing click is suppressed;
-- ignores `button`, `input`, `textarea`, `select`, `contenteditable` and
-  `[data-canvas-no-drag]` targets;
-- returns offsets in world units (`screen delta / zoom`).
-
-The caller decides what a drop means. The tree feature uses it to re-parent a
-person and hides the dragged card's incident edges while the gesture is
-active.
 
 ## Overlays and panels
 
@@ -95,7 +78,7 @@ active.
 
 ## Testing
 
-Pure geometry (`screenToWorld`, `worldToScreen`, `rectsIntersect`,
-`fitViewport`) is unit-tested. Interaction is covered by Playwright: panning,
-zoom buttons, fit, selection, drag re-parenting and the absence of
-`ResizeObserver` loop errors in the console/window error stream.
+Pure geometry (`screenToWorld`, `worldToScreen`, `fitViewport`) is
+unit-tested. Interaction is covered by Playwright: panning, zoom buttons, fit,
+selection and the absence of `ResizeObserver` loop errors in the
+console/window error stream.

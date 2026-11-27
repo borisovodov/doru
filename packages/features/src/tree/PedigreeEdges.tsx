@@ -49,23 +49,10 @@ function edgePath(edge: PedigreeEdge, bounds: TreeBounds): string {
 
 /**
  * The SVG edge layer. Paths are precomputed by the layout, so this component
- * only shifts them into the layout bounds and paints them. While a card is
- * dragged its incident edges are hidden: the card is being re-parented, not
- * moved, and a detached bracket would be misleading.
+ * only shifts them into the layout bounds and paints them.
  */
-export function TreeEdges({
-  edges,
-  bounds,
-  hiddenKey,
-}: {
-  edges: PedigreeEdge[];
-  bounds: TreeBounds;
-  hiddenKey: string | null;
-}) {
-  const visible = edges.filter(
-    (edge) => hiddenKey === null || (edge.source !== hiddenKey && edge.target !== hiddenKey),
-  );
-  if (visible.length === 0) {
+export function TreeEdges({ edges, bounds }: { edges: PedigreeEdge[]; bounds: TreeBounds }) {
+  if (edges.length === 0) {
     return null;
   }
   return (
@@ -81,7 +68,7 @@ export function TreeEdges({
       viewBox={`0 0 ${Math.max(1, bounds.width)} ${Math.max(1, bounds.height)}`}
       overflow="visible"
     >
-      {visible.map((edge) => (
+      {edges.map((edge) => (
         <path
           key={edge.id}
           className={[styles['edge'], edge.kind === 'see-also' ? styles['seeAlso'] : null].filter(Boolean).join(' ')}

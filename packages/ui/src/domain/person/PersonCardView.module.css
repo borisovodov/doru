@@ -81,31 +81,3 @@
 .deceased .name {
   color: var(--doru-fg-muted);
 }
-
-.dragging {
-  opacity: 0.85;
-  border-color: var(--doru-accent);
-}
-
-.dropTarget {
-  outline: 2px dashed var(--doru-accent);
-  outline-offset: -3px;
-  border-color: var(--doru-accent);
-}
-
-.collapse {
-  position: absolute;
-  top: 4px;
-  right: 4px;
-  width: 18px;
-  height: 18px;
-  display: none;
-  background: var(--doru-bg-input);
-  color: var(--doru-fg-muted);
-  border: 1px solid var(--doru-border);
-  border-radius: var(--doru-radius-sm);
-}
-
-.card:hover .collapse {
-  display: inline-flex;
-}

@@ -20,19 +20,6 @@ export function worldToScreen(point: Point, viewport: Viewport): Point {
   };
 }
 
-/** Converts a browser client point through the canvas origin to world coordinates. */
-export function clientToWorld(point: Point, canvasOrigin: Point, viewport: Viewport): Point {
-  return screenToWorld({ x: point.x - canvasOrigin.x, y: point.y - canvasOrigin.y }, viewport);
-}
-
-/** Whether two rectangles overlap with a non-zero area. */
-export function rectsIntersect(a: Rect, b: Rect): boolean {
-  return (
-    Math.max(a.x, b.x) < Math.min(a.x + a.width, b.x + b.width) &&
-    Math.max(a.y, b.y) < Math.min(a.y + a.height, b.y + b.height)
-  );
-}
-
 /**
  * Computes the viewport that fits `bounds` into a `width` x `height` canvas:
  * the whole bounds centered, with a padding fraction, never beyond maxZoom.

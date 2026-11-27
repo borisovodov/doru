@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import type { PersonRecord } from '../src/model/types';
 import { addPersonOp } from '../src/ops/addPerson';
 import { OpQueue } from '../src/ops/op';
-import { addRelativeOp, deletePersonOp, reparentOp, updatePersonOp } from '../src/ops/person';
+import { addRelativeOp, deletePersonOp, updatePersonOp } from '../src/ops/person';
 import { cleanupRepo, flatPerson, makeRepo } from './helpers';
 
 const person: PersonRecord = {
@@ -173,65 +173,6 @@ describe('OpQueue', () => {
 
       queue.undo(ctx);
       expect(fixture.repo.getPerson('S1')).toBeUndefined();
-      expect(fixture.repo.getFamily('F2')).toBeUndefined();
-    } finally {
-      cleanupRepo(fixture);
-    }
-  });
-
-  it('reparentOp moves a child between families and restores both on undo', () => {
-    const fixture = makeRepo();
-    try {
-      const queue = new OpQueue();
-      const ctx = { repo: fixture.repo };
-      for (const id of ['A', 'B', 'K']) {
-        fixture.repo.insertPerson(emptyPerson(id));
-      }
-      const from = { id: 'F1', partners: ['A'], children: ['K'] };
-      const to = { id: 'F2', partners: ['B'], children: [] };
-      fixture.repo.insertFamily(from);
-      fixture.repo.insertFamily(to);
-
-      queue.apply(
-        reparentOp(
-          [
-            { before: from, after: { ...from, children: [] } },
-            { before: to, after: { ...to, children: ['K'] } },
-          ],
-          undefined,
-          'K',
-        ),
-        ctx,
-      );
-      expect(fixture.repo.getFamily('F1')?.children).toEqual([]);
-      expect(fixture.repo.getFamily('F2')?.children).toEqual(['K']);
-
-      queue.undo(ctx);
-      expect(fixture.repo.getFamily('F1')?.children).toEqual(['K']);
-      expect(fixture.repo.getFamily('F2')?.children).toEqual([]);
-    } finally {
-      cleanupRepo(fixture);
-    }
-  });
-
-  it('reparentOp creates the target family when none exists', () => {
-    const fixture = makeRepo();
-    try {
-      const queue = new OpQueue();
-      const ctx = { repo: fixture.repo };
-      for (const id of ['A', 'B', 'K']) {
-        fixture.repo.insertPerson(emptyPerson(id));
-      }
-      const from = { id: 'F1', partners: ['A'], children: ['K'] };
-      fixture.repo.insertFamily(from);
-      const created = { id: 'F2', partners: ['B'], children: ['K'] };
-
-      queue.apply(reparentOp([{ before: from, after: { ...from, children: [] } }], created, 'K'), ctx);
-      expect(fixture.repo.getFamily('F1')?.children).toEqual([]);
-      expect(fixture.repo.getFamily('F2')?.children).toEqual(['K']);
-
-      queue.undo(ctx);
-      expect(fixture.repo.getFamily('F1')?.children).toEqual(['K']);
       expect(fixture.repo.getFamily('F2')).toBeUndefined();
     } finally {
       cleanupRepo(fixture);

@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { ChevronLeft, ChevronRight, ChevronsDownUp, ChevronsUpDown } from 'lucide-react';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 import type { ChartKind, PersonRecord } from '@doru/core';
 import { displayName } from '../format/format';
 import { IconButton } from '../../atoms/icon-button/IconButton';
@@ -21,8 +21,6 @@ export interface TreeToolbarProps {
   canGoForward: boolean;
   onBack(): void;
   onForward(): void;
-  onCollapseAll(): void;
-  onExpandAll(): void;
   /** Focus history trail (person ids), newest last. */
   breadcrumbs: string[];
   focusPersonId: string | undefined;
@@ -31,7 +29,7 @@ export interface TreeToolbarProps {
 }
 
 /**
- * The canvas toolbar: chart kind switch, focus history and collapse controls.
+ * The canvas toolbar: chart kind switch, focus history and breadcrumbs.
  * Search lives outside the canvas for now.
  */
 export function TreeToolbar({
@@ -41,8 +39,6 @@ export function TreeToolbar({
   canGoForward,
   onBack,
   onForward,
-  onCollapseAll,
-  onExpandAll,
   breadcrumbs,
   focusPersonId,
   persons,
@@ -75,18 +71,6 @@ export function TreeToolbar({
           icon={<ChevronRight size={16} aria-hidden="true" />}
           disabled={!canGoForward}
           onClick={onForward}
-        />
-        <IconButton
-          size="sm"
-          label={nls.t('tree.canvas.collapseAll')}
-          icon={<ChevronsDownUp size={16} aria-hidden="true" />}
-          onClick={onCollapseAll}
-        />
-        <IconButton
-          size="sm"
-          label={nls.t('tree.canvas.expandAll')}
-          icon={<ChevronsUpDown size={16} aria-hidden="true" />}
-          onClick={onExpandAll}
         />
       </div>
       {breadcrumbs.length > 0 && (

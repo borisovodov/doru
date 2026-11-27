@@ -1,5 +1,5 @@
 ---
-source-hash: 162b59a48ae2
+source-hash: 385c34608fc6
 ---
 
 # Arbeiten mit dem Stammbaum
@@ -20,8 +20,6 @@ der linken Aktivitätsleiste.
   das Fokuspaar, ihre Kinder und beide Elternseiten.
 - **Suche**: Geben Sie einen Namen in das Suchfeld der Symbolleiste ein und
   wählen Sie ein Ergebnis, um zu dieser Person zu springen.
-- **Einklappen** eines Zweigs über das Chevron an einer Karte (oder alle Zweige
-  über die Symbolleiste ein-/ausklappen).
 
 ## Karten
 
@@ -43,9 +41,6 @@ Wählen Sie eine Karte aus, um die Aktionsleiste einzublenden:
   „23 Nivôse“, das sich nicht in den gregorianischen Kalender übertragen lässt), Familien,
   Ereignisse, Quellen, Notizen und Medien.
 - **Löschen** — entfernt die Person aus dem Stammbaum und allen Familien.
-- **Eltern ändern**: Ziehen Sie eine Karte auf die Karte einer anderen Person, um
-  die gezogene Person als Kind in diese Familie zu verschieben (das gültige Ziel
-  leuchtet während des Ziehens auf).
 
 Ein neuer (leerer) Stammbaum zeigt eine leere Karte: Klicken Sie darauf, geben Sie
 den Namen ein, bestätigen Sie mit dem Häkchen, und die erste Person erscheint auf

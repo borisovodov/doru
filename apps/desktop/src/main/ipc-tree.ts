@@ -103,14 +103,6 @@ export function registerTreeIpc(): void {
   });
 
   ipcMain.handle(
-    'tree:reparent',
-    async (_event, options: { projectPath: string; childId: string; newParentId: string }) => {
-      const { runtime } = await ensureRuntime(options.projectPath);
-      return runtime.service.reparent(options.childId, options.newParentId);
-    },
-  );
-
-  ipcMain.handle(
     'tree:addRelative',
     async (
       _event,
