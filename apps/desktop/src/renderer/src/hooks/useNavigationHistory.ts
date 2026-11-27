@@ -15,7 +15,7 @@ export interface NavigationHistoryApi {
   canGoForward: boolean;
   goBack(): void;
   goForward(): void;
-  /** Drops every entry, e.g. when the window binds to another project. */
+  /** Restarts the history at the current location, e.g. after a project bind. */
   reset(): void;
 }
 
@@ -26,7 +26,7 @@ export interface NavigationHistoryApi {
  */
 export function useNavigationHistory(
   location: NavigationLocation | null,
-  openTabIds: ReadonlySet<string>,
+  isReachable: ReachableLocation,
   onApply: (location: NavigationLocation) => void,
 ): NavigationHistoryApi {
   const [history, setHistory] = useState<NavigationHistory>(EMPTY_NAVIGATION_HISTORY);
@@ -38,11 +38,16 @@ export function useNavigationHistory(
   const onApplyRef = useRef(onApply);
   onApplyRef.current = onApply;
 
-  const isReachable = useCallback<ReachableLocation>((entry) => openTabIds.has(entry.tabId), [openTabIds]);
-  const isReachableRef = useRef(isReachable);
-  isReachableRef.current = isReachable;
-
   const currentKey = location === null ? null : locationKey(location);
+  // A target equal to the current location would only move the index. That
+  // happens after closing a tab (the neighbour becomes active and is recorded
+  // as a new location) and must not leave Back enabled as a no-op.
+  const isNavigable = useCallback<ReachableLocation>(
+    (entry) => (currentKey === null || locationKey(entry) !== currentKey) && isReachable(entry),
+    [currentKey, isReachable],
+  );
+  const isNavigableRef = useRef(isNavigable);
+  isNavigableRef.current = isNavigable;
 
   useEffect(() => {
     if (locationRef.current === null) {
@@ -68,7 +73,7 @@ export function useNavigationHistory(
   const applyIndex = useCallback((index: number) => {
     const history = historyRef.current;
     const target = history.entries[index];
-    if (target === undefined || !isReachableRef.current(target)) {
+    if (target === undefined || !isNavigableRef.current(target)) {
       return;
     }
     const current = locationRef.current;
@@ -82,14 +87,14 @@ export function useNavigationHistory(
   }, []);
 
   const goBack = useCallback(() => {
-    const index = backIndex(historyRef.current, isReachableRef.current);
+    const index = backIndex(historyRef.current, isNavigableRef.current);
     if (index !== null) {
       applyIndex(index);
     }
   }, [applyIndex]);
 
   const goForward = useCallback(() => {
-    const index = forwardIndex(historyRef.current, isReachableRef.current);
+    const index = forwardIndex(historyRef.current, isNavigableRef.current);
     if (index !== null) {
       applyIndex(index);
     }
@@ -97,12 +102,14 @@ export function useNavigationHistory(
 
   const reset = useCallback(() => {
     applyingKeyRef.current = null;
-    historyRef.current = EMPTY_NAVIGATION_HISTORY;
-    setHistory(EMPTY_NAVIGATION_HISTORY);
+    const current = locationRef.current;
+    const seeded = current === null ? EMPTY_NAVIGATION_HISTORY : pushLocation(EMPTY_NAVIGATION_HISTORY, current);
+    historyRef.current = seeded;
+    setHistory(seeded);
   }, []);
 
-  const canGoBack = useMemo(() => backIndex(history, isReachable) !== null, [history, isReachable]);
-  const canGoForward = useMemo(() => forwardIndex(history, isReachable) !== null, [history, isReachable]);
+  const canGoBack = useMemo(() => backIndex(history, isNavigable) !== null, [history, isNavigable]);
+  const canGoForward = useMemo(() => forwardIndex(history, isNavigable) !== null, [history, isNavigable]);
 
   return { canGoBack, canGoForward, goBack, goForward, reset };
 }

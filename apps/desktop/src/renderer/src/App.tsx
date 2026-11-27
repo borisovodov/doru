@@ -16,7 +16,7 @@ import { useNavigationHistory } from './hooks/useNavigationHistory';
 import { useTabs } from './hooks/useTabs';
 import { useTheme } from './hooks/useTheme';
 import { useTreeData } from './hooks/useTreeData';
-import type { NavigationLocation } from './navigation/state';
+import type { NavigationLocation, ReachableLocation } from './navigation/state';
 import { renderTab } from './tabs/registry';
 import { SETTINGS_TAB_ID, TREE_TAB_ID, type TabRenderContext } from './tabs/types';
 
@@ -70,6 +70,22 @@ export function App() {
     [treeFocusPersonId, tree.persons, suggestedTreeFocus],
   );
   const openTabIds = useMemo(() => new Set(tabs.openTabs.map((tab) => tab.id)), [tabs.openTabs]);
+  const isNavigationReachable = useCallback<ReachableLocation>(
+    (entry) => {
+      if (!openTabIds.has(entry.tabId)) {
+        return false;
+      }
+      if (entry.tabId !== TREE_TAB_ID) {
+        return true;
+      }
+      // A tree location is valid only while its focus person still exists.
+      // A focusless tree is valid only for an empty tree.
+      return entry.treeFocusPersonId === null
+        ? tree.persons.length === 0
+        : tree.persons.some((person) => person.id === entry.treeFocusPersonId);
+    },
+    [openTabIds, tree.persons],
+  );
   const navigationLocation = useMemo<NavigationLocation | null>(() => {
     if (tabs.activeTabId === null) {
       return null;
@@ -89,7 +105,7 @@ export function App() {
     // oxlint-disable-next-line react/exhaustive-deps -- the tabs hook object changes every render
     [tabs.setActiveTabId],
   );
-  const navigation = useNavigationHistory(navigationLocation, openTabIds, applyNavigation);
+  const navigation = useNavigationHistory(navigationLocation, isNavigationReachable, applyNavigation);
   const project = useProject(projectPath, tabs.ensureTreeTab);
   const theme = useTheme();
   const { commands, keybindings } = useAppCommands(project, tabs, tree, navigation);
