@@ -46,6 +46,7 @@ export default {
       '/^text-emphasis$/': [colorLiteral],
       '/^column-rule$/': [colorLiteral],
       '/^list-style/': [colorLiteral],
+      '/^(?:-webkit-)?mask(?:-image)?$/': [colorLiteral],
       '/^(fill|stroke)$/': [colorLiteral],
       '/^filter$/': [colorLiteral],
     },
