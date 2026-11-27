@@ -306,44 +306,49 @@ function MediaTabBody({
     deletion.deleteEntity();
   };
 
-  const updateRelatedTargets = (next: TargetRef[]) => {
+  const updateRelatedTargets = async (next: TargetRef[]): Promise<void> => {
     if (linkPending) {
-      return;
-    }
-    const key = (target: TargetRef) => `${target.targetType}\u0000${target.targetId}`;
-    const currentKeys = new Set(relatedTargets.map(key));
-    const nextKeys = new Set(next.map(key));
-    const added = next.filter((target) => !currentKeys.has(key(target)));
-    const removed = (record.links ?? []).filter((link) => !nextKeys.has(key(link)));
-    if (added.length === 0 && removed.length === 0) {
       return;
     }
     setLinkError(false);
     setLinkPending(true);
-    const add = async (): Promise<void> => {
-      if (added.length === 0) {
+    try {
+      // The renderer may hold an optimistic projection after a failed tree
+      // refresh. Read the committed rows so removing an optimistic target can
+      // still detach the link that was actually persisted.
+      const current = await api.getMedia(record.id);
+      const currentLinks = current?.links ?? record.links ?? [];
+      const key = (target: TargetRef) => `${target.targetType}\u0000${target.targetId}`;
+      const currentKeys = new Set(currentLinks.map((link) => key(link)));
+      const nextKeys = new Set(next.map(key));
+      const added = next.filter((target) => !currentKeys.has(key(target)));
+      const removed = currentLinks.filter((link) => !nextKeys.has(key(link)));
+      if (added.length === 0 && removed.length === 0) {
         return;
       }
-      if (attachMediaToTargets !== undefined) {
-        await attachMediaToTargets(record.id, added);
-        return;
+      if (added.length > 0) {
+        if (attachMediaToTargets !== undefined) {
+          await attachMediaToTargets(record.id, added);
+        } else {
+          await Promise.all(
+            added.map((target) =>
+              api.attachMedia({
+                id: crypto.randomUUID(),
+                mediaId: record.id,
+                targetType: target.targetType,
+                targetId: target.targetId,
+              }),
+            ),
+          );
+        }
       }
-      await Promise.all(
-        added.map((target) =>
-          api.attachMedia({
-            id: crypto.randomUUID(),
-            mediaId: record.id,
-            targetType: target.targetType,
-            targetId: target.targetId,
-          }),
-        ),
-      );
-    };
-    void add()
-      .then(() => Promise.all(removed.map((link) => api.detachMedia(link))))
-      .then(() => setCommittedTargets({ targets: next, record }))
-      .catch(() => setLinkError(true))
-      .finally(() => setLinkPending(false));
+      await Promise.all(removed.map((link) => api.detachMedia(link)));
+      setCommittedTargets({ targets: next, record });
+    } catch {
+      setLinkError(true);
+    } finally {
+      setLinkPending(false);
+    }
   };
 
   const external = isExternalMediaPath(record.path);
@@ -395,7 +400,7 @@ function MediaTabBody({
         <TargetPicker
           allowedTypes={MEDIA_LINK_TARGET_TYPES}
           value={relatedTargets}
-          onChange={updateRelatedTargets}
+          onChange={(next) => void updateRelatedTargets(next)}
           disabled={linkPending}
           ariaLabel={nls.t('features.tasks.target')}
         />
