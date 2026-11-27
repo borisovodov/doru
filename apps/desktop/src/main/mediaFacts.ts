@@ -1,5 +1,6 @@
 import { open, stat } from 'node:fs/promises';
 import { extname } from 'node:path';
+import sharp from 'sharp';
 
 /**
  * Technical facts derived from the file itself. They are never stored in
@@ -13,6 +14,7 @@ export interface MediaFileFacts {
 }
 
 const MIME_BY_EXTENSION = new Map<string, string>([
+  ['avif', 'image/avif'],
   ['bmp', 'image/bmp'],
   ['gif', 'image/gif'],
   ['heic', 'image/heic'],
@@ -46,7 +48,7 @@ export async function readMediaFileFacts(absolutePath: string): Promise<MediaFil
     if (!info.isFile()) {
       return facts;
     }
-    const dimensions = await readImageDimensions(absolutePath);
+    const dimensions = await readImageDimensions(absolutePath, facts.mime);
     if (dimensions !== undefined) {
       facts.width = dimensions.width;
       facts.height = dimensions.height;
@@ -62,7 +64,22 @@ export async function readMediaFileFacts(absolutePath: string): Promise<MediaFil
  * nativeImage would decode the whole picture, which is too expensive for a
  * list of thumbnails.
  */
-async function readImageDimensions(absolutePath: string): Promise<{ width: number; height: number } | undefined> {
+async function readImageDimensions(
+  absolutePath: string,
+  mime: string,
+): Promise<{ width: number; height: number } | undefined> {
+  if (mime === 'image/avif') {
+    try {
+      const metadata = await sharp(absolutePath).metadata();
+      const { width, height } = metadata.autoOrient;
+      if (width > 0 && height > 0) {
+        return { width, height };
+      }
+    } catch {
+      // An unreadable AVIF has no dimensions; the MIME and size still count.
+    }
+    return undefined;
+  }
   const handle = await open(absolutePath, 'r');
   try {
     const buffer = Buffer.alloc(262_144);

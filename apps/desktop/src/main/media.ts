@@ -1,10 +1,17 @@
 import { BrowserWindow, dialog, type OpenDialogOptions } from 'electron';
 import { randomUUID } from 'node:crypto';
 import { rename, stat, unlink } from 'node:fs/promises';
-import { dirname, extname, join, resolve } from 'node:path';
-import { IMAGE_EXTENSIONS, MEDIA_DIR_NAME, mediaTitleFromPath, type MediaRecord } from '@doru/core';
+import { basename, dirname, join, resolve } from 'node:path';
+import {
+  isIngestMediaPath,
+  MEDIA_DIR_NAME,
+  MEDIA_INGEST_EXTENSIONS,
+  mediaTitleFromPath,
+  type MediaRecord,
+} from '@doru/core';
 import { NodeFileSystem } from './filesystem';
 import { log } from './log';
+import { ingestMediaFile, MediaIngestError, storeIngestedMedia, type IngestedMedia } from './mediaIngest';
 import { readMediaFileFacts, type MediaFileFacts } from './mediaFacts';
 import { resolveMediaPath, symlinkChainResolvesTo } from './mediaPaths';
 import { nls } from './nls';
@@ -67,7 +74,7 @@ async function withPath(projectPath: string, media: MediaRecord): Promise<MediaW
 async function pickMediaFiles(): Promise<string[]> {
   const dialogOptions: OpenDialogOptions = {
     properties: ['openFile', 'multiSelections'],
-    filters: [{ name: nls.t('media.dialog.addPhotos.filter'), extensions: [...IMAGE_EXTENSIONS] }],
+    filters: [{ name: nls.t('media.dialog.addPhotos.filter'), extensions: [...MEDIA_INGEST_EXTENSIONS] }],
     title: nls.t('media.dialog.addPhotos.title'),
   };
   const result =
@@ -96,61 +103,71 @@ export async function listAllMedia(projectPath: string): Promise<MediaWithPath[]
   );
 }
 
+interface MediaTarget {
+  targetType: string;
+  targetId: string;
+}
+
+/** Validates, converts and stores picked files, skipping rejected ones. */
+async function addPickedMedia(
+  projectPath: string,
+  sources: readonly string[],
+  target?: MediaTarget,
+): Promise<MediaWithPath[]> {
+  if (sources.length === 0) {
+    return [];
+  }
+  const { runtime } = await ensureRuntime(projectPath);
+  const mediaDir = join(dirname(runtimeFilePath(projectPath)), MEDIA_DIR_NAME);
+  await fs.mkdir(mediaDir);
+  const added: MediaWithPath[] = [];
+  for (const source of sources) {
+    if (!isIngestMediaPath(source)) {
+      log.warn('skipped media file', basename(source), 'unsupported-format');
+      continue;
+    }
+    let ingested: IngestedMedia;
+    try {
+      ingested = await ingestMediaFile(source);
+    } catch (error) {
+      if (error instanceof MediaIngestError) {
+        log.warn('skipped media file', basename(source), error.reason);
+        continue;
+      }
+      throw error;
+    }
+    const name = await storeIngestedMedia(mediaDir, ingested);
+    const title = mediaTitleFromPath(source);
+    const media: MediaRecord = {
+      id: randomUUID(),
+      ...(title !== undefined ? { title } : {}),
+      path: join(MEDIA_DIR_NAME, name),
+      ...(target !== undefined ? { targetType: target.targetType, targetId: target.targetId } : {}),
+    };
+    try {
+      runtime.service.addMedia(media);
+    } catch (error) {
+      await fs.remove(join(mediaDir, name));
+      throw error;
+    }
+    added.push(await withPath(projectPath, media));
+  }
+  return added;
+}
+
 export async function addMediaToTarget(
   projectPath: string,
   targetType: string,
   targetId: string,
 ): Promise<MediaWithPath[]> {
   const sources = await pickMediaFiles();
-  if (sources.length === 0) {
-    return [];
-  }
-  const { runtime } = await ensureRuntime(projectPath);
-  const mediaDir = join(dirname(runtimeFilePath(projectPath)), MEDIA_DIR_NAME);
-  await fs.mkdir(mediaDir);
-  const added: MediaWithPath[] = [];
-  for (const source of sources) {
-    const name = `${randomUUID()}${extname(source)}`;
-    const destination = join(mediaDir, name);
-    await fs.copyFile(source, destination);
-    const title = mediaTitleFromPath(source);
-    const media: MediaRecord = {
-      id: randomUUID(),
-      ...(title !== undefined ? { title } : {}),
-      path: join(MEDIA_DIR_NAME, name),
-      targetType,
-      targetId,
-    };
-    runtime.service.addMedia(media);
-    added.push(await withPath(projectPath, media));
-  }
-  return added;
+  return addPickedMedia(projectPath, sources, { targetType, targetId });
 }
 
 /** Picks files and creates media records without attaching them to a target. */
 export async function addStandaloneMedia(projectPath: string): Promise<MediaWithPath[]> {
   const sources = await pickMediaFiles();
-  if (sources.length === 0) {
-    return [];
-  }
-  const { runtime } = await ensureRuntime(projectPath);
-  const mediaDir = join(dirname(runtimeFilePath(projectPath)), MEDIA_DIR_NAME);
-  await fs.mkdir(mediaDir);
-  const added: MediaWithPath[] = [];
-  for (const source of sources) {
-    const name = `${randomUUID()}${extname(source)}`;
-    const destination = join(mediaDir, name);
-    await fs.copyFile(source, destination);
-    const title = mediaTitleFromPath(source);
-    const media: MediaRecord = {
-      id: randomUUID(),
-      ...(title !== undefined ? { title } : {}),
-      path: join(MEDIA_DIR_NAME, name),
-    };
-    runtime.service.addMedia(media);
-    added.push(await withPath(projectPath, media));
-  }
-  return added;
+  return addPickedMedia(projectPath, sources);
 }
 
 /**

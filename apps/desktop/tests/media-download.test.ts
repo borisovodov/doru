@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { downloadRemoteMedia, isDownloadableMediaUrl, remoteMediaExtension } from '../src/main/mediaDownload';
+import { downloadRemoteMedia, isDownloadableMediaUrl } from '../src/main/mediaDownload';
 
 function response(body: Uint8Array | null, init: ResponseInit = {}): Response {
   return new Response(body === null ? null : (body.buffer as ArrayBuffer), init);
@@ -57,12 +57,9 @@ describe('remote media downloader', () => {
     expect([...downloaded.bytes]).toEqual([9]);
   });
 
-  it('classifies downloadable URLs and chooses safe extensions', () => {
+  it('classifies downloadable URLs', () => {
     expect(isDownloadableMediaUrl('https://example.com/a.jpg')).toBe(true);
     expect(isDownloadableMediaUrl('ftp://example.com/a.jpg')).toBe(false);
     expect(isDownloadableMediaUrl('file:///tmp/a.jpg')).toBe(false);
-    expect(remoteMediaExtension('image/jpeg', 'https://example.com/no-extension')).toBe('.jpg');
-    expect(remoteMediaExtension(undefined, 'https://example.com/a.oga?token=1')).toBe('.oga');
-    expect(remoteMediaExtension(undefined, 'https://example.com/no-extension')).toBe('.bin');
   });
 });

@@ -180,8 +180,22 @@ describe('importGedcomDataset media', () => {
       cleanupRepo(fixture);
     }
   });
-});
 
+  it('skips media the host did not prepare when required', () => {
+    const fixture = makeRepo();
+    try {
+      const dataset = parseDataset(MEDIA);
+      const result = importGedcomDataset(dataset, fixture.repo, new Map(), { requirePreparedMedia: true });
+      expect(result.importedMedia).toBe(0);
+      expect(fixture.repo.listAllMedia()).toEqual([]);
+
+      const person = fixture.repo.listAllPersons()[0]!;
+      expect(fixture.repo.listAttachmentsFor('person', person.id).mediaLinks).toEqual([]);
+    } finally {
+      cleanupRepo(fixture);
+    }
+  });
+});
 describe('importGedcomDataset duplicate note references', () => {
   it('copies a shared note once per target when it is referenced twice', () => {
     const fixture = makeRepo();

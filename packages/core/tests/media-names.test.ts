@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { mediaDisplayName, mediaFileName, mediaTitleFromPath } from '../src/model/types';
+import {
+  isImagePath,
+  isIngestMediaPath,
+  mediaDisplayName,
+  mediaFileName,
+  mediaTitleFromPath,
+} from '../src/model/types';
 
 describe('media names', () => {
   it('derives a title from a local file name without its extension', () => {
@@ -39,5 +45,21 @@ describe('media names', () => {
     expect(mediaDisplayName({ title: '', path: 'media/family.jpg' })).toBe('family.jpg');
     expect(mediaDisplayName({ title: undefined, path: 'https://example.com/anna.jpg' })).toBe('anna.jpg');
     expect(mediaDisplayName({ title: undefined, path: 'https://example.com/' })).toBe('example.com');
+  });
+
+  it('separates ingest formats from displayable image formats', () => {
+    expect(isIngestMediaPath('photos/a.jpg')).toBe(true);
+    expect(isIngestMediaPath('photos/a.JPEG')).toBe(true);
+    expect(isIngestMediaPath('photos/a.avif')).toBe(true);
+    expect(isIngestMediaPath('photos/a.png')).toBe(false);
+    expect(isIngestMediaPath('photos/a.heic')).toBe(false);
+    expect(isIngestMediaPath('photos/a')).toBe(false);
+
+    expect(isImagePath('media/a.avif')).toBe(true);
+    expect(isImagePath('media/a.bmp')).toBe(true);
+    expect(isImagePath('media/a.png')).toBe(true);
+    expect(isImagePath('media/a.heic')).toBe(false);
+    expect(isImagePath('media/a.tiff')).toBe(false);
+    expect(isImagePath('https://example.com/a.jpg?token=1')).toBe(true);
   });
 });

@@ -44,6 +44,7 @@ export type {
 export {
   FACT_FLAGS,
   IMAGE_EXTENSIONS,
+  MEDIA_INGEST_EXTENSIONS,
   TASK_PRIORITIES,
   TASK_STATUSES,
   canonicalizeTaskStatus,
@@ -55,6 +56,7 @@ export {
   factYear,
   isExternalMediaPath,
   isImagePath,
+  isIngestMediaPath,
   isProjectMediaPath,
   isVisibleMedia,
   mediaDisplayName,

@@ -722,9 +722,11 @@ the op layer, not by SQLite foreign keys.
 
 A media record is a one-file metadata container. File bytes live outside
 SQLite; the `path` is either a project-relative path under `media/` or an
-external URL. Each media record may be linked to several targets. A GEDCOM
-`OBJE` with several `FILE` rows is split into one media record per file on
-import; `TRAN` is not stored.
+external URL. New media is accepted only as JPEG or AVIF and stored as an
+AVIF copy, so a new row's local path always ends in `.avif`; existing projects
+may still contain older displayable formats. Each media record may be linked
+to several targets. A GEDCOM `OBJE` with several `FILE` rows is split into one
+media record per file on import; `TRAN` is not stored.
 
 ```mermaid
 erDiagram
