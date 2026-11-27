@@ -15,6 +15,7 @@ import { NodeFileSystem } from './filesystem';
 import { openGedcomAsProject } from './gedcom';
 import { log } from './log';
 import { nls } from './nls';
+import { copyMediaDirectory } from './projectMedia';
 import { closeProjectRuntime, ensureRuntime, openUntitledStore } from './runtime';
 import { updateSession } from './session';
 import {
@@ -385,10 +386,7 @@ export async function saveProject(projectKey: string): Promise<ProjectBinding | 
       const tempMediaDir = join(untitled.tempDir, MEDIA_DIR_NAME);
       if (await fs.exists(tempMediaDir)) {
         const mediaDir = join(dirname(filePath), MEDIA_DIR_NAME);
-        await fs.mkdir(mediaDir);
-        for (const entry of await fs.readdir(tempMediaDir)) {
-          await fs.copyFile(join(tempMediaDir, entry), join(mediaDir, entry));
-        }
+        await copyMediaDirectory(tempMediaDir, mediaDir);
       }
     } catch (error) {
       // The temporary files stay where they were; reopen the store so the

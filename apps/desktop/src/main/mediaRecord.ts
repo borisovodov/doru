@@ -2,7 +2,7 @@ import { randomUUID } from 'node:crypto';
 import { mkdir, rm } from 'node:fs/promises';
 import { join } from 'node:path';
 import { MEDIA_DIR_NAME, type MediaRecord } from '@doru/core';
-import { mediaProjectScope, storeIngestedMedia, type IngestedMedia } from './mediaIngest';
+import { mediaProjectScope, mediaContentName, storeIngestedMedia, type IngestedMedia } from './mediaIngest';
 
 export interface MediaTarget {
   targetType: string;
@@ -58,14 +58,22 @@ export async function addStoredMedia(
   const scope = mediaProjectScope(projectKey);
   const scopedDir = join(mediaDir, scope);
   await mkdir(scopedDir, { recursive: true });
-  const stored = await storeIngestedMedia(scopedDir, ingested);
+  const name = mediaContentName(ingested.bytes);
+  const mediaPath = join(MEDIA_DIR_NAME, scope, name);
+  markPending(mediaPath);
+  let stored: Awaited<ReturnType<typeof storeIngestedMedia>>;
+  try {
+    stored = await storeIngestedMedia(scopedDir, ingested);
+  } catch (error) {
+    unmarkPending(mediaPath);
+    throw error;
+  }
   const media: MediaRecord = {
     id: randomUUID(),
     ...(title !== undefined ? { title } : {}),
-    path: join(MEDIA_DIR_NAME, scope, stored.name),
+    path: mediaPath,
     ...(target !== undefined ? { targetType: target.targetType, targetId: target.targetId } : {}),
   };
-  markPending(media.path);
   let failed = false;
   let failure: unknown;
   try {
@@ -74,18 +82,18 @@ export async function addStoredMedia(
     failed = true;
     failure = error;
   }
-  unmarkPending(media.path);
+  unmarkPending(mediaPath);
   if (failed) {
-    if (stored.created && !isMediaPathPending(media.path)) {
+    if (stored.created && !isMediaPathPending(mediaPath)) {
       let referenced = true;
       try {
-        const normalizedPath = normalizeMediaPath(media.path);
+        const normalizedPath = normalizeMediaPath(mediaPath);
         referenced = service.listAllMedia().some((entry) => normalizeMediaPath(entry.path) === normalizedPath);
       } catch {
         // Never delete a file when its references cannot be verified.
       }
       if (!referenced) {
-        await rm(join(scopedDir, stored.name), { force: true }).catch(() => undefined);
+        await rm(join(scopedDir, name), { force: true }).catch(() => undefined);
       }
     }
     throw failure;
