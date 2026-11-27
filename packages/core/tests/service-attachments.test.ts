@@ -272,6 +272,9 @@ describe('TreeService attachments', () => {
       expect(() => service.addSubmitterLink('SU1', 'source', 'S1')).toThrow('A submitterLink cannot target a source.');
       expect(() => service.addSubmitterLink('SU1', 'media', 'M1')).toThrow('A submitterLink cannot target a media.');
       expect(() => service.addSubmitterLink('SU1', 'place', 'PL1')).toThrow('A submitterLink cannot target a place.');
+      expect(() => service.addSubmitterLink('SU1', 'family', 'F1', 'ancestor_interest')).toThrow(
+        'A submitterLink cannot target a family for ancestor_interest.',
+      );
       expect(() => service.addSubmitterLink('SU1', 'media_link', 'ML1')).toThrow(
         'A submitterLink cannot target a media_link.',
       );
@@ -471,6 +474,39 @@ describe('TreeService attachments', () => {
         fixture.repo.listAttachmentsFor('person', 'P1').mediaLinks.find((entry) => entry.link.id === beforeLink.id)
           ?.link,
       ).toMatchObject({ crop: undefined, primary: true });
+    } finally {
+      cleanupRepo(fixture);
+    }
+  });
+
+  it('restores the previous primary link when a primary attach is undone', () => {
+    const { fixture, service } = makeService();
+    try {
+      service.addMedia({ id: 'M1', path: 'media/a.jpg', targetType: 'person', targetId: 'P1' });
+      service.addMedia({ id: 'M2', path: 'media/b.jpg' });
+      const first = fixture.repo
+        .listAttachmentsFor('person', 'P1')
+        .mediaLinks.find((entry) => entry.media.id === 'M1')!.link;
+      expect(first.primary).toBe(true);
+
+      service.attachMedia({
+        id: 'L2',
+        mediaId: 'M2',
+        targetType: 'person',
+        targetId: 'P1',
+        primary: true,
+      });
+      expect(
+        fixture.repo.listAttachmentsFor('person', 'P1').mediaLinks.find((entry) => entry.media.id === 'M2')?.link
+          .primary,
+      ).toBe(true);
+
+      service.undo();
+
+      const restored = fixture.repo.listAttachmentsFor('person', 'P1').mediaLinks;
+      expect(restored.find((entry) => entry.media.id === 'M1')?.link.primary).toBe(true);
+      expect(restored.find((entry) => entry.media.id === 'M2')).toBeUndefined();
+      expect(fixture.repo.getMedia('M2')?.links).toEqual([]);
     } finally {
       cleanupRepo(fixture);
     }

@@ -161,7 +161,8 @@ a task card keeps Notes and Media only, a submitter card has no Tasks or
 Contributors section, a media link carries no attachments at all, and
 contributors are absent from task cards. Contributor and research-interest
 links are exposed only on person and family cards; vendor `_SUBM` links from
-other GEDCOM records are not offered by the UI. `TreeService` rejects every
+other GEDCOM records are dropped on import and are not offered by the UI.
+`TreeService` rejects every
 disallowed pair with one shared guard, so agents and IPC callers follow the
 same matrix as the UI.
 

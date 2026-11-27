@@ -429,8 +429,53 @@ describe('AttachmentsPanel contacts', () => {
       />,
     );
 
-    expect(screen.getByRole('img', { name: nls.t('features.tree.media.primary') })).toBeInTheDocument();
-    expect(screen.getAllByRole('button', { name: nls.t('features.tree.media.makePrimary') })).toHaveLength(1);
+    expect(screen.queryByRole('img', { name: nls.t('features.tree.media.primary') })).not.toBeInTheDocument();
+    expect(screen.getAllByRole('button', { name: nls.t('features.tree.media.makePrimary') })).toHaveLength(2);
+  });
+
+  it('lets a visible media replace a stored primary whose file is missing', async () => {
+    const hidden: MediaWithPath = {
+      id: 'M1',
+      title: 'Missing portrait',
+      path: 'media/missing.jpg',
+      absolutePath: '',
+      links: [{ id: 'ML1', mediaId: 'M1', targetType: 'person', targetId: 'P1', primary: true }],
+    };
+    const visibleLink: MediaLinkRecord = {
+      id: 'ML2',
+      mediaId: 'M2',
+      targetType: 'person',
+      targetId: 'P1',
+    };
+    const visible: MediaWithPath = {
+      id: 'M2',
+      title: 'Wedding photo',
+      path: 'media/wedding.jpg',
+      absolutePath: '/demo/wedding.jpg',
+      links: [visibleLink],
+    };
+    const updateMediaLink = vi.fn(async () => undefined);
+    renderUi(
+      <MediaSection
+        targetType="person"
+        targetId="P1"
+        media={[hidden, visible]}
+        api={{
+          getMediaFor: async () => [hidden, visible],
+          getAllMedia: async () => [hidden, visible],
+          addMediaToTarget: async () => undefined,
+          addMediaUrlToTarget: async () => undefined,
+          attachMedia: async () => undefined,
+          updateMediaLink,
+          detachMedia: async () => undefined,
+          deleteMedia: async () => undefined,
+        }}
+        refresh={async () => undefined}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: nls.t('features.tree.media.makePrimary') }));
+    await waitFor(() => expect(updateMediaLink).toHaveBeenCalledWith(visibleLink, { ...visibleLink, primary: true }));
   });
 
   it('renders external media as a silent placeholder', async () => {

@@ -155,6 +155,7 @@ export interface TreeRepository {
   listMediaLinksFor(targetType: string, targetId: string): Array<{ media: MediaRecord; link: MediaLinkRecord }>;
   updateMediaLink(link: MediaLinkRecord): void;
   updateMediaLinkRow(link: MediaLinkRecord): void;
+  normalizePrimaryLink(targetType: string, targetId: string): void;
   removeMediaLink(id: string): boolean;
   listMediaFor(targetType: string, targetId: string): MediaRecord[];
   listAllMedia(): MediaRecord[];
@@ -807,6 +808,10 @@ export class SqliteTreeRepository implements TreeRepository {
 
   updateMediaLinkRow(link: MediaLinkRecord): void {
     this.media.updateMediaLinkRow(link);
+  }
+
+  normalizePrimaryLink(targetType: string, targetId: string): void {
+    this.media.normalizePrimaryLink(targetType, targetId);
   }
 
   removeMediaLink(id: string): boolean {

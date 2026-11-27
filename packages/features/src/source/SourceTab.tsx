@@ -166,7 +166,11 @@ function SourceTabBody({
   const currentSource = lastSaved ?? record;
   const targetId = currentSource?.id;
   const attachSourceToTargets = api.attachSourceToTargets;
-  const relatedTargets = useMemo(() => {
+  const [committedTargets, setCommittedTargets] = useState<{
+    targets: TargetRef[];
+    citations: readonly CitationRecord[];
+  } | null>(null);
+  const citationTargets = useMemo(() => {
     if (targetId === undefined) {
       return [];
     }
@@ -185,6 +189,8 @@ function SourceTabBody({
     }
     return targets;
   }, [citations, targetId]);
+  const relatedTargets =
+    committedTargets !== null && committedTargets.citations === citations ? committedTargets.targets : citationTargets;
   const {
     notes: sourceNotes,
     citations: sourceCitations,
@@ -382,6 +388,7 @@ function SourceTabBody({
     );
     void (added.length > 0 ? attachSourceToTargets(currentSource.id, added) : Promise.resolve())
       .then(() => Promise.all(detach))
+      .then(() => setCommittedTargets({ targets: next, citations }))
       .catch(() => setLinkError(true))
       .finally(() => setLinkPending(false));
   };

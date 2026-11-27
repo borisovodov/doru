@@ -63,18 +63,18 @@ export function MediaTile(props: MediaTileProps) {
       ) : (
         image
       )}
-      {primary ? (
-        <span className={styles['primary']} role="img" aria-label={primaryLabelText}>
-          <Star size={14} fill="currentColor" aria-hidden="true" />
-        </span>
-      ) : onPrimary !== undefined ? (
+      {onPrimary !== undefined ? (
         <IconButton
           className={cx(styles['action'], styles['primaryAction'])}
           size="sm"
           label={primaryLabelText}
-          icon={<Star size={13} aria-hidden="true" />}
+          icon={<Star size={13} fill={primary ? 'currentColor' : 'none'} aria-hidden="true" />}
           onClick={onPrimary}
         />
+      ) : primary ? (
+        <span className={styles['primary']} role="img" aria-label={primaryLabelText}>
+          <Star size={14} fill="currentColor" aria-hidden="true" />
+        </span>
       ) : null}
       {detach !== undefined || onRemove !== undefined ? (
         <span className={styles['actions']}>

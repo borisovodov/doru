@@ -21,7 +21,7 @@ import {
   restoreSourceRepository,
   sameRecord,
 } from './restore';
-import type { NestedAttachments, Op } from './op';
+import type { MutationContext, NestedAttachments, Op } from './op';
 
 function op(
   id: string,
@@ -252,13 +252,20 @@ export function detachCitationOp(citation: CitationRecord, attachments: Attachme
 
 // --- media -------------------------------------------------------------------
 
-export function attachMediaOp(link: MediaLinkRecord): Op {
+export function attachMediaOp(link: MediaLinkRecord, primaryBefore?: MediaLinkRecord[]): Op {
   return {
     ...op(
       crypto.randomUUID(),
       'media.attach',
       (ctx) => ctx.repo.addMediaLink(link.mediaId, link),
-      (ctx) => ctx.repo.removeMediaLink(link.id),
+      (ctx) => {
+        ctx.repo.removeMediaLink(link.id);
+        // addMediaLink may have cleared the previous primary; restore the
+        // captured sibling flags exactly instead of running normalization.
+        for (const before of primaryBefore ?? []) {
+          ctx.repo.updateMediaLinkRow(before);
+        }
+      },
     ),
     change: { targetType: 'media', targetId: link.mediaId, kind: 'changed' },
   };
@@ -280,9 +287,23 @@ export function updateMediaLinkOp(before: MediaLinkRecord, after: MediaLinkRecor
   };
 }
 
-/** Applies several link-row updates as one undo step, without re-normalizing primary flags. */
+/** Applies several link-row updates as one undo step and re-checks the primary invariant. */
 export function updateMediaLinksOp(pairs: Array<{ before: MediaLinkRecord; after: MediaLinkRecord }>): Op {
   const first = pairs[0];
+  const targets = new Map<string, { targetType: string; targetId: string }>();
+  for (const pair of pairs) {
+    for (const link of [pair.before, pair.after]) {
+      targets.set(`${link.targetType}\u0000${link.targetId}`, {
+        targetType: link.targetType,
+        targetId: link.targetId,
+      });
+    }
+  }
+  const normalize = (ctx: MutationContext): void => {
+    for (const target of targets.values()) {
+      ctx.repo.normalizePrimaryLink(target.targetType, target.targetId);
+    }
+  };
   return {
     ...op(
       crypto.randomUUID(),
@@ -291,11 +312,13 @@ export function updateMediaLinksOp(pairs: Array<{ before: MediaLinkRecord; after
         for (const pair of pairs) {
           ctx.repo.updateMediaLinkRow(pair.after);
         }
+        normalize(ctx);
       },
       (ctx) => {
         for (const pair of pairs) {
           ctx.repo.updateMediaLinkRow(pair.before);
         }
+        normalize(ctx);
       },
     ),
     ...(first === undefined

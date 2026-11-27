@@ -209,6 +209,11 @@ export class MediaRepo {
     });
   }
 
+  /** Re-applies the primary invariant to one target after raw link writes. */
+  normalizePrimaryLink(targetType: string, targetId: string): void {
+    this.transactions.run(() => this.ensurePrimaryLink(targetType, targetId));
+  }
+
   removeMediaLink(id: string): boolean {
     return this.transactions.run(() => {
       const link = this.db.prepare('SELECT target_type, target_id FROM media_link WHERE id = ?').get(id) as

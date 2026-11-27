@@ -1024,7 +1024,8 @@ export class TreeService {
       ) {
         return undefined;
       }
-      return attachMediaOp(link);
+      const primaryBefore = this.repo.listMediaLinksFor(link.targetType, link.targetId).map((entry) => entry.link);
+      return attachMediaOp(link, primaryBefore);
     });
   }
 
@@ -1063,14 +1064,17 @@ export class TreeService {
       if (stored === undefined) {
         return undefined;
       }
-      if (stored.targetType !== after.targetType || stored.targetId !== after.targetId) {
+      // The renderer supplies the full row; never let a mismatched id move the
+      // update set to a different link while the target's primary flags change.
+      const desired: MediaLinkRecord = { ...after, id: stored.id, mediaId: stored.mediaId };
+      if (stored.targetType !== desired.targetType || stored.targetId !== desired.targetId) {
         // Moving a link between targets keeps the repository's normalization
         // path; it is not used by the editor, which only changes metadata.
-        return updateMediaLinkOp(stored, after);
+        return updateMediaLinkOp(stored, desired);
       }
       const currentLinks = this.repo.listMediaLinksFor(stored.targetType, stored.targetId).map((entry) => entry.link);
-      const nextLinks = currentLinks.map((link) => (link.id === stored.id ? { ...after } : { ...link }));
-      if (after.primary === true) {
+      const nextLinks = currentLinks.map((link) => (link.id === stored.id ? { ...desired } : { ...link }));
+      if (desired.primary === true) {
         for (const link of nextLinks) {
           link.primary = link.id === stored.id ? true : false;
         }
@@ -1215,6 +1219,9 @@ export class TreeService {
     kind: SubmitterLink['kind'] = 'contributor',
   ): UndoRedoState {
     assertTargetAllowed('submitterLink', targetType);
+    if (kind !== 'contributor' && targetType !== 'person') {
+      throw new Error(`A submitterLink cannot target a ${targetType} for ${kind}.`);
+    }
     return this.apply(addSubmitterLinkOp(submitterId, targetType, targetId, kind));
   }
 

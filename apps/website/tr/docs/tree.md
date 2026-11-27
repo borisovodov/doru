@@ -1,5 +1,5 @@
 ---
-source-hash: 7638270f30c2
+source-hash: cb3069f80426
 ---
 
 # Ağaçla çalışma
@@ -43,9 +43,9 @@ Tam kişi düzenleyicisinde ebeveyn, partner veya çocuk ekleyin. Mevcut bir ki�
 
 ## Görevler
 
-Görevlerin bir oluşturma tarihi ve bir hatırlatma tarihi vardır. Bir görevi kapatmak yalnızca durumunu değiştirir; ayrı bir tamamlanma tarihi saklanmaz. Çoğu düzenleyicide bir **Görevler** bölümü vardır: oraya bir görev ekleyin, otomatik olarak o kayda bağlanır. Görev ve gönderen düzenleyicileri istisnadır ve bir medya bağlantısı satırında yalnızca Kaynaklar bölümü vardır: görev kartı Notlar ve Medya'yı korur, gönderen kartında Görevler bölümü yoktur ve medya bağlantısı görevlerin hedefi değildir. Olgular, adlar ve atıflar, ekleme panellerinde kendi Görevler bölümlerine sahiptir. **İlgili** bir görevi ağaçtaki bir veya daha fazla kayda bağlar — bir kişi, aile, olay, ad, kaynak, atıf, medya, yer, depo, adres veya eser, ancak başka bir görev, gönderen veya medya bağlantısı değil; bağımsız bir görev için boş bırakın. Görev paylaşılır: herhangi bir yerde düzenlemek aynı kaydı günceller ve ilişkili bir kaydı silmek görevi yerinde bırakır. Yeni bir görev oluşturmak yerine paylaşılan bir görevi yeniden kullanmak için **Mevcut bir görevi ekle**'yi kullanın.
+Görevlerin bir oluşturma tarihi ve bir hatırlatma tarihi vardır. Bir görevi kapatmak yalnızca durumunu değiştirir; ayrı bir tamamlanma tarihi saklanmaz. Çoğu düzenleyicide bir **Görevler** bölümü vardır: oraya bir görev ekleyin, otomatik olarak o kayda bağlanır. Görev ve gönderen düzenleyicileri istisnadır: görev kartı Notlar ve Medya'yı korur, gönderen kartında Görevler bölümü yoktur ve medya bağlantısı görevlerin hedefi değildir. Olgular, adlar ve atıflar, ekleme panellerinde kendi Görevler bölümlerine sahiptir. **İlgili** bir görevi ağaçtaki bir veya daha fazla kayda bağlar — bir kişi, aile, olay, ad, kaynak, atıf, medya, yer, depo, adres veya eser, ancak başka bir görev, gönderen veya medya bağlantısı değil; bağımsız bir görev için boş bırakın. Görev paylaşılır: herhangi bir yerde düzenlemek aynı kaydı günceller ve ilişkili bir kaydı silmek görevi yerinde bırakır. Yeni bir görev oluşturmak yerine paylaşılan bir görevi yeniden kullanmak için **Mevcut bir görevi ekle**'yi kullanın.
 
-Eserler, adresler, ilişkilendirmeler ve aile partner/çocuk bağlantıları, ana varlık sekmeleriyle aynı Notlar, Kaynaklar ve Görevler bölümlerine sahiptir. İletişim bilgileri, tanımladıkları kişiye, olaya, depoya veya gönderene aittir; bir adrese ait değildir. Görevler Notlar ve Medya'yı korur, ancak Kaynaklar, İletişim, Katkıda bulunanlar veya Görevler bölümleri yoktur. Bir medya bağlantısında yalnızca Kaynaklar vardır. Katkıda bulunanlar yalnızca kişi ve aile kartlarında kullanılabilir.
+Eserler, adresler, ilişkilendirmeler ve aile partner/çocuk bağlantıları, ana varlık sekmeleriyle aynı Notlar, Kaynaklar ve Görevler bölümlerine sahiptir. İletişim bilgileri, tanımladıkları kişiye, olaya, depoya veya gönderene aittir; bir adrese ait değildir. Görevler Notlar ve Medya'yı korur, ancak Kaynaklar, İletişim, Katkıda bulunanlar veya Görevler bölümleri yoktur. Bir medya bağlantısı ek hedefi değildir. Katkıda bulunanlar yalnızca kişi ve aile kartlarında kullanılabilir.
 
 ## Medya
 

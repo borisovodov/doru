@@ -66,7 +66,7 @@ actions for editing an address in place.
 
 Tasks have a creation date and a reminder date. Closing a task only changes its status; no separate completion date is stored. Most editors have a **Tasks** section: add a task there and it
 is linked to that record automatically. Task editors and submitter editors are
-the exceptions, and a media link row carries Sources only: a task card keeps
+the exceptions: a task card keeps
 Notes and Media, a submitter card has no Tasks section, and a media link is not
 an attachment target for tasks. Facts, names and citations
 carry their own Tasks section in their attachment panel. **Related to** links
@@ -83,7 +83,7 @@ Notes, Sources and Tasks sections as the main entity
 tabs. Contributors are available only on person and family cards. Contacts
 belong to the person, fact, repository or submitter they describe, not to an
 address. Tasks keep Notes and Media, but have no Sources, Contacts,
-Contributors or Tasks sections. A media link has Sources only.
+Contributors or Tasks sections. A media link is not an attachment target.
 
 ## Media
 

@@ -91,11 +91,17 @@ function MediaTabBody({
   const [date, setDate] = useState(() => toDateDraft(record.date));
   const [linkError, setLinkError] = useState(false);
   const [linkPending, setLinkPending] = useState(false);
+  const [committedTargets, setCommittedTargets] = useState<{
+    targets: TargetRef[];
+    record: MediaRecord;
+  } | null>(null);
   const attachMediaToTargets = api.attachMediaToTargets;
-  const relatedTargets: TargetRef[] = (record.links ?? []).map((link) => ({
+  const recordTargets: TargetRef[] = (record.links ?? []).map((link) => ({
     targetType: link.targetType,
     targetId: link.targetId,
   }));
+  const relatedTargets =
+    committedTargets !== null && committedTargets.record === record ? committedTargets.targets : recordTargets;
   const recordRef = useRef(record);
   const baselineRef = useRef<MediaRecord>(record);
   const savedRef = useRef<MediaRecord>(record);
@@ -335,6 +341,7 @@ function MediaTabBody({
     };
     void add()
       .then(() => Promise.all(removed.map((link) => api.detachMedia(link))))
+      .then(() => setCommittedTargets({ targets: next, record }))
       .catch(() => setLinkError(true))
       .finally(() => setLinkPending(false));
   };

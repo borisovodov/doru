@@ -167,6 +167,7 @@ export function MediaSection({
         <div className={styles['grid']}>
           {orderedMedia.map((item) => {
             const isPrimary = item.id === primaryMedia?.id;
+            const storedPrimary = linkOf(item)?.primary === true;
             const preview =
               item.absolutePath !== '' && isImagePath(item.path)
                 ? `doru-media://local/?path=${encodeURIComponent(item.absolutePath)}`
@@ -185,9 +186,11 @@ export function MediaSection({
                 }
                 primary={isPrimary}
                 primaryLabel={
-                  isPrimary ? nls.t('features.tree.media.primary') : nls.t('features.tree.media.makePrimary')
+                  isPrimary && storedPrimary
+                    ? nls.t('features.tree.media.primary')
+                    : nls.t('features.tree.media.makePrimary')
                 }
-                {...(isPrimary ? {} : { onPrimary: () => void makePrimary(item) })}
+                {...(storedPrimary ? {} : { onPrimary: () => void makePrimary(item) })}
                 {...(onOpenMedia
                   ? {
                       openLabel: nls.t('features.tree.media.open'),

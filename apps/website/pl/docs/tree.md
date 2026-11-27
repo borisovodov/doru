@@ -1,5 +1,5 @@
 ---
-source-hash: 7638270f30c2
+source-hash: cb3069f80426
 ---
 
 # Praca z drzewem
@@ -65,9 +65,9 @@ adres** do edycji adresu na miejscu.
 
 ## Zadania
 
-Zadania mają datę utworzenia i datę przypomnienia. Zamknięcie zadania zmienia tylko jego status; osobna data ukończenia nie jest zapisywana. Większość edytorów ma sekcję **Zadania**: dodaj tam zadanie, a zostanie automatycznie powiązane z tym rekordem. Wyjątkami są edytor zadania i edytor nadawcy, a wiersz powiązania multimedialnego ma tylko sekcję Źródła: karta zadania zachowuje Notatki i Multimedia, karta nadawcy nie ma sekcji Zadania, a powiązanie multimedialne nie jest celem zadań. Wydarzenia, imiona i cytaty mają własną sekcję Zadania w swoim panelu załączników. **Powiązane z** łączy zadanie z jednym lub kilkoma rekordami w drzewie — osobą, rodziną, wydarzeniem, imieniem, źródłem, cytatem, multimediami, miejscem, repozytorium, adresem lub dziełem, ale nie z innym zadaniem, nadawcą ani powiązaniem multimedialnym; pozostaw puste dla samodzielnego zadania. Zadanie jest współdzielone: edycja w dowolnym miejscu aktualizuje ten sam rekord, a usunięcie powiązanego rekordu pozostawia zadanie na miejscu. Użyj **Dołącz istniejące zadanie**, aby ponownie wykorzystać współdzielone zadanie zamiast tworzyć nowe.
+Zadania mają datę utworzenia i datę przypomnienia. Zamknięcie zadania zmienia tylko jego status; osobna data ukończenia nie jest zapisywana. Większość edytorów ma sekcję **Zadania**: dodaj tam zadanie, a zostanie automatycznie powiązane z tym rekordem. Wyjątkami są edytor zadania i edytor nadawcy: karta zadania zachowuje Notatki i Multimedia, karta nadawcy nie ma sekcji Zadania, a powiązanie multimedialne nie jest celem zadań. Wydarzenia, imiona i cytaty mają własną sekcję Zadania w swoim panelu załączników. **Powiązane z** łączy zadanie z jednym lub kilkoma rekordami w drzewie — osobą, rodziną, wydarzeniem, imieniem, źródłem, cytatem, multimediami, miejscem, repozytorium, adresem lub dziełem, ale nie z innym zadaniem, nadawcą ani powiązaniem multimedialnym; pozostaw puste dla samodzielnego zadania. Zadanie jest współdzielone: edycja w dowolnym miejscu aktualizuje ten sam rekord, a usunięcie powiązanego rekordu pozostawia zadanie na miejscu. Użyj **Dołącz istniejące zadanie**, aby ponownie wykorzystać współdzielone zadanie zamiast tworzyć nowe.
 
-Dzieła, adresy, powiązania i relacje partner/dziecko w rodzinach mają te same sekcje Notatki, Źródła i Zadania co karty głównych encji. Kontakty należą do osoby, faktu, repozytorium lub nadawcy, których opisują, a nie do adresu. Zadania zachowują Notatki i Multimedia, ale nie mają Źródeł, Kontaktów, Współtwórców ani Zadań. Powiązanie multimedialne ma tylko Źródła. Współtwórcy są dostępni tylko na kartach osoby i rodziny.
+Dzieła, adresy, powiązania i relacje partner/dziecko w rodzinach mają te same sekcje Notatki, Źródła i Zadania co karty głównych encji. Kontakty należą do osoby, faktu, repozytorium lub nadawcy, których opisują, a nie do adresu. Zadania zachowują Notatki i Multimedia, ale nie mają Źródeł, Kontaktów, Współtwórców ani Zadań. Powiązanie multimedialne nie jest celem załączników. Współtwórcy są dostępni tylko na kartach osoby i rodziny.
 
 ## Multimedia
 

@@ -410,6 +410,7 @@ describe('MediaTab', () => {
 
     await act(async () => pending.resolve());
     await waitFor(() => expect(picker).toBeEnabled());
+    expect(within(related).getByText('Moscow')).toBeInTheDocument();
   });
 
   it('shows existing links and detaches a removed one', async () => {

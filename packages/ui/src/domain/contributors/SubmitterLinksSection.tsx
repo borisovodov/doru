@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { Plus, Unlink } from 'lucide-react';
 import type { SubmitterLink, SubmitterRecord } from '@doru/core';
 import { nls } from '../../nls';
@@ -61,6 +61,8 @@ export function SubmitterLinksSection({
   canAdd?: boolean;
 }) {
   const [adding, setAdding] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const savingRef = useRef(false);
   const [selected, setSelected] = useState('');
   const [kind, setKind] = useState<SubmitterLinkKind>(defaultKind);
   const byId = new Map(submitters.map((submitter) => [submitter.id, submitter]));
@@ -71,12 +73,19 @@ export function SubmitterLinksSection({
   );
 
   const save = async () => {
-    if (selected === '' || !available.some((submitter) => submitter.id === selected)) {
+    if (savingRef.current || selected === '' || !available.some((submitter) => submitter.id === selected)) {
       return;
     }
-    await onAdd(selected, targetType, targetId, kind);
-    setSelected('');
-    setAdding(false);
+    savingRef.current = true;
+    setSaving(true);
+    try {
+      await onAdd(selected, targetType, targetId, kind);
+      setSelected('');
+      setAdding(false);
+    } finally {
+      savingRef.current = false;
+      setSaving(false);
+    }
   };
 
   if (!canAdd && visibleLinks.length === 0) {
@@ -152,7 +161,7 @@ export function SubmitterLinksSection({
             </Field>
           ) : null}
           <ActionBar>
-            <Button variant="primary" onClick={() => void save()}>
+            <Button variant="primary" disabled={saving} onClick={() => void save()}>
               {nls.t('features.tree.save')}
             </Button>
             <Button variant="secondary" onClick={() => setAdding(false)}>

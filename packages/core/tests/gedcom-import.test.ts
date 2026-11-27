@@ -476,6 +476,36 @@ describe('importGedcomDataset', () => {
     }
   });
 
+  it('drops vendor submitter links on source and media records', () => {
+    const gedcom = [
+      '0 HEAD',
+      '1 GEDC',
+      '2 VERS 7.0',
+      '0 @U1@ SUBM',
+      '1 NAME Ivan Petrov',
+      '0 @S1@ SOUR',
+      '1 TITL Parish register',
+      '1 _SUBM @U1@',
+      '0 @O1@ OBJE',
+      '1 FILE https://example.com/photo.jpg',
+      '1 _SUBM @U1@',
+    ].join('\n');
+    const result = parse(new TextEncoder().encode(gedcom));
+    if (!result.ok || result.value.kind !== 'dataset') {
+      throw new Error('fixture failed to parse');
+    }
+    const fixture = makeRepo();
+    try {
+      importGedcomDataset(result.value.dataset, fixture.repo);
+      const source = fixture.repo.listSources()[0]!;
+      const media = fixture.repo.listAllMedia()[0]!;
+      expect(fixture.repo.listSubmitterLinksFor('source', source.id)).toEqual([]);
+      expect(fixture.repo.listSubmitterLinksFor('media', media.id)).toEqual([]);
+    } finally {
+      cleanupRepo(fixture);
+    }
+  });
+
   it('keeps place-card citations that point at a later source and drops note citations', () => {
     const gedcom = [
       '0 HEAD',
