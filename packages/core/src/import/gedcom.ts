@@ -35,7 +35,7 @@ import type {
   TodoStructure,
 } from '@doru/gedcom';
 import type { TreeRepository } from '../db/repository';
-import { mergeDateBounds, normalizeTaskPriority, normalizeTaskStatus } from '../model/types';
+import { mediaTitleFromPath, mergeDateBounds, normalizeTaskPriority, normalizeTaskStatus } from '../model/types';
 import { detectParentCycles } from '../validate/validator';
 import type {
   AssociationRecord,
@@ -144,6 +144,8 @@ interface ImportContext {
   mediaCreated: number;
   /** Original GEDCOM FILE path → project-relative path prepared by the host. */
   mediaPaths: ReadonlyMap<string, string>;
+  /** Skip media cards whose FILE payload the host did not prepare. */
+  requirePreparedMedia: boolean;
   /** Person xref → the dates carried by their FAMS links, keyed by family xref. */
   spouseLinkDates: Map<string, Map<string, DateStructure | undefined>>;
   /** Person xref → the notes carried by their FAMS links, keyed by family xref. */
@@ -184,10 +186,19 @@ interface ImportContext {
  * fresh UUIDs; GEDCOM cross-references are transient import keys used only to
  * resolve pointers.
  */
+export interface GedcomImportOptions {
+  /**
+   * Create media cards only for FILE payloads the host prepared in
+   * `mediaPaths`; unresolved and unsupported files are skipped.
+   */
+  requirePreparedMedia?: boolean | undefined;
+}
+
 export function importGedcomDataset(
   dataset: GedcomDataset,
   repo: TreeRepository,
   mediaPaths: ReadonlyMap<string, string> = new Map(),
+  options: GedcomImportOptions = {},
 ): GedcomImportResult {
   const ctx: ImportContext = {
     repo,
@@ -207,6 +218,7 @@ export function importGedcomDataset(
     mediaIds: new Map(),
     mediaCreated: 0,
     mediaPaths,
+    requirePreparedMedia: options.requirePreparedMedia === true,
     spouseLinkDates: new Map(),
     spouseLinkNotes: new Map(),
     pendingFactFamilies: [],
@@ -2179,13 +2191,19 @@ function importMediaRecords(records: GedcomRecord[], ctx: ImportContext): void {
       continue;
     }
     for (const file of files) {
+      const preparedPath = ctx.mediaPaths.get(file.payload);
+      if (ctx.requirePreparedMedia && preparedPath === undefined) {
+        continue;
+      }
       const id = crypto.randomUUID();
-      const title = file.title !== undefined && file.title !== '' ? file.title : record.title;
+      const title =
+        [file.title, record.title].find((value) => value !== undefined && value !== '') ??
+        mediaTitleFromPath(file.payload);
       const date = record.date !== undefined ? mapDate(record.date) : undefined;
       ctx.repo.insertMedia({
         id,
         ...(title !== undefined ? { title } : {}),
-        path: ctx.mediaPaths.get(file.payload) ?? file.payload,
+        path: preparedPath ?? file.payload,
         ...(date !== undefined ? { date } : {}),
         ...importedRecordTimes(record, ctx),
       });

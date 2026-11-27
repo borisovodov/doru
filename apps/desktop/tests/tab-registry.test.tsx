@@ -53,6 +53,6 @@ describe('tab registry', () => {
     expect(tabLabel('task:new:1', context)).toBe(nls.t('features.tasks.newTask'));
 
     expect(tabLabel('media:m1', context)).toBe('Portrait');
-    expect(tabLabel('media:m2', context)).toBe('photos/census.jpg');
+    expect(tabLabel('media:m2', context)).toBe('census.jpg');
   });
 });

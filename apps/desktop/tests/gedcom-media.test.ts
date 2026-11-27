@@ -1,9 +1,10 @@
-import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import { mkdtemp, readFile, readdir, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { parseGedcom70, type GedcomDataset } from '@doru/gedcom';
 import { prepareGedcomMedia } from '../src/main/gedcom';
+import { MediaIngestError } from '../src/main/mediaIngest';
 import type { RemoteMediaOptions } from '../src/main/mediaDownload';
 
 const encoder = new TextEncoder();
@@ -24,6 +25,15 @@ function datasetWithFiles(files: string[]): GedcomDataset {
 
 function makeLogger() {
   return { info: vi.fn(), warn: vi.fn() };
+}
+
+/** Skips real AVIF encoding; the ingest pipeline has its own tests. */
+const acceptMedia = async (bytes: Uint8Array) => ({ bytes, extension: 'avif' as const });
+
+/** Distinct names for tests whose fake payloads cannot be hashed. */
+function uniqueNames(): () => string {
+  let index = 0;
+  return () => `${String(index++).padStart(32, '0')}.avif`;
 }
 
 function deferred(): { promise: Promise<void>; resolve: () => void } {
@@ -56,11 +66,12 @@ describe('prepareGedcomMedia', () => {
 
     const paths = await prepareGedcomMedia(datasetWithFiles([url]), undefined, join(dir, 'tree.ged'), dir, {
       download,
+      ingest: acceptMedia,
       logger: makeLogger(),
     });
 
     const mapped = paths.get(url);
-    expect(mapped).toMatch(/^media\/[0-9a-f-]+\.jpg$/);
+    expect(mapped).toMatch(/^media\/[0-9a-f]{32}\.avif$/);
     expect([...(await readFile(join(dir, mapped ?? '')))]).toEqual([1, 2, 3]);
     expect(download).toHaveBeenCalledWith(url, expect.objectContaining({ maxBytes: expect.any(Number) }));
   });
@@ -76,6 +87,8 @@ describe('prepareGedcomMedia', () => {
     const paths = await prepareGedcomMedia(datasetWithFiles(urls), undefined, join(dir, 'tree.ged'), dir, {
       download,
       write: vi.fn(async () => undefined),
+      ingest: acceptMedia,
+      name: uniqueNames(),
       logger: makeLogger(),
     });
 
@@ -98,6 +111,8 @@ describe('prepareGedcomMedia', () => {
     const paths = await prepareGedcomMedia(datasetWithFiles(urls), undefined, join(dir, 'tree.ged'), dir, {
       download,
       write: vi.fn(async () => undefined),
+      ingest: acceptMedia,
+      name: uniqueNames(),
       logger: makeLogger(),
     });
 
@@ -126,6 +141,8 @@ describe('prepareGedcomMedia', () => {
     const result = prepareGedcomMedia(datasetWithFiles(urls), undefined, join(dir, 'tree.ged'), dir, {
       download,
       write: vi.fn(async () => undefined),
+      ingest: acceptMedia,
+      name: uniqueNames(),
       logger: makeLogger(),
     });
 
@@ -149,7 +166,7 @@ describe('prepareGedcomMedia', () => {
     expect(paths.size).toBe(6);
   });
 
-  it('keeps the URL as an external reference and does not log download errors', async () => {
+  it('keeps failed URLs as external references and does not log credentials', async () => {
     const dir = await makeTempDir();
     const logger = makeLogger();
     const download = vi.fn(async () => {
@@ -161,10 +178,11 @@ describe('prepareGedcomMedia', () => {
       undefined,
       join(dir, 'tree.ged'),
       dir,
-      { download, logger },
+      { download, ingest: acceptMedia, logger },
     );
 
-    expect(paths.size).toBe(0);
+    expect(paths.get('https://example.com/missing.jpg')).toBe('https://example.com/missing.jpg');
+    expect(paths.size).toBe(1);
     expect(logger.warn).toHaveBeenCalledWith(
       'gedcom import: could not download media URL',
       expect.stringContaining('example.com'),
@@ -173,12 +191,91 @@ describe('prepareGedcomMedia', () => {
     expect(JSON.stringify(logger.warn.mock.calls)).not.toContain('secret');
   });
 
+  it('skips remote media with a non-image content type', async () => {
+    const dir = await makeTempDir();
+    const logger = makeLogger();
+    const url = 'https://example.com/page';
+    const download = vi.fn(async () => ({
+      bytes: new Uint8Array([1, 2, 3]),
+      contentType: 'text/html',
+      finalUrl: url,
+    }));
+
+    const paths = await prepareGedcomMedia(datasetWithFiles([url]), undefined, join(dir, 'tree.ged'), dir, {
+      download,
+      ingest: acceptMedia,
+      logger,
+    });
+
+    expect(paths.size).toBe(0);
+    expect(logger.warn).toHaveBeenCalledWith('gedcom import: skipped unsupported media type', 'https://example.com/…');
+  });
+
+  it('skips remote media rejected by the ingest pipeline', async () => {
+    const dir = await makeTempDir();
+    const logger = makeLogger();
+    const url = 'https://example.com/photo.jpg';
+    const download = vi.fn(async () => ({
+      bytes: new Uint8Array([1, 2, 3]),
+      contentType: 'image/jpeg',
+      finalUrl: url,
+    }));
+    const ingest = vi.fn(async () => {
+      throw new MediaIngestError('unsupported-format');
+    });
+
+    const paths = await prepareGedcomMedia(datasetWithFiles([url]), undefined, join(dir, 'tree.ged'), dir, {
+      download,
+      ingest,
+      logger,
+    });
+
+    expect(paths.size).toBe(0);
+    expect(logger.warn).toHaveBeenCalledWith(
+      'gedcom import: skipped unsupported media',
+      'https://example.com/…',
+      'unsupported-format',
+    );
+  });
+
+  it('converts a local image beside the GEDCOM', async () => {
+    const dir = await makeTempDir();
+    await writeFile(join(dir, 'photo.jpg'), Buffer.from([0xff, 0xd8, 0xff]));
+
+    const paths = await prepareGedcomMedia(datasetWithFiles(['photo.jpg']), undefined, join(dir, 'tree.ged'), dir, {
+      download: vi.fn(),
+      ingest: acceptMedia,
+      logger: makeLogger(),
+    });
+
+    expect(paths.get('photo.jpg')).toMatch(/^media\/[0-9a-f]{32}\.avif$/);
+  });
+
+  it('maps identical local contents to one hash file', async () => {
+    const dir = await makeTempDir();
+    const bytes = Buffer.from([0xff, 0xd8, 0xff]);
+    await writeFile(join(dir, 'a.jpg'), bytes);
+    await writeFile(join(dir, 'b.jpg'), bytes);
+
+    const paths = await prepareGedcomMedia(
+      datasetWithFiles(['a.jpg', 'b.jpg']),
+      undefined,
+      join(dir, 'tree.ged'),
+      dir,
+      { download: vi.fn(), ingest: acceptMedia, logger: makeLogger() },
+    );
+
+    expect(paths.get('a.jpg')).toBe(paths.get('b.jpg'));
+    expect(await readdir(join(dir, 'media'))).toHaveLength(1);
+  });
+
   it('does not copy local files beside a GEDZIP that does not bundle them', async () => {
     const dir = await makeTempDir();
     await writeFile(join(dir, 'secret.txt'), 'secret');
 
     const paths = await prepareGedcomMedia(datasetWithFiles(['secret.txt']), [], join(dir, 'tree.gdz'), dir, {
       download: vi.fn(),
+      ingest: acceptMedia,
       logger: makeLogger(),
     });
 
@@ -204,6 +301,8 @@ describe('prepareGedcomMedia', () => {
       prepareGedcomMedia(datasetWithFiles(urls), undefined, join(dir, 'tree.ged'), dir, {
         download,
         write,
+        ingest: acceptMedia,
+        name: uniqueNames(),
         logger: makeLogger(),
       }),
     ).rejects.toThrow('disk full');
@@ -228,6 +327,8 @@ describe('prepareGedcomMedia', () => {
       prepareGedcomMedia(datasetWithFiles([url]), undefined, join(dir, 'tree.ged'), dir, {
         download,
         write,
+        ingest: acceptMedia,
+        name: uniqueNames(),
         logger: makeLogger(),
       }),
     ).rejects.toThrow('disk full');

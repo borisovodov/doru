@@ -82,6 +82,27 @@ decisions about what we deliberately do **not** build, see
   it reads or deletes a file. Other historical media fields and technical
   facts (MIME, size, dimensions) are not persisted; MIME, size and image
   dimensions are derived from the file at read time.
+- New media accepts only JPEG and AVIF input. JPEG is decoded, auto-oriented
+  and stored as an AVIF copy; AVIF is validated and stored byte-for-byte.
+  Every ingress path (the add dialog, local GEDCOM files, GEDZIP entries and
+  remote URLs) runs the same ingest: the format is detected from the bytes and
+  checked by a decoder, so renaming a PDF or PNG cannot pass as an image. A
+  remote URL is judged by its Content-Type and bytes, never by its extension.
+  Unsupported files are logged and skipped.
+- New project files are content-addressed: the file name is the first 32 hex
+  characters of the SHA-256 of the stored AVIF plus `.avif`. Identical bytes
+  therefore share one file, and several `media` rows may point at the same
+  path. Deleting a row removes the file only when no other row references it.
+  Existing projects may still contain older UUID names and non-AVIF
+  displayable formats; they are left untouched.
+- The media add control offers a file picker and a direct link. URL media is
+  downloaded by the main process with the same content-type and byte checks
+  as remote GEDCOM media, then stored as a normal content-addressed AVIF copy;
+  the source URL is not persisted on the media record.
+- The renderer's `isImagePath` is a display capability, not the ingest policy:
+  it includes formats Chromium can render directly and excludes TIFF/HEIC,
+  which Electron cannot display. TIFF and HEIC are not accepted for new media
+  at this stage.
 - A media record can be linked to several targets. Detaching its last link
   removes the record; deleting a target removes only that target's links and
   keeps a media record that has no links left. Removing a file copy is

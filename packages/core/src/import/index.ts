@@ -1,1 +1,1 @@
-export { importGedcomDataset, type GedcomImportResult } from './gedcom';
+export { importGedcomDataset, type GedcomImportOptions, type GedcomImportResult } from './gedcom';

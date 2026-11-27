@@ -2,6 +2,7 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import sharp from 'sharp';
 import { mimeForPath, readMediaFileFacts } from '../src/main/mediaFacts';
 
 let dir = '';
@@ -57,6 +58,17 @@ describe('media file facts', () => {
     webp.writeUIntLE(800 - 1, 24, 3);
     webp.writeUIntLE(600 - 1, 27, 3);
     expect(await readMediaFileFacts(write('image.webp', webp))).toMatchObject({ width: 800, height: 600 });
+  });
+
+  it('reads AVIF dimensions', async () => {
+    const avif = await sharp({ create: { width: 640, height: 480, channels: 3, background: '#224466' } })
+      .avif()
+      .toBuffer();
+    await expect(readMediaFileFacts(write('image.avif', avif))).resolves.toMatchObject({
+      mime: 'image/avif',
+      width: 640,
+      height: 480,
+    });
   });
 
   it('does not open directories as image files', async () => {

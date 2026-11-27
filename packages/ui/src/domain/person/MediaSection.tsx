@@ -1,13 +1,19 @@
-import { isExternalMediaPath, isImagePath, type MediaLinkRecord, type MediaRecord } from '@doru/core/model';
+import {
+  isExternalMediaPath,
+  isImagePath,
+  mediaDisplayName,
+  type MediaLinkRecord,
+  type MediaRecord,
+} from '@doru/core/model';
 import { FileImage } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { nls } from '../../nls';
-import { Button } from '../../atoms/button/Button';
 import { EmptyText } from '../../atoms/feedback/EmptyText';
 import { InlineError } from '../../atoms/feedback/InlineError';
 import { AttachExisting } from '../../patterns/attach-existing/AttachExisting';
 import { MediaTile } from '../../patterns/media-tile/MediaTile';
 import { SectionCard } from '../../patterns/section-card/SectionCard';
+import { MediaAddControl } from '../media/MediaAddControl';
 import type { MediaWithPath } from './types';
 import styles from './MediaSection.module.css';
 
@@ -16,6 +22,7 @@ export interface MediaSectionApi {
   getMediaFor(targetType: string, targetId: string): Promise<MediaWithPath[]>;
   getAllMedia(): Promise<MediaWithPath[]>;
   addMediaToTarget(targetType: string, targetId: string): Promise<void>;
+  addMediaUrlToTarget(targetType: string, targetId: string, url: string): Promise<void>;
   attachMedia(link: MediaLinkRecord): Promise<void>;
   detachMedia(link: MediaLinkRecord): Promise<void>;
   deleteMedia(media: MediaRecord): Promise<void>;
@@ -62,6 +69,18 @@ export function MediaSection({
       await refresh();
       setAllMedia(mediaList(await api.getAllMedia()));
     } catch {
+      setMediaError(true);
+    }
+  };
+
+  const addUrl = async (url: string) => {
+    setMediaError(false);
+    await api.addMediaUrlToTarget(targetType, targetId, url);
+    try {
+      await refresh();
+      setAllMedia(mediaList(await api.getAllMedia()));
+    } catch {
+      // The record is committed; a stale list must not prompt a duplicate add.
       setMediaError(true);
     }
   };
@@ -134,7 +153,7 @@ export function MediaSection({
               item.absolutePath !== '' && isImagePath(item.path)
                 ? `doru-media://local/?path=${encodeURIComponent(item.absolutePath)}`
                 : '';
-            const label = item.title ?? (isExternalMediaPath(item.path) ? item.id : item.path);
+            const label = mediaDisplayName(item) ?? item.path;
             const badge = link?.primary === true ? nls.t('features.tree.media.primary') : undefined;
             return (
               <MediaTile
@@ -168,16 +187,14 @@ export function MediaSection({
         </div>
       )}
       <div className={styles['actions']}>
-        <Button variant="secondary" onClick={() => void add()}>
-          {nls.t('features.tree.media.add')}
-        </Button>
+        <MediaAddControl label={nls.t('features.tree.media.add')} onAddFiles={() => void add()} onAddUrl={addUrl} />
         <AttachExisting
           className={styles['attach']}
           label={nls.t('features.tree.media.attachExisting')}
           actionLabel={nls.t('features.tree.media.attach')}
           options={attachable.map((item) => ({
             id: item.id,
-            label: item.title ?? item.path,
+            label: mediaDisplayName(item) ?? item.path,
           }))}
           onAttach={attach}
         />

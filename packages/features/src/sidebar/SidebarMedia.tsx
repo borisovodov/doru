@@ -1,18 +1,12 @@
 import { useMemo } from 'react';
 import { FileImage } from 'lucide-react';
-import { isExternalMediaPath, isImagePath, type MediaRecord, type PersonRecord } from '@doru/core/model';
+import { isImagePath, mediaDisplayName, type MediaRecord, type PersonRecord } from '@doru/core/model';
 import { displayName } from '@doru/ui/domain';
 import { EntityRow, SideBarList } from '@doru/ui';
 import './sidebar.css';
 
 export interface SidebarMediaItem extends MediaRecord {
   absolutePath: string;
-}
-
-/** The file name part of a slash-separated project-relative path. */
-function fileName(path: string): string {
-  const parts = path.split('/');
-  return parts[parts.length - 1] ?? path;
 }
 
 /**
@@ -53,7 +47,7 @@ export function SidebarMedia({
                     },
                   }
                 : { icon: <FileImage size={15} aria-hidden="true" /> })}
-              title={item.title ?? (isExternalMediaPath(item.path) ? item.id : fileName(item.path) || item.id)}
+              title={mediaDisplayName(item) ?? '—'}
               subtitle={owner ?? null}
               onClick={() => onOpenMedia(item.id)}
             />

@@ -695,15 +695,38 @@ export interface MediaRecord extends RecordTimestamps {
   links?: MediaLinkRecord[] | undefined;
 }
 
-/** Media extensions the UI renders as images. */
-export const IMAGE_EXTENSIONS = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'heic', 'tiff'] as const;
+/**
+ * Media extensions the renderer can display directly. This is a capability
+ * list, not an ingestion policy: existing projects may still contain these
+ * files even though new media is stored as AVIF.
+ */
+export const IMAGE_EXTENSIONS = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp', 'avif'] as const;
+
+/** Input extensions accepted for new media; the stored copy is always AVIF. */
+export const MEDIA_INGEST_EXTENSIONS = ['jpg', 'jpeg', 'avif'] as const;
+
+/** The lower-case extension of a local path or URL, without query or fragment. */
+function mediaExtension(path: string | undefined): string | undefined {
+  if (!path) {
+    return undefined;
+  }
+  const normalized = path.replaceAll('\\', '/');
+  const query = isExternalMediaPath(path) ? normalized.search(/[?#]/) : -1;
+  const withoutQuery = query === -1 ? normalized : normalized.slice(0, query);
+  const segment = withoutQuery.slice(withoutQuery.lastIndexOf('/') + 1);
+  const dot = segment.lastIndexOf('.');
+  return dot > 0 ? segment.slice(dot + 1).toLowerCase() : undefined;
+}
 
 export function isImagePath(path: string | undefined): boolean {
-  if (!path) {
-    return false;
-  }
-  const dot = path.lastIndexOf('.');
-  return dot !== -1 && (IMAGE_EXTENSIONS as readonly string[]).includes(path.slice(dot + 1).toLowerCase());
+  const extension = mediaExtension(path);
+  return extension !== undefined && (IMAGE_EXTENSIONS as readonly string[]).includes(extension);
+}
+
+/** True for input files the media ingestion policy accepts. */
+export function isIngestMediaPath(path: string | undefined): boolean {
+  const extension = mediaExtension(path);
+  return extension !== undefined && (MEDIA_INGEST_EXTENSIONS as readonly string[]).includes(extension);
 }
 
 /** True when a stored path points inside the project's media folder. */
@@ -715,6 +738,104 @@ export function isProjectMediaPath(path: string): boolean {
 /** True when a stored path is an external URL rather than a project file. */
 export function isExternalMediaPath(path: string): boolean {
   return /^(?:https?|ftp|file):\/\//i.test(path.replaceAll('\\', '/'));
+}
+
+/**
+ * Normalizes a user-entered media link. A missing scheme becomes HTTPS;
+ * anything outside HTTP(S) (or an unparsable value) is rejected.
+ */
+export function normalizeMediaUrl(value: string): string | undefined {
+  const trimmed = value.trim();
+  if (trimmed === '') {
+    return undefined;
+  }
+  const candidate = trimmed.startsWith('//')
+    ? `https:${trimmed}`
+    : /^[a-z][a-z0-9+.-]*:\/\//i.test(trimmed)
+      ? trimmed
+      : `https://${trimmed}`;
+  try {
+    const url = new URL(candidate);
+    if (url.protocol !== 'http:' && url.protocol !== 'https:') {
+      return undefined;
+    }
+    return url.toString();
+  } catch {
+    return undefined;
+  }
+}
+
+/** The last non-empty segment of a slash-separated path, percent-decoded. */
+function lastMediaPathSegment(path: string): string | undefined {
+  const segments = path
+    .replaceAll('\\', '/')
+    .split('/')
+    .filter((segment) => segment !== '');
+  const last = segments[segments.length - 1];
+  if (last === undefined) {
+    return undefined;
+  }
+  try {
+    return decodeURIComponent(last);
+  } catch {
+    return last;
+  }
+}
+
+/**
+ * The file name part of a local path or URL, percent-decoded for display. A
+ * URL without a path falls back to its host name.
+ */
+export function mediaFileName(path: string): string | undefined {
+  if (isExternalMediaPath(path)) {
+    try {
+      const url = new URL(path);
+      return lastMediaPathSegment(url.pathname) ?? (url.hostname === '' ? undefined : url.hostname);
+    } catch {
+      return undefined;
+    }
+  }
+  return lastMediaPathSegment(path);
+}
+
+/** The file name without its last extension, or undefined when nothing is left. */
+function mediaTitleFromName(name: string): string | undefined {
+  const dot = name.lastIndexOf('.');
+  const title = (dot > 0 ? name.slice(0, dot) : name).trim();
+  return title === '' ? undefined : title;
+}
+
+/**
+ * A human title derived from a media file name or URL: `photos/family-1920.jpg`
+ * becomes `family-1920`. Host-only URLs keep the host as the title.
+ */
+export function mediaTitleFromPath(path: string): string | undefined {
+  if (isExternalMediaPath(path)) {
+    try {
+      const url = new URL(path);
+      const name = lastMediaPathSegment(url.pathname);
+      if (name === undefined) {
+        return url.hostname === '' ? undefined : url.hostname;
+      }
+      return mediaTitleFromName(name);
+    } catch {
+      return undefined;
+    }
+  }
+  const name = lastMediaPathSegment(path);
+  return name === undefined ? undefined : mediaTitleFromName(name);
+}
+
+/**
+ * The best human-readable name for a media record: its title, or the file
+ * name / URL fragment for records that never had one.
+ */
+export function mediaDisplayName(media: Pick<MediaRecord, 'title' | 'path'>): string | undefined {
+  const title = media.title?.trim();
+  if (title !== undefined && title !== '') {
+    return title;
+  }
+  return mediaFileName(media.path);
 }
 
 /**

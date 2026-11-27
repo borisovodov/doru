@@ -1,11 +1,21 @@
 import { BrowserWindow, dialog, type OpenDialogOptions } from 'electron';
 import { randomUUID } from 'node:crypto';
 import { rename, stat, unlink } from 'node:fs/promises';
-import { dirname, extname, join, resolve } from 'node:path';
-import { IMAGE_EXTENSIONS, MEDIA_DIR_NAME, type MediaRecord } from '@doru/core';
+import { basename, dirname, join, resolve } from 'node:path';
+import {
+  isIngestMediaPath,
+  MEDIA_DIR_NAME,
+  MEDIA_INGEST_EXTENSIONS,
+  mediaTitleFromPath,
+  type MediaRecord,
+} from '@doru/core';
 import { NodeFileSystem } from './filesystem';
 import { log } from './log';
+import { ingestMediaFile, MediaIngestError, type IngestedMedia } from './mediaIngest';
 import { readMediaFileFacts, type MediaFileFacts } from './mediaFacts';
+import { addStoredMedia, isMediaPathPending, type MediaTarget } from './mediaRecord';
+import { redactMediaUrl } from './mediaDownload';
+import { addRemoteMediaRecord, RemoteMediaError } from './mediaUrl';
 import { resolveMediaPath, symlinkChainResolvesTo } from './mediaPaths';
 import { nls } from './nls';
 import { ensureRuntime, runtimeFilePath } from './runtime';
@@ -67,7 +77,7 @@ async function withPath(projectPath: string, media: MediaRecord): Promise<MediaW
 async function pickMediaFiles(): Promise<string[]> {
   const dialogOptions: OpenDialogOptions = {
     properties: ['openFile', 'multiSelections'],
-    filters: [{ name: nls.t('media.dialog.addPhotos.filter'), extensions: [...IMAGE_EXTENSIONS] }],
+    filters: [{ name: nls.t('media.dialog.addPhotos.filter'), extensions: [...MEDIA_INGEST_EXTENSIONS] }],
     title: nls.t('media.dialog.addPhotos.title'),
   };
   const result =
@@ -96,57 +106,83 @@ export async function listAllMedia(projectPath: string): Promise<MediaWithPath[]
   );
 }
 
+/** Validates, converts and stores picked files, skipping rejected ones. */
+async function addPickedMedia(
+  projectPath: string,
+  sources: readonly string[],
+  target?: MediaTarget,
+): Promise<MediaWithPath[]> {
+  if (sources.length === 0) {
+    return [];
+  }
+  const { runtime } = await ensureRuntime(projectPath);
+  const mediaDir = join(dirname(runtimeFilePath(projectPath)), MEDIA_DIR_NAME);
+  await fs.mkdir(mediaDir);
+  const added: MediaWithPath[] = [];
+  for (const source of sources) {
+    if (!isIngestMediaPath(source)) {
+      log.warn('skipped media file', basename(source), 'unsupported-format');
+      continue;
+    }
+    let ingested: IngestedMedia;
+    try {
+      ingested = await ingestMediaFile(source);
+    } catch (error) {
+      if (error instanceof MediaIngestError) {
+        log.warn('skipped media file', basename(source), error.reason);
+        continue;
+      }
+      throw error;
+    }
+    const media = await addStoredMedia(mediaDir, ingested, mediaTitleFromPath(source), target, runtime.service);
+    added.push(await withPath(projectPath, media));
+  }
+  return added;
+}
+
+/** Downloads a direct image URL, converts it and stores a normal media record. */
+async function addRemoteMedia(projectPath: string, value: string, target?: MediaTarget): Promise<MediaWithPath> {
+  const { runtime } = await ensureRuntime(projectPath);
+  const mediaDir = join(dirname(runtimeFilePath(projectPath)), MEDIA_DIR_NAME);
+  await fs.mkdir(mediaDir);
+  try {
+    const media = await addRemoteMediaRecord(mediaDir, value, target, runtime.service);
+    return await withPath(projectPath, media);
+  } catch (error) {
+    if (error instanceof RemoteMediaError) {
+      log.warn('skipped media URL', redactMediaUrl(value), error.code);
+      throw new Error('media URL could not be added', { cause: error });
+    }
+    throw error;
+  }
+}
+
 export async function addMediaToTarget(
   projectPath: string,
   targetType: string,
   targetId: string,
 ): Promise<MediaWithPath[]> {
   const sources = await pickMediaFiles();
-  if (sources.length === 0) {
-    return [];
-  }
-  const { runtime } = await ensureRuntime(projectPath);
-  const mediaDir = join(dirname(runtimeFilePath(projectPath)), MEDIA_DIR_NAME);
-  await fs.mkdir(mediaDir);
-  const added: MediaWithPath[] = [];
-  for (const source of sources) {
-    const name = `${randomUUID()}${extname(source)}`;
-    const destination = join(mediaDir, name);
-    await fs.copyFile(source, destination);
-    const media: MediaRecord = {
-      id: randomUUID(),
-      path: join(MEDIA_DIR_NAME, name),
-      targetType,
-      targetId,
-    };
-    runtime.service.addMedia(media);
-    added.push(await withPath(projectPath, media));
-  }
-  return added;
+  return addPickedMedia(projectPath, sources, { targetType, targetId });
+}
+
+export async function addMediaUrlToTarget(
+  projectPath: string,
+  targetType: string,
+  targetId: string,
+  url: string,
+): Promise<MediaWithPath> {
+  return addRemoteMedia(projectPath, url, { targetType, targetId });
 }
 
 /** Picks files and creates media records without attaching them to a target. */
 export async function addStandaloneMedia(projectPath: string): Promise<MediaWithPath[]> {
   const sources = await pickMediaFiles();
-  if (sources.length === 0) {
-    return [];
-  }
-  const { runtime } = await ensureRuntime(projectPath);
-  const mediaDir = join(dirname(runtimeFilePath(projectPath)), MEDIA_DIR_NAME);
-  await fs.mkdir(mediaDir);
-  const added: MediaWithPath[] = [];
-  for (const source of sources) {
-    const name = `${randomUUID()}${extname(source)}`;
-    const destination = join(mediaDir, name);
-    await fs.copyFile(source, destination);
-    const media: MediaRecord = {
-      id: randomUUID(),
-      path: join(MEDIA_DIR_NAME, name),
-    };
-    runtime.service.addMedia(media);
-    added.push(await withPath(projectPath, media));
-  }
-  return added;
+  return addPickedMedia(projectPath, sources);
+}
+
+export async function addStandaloneMediaUrl(projectPath: string, url: string): Promise<MediaWithPath> {
+  return addRemoteMedia(projectPath, url);
 }
 
 /**
@@ -158,6 +194,10 @@ export async function addStandaloneMedia(projectPath: string): Promise<MediaWith
  * treated as derived assets, not undoable state.
  */
 export async function removeMediaFile(projectPath: string, media: MediaRecord): Promise<void> {
+  if (isMediaPathPending(media.path)) {
+    // An in-flight add may commit this file right after the delete.
+    return;
+  }
   const { runtime } = await ensureRuntime(projectPath);
   const references = (): Promise<Set<string>> =>
     resolveMediaReferencePaths(projectPath, () => runtime.service.listAllMedia());

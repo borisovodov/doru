@@ -17,6 +17,11 @@ directories:
   output: release
 files:
   - out/**
+# sharp ships native libvips binaries and .node loaders; they cannot be
+# loaded from inside app.asar.
+asarUnpack:
+  - node_modules/sharp/**
+  - node_modules/@img/**
 extraResources:
   - from: ../../themes
     to: themes

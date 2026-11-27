@@ -32,28 +32,19 @@ const DEFAULT_TIMEOUT_MS = 30_000;
 const DEFAULT_MAX_BYTES = 100 * 1024 * 1024;
 const DEFAULT_MAX_REDIRECTS = 5;
 
-const MIME_EXTENSIONS = new Map<string, string>([
-  ['application/pdf', '.pdf'],
-  ['audio/mpeg', '.mp3'],
-  ['audio/mp3', '.mp3'],
-  ['audio/ogg', '.ogg'],
-  ['audio/wav', '.wav'],
-  ['audio/x-wav', '.wav'],
-  ['image/gif', '.gif'],
-  ['image/heic', '.heic'],
-  ['image/jpeg', '.jpg'],
-  ['image/png', '.png'],
-  ['image/svg+xml', '.svg'],
-  ['image/tiff', '.tiff'],
-  ['image/webp', '.webp'],
-  ['text/plain', '.txt'],
-  ['video/mp4', '.mp4'],
-  ['video/webm', '.webm'],
-]);
-
 /** True for external URL schemes that are never local project files. */
 export function isExternalMediaUrl(value: string): boolean {
   return /^(?:https?|ftp|file):\/\//i.test(value.replaceAll('\\', '/'));
+}
+
+/** Keeps credentials, query tokens and fragments out of logs. */
+export function redactMediaUrl(value: string): string {
+  try {
+    const url = new URL(value);
+    return `${url.protocol}//${url.host}/…`;
+  } catch {
+    return 'invalid media URL';
+  }
 }
 
 /** True for URLs this importer is allowed to download. */
@@ -64,26 +55,6 @@ export function isDownloadableMediaUrl(value: string): boolean {
   } catch {
     return false;
   }
-}
-
-/** A safe file extension for a downloaded file; always starts with a dot. */
-export function remoteMediaExtension(contentType: string | undefined, url: string): string {
-  const mime = contentType?.split(';')[0]?.trim().toLowerCase();
-  const byMime = mime !== undefined ? MIME_EXTENSIONS.get(mime) : undefined;
-  if (byMime !== undefined) {
-    return byMime;
-  }
-  try {
-    const pathname = new URL(url).pathname;
-    const dot = pathname.lastIndexOf('.');
-    const extension = dot === -1 ? '' : pathname.slice(dot + 1).toLowerCase();
-    if (/^[a-z0-9]{1,8}$/.test(extension)) {
-      return `.${extension}`;
-    }
-  } catch {
-    // Fall through to the binary extension.
-  }
-  return '.bin';
 }
 
 function ipv4Parts(address: string): number[] | undefined {

@@ -52,6 +52,7 @@ const api = {
   getMediaFor: async () => [],
   getAllMedia: async () => [scan],
   addMediaToTarget: noop,
+  addMediaUrlToTarget: noop,
   attachMedia: noop,
   detachMedia: noop,
   deleteMedia: noop,

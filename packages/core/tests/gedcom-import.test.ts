@@ -180,8 +180,55 @@ describe('importGedcomDataset media', () => {
       cleanupRepo(fixture);
     }
   });
-});
 
+  it('keeps an external URL retained by the host with its media attachments', () => {
+    const fixture = makeRepo();
+    try {
+      const url = 'https://example.com/missing.jpg';
+      const dataset = parseDataset(
+        [
+          '0 HEAD',
+          '1 GEDC',
+          '2 VERS 7.0',
+          '0 @O1@ OBJE',
+          `1 FILE ${url}`,
+          '1 NOTE Retained note',
+          '0 @I1@ INDI',
+          '1 NAME Ivan /Petrov/',
+          '1 OBJE @O1@',
+          '0 TRLR',
+        ].join('\n'),
+      );
+      const result = importGedcomDataset(dataset, fixture.repo, new Map([[url, url]]), {
+        requirePreparedMedia: true,
+      });
+      expect(result.importedMedia).toBe(1);
+      const media = fixture.repo.listAllMedia()[0]!;
+      expect(media.path).toBe(url);
+      expect(fixture.repo.listNotesFor('media', media.id).map((note) => note.text)).toEqual(['Retained note']);
+
+      const person = fixture.repo.listAllPersons()[0]!;
+      expect(fixture.repo.listAttachmentsFor('person', person.id).mediaLinks).toHaveLength(1);
+    } finally {
+      cleanupRepo(fixture);
+    }
+  });
+
+  it('skips media the host did not prepare when required', () => {
+    const fixture = makeRepo();
+    try {
+      const dataset = parseDataset(MEDIA);
+      const result = importGedcomDataset(dataset, fixture.repo, new Map(), { requirePreparedMedia: true });
+      expect(result.importedMedia).toBe(0);
+      expect(fixture.repo.listAllMedia()).toEqual([]);
+
+      const person = fixture.repo.listAllPersons()[0]!;
+      expect(fixture.repo.listAttachmentsFor('person', person.id).mediaLinks).toEqual([]);
+    } finally {
+      cleanupRepo(fixture);
+    }
+  });
+});
 describe('importGedcomDataset duplicate note references', () => {
   it('copies a shared note once per target when it is referenced twice', () => {
     const fixture = makeRepo();

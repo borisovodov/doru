@@ -3,6 +3,7 @@ import { FileImage } from 'lucide-react';
 import {
   isExternalMediaPath,
   isImagePath,
+  mediaDisplayName,
   type MediaLinkRecord,
   type MediaRecord,
   type SourceRecord,
@@ -306,6 +307,7 @@ function MediaTabBody({
 
   const external = isExternalMediaPath(record.path);
   const hasPreview = !external && record.absolutePath !== '' && isImagePath(record.path);
+  const displayName = mediaDisplayName({ title, path: record.path });
   return (
     <EntityTab onBlur={autoSave.onBlur}>
       <EntityViewCard
@@ -314,13 +316,13 @@ function MediaTabBody({
             <img
               className="media-tab-preview"
               src={`doru-media://local/?path=${encodeURIComponent(record.absolutePath)}`}
-              alt={title || record.title || ''}
+              alt={displayName ?? ''}
             />
           ) : (
             <FileImage size={20} aria-hidden="true" />
           )
         }
-        title={title.trim() || '—'}
+        title={displayName ?? '—'}
         subtitle={null}
       />
       <AutoSaveError failed={autoSave.failed} retryDisabled={autoSave.pendingDelete} onRetry={autoSave.retry} />
