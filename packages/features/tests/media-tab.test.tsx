@@ -413,6 +413,45 @@ describe('MediaTab', () => {
     expect(within(related).getByText('Moscow')).toBeInTheDocument();
   });
 
+  it('keeps committed links that the picker had not shown', async () => {
+    const shownLink = { id: 'L1', mediaId: 'M1', targetType: 'place', targetId: 'PL1' };
+    const hiddenLink = { id: 'L2', mediaId: 'M1', targetType: 'place', targetId: 'PL2' };
+    const media = { id: 'M1', title: 'Photo', path: 'media/a.jpg', absolutePath: '' };
+    const detachMedia = vi.fn(async () => undefined);
+    const api = stubApi<MediaAdminApi>({
+      getMedia: async () => ({ ...media, links: [shownLink, hiddenLink] }),
+      getMediaFor: async () => [],
+      getAllMedia: async () => [],
+      detachMedia,
+    });
+    renderUi(
+      <TargetDirectoryProvider
+        data={{
+          ...targetData,
+          places: [
+            { id: 'PL1', names: [{ id: 'PN1', kind: 'official', position: 0, value: 'Moscow' }] },
+            { id: 'PL2', names: [{ id: 'PN2', kind: 'official', position: 0, value: 'Kazan' }] },
+          ],
+        }}
+      >
+        <MediaTab
+          entityId="M1"
+          media={[{ ...media, links: [shownLink] }]}
+          api={api}
+          attachmentsApi={attachmentsStub()}
+          sources={[]}
+          onClose={vi.fn()}
+        />
+      </TargetDirectoryProvider>,
+    );
+
+    const related = screen.getByRole('region', { name: nls.t('features.tasks.target') });
+    expect(within(related).queryByText('Kazan')).not.toBeInTheDocument();
+    fireEvent.click(within(related).getByRole('button', { name: nls.t('features.targets.remove') }));
+    await waitFor(() => expect(detachMedia).toHaveBeenCalledWith(shownLink));
+    expect(detachMedia).not.toHaveBeenCalledWith(hiddenLink);
+  });
+
   it('shows existing links and detaches a removed one', async () => {
     const link = { id: 'L1', mediaId: 'M1', targetType: 'place', targetId: 'PL1' };
     const detachMedia = vi.fn(async () => undefined);

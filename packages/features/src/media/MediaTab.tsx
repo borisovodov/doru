@@ -306,7 +306,7 @@ function MediaTabBody({
     deletion.deleteEntity();
   };
 
-  const updateRelatedTargets = async (next: TargetRef[]): Promise<void> => {
+  const updateRelatedTargets = async (previous: TargetRef[], next: TargetRef[]): Promise<void> => {
     if (linkPending) {
       return;
     }
@@ -320,9 +320,12 @@ function MediaTabBody({
       const currentLinks = current?.links ?? record.links ?? [];
       const key = (target: TargetRef) => `${target.targetType}\u0000${target.targetId}`;
       const currentKeys = new Set(currentLinks.map((link) => key(link)));
+      const previousKeys = new Set(previous.map(key));
       const nextKeys = new Set(next.map(key));
       const added = next.filter((target) => !currentKeys.has(key(target)));
-      const removed = currentLinks.filter((link) => !nextKeys.has(key(link)));
+      // Detach only links that were visible before this edit; committed links
+      // not shown by the picker must stay attached.
+      const removed = currentLinks.filter((link) => previousKeys.has(key(link)) && !nextKeys.has(key(link)));
       if (added.length === 0 && removed.length === 0) {
         return;
       }
@@ -400,7 +403,7 @@ function MediaTabBody({
         <TargetPicker
           allowedTypes={MEDIA_LINK_TARGET_TYPES}
           value={relatedTargets}
-          onChange={(next) => void updateRelatedTargets(next)}
+          onChange={(next) => void updateRelatedTargets(relatedTargets, next)}
           disabled={linkPending}
           ariaLabel={nls.t('features.tasks.target')}
         />
