@@ -283,4 +283,41 @@ describe('AttachmentsPanel contacts', () => {
     expect(await screen.findByText('Remote portrait')).toBeInTheDocument();
     expect(document.querySelector('img')).toBeNull();
   });
+
+  it('labels media without a title by file name or URL fragment', async () => {
+    const external: MediaWithPath = {
+      id: 'M1',
+      path: 'https://example.com/photos/anna.jpg?token=1',
+      absolutePath: '',
+    };
+    const local: MediaWithPath = {
+      id: 'M2',
+      path: 'media/census.jpg',
+      absolutePath: '/demo/census.jpg',
+    };
+    renderUi(
+      <MediaSection
+        targetType="person"
+        targetId="P1"
+        media={[external, local]}
+        api={{
+          getMediaFor: async () => [],
+          getAllMedia: async () => [],
+          addMediaToTarget: async () => undefined,
+          attachMedia: async () => undefined,
+          detachMedia: async () => undefined,
+          deleteMedia: async () => undefined,
+        }}
+        refresh={async () => undefined}
+        onOpenMedia={vi.fn()}
+      />,
+    );
+
+    expect(
+      await screen.findByRole('button', { name: `${nls.t('features.tree.media.open')}: anna.jpg` }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: `${nls.t('features.tree.media.open')}: census.jpg` }),
+    ).toBeInTheDocument();
+  });
 });

@@ -14,7 +14,7 @@ import type {
   TitleRecord,
   TaskRecord,
 } from '@doru/core';
-import { placeName, TASK_LINK_TARGET_TYPES } from '@doru/core/model';
+import { mediaDisplayName, placeName, TASK_LINK_TARGET_TYPES } from '@doru/core/model';
 import { displayName, factOwnerName, familyLabel, formatAddress, formatDate } from '../format/format';
 
 /**
@@ -131,7 +131,7 @@ export function taskTargetOptions(type: string, data: TaskTargetData): TaskTarge
         label: `${sourceById.get(citation.sourceId)?.title ?? citation.sourceId} · ${citation.targetType}`,
       }));
     case 'media':
-      return data.media.map((media) => ({ id: media.id, label: mediaLabel(media) }));
+      return data.media.map((media) => ({ id: media.id, label: mediaDisplayName(media) ?? media.path }));
     case 'place':
       return data.places.map((place) => ({ id: place.id, label: placeName(place) }));
     case 'place_name':
@@ -237,10 +237,6 @@ function nameLabel(name: PersonName): string {
   }
   const pieces = [name.given, name.surname].filter((part): part is string => part !== undefined && part !== '');
   return pieces.length > 0 ? pieces.join(' ') : name.id;
-}
-
-function mediaLabel(media: MediaRecord): string {
-  return media.title ?? media.path;
 }
 
 function truncate(text: string): string {

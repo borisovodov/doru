@@ -1,4 +1,10 @@
-import { isExternalMediaPath, isImagePath, type MediaLinkRecord, type MediaRecord } from '@doru/core/model';
+import {
+  isExternalMediaPath,
+  isImagePath,
+  mediaDisplayName,
+  type MediaLinkRecord,
+  type MediaRecord,
+} from '@doru/core/model';
 import { FileImage } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { nls } from '../../nls';
@@ -134,7 +140,7 @@ export function MediaSection({
               item.absolutePath !== '' && isImagePath(item.path)
                 ? `doru-media://local/?path=${encodeURIComponent(item.absolutePath)}`
                 : '';
-            const label = item.title ?? (isExternalMediaPath(item.path) ? item.id : item.path);
+            const label = mediaDisplayName(item) ?? item.path;
             const badge = link?.primary === true ? nls.t('features.tree.media.primary') : undefined;
             return (
               <MediaTile
@@ -177,7 +183,7 @@ export function MediaSection({
           actionLabel={nls.t('features.tree.media.attach')}
           options={attachable.map((item) => ({
             id: item.id,
-            label: item.title ?? item.path,
+            label: mediaDisplayName(item) ?? item.path,
           }))}
           onAttach={attach}
         />

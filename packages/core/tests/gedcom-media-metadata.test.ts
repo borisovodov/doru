@@ -72,6 +72,39 @@ describe('media metadata', () => {
     }
   });
 
+  it('derives a media title from FILE when no TITL exists', () => {
+    const fixture = makeRepo();
+    try {
+      const parsed = parseDataset(
+        [
+          '0 HEAD',
+          '1 GEDC',
+          '2 VERS 7.0',
+          '0 @O1@ OBJE',
+          '1 FILE photos/family-1920.jpg',
+          '0 @O2@ OBJE',
+          '1 FILE photos/a.jpg',
+          '2 TITL File title',
+          '1 TITL Record title',
+          '0 @O3@ OBJE',
+          '1 FILE photos/record.jpg',
+          '1 TITL Record title',
+          '0 @O4@ OBJE',
+          '1 FILE https://example.com/photos/Portrait%20of%20Anna.jpg?token=1',
+          '0 TRLR',
+        ].join('\n'),
+      );
+      importGedcomDataset(parsed, fixture.repo);
+      const byPath = new Map(fixture.repo.listAllMedia().map((media) => [media.path, media]));
+      expect(byPath.get('photos/family-1920.jpg')?.title).toBe('family-1920');
+      expect(byPath.get('photos/a.jpg')?.title).toBe('File title');
+      expect(byPath.get('photos/record.jpg')?.title).toBe('Record title');
+      expect(byPath.get('https://example.com/photos/Portrait%20of%20Anna.jpg?token=1')?.title).toBe('Portrait of Anna');
+    } finally {
+      cleanupRepo(fixture);
+    }
+  });
+
   it('imports inline crop and primary flags on a media link', () => {
     const fixture = makeRepo();
     try {

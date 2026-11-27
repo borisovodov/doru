@@ -717,6 +717,79 @@ export function isExternalMediaPath(path: string): boolean {
   return /^(?:https?|ftp|file):\/\//i.test(path.replaceAll('\\', '/'));
 }
 
+/** The last non-empty segment of a slash-separated path, percent-decoded. */
+function lastMediaPathSegment(path: string): string | undefined {
+  const segments = path
+    .replaceAll('\\', '/')
+    .split('/')
+    .filter((segment) => segment !== '');
+  const last = segments[segments.length - 1];
+  if (last === undefined) {
+    return undefined;
+  }
+  try {
+    return decodeURIComponent(last);
+  } catch {
+    return last;
+  }
+}
+
+/**
+ * The file name part of a local path or URL, percent-decoded for display. A
+ * URL without a path falls back to its host name.
+ */
+export function mediaFileName(path: string): string | undefined {
+  if (isExternalMediaPath(path)) {
+    try {
+      const url = new URL(path);
+      return lastMediaPathSegment(url.pathname) ?? (url.hostname === '' ? undefined : url.hostname);
+    } catch {
+      return undefined;
+    }
+  }
+  return lastMediaPathSegment(path);
+}
+
+/** The file name without its last extension, or undefined when nothing is left. */
+function mediaTitleFromName(name: string): string | undefined {
+  const dot = name.lastIndexOf('.');
+  const title = (dot > 0 ? name.slice(0, dot) : name).trim();
+  return title === '' ? undefined : title;
+}
+
+/**
+ * A human title derived from a media file name or URL: `photos/family-1920.jpg`
+ * becomes `family-1920`. Host-only URLs keep the host as the title.
+ */
+export function mediaTitleFromPath(path: string): string | undefined {
+  if (isExternalMediaPath(path)) {
+    try {
+      const url = new URL(path);
+      const name = lastMediaPathSegment(url.pathname);
+      if (name === undefined) {
+        return url.hostname === '' ? undefined : url.hostname;
+      }
+      return mediaTitleFromName(name);
+    } catch {
+      return undefined;
+    }
+  }
+  const name = lastMediaPathSegment(path);
+  return name === undefined ? undefined : mediaTitleFromName(name);
+}
+
+/**
+ * The best human-readable name for a media record: its title, or the file
+ * name / URL fragment for records that never had one.
+ */
+export function mediaDisplayName(media: Pick<MediaRecord, 'title' | 'path'>): string | undefined {
+  const title = media.title?.trim();
+  if (title !== undefined && title !== '') {
+    return title;
+  }
+  return mediaFileName(media.path);
+}
+
 /**
  * True when a media card should appear in the UI: a project-relative file or
  * an external URL. External cards render a silent placeholder and are never

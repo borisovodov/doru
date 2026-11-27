@@ -2,7 +2,7 @@ import { BrowserWindow, dialog, type OpenDialogOptions } from 'electron';
 import { randomUUID } from 'node:crypto';
 import { rename, stat, unlink } from 'node:fs/promises';
 import { dirname, extname, join, resolve } from 'node:path';
-import { IMAGE_EXTENSIONS, MEDIA_DIR_NAME, type MediaRecord } from '@doru/core';
+import { IMAGE_EXTENSIONS, MEDIA_DIR_NAME, mediaTitleFromPath, type MediaRecord } from '@doru/core';
 import { NodeFileSystem } from './filesystem';
 import { log } from './log';
 import { readMediaFileFacts, type MediaFileFacts } from './mediaFacts';
@@ -113,8 +113,10 @@ export async function addMediaToTarget(
     const name = `${randomUUID()}${extname(source)}`;
     const destination = join(mediaDir, name);
     await fs.copyFile(source, destination);
+    const title = mediaTitleFromPath(source);
     const media: MediaRecord = {
       id: randomUUID(),
+      ...(title !== undefined ? { title } : {}),
       path: join(MEDIA_DIR_NAME, name),
       targetType,
       targetId,
@@ -139,8 +141,10 @@ export async function addStandaloneMedia(projectPath: string): Promise<MediaWith
     const name = `${randomUUID()}${extname(source)}`;
     const destination = join(mediaDir, name);
     await fs.copyFile(source, destination);
+    const title = mediaTitleFromPath(source);
     const media: MediaRecord = {
       id: randomUUID(),
+      ...(title !== undefined ? { title } : {}),
       path: join(MEDIA_DIR_NAME, name),
     };
     runtime.service.addMedia(media);

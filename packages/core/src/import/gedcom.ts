@@ -35,7 +35,7 @@ import type {
   TodoStructure,
 } from '@doru/gedcom';
 import type { TreeRepository } from '../db/repository';
-import { mergeDateBounds, normalizeTaskPriority, normalizeTaskStatus } from '../model/types';
+import { mediaTitleFromPath, mergeDateBounds, normalizeTaskPriority, normalizeTaskStatus } from '../model/types';
 import { detectParentCycles } from '../validate/validator';
 import type {
   AssociationRecord,
@@ -2180,7 +2180,9 @@ function importMediaRecords(records: GedcomRecord[], ctx: ImportContext): void {
     }
     for (const file of files) {
       const id = crypto.randomUUID();
-      const title = file.title !== undefined && file.title !== '' ? file.title : record.title;
+      const title =
+        [file.title, record.title].find((value) => value !== undefined && value !== '') ??
+        mediaTitleFromPath(file.payload);
       const date = record.date !== undefined ? mapDate(record.date) : undefined;
       ctx.repo.insertMedia({
         id,

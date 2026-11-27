@@ -1,3 +1,4 @@
+import { mediaDisplayName } from '@doru/core/model';
 import { MediaTab } from '@doru/features/media';
 import { ENTITY_TAB_PREFIX, type TabDescriptor } from './types';
 
@@ -9,7 +10,7 @@ export const mediaTab: TabDescriptor = {
   label: (id, context) => {
     const mediaId = id.slice(prefix.length);
     const item = context.media.find((entry) => entry.id === mediaId);
-    return item?.title ?? item?.path ?? '—';
+    return item === undefined ? '—' : (mediaDisplayName(item) ?? '—');
   },
   render: (id, context) => (
     <MediaTab
