@@ -10,10 +10,10 @@ test('the media sidebar offers files and links', async () => {
   try {
     await openProject(page, project);
     await page.getByRole('button', { name: 'Media', exact: true }).click();
-    await page.getByRole('button', { name: 'Add media…' }).click();
+    await page.getByRole('button', { name: 'Add media' }).click();
 
     await expect(page.getByRole('menuitem', { name: 'From computer…' })).toBeVisible();
-    await page.getByRole('menuitem', { name: 'From link…' }).click();
+    await page.getByRole('menuitem', { name: 'From link' }).click();
     await expect(page.getByRole('textbox', { name: 'Link' })).toBeVisible();
     await expect(page.getByText('Direct link to a JPEG or AVIF image.')).toBeVisible();
     await page.getByRole('button', { name: 'Cancel' }).click();

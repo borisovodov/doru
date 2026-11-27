@@ -4,7 +4,7 @@ import { MediaAddControl } from '../src/domain/media/MediaAddControl';
 import { nls } from '../src/nls';
 import { renderUi } from '../../../test/ui/harness';
 
-const filesLabel = 'Add media…';
+const filesLabel = 'Add media';
 
 describe('MediaAddControl', () => {
   it('offers the file picker and the link form', () => {

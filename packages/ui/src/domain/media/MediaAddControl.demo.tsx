@@ -7,7 +7,7 @@ const meta = {
   title: 'Domain/MediaAddControl',
   component: MediaAddControl,
   args: {
-    label: 'Add media…',
+    label: 'Add media',
     onAddFiles: () => undefined,
     onAddUrl: noop,
   },
