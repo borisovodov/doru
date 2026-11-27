@@ -10,9 +10,6 @@
   flex: 1;
   min-height: 0;
   background: var(--doru-bg-canvas);
-
-  --doru-line-paternal: var(--doru-info);
-  --doru-line-maternal: #c98ba0;
 }
 
 /* ── Overlay panels ───────────────────────────────────────────────── */

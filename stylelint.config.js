@@ -1,3 +1,7 @@
+// Raw color literals are banned outside the token layer: a component that
+// hardcodes a color stops following the selected theme.
+const colorLiteral = /(#[0-9a-f]{3,8}\b|\b(?:rgba?|hsla?|hwb|lab|lch|oklab|oklch|color)\(|\blight-dark\()/i;
+
 export default {
   extends: ['stylelint-config-standard'],
   ignoreFiles: [
@@ -26,5 +30,31 @@ export default {
         ],
       },
     ],
+    // Colors come from --doru-* tokens. The token layer and the website
+    // palette are the only places that may define literal colors.
+    'declaration-property-value-disallowed-list': {
+      '/^--/': [colorLiteral],
+      '/color$/': [colorLiteral],
+      '/^background/': [colorLiteral],
+      '/^border/': [colorLiteral],
+      '/^outline/': [colorLiteral],
+      '/^box-shadow$/': [colorLiteral],
+      '/^text-shadow$/': [colorLiteral],
+      '/^text-decoration$/': [colorLiteral],
+      '/^text-emphasis$/': [colorLiteral],
+      '/^column-rule$/': [colorLiteral],
+      '/^(fill|stroke)$/': [colorLiteral],
+      '/^filter$/': [colorLiteral],
+    },
+    'color-named': 'never',
   },
+  overrides: [
+    {
+      files: ['packages/ui/src/styles/tokens.css', 'apps/website/**'],
+      rules: {
+        'declaration-property-value-disallowed-list': null,
+        'color-named': null,
+      },
+    },
+  ],
 };
