@@ -16,7 +16,7 @@ const add = (
 
 export const Default: DemoCase = {
   render: () => (
-    <div style={{ width: 260, padding: 'var(--doru-space-4)' }}>
+    <div style={{ width: 260, padding: 'var(--doru-space-6)' }}>
       <SideBarHeading title="Tasks" actions={add} />
     </div>
   ),
@@ -24,7 +24,7 @@ export const Default: DemoCase = {
 
 export const WithoutActions: DemoCase = {
   render: () => (
-    <div style={{ width: 260, padding: 'var(--doru-space-4)' }}>
+    <div style={{ width: 260, padding: 'var(--doru-space-6)' }}>
       <SideBarHeading title="Search" />
     </div>
   ),

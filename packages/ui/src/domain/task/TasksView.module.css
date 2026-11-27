@@ -31,12 +31,12 @@
 .taskOpen {
   display: flex;
   flex-direction: column;
-  gap: 3px;
+  gap: var(--doru-space-2);
   width: 100%;
   min-width: 0;
   box-sizing: border-box;
   margin: 0;
-  padding: var(--doru-space-2);
+  padding: var(--doru-space-3);
   border: none;
   background: transparent;
   color: inherit;
@@ -65,13 +65,13 @@
 .taskRowMeta {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--doru-space-1);
+  gap: var(--doru-space-2);
 }
 
 .taskChip {
   display: inline-block;
   align-self: flex-start;
-  padding: 0 var(--doru-space-2);
+  padding: 0 var(--doru-space-3);
   background: var(--doru-accent-alpha);
   border-radius: 999px;
   font-size: 11px;
@@ -82,7 +82,7 @@
 }
 
 .taskChipLink {
-  margin: 0 var(--doru-space-2) var(--doru-space-2);
+  margin: 0 var(--doru-space-3) var(--doru-space-3);
   cursor: pointer;
 }
 

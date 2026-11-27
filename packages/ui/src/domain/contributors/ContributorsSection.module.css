@@ -1,11 +1,11 @@
 .chips {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
+  gap: var(--doru-space-3);
 }
 
 .kind {
-  margin-inline-start: var(--doru-space-2);
+  margin-inline-start: var(--doru-space-3);
   color: var(--doru-fg);
   font-size: var(--doru-font-size-xs);
 }

@@ -110,6 +110,12 @@ non-goals: [docs/decisions.md](docs/decisions.md).
   the component gallery (`npm run gallery`), and Playwright tests select by
   role and accessible name, never by CSS class or `data-testid`. See
   docs/design-system.md.
+- **CSS uses design tokens.** Colors come from `--doru-*`; spacing and inset
+  values come from the `--doru-space-*` scale (2px steps). `npm run lint:css`
+  rejects raw colors and literal positive px values in the app CSS. Add a
+  scale step instead of writing a pixel value; keep disable comments for
+  genuinely non-token values (the JS-driven sash fallbacks are the current
+  exception).
 - **Compose `@doru/ui` components before raw HTML.** In app and feature code,
   reach for the library before writing a control: `IconButton` for icon-only
   actions (its required `label` is also the tooltip), `Button` for text
