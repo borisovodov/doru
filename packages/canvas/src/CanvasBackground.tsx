@@ -1,4 +1,4 @@
-import { clamp } from './geometry';
+import { dotPattern } from './dotPattern';
 import { useCanvasViewport } from './useCanvas';
 import styles from './canvas.module.css';
 
@@ -18,7 +18,8 @@ export interface CanvasBackgroundProps {
   /**
    * On-screen gap at which the pattern is fully opaque. Below it the pattern
    * fades toward `minOpacity` as the gap approaches `minGap`, so a dense grid
-   * never turns into visual noise. Omit to keep a constant opacity.
+   * never turns into visual noise. Omit to keep a constant opacity. Values at
+   * or below `minGap` disable the fade.
    */
   fadeGap?: number | undefined;
   /** Opacity floor for the fade. Defaults to 0 (fully transparent). */
@@ -38,14 +39,14 @@ export function CanvasBackground({
   className,
 }: CanvasBackgroundProps) {
   const viewport = useCanvasViewport();
-  const zoom = Math.max(0.1, viewport.zoom);
-  const gapPx = Math.max(gap * zoom, minGap);
-  const radiusPx = Math.max(minSize / 2, (size * zoom) / 2);
-  const opacityFloor = clamp(minOpacity, 0, 1);
-  const opacity =
-    fadeGap === undefined || fadeGap <= minGap
-      ? 1
-      : opacityFloor + (1 - opacityFloor) * clamp((gapPx - minGap) / (fadeGap - minGap), 0, 1);
+  const { gapPx, radiusPx, opacity } = dotPattern(viewport.zoom, {
+    gap,
+    size,
+    minGap,
+    minSize,
+    fadeGap,
+    minOpacity,
+  });
   return (
     <div
       aria-hidden="true"
