@@ -2,19 +2,19 @@
 
 .notices-view {
   max-width: 720px;
-  padding: 8px 16px 24px;
+  padding: var(--doru-space-4) var(--doru-space-8) var(--doru-space-12);
   user-select: none;
 }
 
 .notices-intro {
-  margin: 4px 0 16px;
+  margin: var(--doru-space-2) 0 var(--doru-space-8);
   font-size: 12px;
   color: var(--doru-fg-muted);
   user-select: text;
 }
 
 .notices-entry {
-  margin-top: 24px;
+  margin-top: var(--doru-space-12);
 }
 
 .notices-name {
@@ -32,7 +32,7 @@ a.notices-name:hover {
 }
 
 .notices-text {
-  margin-top: 8px;
+  margin-top: var(--doru-space-4);
 }
 
 .notices-text summary {
@@ -43,8 +43,8 @@ a.notices-name:hover {
 }
 
 .notices-text pre {
-  margin: 8px 0 0;
-  padding: 10px 12px;
+  margin: var(--doru-space-4) 0 0;
+  padding: var(--doru-space-5) var(--doru-space-6);
   box-sizing: border-box;
   max-height: 320px;
   overflow: auto;

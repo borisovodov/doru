@@ -10,13 +10,13 @@
 
 .popup {
   position: absolute;
-  top: calc(100% + 4px);
+  top: calc(100% + var(--doru-space-2));
   left: 0;
   z-index: 200;
   min-width: 240px;
   max-height: calc(100vh - 56px);
   overflow: auto;
-  padding: 4px;
+  padding: var(--doru-space-2);
   background: var(--doru-bg-popover);
   border: 1px solid var(--doru-border);
   border-radius: var(--doru-radius-md);
@@ -24,7 +24,7 @@
 }
 
 .groupLabel {
-  padding: 6px 10px 2px;
+  padding: var(--doru-space-3) var(--doru-space-5) var(--doru-space-1);
   font-size: var(--doru-font-size-xs);
   text-transform: uppercase;
   letter-spacing: 0.04em;
@@ -36,10 +36,10 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 24px;
+  gap: var(--doru-space-12);
   width: 100%;
   border: none;
-  padding: 6px 10px;
+  padding: var(--doru-space-3) var(--doru-space-5);
   background: transparent;
   border-radius: var(--doru-radius-sm);
   color: var(--doru-fg);
@@ -60,6 +60,6 @@
 
 .separator {
   height: 1px;
-  margin: 4px 6px;
+  margin: var(--doru-space-2) var(--doru-space-3);
   background: var(--doru-border);
 }

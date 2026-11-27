@@ -2,7 +2,7 @@
 
 .settings-view {
   max-width: 560px;
-  padding: 8px 16px;
+  padding: var(--doru-space-4) var(--doru-space-8);
   user-select: none;
 }
 
@@ -10,8 +10,8 @@
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  gap: 8px;
-  margin-top: 28px;
+  gap: var(--doru-space-4);
+  margin-top: var(--doru-space-14);
 }
 
 .settings-section h3 {
@@ -32,7 +32,7 @@
 .settings-field {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: var(--doru-space-2);
   width: 100%;
 }
 
@@ -44,11 +44,11 @@
 .settings-doru-progress {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--doru-space-4);
 }
 
 .settings-test-row {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--doru-space-4);
 }

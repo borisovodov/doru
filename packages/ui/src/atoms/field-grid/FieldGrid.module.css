@@ -1,6 +1,6 @@
 .grid {
   display: grid;
-  gap: 8px 12px;
+  gap: var(--doru-space-4) var(--doru-space-6);
   min-width: 0;
 }
 

@@ -29,25 +29,25 @@
 
 .sm {
   height: var(--doru-control-height-sm);
-  padding: 0 8px;
+  padding: 0 var(--doru-space-4);
   border-radius: var(--doru-radius-sm);
   font-size: var(--doru-font-size-sm);
 }
 
 .md {
   height: var(--doru-control-height);
-  padding: 0 10px;
+  padding: 0 var(--doru-space-5);
 }
 
 .lg {
   height: var(--doru-control-height-lg);
-  padding: 0 12px;
+  padding: 0 var(--doru-space-6);
 }
 
 .textarea {
   height: auto;
   min-height: 72px;
-  padding: 8px 10px;
+  padding: var(--doru-space-4) var(--doru-space-5);
   line-height: 1.4;
   resize: none;
 }
@@ -55,7 +55,7 @@
 .checkboxRow {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--doru-space-3);
   color: var(--doru-fg);
   font-size: var(--doru-font-size);
   cursor: pointer;

@@ -1,13 +1,13 @@
 .namesSection {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: var(--doru-space-4);
 }
 
 .head {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--doru-space-3);
 }
 
 .label {
@@ -23,33 +23,33 @@
 .variants {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: var(--doru-space-3);
   align-items: flex-start;
 }
 
 .variant {
   align-self: stretch;
-  margin-left: 12px;
-  padding-left: 10px;
+  margin-left: var(--doru-space-6);
+  padding-left: var(--doru-space-5);
   border-left: 2px solid var(--doru-border);
 }
 
 .variantHead {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--doru-space-3);
 }
 
 .extraParts {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: var(--doru-space-3);
 }
 
 .partFieldRow {
   display: flex;
   align-items: flex-end;
-  gap: 6px;
+  gap: var(--doru-space-3);
 }
 
 .partFieldRow > :first-child {
@@ -61,7 +61,7 @@
 .addPartRow {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--doru-space-3);
 }
 
 .extraPartRow > :first-child,

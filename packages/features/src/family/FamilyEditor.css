@@ -3,7 +3,7 @@
 .family-link-head {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--doru-space-4);
 }
 
 .family-link-name {

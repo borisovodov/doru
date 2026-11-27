@@ -3,9 +3,9 @@
 .citation-editor {
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  margin: 6px 0 10px;
-  padding: 10px;
+  gap: var(--doru-space-4);
+  margin: var(--doru-space-3) 0 var(--doru-space-5);
+  padding: var(--doru-space-5);
   background: var(--doru-bg-input);
   border: 1px solid var(--doru-border);
   border-radius: var(--doru-radius-md);
@@ -14,7 +14,7 @@
 .citation-subsection {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: var(--doru-space-3);
 }
 
 .citation-subsection h4 {
@@ -27,8 +27,8 @@
 .citation-text-block {
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  padding: 6px;
+  gap: var(--doru-space-3);
+  padding: var(--doru-space-3);
   background: var(--doru-bg-input);
   border: 1px solid var(--doru-border);
   border-radius: var(--doru-radius-md);
@@ -40,7 +40,7 @@
 
 .citation-sub-row {
   display: flex;
-  gap: 6px;
+  gap: var(--doru-space-3);
   align-items: center;
 }
 
@@ -52,6 +52,6 @@
 
 .citation-actions {
   display: flex;
-  gap: 8px;
+  gap: var(--doru-space-4);
   align-items: center;
 }

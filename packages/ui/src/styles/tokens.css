@@ -38,11 +38,28 @@
   --doru-line-paternal: var(--doru-info);
   --doru-line-maternal: #c98ba0;
 
+  /* Spacing scale: the number is the step, so --doru-space-4 is 8px. */
+  --doru-space-1: 2px;
+  --doru-space-2: 4px;
+  --doru-space-3: 6px;
+  --doru-space-4: 8px;
+  --doru-space-5: 10px;
+  --doru-space-6: 12px;
+  --doru-space-7: 14px;
+  --doru-space-8: 16px;
+  --doru-space-9: 18px;
+  --doru-space-10: 20px;
+  --doru-space-12: 24px;
+  --doru-space-14: 28px;
+  --doru-space-16: 32px;
+  --doru-space-20: 40px;
+  --doru-space-28: 56px;
+  --doru-space-32: 64px;
+  --doru-space-36: 72px;
+
   /* Geometry */
-  --doru-space-1: 4px;
-  --doru-space-2: 6px;
-  --doru-space-3: 8px;
-  --doru-space-4: 12px;
+  --doru-titlebar-height: 38px;
+  --doru-titlebar-inset: 78px;
   --doru-radius-sm: 4px;
   --doru-radius-md: 6px;
   --doru-radius-lg: 8px;
@@ -55,7 +72,7 @@
 
   /* Floating panels: gutter between the cards and the window edge,
      and the shared card corner radius. */
-  --doru-panel-gutter: 4px;
+  --doru-panel-gutter: var(--doru-space-2);
   --doru-panel-radius: var(--doru-radius-lg);
 
   /* Rings — 0.5px hairline "border" via box-shadow */
