@@ -377,10 +377,10 @@ export function updateMediaLinksOp(pairs: Array<{ before: MediaLinkRecord; after
           if (before.primary !== after.primary) {
             restored.primary = before.primary;
           }
-          if (before.createdAt !== after.createdAt) {
-            restored.createdAt = before.createdAt;
-          }
-          if (before.updatedAt !== after.updatedAt) {
+          // Do not roll back a timestamp written by a concurrent edit. Only
+          // restore the pre-edit instant when the row still carries the
+          // timestamp this op wrote.
+          if (before.updatedAt !== after.updatedAt && current.updatedAt === after.updatedAt) {
             restored.updatedAt = before.updatedAt;
           }
           ctx.repo.updateMediaLinkRow(restored);

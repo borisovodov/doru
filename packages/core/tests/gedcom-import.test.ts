@@ -411,6 +411,10 @@ describe('importGedcomDataset', () => {
       expect(source).not.toHaveProperty('templateFields');
       expect(repo.listMediaLinksFor('citation', citation.id)).toEqual([]);
       expect(repo.listMediaLinksFor('source', source.id)).toEqual([]);
+      // The media record itself still enters the library; only the citation
+      // link is dropped, so it stays as an unattached card.
+      expect(repo.listAllMedia()).toHaveLength(1);
+      expect(repo.listAllMedia()[0]?.links).toEqual([]);
     } finally {
       cleanupRepo(fixture);
     }

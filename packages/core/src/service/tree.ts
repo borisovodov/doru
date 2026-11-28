@@ -1105,7 +1105,7 @@ export class TreeService {
         stored.targetType === desired.targetType &&
         stored.targetId === desired.targetId &&
         JSON.stringify(stored.crop) === JSON.stringify(desired.crop) &&
-        stored.primary === desired.primary
+        Boolean(stored.primary) === Boolean(desired.primary)
       ) {
         return undefined;
       }
