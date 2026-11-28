@@ -572,6 +572,40 @@ describe('TreeService attachments', () => {
     }
   });
 
+  it('keeps concurrent crop edits when a primary switch is undone', () => {
+    const { fixture, service } = makeService();
+    try {
+      service.addPerson({ id: 'P1', names: [], sex: 'U', facts: [] });
+      service.addMedia({ id: 'M1', path: 'media/a.jpg', targetType: 'person', targetId: 'P1' });
+      service.addMedia({ id: 'M2', path: 'media/b.jpg', targetType: 'person', targetId: 'P1' });
+      const second = fixture.repo
+        .listAttachmentsFor('person', 'P1')
+        .mediaLinks.find((entry) => entry.media.id === 'M2')!.link;
+
+      service.updateMediaLink(second, { ...second, primary: true });
+      const first = fixture.repo
+        .listAttachmentsFor('person', 'P1')
+        .mediaLinks.find((entry) => entry.media.id === 'M1')!.link;
+      // Another writer edits the crop while the primary switch is on the undo
+      // stack. Undo must restore the primary flags without clobbering it.
+      fixture.repo.updateMediaLinkRow({
+        ...first,
+        crop: { top: 1, left: 2, width: 3, height: 4 },
+      });
+
+      service.undo();
+
+      const restored = fixture.repo.listAttachmentsFor('person', 'P1').mediaLinks;
+      expect(restored.find((entry) => entry.media.id === 'M1')?.link).toMatchObject({
+        primary: true,
+        crop: { top: 1, left: 2, width: 3, height: 4 },
+      });
+      expect(restored.find((entry) => entry.media.id === 'M2')?.link.primary).toBeUndefined();
+    } finally {
+      cleanupRepo(fixture);
+    }
+  });
+
   it('keeps media and its attachments when the last link is detached', () => {
     const { fixture, service } = makeService();
     try {
