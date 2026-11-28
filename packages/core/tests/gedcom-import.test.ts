@@ -176,6 +176,8 @@ describe('importGedcomDataset media', () => {
       const links = fixture.repo.listAttachmentsFor('person', person.id).mediaLinks;
       expect(links).toHaveLength(1);
       expect(links[0]?.link.crop).toEqual({ top: 10 });
+      expect(links[0]?.link.createdAt).toBe(links[0]?.link.updatedAt);
+      expect(links[0]?.link.createdAt).toEqual(expect.any(Number));
     } finally {
       cleanupRepo(fixture);
     }
@@ -355,6 +357,90 @@ describe('importGedcomDataset', () => {
       const texts = notes.map((note) => note.text);
       expect(texts).toContain('inline note about Ivan');
       expect(texts).toContain('Shared note text');
+    } finally {
+      cleanupRepo(fixture);
+    }
+  });
+
+  it('keeps the first citation text and drops extra texts, templates and citation media', () => {
+    const fixture = makeRepo();
+    try {
+      const { repo } = fixture;
+      const gedcom = [
+        '0 HEAD',
+        '1 GEDC',
+        '2 VERS 7.0',
+        '0 @I1@ INDI',
+        '1 NAME Ivan /Petrov/',
+        '1 BIRT',
+        '2 SOUR @S1@',
+        '3 PAGE p. 5',
+        '3 DATA',
+        '4 TEXT first text',
+        '5 MIME text/plain',
+        '5 LANG en',
+        '4 TEXT second text',
+        '3 _TMPLT',
+        '4 FIELD',
+        '5 NAME Page',
+        '5 VALUE p. 5',
+        '3 OBJE @O1@',
+        '0 @O1@ OBJE',
+        '1 FILE https://example.com/page.jpg',
+        '0 @S1@ SOUR',
+        '1 TITL Parish register',
+        '1 _TMPLT',
+        '2 TID 0',
+        '2 FIELD',
+        '3 NAME Footnote',
+        '3 VALUE Parish register',
+        '0 TRLR',
+      ].join('\n');
+      importGedcomDataset(parseDataset(gedcom), repo);
+
+      const person = repo.listAllPersons()[0]!;
+      const birth = repo.listFactsForPerson(person.id).find((fact) => fact.tag === 'BIRT')!;
+      const citation = repo.listCitationRecordsFor('fact', birth.id)[0]!;
+      const source = repo.listSources()[0]!;
+
+      expect(citation.text).toBe('first text');
+      expect(citation.createdAt).toBe(citation.updatedAt);
+      expect(citation.createdAt).toEqual(expect.any(Number));
+      expect(citation).not.toHaveProperty('texts');
+      expect(citation).not.toHaveProperty('templateFields');
+      expect(source).not.toHaveProperty('templateFields');
+      expect(repo.listMediaLinksFor('citation', citation.id)).toEqual([]);
+      expect(repo.listMediaLinksFor('source', source.id)).toEqual([]);
+      // The media record itself still enters the library; only the citation
+      // link is dropped, so it stays as an unattached card.
+      expect(repo.listAllMedia()).toHaveLength(1);
+      expect(repo.listAllMedia()[0]?.links).toEqual([]);
+    } finally {
+      cleanupRepo(fixture);
+    }
+  });
+
+  it('keeps the first source text and drops extra texts and metadata', () => {
+    const fixture = makeRepo();
+    try {
+      const { repo } = fixture;
+      const gedcom = [
+        '0 HEAD',
+        '1 GEDC',
+        '2 VERS 7.0',
+        '0 @S1@ SOUR',
+        '1 TITL Parish register',
+        '1 TEXT first source text',
+        '2 MIME text/plain',
+        '2 LANG en',
+        '1 TEXT second source text',
+        '0 TRLR',
+      ].join('\n');
+      importGedcomDataset(parseDataset(gedcom), repo);
+
+      const source = repo.listSources()[0]!;
+      expect(source.text).toBe('first source text');
+      expect(source).not.toHaveProperty('texts');
     } finally {
       cleanupRepo(fixture);
     }

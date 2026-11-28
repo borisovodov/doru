@@ -64,11 +64,13 @@ describe('SourceEditor', () => {
     expect(onChange).toHaveBeenCalledWith(expect.objectContaining({ author: 'St Mary' }));
   });
 
-  it('adds text extracts, data events and repository copies', () => {
+  it('edits the source text, data events and repository copies', () => {
     const { onChange } = renderEditor();
 
-    fireEvent.click(screen.getByRole('button', { name: nls.t('features.tree.source.texts.add') }));
-    expect(onChange).toHaveBeenCalledWith(expect.objectContaining({ texts: [expect.any(Object)] }));
+    fireEvent.change(screen.getByRole('textbox', { name: nls.t('features.tree.source.texts') }), {
+      target: { value: 'entry 14' },
+    });
+    expect(onChange).toHaveBeenCalledWith(expect.objectContaining({ text: 'entry 14' }));
 
     fireEvent.click(screen.getByRole('button', { name: nls.t('features.tree.source.dataEvents.add') }));
     expect(onChange).toHaveBeenCalledWith(expect.objectContaining({ dataEvents: [expect.any(Object)] }));

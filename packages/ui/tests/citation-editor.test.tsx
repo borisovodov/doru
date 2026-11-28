@@ -20,5 +20,6 @@ describe('CitationEditor', () => {
 
     expect(screen.getByLabelText(nls.t('features.tree.citation.description')).tagName).toBe('TEXTAREA');
     expect(screen.getByLabelText(nls.t('features.tree.citation.footnote')).tagName).toBe('TEXTAREA');
+    expect(screen.getByLabelText(nls.t('features.tree.citation.texts')).tagName).toBe('TEXTAREA');
   });
 });

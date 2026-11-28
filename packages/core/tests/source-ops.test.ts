@@ -7,7 +7,10 @@ describe('source and note ops', () => {
     const fixture = makeRepo();
     try {
       const ctx = { repo: fixture.repo };
-      const op = addSourceOp({ id: 'S1', title: '1923 census' }, { targetType: 'person', targetId: 'P1' });
+      const op = addSourceOp(
+        { id: 'S1', title: '1923 census' },
+        { id: 'C1', sourceId: 'S1', targetType: 'person', targetId: 'P1', createdAt: 1, updatedAt: 1 },
+      );
       op.apply(ctx);
       expect(fixture.repo.listSources()).toEqual([{ id: 'S1', title: '1923 census' }]);
 
@@ -29,6 +32,43 @@ describe('source and note ops', () => {
 
       op.inverse(ctx);
       expect(fixture.repo.listNotes()).toEqual([]);
+    } finally {
+      cleanupRepo(fixture);
+    }
+  });
+
+  it('binds the citation of a source-creation op to the new source', () => {
+    const fixture = makeRepo();
+    try {
+      const op = addSourceOp(
+        { id: 'S1', title: '1923 census' },
+        { id: 'C1', sourceId: 'S_OTHER', targetType: 'person', targetId: 'P1', createdAt: 1, updatedAt: 1 },
+      );
+      op.apply({ repo: fixture.repo });
+      expect(fixture.repo.getCitation('C1')?.sourceId).toBe('S1');
+    } finally {
+      cleanupRepo(fixture);
+    }
+  });
+
+  it('stores one citation text inline', () => {
+    const fixture = makeRepo();
+    try {
+      fixture.repo.insertSource({ id: 'S1', title: 'Parish book' });
+      fixture.repo.insertCitation({
+        id: 'C1',
+        sourceId: 'S1',
+        targetType: 'person',
+        targetId: 'P1',
+        text: 'born 12 March 1923',
+      });
+      expect(fixture.repo.getCitation('C1')?.text).toBe('born 12 March 1923');
+
+      fixture.repo.updateCitation({ ...fixture.repo.getCitation('C1')!, text: 'born 13 March 1923' });
+      expect(fixture.repo.getCitation('C1')?.text).toBe('born 13 March 1923');
+
+      fixture.repo.deleteCitation('C1');
+      expect(fixture.repo.getCitation('C1')).toBeUndefined();
     } finally {
       cleanupRepo(fixture);
     }

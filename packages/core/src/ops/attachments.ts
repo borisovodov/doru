@@ -85,11 +85,10 @@ export function deleteNoteOp(note: NoteRecord): Op {
 
 // --- sources -----------------------------------------------------------------
 
-export function addSourceOp(source: SourceRecord, citation?: { targetType: string; targetId: string }): Op {
-  return addSourceWithCitationsOp(
-    source,
-    citation === undefined ? [] : [{ id: crypto.randomUUID(), sourceId: source.id, ...citation }],
-  );
+export function addSourceOp(source: SourceRecord, citation?: CitationRecord): Op {
+  // A source-creation op always creates the citation for the new source; bind
+  // it here so a copied citation cannot leave a row owned by another source.
+  return addSourceWithCitationsOp(source, citation === undefined ? [] : [{ ...citation, sourceId: source.id }]);
 }
 
 function addSourceWithCitationsOp(source: SourceRecord, citations: CitationRecord[]): Op {
@@ -223,7 +222,14 @@ export function updateCitationOp(before: CitationRecord, after: CitationRecord):
     crypto.randomUUID(),
     'citation.update',
     (ctx) => ctx.repo.updateCitation(after),
-    (ctx) => ctx.repo.updateCitation(before),
+    (ctx) => {
+      const current = ctx.repo.getCitation(before.id);
+      ctx.repo.updateCitation(
+        current !== undefined && current.updatedAt !== after.updatedAt
+          ? { ...before, updatedAt: current.updatedAt }
+          : before,
+      );
+    },
     { targetType: 'citation', targetId: before.id, kind: 'changed' },
     (ctx) => {
       const current = ctx.repo.getCitation(before.id);
@@ -306,7 +312,12 @@ export function updateMediaLinkOp(
       'media.linkUpdate',
       (ctx) => ctx.repo.updateMediaLink(after),
       (ctx) => {
-        ctx.repo.updateMediaLink(before);
+        const current = ctx.repo.getMedia(before.mediaId)?.links?.find((link) => link.id === before.id);
+        ctx.repo.updateMediaLink(
+          current !== undefined && current.updatedAt !== after.updatedAt
+            ? { ...before, updatedAt: current.updatedAt }
+            : before,
+        );
         if (primaryBefore === undefined) {
           return;
         }
@@ -379,6 +390,12 @@ export function updateMediaLinksOp(pairs: Array<{ before: MediaLinkRecord; after
           }
           if (before.primary !== after.primary) {
             restored.primary = before.primary;
+          }
+          // Do not roll back a timestamp written by a concurrent edit. Only
+          // restore the pre-edit instant when the row still carries the
+          // timestamp this op wrote.
+          if (before.updatedAt !== after.updatedAt && current.updatedAt === after.updatedAt) {
+            restored.updatedAt = before.updatedAt;
           }
           ctx.repo.updateMediaLinkRow(restored);
         }

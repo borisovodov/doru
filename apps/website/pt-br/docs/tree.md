@@ -1,5 +1,5 @@
 ---
-source-hash: d13261ebcd34
+source-hash: fc4f60af6671
 ---
 
 # Trabalhando com a árvore
@@ -65,7 +65,7 @@ endereço** e **Editar endereço** para editar um endereço no próprio local.
 
 ## Tarefas
 
-As tarefas têm uma data de criação e uma data de lembrete. Concluir uma tarefa apenas altera seu status; nenhuma data de conclusão separada é armazenada. A maioria dos editores tem uma seção **Tarefas**: adicione uma tarefa ali e ela é vinculada automaticamente àquele registro. As exceções são o editor de tarefas e o editor de submetedores: o cartão de uma tarefa mantém Notas e Mídia, o de um submetedor não tem seção Tarefas, e um vínculo de mídia não é alvo de tarefas. Eventos, nomes e citações têm sua própria seção Tarefas no painel de anexos. **Relacionado a** vincula uma tarefa a um ou mais registros da árvore — uma pessoa, família, evento, nome, fonte, citação, mídia, lugar, repositório, endereço ou obra, mas não outra tarefa, um submetedor ou um vínculo de mídia; deixe vazio para uma tarefa independente. Uma tarefa é compartilhada: editá-la em qualquer lugar atualiza o mesmo registro, e excluir um registro relacionado mantém a tarefa. Use **Anexar uma tarefa existente** para reutilizar uma tarefa compartilhada em vez de criar uma nova.
+As tarefas têm uma data de criação e uma data de lembrete. Concluir uma tarefa apenas altera seu status; nenhuma data de conclusão separada é armazenada. A maioria dos editores tem uma seção **Tarefas**: adicione uma tarefa ali e ela é vinculada automaticamente àquele registro. As exceções são o editor de tarefas e o editor de submetedores: o cartão de uma tarefa mantém Notas e Mídia, o de um submetedor não tem seção Tarefas, e um vínculo de mídia não é alvo de tarefas. Eventos e nomes têm sua própria seção Tarefas no painel de anexos. Uma citação tem apenas Notas, então anexe tarefas relacionadas a evidências à sua fonte. **Relacionado a** vincula uma tarefa a um ou mais registros da árvore — uma pessoa, família, evento, nome, fonte, mídia, lugar, repositório, endereço ou obra, mas não outra tarefa, um submetedor, uma citação ou um vínculo de mídia; deixe vazio para uma tarefa independente. Uma tarefa é compartilhada: editá-la em qualquer lugar atualiza o mesmo registro, e excluir um registro relacionado mantém a tarefa. Use **Anexar uma tarefa existente** para reutilizar uma tarefa compartilhada em vez de criar uma nova.
 
 Obras, endereços, associações e vínculos de parceiro/filho das famílias têm as mesmas seções Notas, Fontes e Tarefas das abas das entidades principais. Os contatos pertencem à pessoa, ao evento, ao repositório ou ao submetedor que descrevem, não a um endereço. As tarefas mantêm Notas e Mídia, mas não têm Fontes, Contatos, Colaboradores nem Tarefas. Um vínculo de mídia não é um destino de anexos. Os colaboradores estão disponíveis apenas nos cartões de pessoa e família.
 
@@ -78,6 +78,5 @@ Um registro de mídia pode ser vinculado a vários destinos ou a nenhum. **Desvi
 ## Ordenação
 
 As listas em que a ordem importa — nomes, parceiros e filhos de uma família,
-nomes de lugares, linhas de endereço, participantes de eventos e campos de
-modelo — têm controles para cima/para baixo. A ordem é armazenada como a
+nomes de lugares, linhas de endereço e participantes de eventos — têm controles para cima/para baixo. A ordem é armazenada como a
 posição da linha.

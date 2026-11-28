@@ -35,8 +35,7 @@ describe('citationToDraft / citationDraftToRecord', () => {
       assessment: 'consistent',
       foundBy: 'archivist',
       date: { quality: 'exact', component: { year: 1923 } },
-      texts: [{ id: 'T1', text: 'extract', mime: 'text/plain', language: 'ru' }],
-      templateFields: [{ id: 'F1', name: 'church', value: 'Nativity' }],
+      text: 'extract',
     };
     const draft = citationToDraft(stored);
     expect(draft).toMatchObject({
@@ -45,6 +44,7 @@ describe('citationToDraft / citationDraftToRecord', () => {
       targetType: 'person',
       targetId: 'P1',
       page: 'l. 14',
+      text: 'extract',
       quality: 'primary',
       description: 'entry about Ivan',
       confidence: 'high',
@@ -65,15 +65,13 @@ describe('citationToDraft / citationDraftToRecord', () => {
     expect(citationDraftToRecord(draft)).toEqual(stored);
   });
 
-  it('drops empty optional fields and sub-rows', () => {
+  it('drops empty optional fields', () => {
     const record = citationDraftToRecord({
       ...citationToDraft(citation()),
       page: '   ',
-      texts: [{ id: 'T1', text: '  ', mime: '', language: '' }],
-      templateFields: [{ id: 'F1', name: '  ', value: 'x' }],
+      text: '  ',
     });
     expect(record.page).toBeUndefined();
-    expect(record.texts).toEqual([]);
-    expect(record.templateFields).toEqual([]);
+    expect(record.text).toBeUndefined();
   });
 });

@@ -1,5 +1,5 @@
 ---
-source-hash: d13261ebcd34
+source-hash: fc4f60af6671
 ---
 
 # Travailler avec l'arbre
@@ -69,7 +69,7 @@ modifier une adresse sur place.
 
 ## Tâches
 
-Les tâches ont une date de création et une date de rappel. Fermer une tâche ne change que son statut ; aucune date d'achèvement distincte n'est enregistrée. La plupart des éditeurs ont une section **Tâches** : ajoutez-y une tâche et elle est automatiquement liée à cet enregistrement. Les éditeurs de tâche et de soumetteur font exception : la fiche d'une tâche conserve Notes et Médias, celle d'un soumetteur n'a pas de section Tâches, et un lien multimédia n'est pas une cible de tâches. Les faits, noms et citations portent leur propre section Tâches dans leur panneau de pièces jointes. **Lié à** relie une tâche à un ou plusieurs enregistrements de l'arbre — une personne, une famille, un événement, un nom, une source, une citation, un média, un lieu, un dépôt, une adresse ou une œuvre, mais pas une autre tâche, un soumetteur ou un lien multimédia ; laissez-le vide pour une tâche indépendante. Une tâche est partagée : la modifier n'importe où met à jour le même enregistrement, et supprimer un enregistrement lié laisse la tâche en place. Utilisez **Joindre une tâche existante** pour réutiliser une tâche partagée au lieu d'en créer une nouvelle.
+Les tâches ont une date de création et une date de rappel. Fermer une tâche ne change que son statut ; aucune date d'achèvement distincte n'est enregistrée. La plupart des éditeurs ont une section **Tâches** : ajoutez-y une tâche et elle est automatiquement liée à cet enregistrement. Les éditeurs de tâche et de soumetteur font exception : la fiche d'une tâche conserve Notes et Médias, celle d'un soumetteur n'a pas de section Tâches, et un lien multimédia n'est pas une cible de tâches. Les faits et noms portent leur propre section Tâches dans leur panneau de pièces jointes. Une citation ne contient que des Notes ; joignez donc les tâches liées aux preuves à sa source. **Lié à** relie une tâche à un ou plusieurs enregistrements de l'arbre — une personne, une famille, un événement, un nom, une source, un média, un lieu, un dépôt, une adresse ou une œuvre, mais pas une autre tâche, un soumetteur, une citation ou un lien multimédia ; laissez-le vide pour une tâche indépendante. Une tâche est partagée : la modifier n'importe où met à jour le même enregistrement, et supprimer un enregistrement lié laisse la tâche en place. Utilisez **Joindre une tâche existante** pour réutiliser une tâche partagée au lieu d'en créer une nouvelle.
 
 Les œuvres, adresses, associations et liens partenaire/enfant d'une famille ont les mêmes sections Notes, Sources et Tâches que les onglets de l'entité principale. Les contacts appartiennent à la personne, au fait, au dépôt ou au déclarant qu'ils décrivent, pas à une adresse. Les tâches conservent Notes et Médias, mais n'ont ni Sources, ni Contacts, ni Contributeurs, ni Tâches. Un lien multimédia n'est pas une cible de pièces jointes. Les contributeurs ne sont disponibles que sur les fiches de personne et de famille.
 
@@ -82,5 +82,5 @@ Un enregistrement média peut être lié à plusieurs cibles, ou à aucune. **D�
 ## Ordre
 
 Les listes dont l'ordre importe — noms, partenaires et enfants d'une famille, noms
-de lieux, lignes d'adresse, participants d'un fait et champs de modèle — ont des
+de lieux, lignes d'adresse et participants d'un fait — ont des
 contrôles haut/bas. L'ordre est stocké comme position de ligne.

@@ -14,6 +14,6 @@ describe('TASK_TARGET_TYPES', () => {
     expect(TASK_TARGET_TYPES).not.toContain('media_link');
     expect(TASK_TARGET_TYPES).not.toContain('note');
     expect(TASK_TARGET_TYPES).toContain('person');
-    expect(TASK_TARGET_TYPES).toContain('citation');
+    expect(TASK_TARGET_TYPES).not.toContain('citation');
   });
 });

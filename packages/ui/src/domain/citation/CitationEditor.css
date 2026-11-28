@@ -11,45 +11,6 @@
   border-radius: var(--doru-radius-md);
 }
 
-.citation-subsection {
-  display: flex;
-  flex-direction: column;
-  gap: var(--doru-space-3);
-}
-
-.citation-subsection h4 {
-  margin: 0;
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--doru-fg-muted);
-}
-
-.citation-text-block {
-  display: flex;
-  flex-direction: column;
-  gap: var(--doru-space-3);
-  padding: var(--doru-space-3);
-  background: var(--doru-bg-input);
-  border: 1px solid var(--doru-border);
-  border-radius: var(--doru-radius-md);
-}
-
-.citation-text-block textarea {
-  margin-top: 0;
-}
-
-.citation-sub-row {
-  display: flex;
-  gap: var(--doru-space-3);
-  align-items: center;
-}
-
-.citation-sub-row input {
-  flex: 1;
-  min-width: 0;
-  margin-top: 0;
-}
-
 .citation-actions {
   display: flex;
   gap: var(--doru-space-4);

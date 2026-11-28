@@ -249,7 +249,7 @@ function SourceTabBody({
             (nextBaseline as unknown as Record<string, unknown>)[key] = refreshed[key];
           }
         }
-        for (const key of ['texts', 'dataEvents', 'repositories', 'templateFields'] as const) {
+        for (const key of ['dataEvents', 'repositories'] as const) {
           if (!changedInSubmission(key) && !editedSinceBaseline(key)) {
             (merged as unknown as Record<string, unknown>)[key] = refreshed[key];
             (nextBaseline as unknown as Record<string, unknown>)[key] = refreshed[key];

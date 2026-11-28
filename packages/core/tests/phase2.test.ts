@@ -110,7 +110,7 @@ describe('Phase 2: fact details', () => {
 });
 
 describe('Phase 2: sources and media', () => {
-  it('round-trips a full source with texts, data events, repositories and templates', () => {
+  it('round-trips a full source with text, data events and repositories', () => {
     const fixture = makeRepo();
     try {
       const repo = fixture.repo;
@@ -120,21 +120,19 @@ describe('Phase 2: sources and media', () => {
         title: 'Parish register',
         author: 'Church',
         medium: 'book',
-        texts: [{ id: 'T1', text: 'transcript', mime: 'text/plain' }],
+        text: 'transcript',
         dataEvents: [{ id: 'E1', tag: 'CENS', date: { quality: 'exact', component: { year: 1897 } } }],
         repositories: [{ id: 'SR1', repositoryId: 'R1', callNumbers: [{ id: 'C1', value: 'F-123', medium: 'film' }] }],
-        templateFields: [{ id: 'F1', name: 'Collection', value: 'Books' }],
       });
 
       const read = repo.getSource('S1')!;
       expect(read.title).toBe('Parish register');
-      expect(read.texts).toEqual([{ id: 'T1', text: 'transcript', mime: 'text/plain' }]);
+      expect(read.text).toBe('transcript');
       expect(read.dataEvents).toEqual([
         { id: 'E1', tag: 'CENS', date: { id: expect.any(String), quality: 'exact', component: { year: 1897 } } },
       ]);
       expect(read.repositories?.[0]?.repositoryId).toBe('R1');
       expect(read.repositories?.[0]?.callNumbers).toEqual([{ id: 'C1', value: 'F-123', medium: 'film' }]);
-      expect(read.templateFields).toEqual([{ id: 'F1', name: 'Collection', value: 'Books' }]);
     } finally {
       cleanupRepo(fixture);
     }

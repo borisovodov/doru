@@ -1027,38 +1027,16 @@ function buildCitation(
           },
         }
       : {}),
-    ...(row.date !== undefined || (row.texts !== undefined && row.texts.length > 0) || row.www !== undefined
+    ...(row.date !== undefined || row.text !== undefined || row.www !== undefined
       ? {
           data: {
             ...(row.date !== undefined ? { date: buildDate(row.date) } : {}),
-            ...(row.texts !== undefined && row.texts.length > 0
-              ? {
-                  texts: row.texts.map((text) => ({
-                    tag: 'TEXT' as const,
-                    payload: text.text,
-                    ...(text.mime !== undefined ? { mediaType: text.mime } : {}),
-                    ...(text.language !== undefined ? { language: text.language } : {}),
-                  })),
-                }
-              : {}),
+            ...(row.text !== undefined ? { texts: [{ tag: 'TEXT' as const, payload: row.text }] } : {}),
             ...(row.www !== undefined ? { www: row.www } : {}),
           },
         }
       : {}),
-    ...(row.templateFields !== undefined && row.templateFields.length > 0
-      ? {
-          template: {
-            tag: '_TMPLT',
-            fields: row.templateFields.map((field) => ({
-              tag: 'FIELD' as const,
-              name: field.name,
-              ...(field.value !== undefined ? { value: field.value } : {}),
-            })),
-          },
-        }
-      : {}),
     ...withNoteList(repo, 'citation', row.id),
-    ...withMediaLinks(repo, 'citation', row.id, xrefs),
   } as unknown as SourceCitation;
 }
 
@@ -1146,7 +1124,6 @@ function withGedcomTodoStructures(
 // ---------------------------------------------------------------------------
 
 function buildSource(source: SourceRecord, repo: TreeRepository, xrefs: Xrefs): GedcomSourceRecord {
-  const texts = source.texts ?? [];
   const data = {
     ...(source.agency !== undefined ? { agency: source.agency } : {}),
     ...(source.dataNote !== undefined ? { notes: [{ tag: 'NOTE' as const, payload: source.dataNote }] } : {}),
@@ -1186,15 +1163,7 @@ function buildSource(source: SourceRecord, repo: TreeRepository, xrefs: Xrefs): 
           },
         }
       : {}),
-    ...(texts.length > 0
-      ? {
-          texts: texts.map((text) => ({
-            payload: text.text,
-            ...(text.mime !== undefined ? { mediaType: text.mime } : {}),
-            ...(text.language !== undefined ? { language: text.language } : {}),
-          })),
-        }
-      : {}),
+    ...(source.text !== undefined ? { texts: [{ payload: source.text }] } : {}),
     ...(Object.keys(data).length > 0 ? { data } : {}),
     ...(source.repositories !== undefined && source.repositories.length > 0
       ? {
@@ -1213,18 +1182,6 @@ function buildSource(source: SourceRecord, repo: TreeRepository, xrefs: Xrefs): 
                 }
               : {}),
           })),
-        }
-      : {}),
-    ...(source.templateFields !== undefined && source.templateFields.length > 0
-      ? {
-          template: {
-            tag: '_TMPLT',
-            fields: source.templateFields.map((field) => ({
-              tag: 'FIELD' as const,
-              name: field.name,
-              ...(field.value !== undefined ? { value: field.value } : {}),
-            })),
-          },
         }
       : {}),
     ...(source.titleId !== undefined ? { titlRef: xrefs.of(source.titleId) } : {}),

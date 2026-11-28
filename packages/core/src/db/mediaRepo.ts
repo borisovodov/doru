@@ -22,6 +22,8 @@ interface LinkRow {
   crop_height: number | null;
   crop_width: number | null;
   primary_flag: number;
+  created_at: number | null;
+  updated_at: number | null;
 }
 
 /**
@@ -106,7 +108,7 @@ export class MediaRepo {
     const links = this.db
       .prepare(
         `SELECT id, media_id, target_type, target_id, crop_top, crop_left, crop_height, crop_width,
-           primary_flag
+           primary_flag, created_at, updated_at
          FROM media_link WHERE target_type = ? AND target_id = ? ORDER BY rowid`,
       )
       .all(targetType, targetId) as unknown as LinkRow[];
@@ -127,7 +129,7 @@ export class MediaRepo {
     const links = this.db
       .prepare(
         `SELECT id, media_id, target_type, target_id, crop_top, crop_left, crop_height, crop_width,
-           primary_flag
+           primary_flag, created_at, updated_at
          FROM media_link WHERE target_type = ? AND target_id = ? ORDER BY rowid`,
       )
       .all(targetType, targetId) as unknown as LinkRow[];
@@ -160,8 +162,8 @@ export class MediaRepo {
       this.db
         .prepare(
           `INSERT INTO media_link (id, media_id, target_type, target_id, crop_top, crop_left, crop_height,
-             crop_width, primary_flag)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+             crop_width, primary_flag, created_at, updated_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         )
         .run(...linkParams(mediaId, link));
       this.ensurePrimaryLink(link.targetType, link.targetId);
@@ -173,7 +175,7 @@ export class MediaRepo {
     this.db
       .prepare(
         `UPDATE media_link SET target_type = ?, target_id = ?, crop_top = ?, crop_left = ?,
-           crop_height = ?, crop_width = ?, primary_flag = ?
+           crop_height = ?, crop_width = ?, primary_flag = ?, created_at = ?, updated_at = ?
          WHERE id = ?`,
       )
       .run(
@@ -184,6 +186,8 @@ export class MediaRepo {
         link.crop?.height ?? null,
         link.crop?.width ?? null,
         link.primary ? 1 : 0,
+        link.createdAt ?? null,
+        link.updatedAt ?? null,
         link.id,
       );
   }
@@ -284,6 +288,8 @@ export class MediaRepo {
         mediaId: media.id,
         targetType: media.targetType,
         targetId: media.targetId,
+        createdAt: media.createdAt,
+        updatedAt: media.updatedAt,
       });
     }
   }
@@ -296,7 +302,7 @@ export class MediaRepo {
     const links = this.db
       .prepare(
         `SELECT id, media_id, target_type, target_id, crop_top, crop_left, crop_height, crop_width,
-           primary_flag
+           primary_flag, created_at, updated_at
          FROM media_link WHERE media_id = ? ORDER BY rowid`,
       )
       .all(row.id) as unknown as LinkRow[];
@@ -331,6 +337,8 @@ function linkParams(mediaId: string, link: MediaLinkRecord): Array<string | numb
     link.crop?.height ?? null,
     link.crop?.width ?? null,
     link.primary ? 1 : 0,
+    link.createdAt ?? null,
+    link.updatedAt ?? null,
   ];
 }
 
@@ -352,5 +360,7 @@ function rowToLink(row: LinkRow): MediaLinkRecord {
     targetId: row.target_id,
     crop,
     primary: row.primary_flag === 1 ? true : undefined,
+    createdAt: row.created_at ?? undefined,
+    updatedAt: row.updated_at ?? undefined,
   };
 }

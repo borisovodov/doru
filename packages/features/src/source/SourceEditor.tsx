@@ -2,7 +2,7 @@ import { IconButton, InlineError, useAutoFocusSelect } from '@doru/ui';
 import { useState, type FocusEventHandler, type ReactNode } from 'react';
 import { Input } from '@doru/ui';
 import { Select, Textarea } from '@doru/ui';
-import { SectionCard, Subcard, ReorderButtons } from '@doru/ui';
+import { SectionCard, Subcard } from '@doru/ui';
 import { Field, FieldGrid } from '@doru/ui';
 import { BookOpenText, Plus, Unlink, X } from 'lucide-react';
 import type { PlaceRecord, RepositoryRecord, TitleRecord } from '@doru/core';
@@ -10,24 +10,20 @@ import { placeName } from '@doru/core/model';
 import { nls } from '../nls';
 import '../sidebar/sidebar.css';
 import './SourceEditor.css';
-import { DateEditor, emptyDate, moveItem } from '@doru/ui/domain';
+import { DateEditor, emptyDate } from '@doru/ui/domain';
 import { Button } from '@doru/ui';
 import { EditorPage, EntityViewCard } from '@doru/ui';
 import {
-  emptySourceTextDraft,
   type CallNumberDraft,
   type SourceDataEventDraft,
   type SourceDraft,
   type SourceRepositoryDraft,
-  type SourceTextDraft,
-  type TemplateFieldDraft,
 } from '@doru/ui/domain';
 
 /**
- * The full source form: bibliographic details, publication, text extracts,
- * recorded events, repository copies with call numbers and template
- * fields. The save/cancel/delete actions live on the card, like the
- * person editor.
+ * The full source form: bibliographic details, publication, the source text,
+ * recorded events and repository copies with call numbers. The
+ * save/cancel/delete actions live on the card, like the person editor.
  */
 export function SourceEditor({
   draft,
@@ -59,11 +55,6 @@ export function SourceEditor({
 }) {
   const titleRef = useAutoFocusSelect<HTMLInputElement>(isNew);
   const set = (patch: Partial<SourceDraft>) => onChange({ ...draft, ...patch });
-
-  const patchText = (index: number, values: Partial<SourceTextDraft>) =>
-    set({ texts: draft.texts.map((text, i) => (i === index ? { ...text, ...values } : text)) });
-  const addText = () => set({ texts: [...draft.texts, emptySourceTextDraft()] });
-  const removeText = (index: number) => set({ texts: draft.texts.filter((_, i) => i !== index) });
 
   const patchEvent = (index: number, values: Partial<SourceDataEventDraft>) =>
     set({ dataEvents: draft.dataEvents.map((event, i) => (i === index ? { ...event, ...values } : event)) });
@@ -106,12 +97,6 @@ export function SourceEditor({
       callNumbers: repository.callNumbers.filter((_, i) => i !== callNumberIndex),
     });
   };
-
-  const patchField = (index: number, values: Partial<TemplateFieldDraft>) =>
-    set({ templateFields: draft.templateFields.map((field, i) => (i === index ? { ...field, ...values } : field)) });
-  const addField = () =>
-    set({ templateFields: [...draft.templateFields, { id: crypto.randomUUID(), name: '', value: '' }] });
-  const removeField = (index: number) => set({ templateFields: draft.templateFields.filter((_, i) => i !== index) });
 
   const subtitle = [draft.author.trim(), draft.publication.trim()].filter((part) => part !== '').join(' · ');
   const displayTitle =
@@ -235,37 +220,13 @@ export function SourceEditor({
       </SectionCard>
 
       <SectionCard title={nls.t('features.tree.source.texts')}>
-        {draft.texts.map((text, index) => (
-          <Subcard key={text.id}>
-            <Textarea
-              value={text.text}
-              placeholder={nls.t('features.tree.source.texts')}
-              onChange={(event) => patchText(index, { text: event.target.value })}
-            />
-            <div className="source-sub-row">
-              <Input
-                placeholder={nls.t('features.tree.source.texts.language')}
-                value={text.language}
-                onChange={(event) => patchText(index, { language: event.target.value })}
-              />
-              <Input
-                placeholder={nls.t('features.tree.source.texts.mime')}
-                value={text.mime}
-                onChange={(event) => patchText(index, { mime: event.target.value })}
-              />
-              <IconButton
-                size="sm"
-                label={nls.t('features.tree.source.texts.remove')}
-                icon={<X size={13} aria-hidden="true" />}
-                onClick={() => removeText(index)}
-              />
-            </div>
-          </Subcard>
-        ))}
-        <Button variant="secondary" onClick={addText}>
-          <Plus size={13} aria-hidden="true" />
-          {nls.t('features.tree.source.texts.add')}
-        </Button>
+        <Textarea
+          aria-label={nls.t('features.tree.source.texts')}
+          rows={3}
+          value={draft.text}
+          placeholder={nls.t('features.tree.source.texts')}
+          onChange={(event) => set({ text: event.target.value })}
+        />
       </SectionCard>
 
       <SectionCard title={nls.t('features.tree.source.dataEvents')}>
@@ -374,41 +335,6 @@ export function SourceEditor({
           </Button>
           <NewRepositoryInput onAddRepository={onAddRepository} />
         </div>
-      </SectionCard>
-
-      <SectionCard title={nls.t('features.tree.source.templateFields')}>
-        {draft.templateFields.map((field, index) => (
-          <div className="source-sub-row" key={field.id}>
-            <Input
-              placeholder={nls.t('features.tree.source.templateFields.name')}
-              value={field.name}
-              onChange={(event) => patchField(index, { name: event.target.value })}
-            />
-            <Input
-              placeholder={nls.t('features.tree.source.templateFields.value')}
-              value={field.value}
-              onChange={(event) => patchField(index, { value: event.target.value })}
-            />
-            <ReorderButtons
-              upLabel={nls.t('features.tree.reorder.up')}
-              downLabel={nls.t('features.tree.reorder.down')}
-              canMoveUp={index > 0}
-              canMoveDown={index < draft.templateFields.length - 1}
-              onMoveUp={() => set({ templateFields: moveItem(draft.templateFields, index, index - 1) })}
-              onMoveDown={() => set({ templateFields: moveItem(draft.templateFields, index, index + 1) })}
-            />
-            <IconButton
-              size="sm"
-              label={nls.t('features.tree.source.templateFields.remove')}
-              icon={<X size={13} aria-hidden="true" />}
-              onClick={() => removeField(index)}
-            />
-          </div>
-        ))}
-        <Button variant="secondary" onClick={addField}>
-          <Plus size={13} aria-hidden="true" />
-          {nls.t('features.tree.source.templateFields.add')}
-        </Button>
       </SectionCard>
     </EditorPage>
   );
