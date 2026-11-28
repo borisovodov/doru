@@ -68,12 +68,12 @@ Tasks have a creation date and a reminder date. Closing a task only changes its 
 is linked to that record automatically. Task editors and submitter editors are
 the exceptions: a task card keeps
 Notes and Media, a submitter card has no Tasks section, and a media link is not
-an attachment target for tasks. Facts, names and citations
-carry their own Tasks section in their attachment panel. **Related to** links
-a task to one or more records in the tree — a person, family, event, name,
-citation, source, media, place, repository, address or title, but not another
-task, a submitter or a media link; leave it empty for
-a free-standing task. A task is shared: editing it anywhere updates the same
+an attachment target for tasks. Facts and names carry their own Tasks section
+in their attachment panel; a citation has only Notes, so attach evidence-related
+tasks to its source. **Related to** links a task to one or more records in the
+tree — a person, family, event, name, source, media, place, repository, address
+or title, but not another task, a submitter, a citation or a media link; leave
+it empty for a free-standing task. A task is shared: editing it anywhere updates the same
 record, and deleting one related record leaves the task in place. Use
 **Attach an existing task** to reuse a shared task instead of creating a new
 one.

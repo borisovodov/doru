@@ -1,5 +1,5 @@
 ---
-source-hash: ef244a894dd8
+source-hash: fc4f60af6671
 ---
 
 # Arbeiten mit dem Stammbaum
@@ -68,7 +68,7 @@ Adressauswahl eines Fakts bietet außerdem die Aktionen **Neue Adresse** und
 
 ## Aufgaben
 
-Aufgaben haben ein Erstellungsdatum und ein Erinnerungsdatum. Das Schließen einer Aufgabe ändert nur ihren Status; ein separates Abschlussdatum wird nicht gespeichert. Die meisten Editoren haben einen Abschnitt **Aufgaben**: Fügen Sie dort eine Aufgabe hinzu, wird sie automatisch mit diesem Datensatz verknüpft. Ausnahmen sind der Aufgaben- und der Einsender-Editor: Eine Aufgabenkarte behält Notizen und Medien, eine Einsenderkarte hat keinen Aufgaben-Abschnitt, und eine Medienverknüpfung ist kein Ziel für Aufgaben. Fakten, Namen und Zitate tragen ihren eigenen Abschnitt Aufgaben in ihrem Anhängebereich. **Verknüpft mit** verbindet eine Aufgabe mit einem oder mehreren Datensätzen im Stammbaum — einer Person, Familie, einem Ereignis, Namen, einer Quelle, einem Zitat, einem Medium, einem Ort, einem Archiv, einer Adresse oder einem Werk, aber nicht mit einer anderen Aufgabe, einem Einsender oder einer Medienverknüpfung; lassen Sie es leer für eine freistehende Aufgabe. Eine Aufgabe ist geteilt: Eine Bearbeitung an beliebiger Stelle aktualisiert denselben Datensatz, und das Löschen eines verknüpften Datensatzes lässt die Aufgabe bestehen. Verwenden Sie **Bestehende Aufgabe anhängen**, um eine geteilte Aufgabe wiederzuverwenden, statt eine neue zu erstellen.
+Aufgaben haben ein Erstellungsdatum und ein Erinnerungsdatum. Das Schließen einer Aufgabe ändert nur ihren Status; ein separates Abschlussdatum wird nicht gespeichert. Die meisten Editoren haben einen Abschnitt **Aufgaben**: Fügen Sie dort eine Aufgabe hinzu, wird sie automatisch mit diesem Datensatz verknüpft. Ausnahmen sind der Aufgaben- und der Einsender-Editor: Eine Aufgabenkarte behält Notizen und Medien, eine Einsenderkarte hat keinen Aufgaben-Abschnitt, und eine Medienverknüpfung ist kein Ziel für Aufgaben. Fakten und Namen tragen ihren eigenen Abschnitt Aufgaben in ihrem Anhängebereich. Ein Zitat hat nur Notizen; evidenzbezogene Aufgaben gehören daher an seine Quelle. **Verknüpft mit** verbindet eine Aufgabe mit einem oder mehreren Datensätzen im Stammbaum — einer Person, Familie, einem Ereignis, Namen, einer Quelle, einem Medium, einem Ort, einem Archiv, einer Adresse oder einem Werk, aber nicht mit einer anderen Aufgabe, einem Einsender, einem Zitat oder einer Medienverknüpfung; lassen Sie es leer für eine freistehende Aufgabe. Eine Aufgabe ist geteilt: Eine Bearbeitung an beliebiger Stelle aktualisiert denselben Datensatz, und das Löschen eines verknüpften Datensatzes lässt die Aufgabe bestehen. Verwenden Sie **Bestehende Aufgabe anhängen**, um eine geteilte Aufgabe wiederzuverwenden, statt eine neue zu erstellen.
 
 Werke, Adressen, Assoziationen und Partner-/Kind-Verknüpfungen von Familien haben dieselben Abschnitte Notizen, Quellen und Aufgaben wie die Tabs der Hauptentität. Kontakte gehören zu der Person, dem Fakt, dem Archiv oder dem Einsender, den sie beschreiben, nicht zu einer Adresse. Aufgaben behalten Notizen und Medien, haben aber keine Quellen, Kontakte, Beiträger oder Aufgaben. Eine Medienverknüpfung ist kein Anhängeziel. Beiträger sind nur auf Personen- und Familienkarten verfügbar.
 
@@ -81,5 +81,5 @@ Ein Mediendatensatz kann mit mehreren Zielen oder keinem verknüpft werden. **Vo
 ## Reihenfolge
 
 Listen, deren Reihenfolge wichtig ist — Namen, Familienpartner und -kinder,
-Ortsnamen, Adresszeilen, Teilnehmer von Fakten und Vorlagenfelder — haben
+Ortsnamen, Adresszeilen und Teilnehmer von Fakten — haben
 Auf-/Ab-Steuerelemente. Die Reihenfolge wird als Zeilenposition gespeichert.

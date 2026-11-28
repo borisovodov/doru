@@ -220,7 +220,14 @@ export function updateCitationOp(before: CitationRecord, after: CitationRecord):
     crypto.randomUUID(),
     'citation.update',
     (ctx) => ctx.repo.updateCitation(after),
-    (ctx) => ctx.repo.updateCitation(before),
+    (ctx) => {
+      const current = ctx.repo.getCitation(before.id);
+      ctx.repo.updateCitation(
+        current !== undefined && current.updatedAt !== after.updatedAt
+          ? { ...before, updatedAt: current.updatedAt }
+          : before,
+      );
+    },
     { targetType: 'citation', targetId: before.id, kind: 'changed' },
     (ctx) => {
       const current = ctx.repo.getCitation(before.id);
@@ -303,7 +310,12 @@ export function updateMediaLinkOp(
       'media.linkUpdate',
       (ctx) => ctx.repo.updateMediaLink(after),
       (ctx) => {
-        ctx.repo.updateMediaLink(before);
+        const current = ctx.repo.getMedia(before.mediaId)?.links?.find((link) => link.id === before.id);
+        ctx.repo.updateMediaLink(
+          current !== undefined && current.updatedAt !== after.updatedAt
+            ? { ...before, updatedAt: current.updatedAt }
+            : before,
+        );
         if (primaryBefore === undefined) {
           return;
         }

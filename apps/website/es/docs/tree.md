@@ -1,5 +1,5 @@
 ---
-source-hash: ef244a894dd8
+source-hash: fc4f60af6671
 ---
 
 # Trabajar con el árbol
@@ -67,7 +67,7 @@ de esos registros. El selector de dirección de un hecho también tiene las acci
 
 ## Tareas
 
-Las tareas tienen una fecha de creación y una fecha de recordatorio. Cerrar una tarea solo cambia su estado; no se guarda una fecha de finalización aparte. La mayoría de los editores tiene una sección **Tareas**: añade allí una tarea y se vincula automáticamente a ese registro. Las excepciones son el editor de tareas y el editor de remitentes: la tarjeta de una tarea conserva Notas y Multimedia, la de un remitente no tiene sección Tareas, y un vínculo multimedia no es destino de tareas. Los hechos, nombres y citas llevan su propia sección Tareas en su panel de elementos adjuntos. **Relacionado con** vincula una tarea con uno o varios registros del árbol — una persona, familia, evento, nombre, fuente, cita, multimedia, lugar, repositorio, dirección u obra, pero no con otra tarea, un remitente o un vínculo multimedia; déjalo vacío para una tarea independiente. Una tarea es compartida: editarla en cualquier lugar actualiza el mismo registro y eliminar un registro relacionado deja la tarea en su sitio. Usa **Adjuntar una tarea existente** para reutilizar una tarea compartida en lugar de crear una nueva.
+Las tareas tienen una fecha de creación y una fecha de recordatorio. Cerrar una tarea solo cambia su estado; no se guarda una fecha de finalización aparte. La mayoría de los editores tiene una sección **Tareas**: añade allí una tarea y se vincula automáticamente a ese registro. Las excepciones son el editor de tareas y el editor de remitentes: la tarjeta de una tarea conserva Notas y Multimedia, la de un remitente no tiene sección Tareas, y un vínculo multimedia no es destino de tareas. Los hechos y nombres llevan su propia sección Tareas en su panel de elementos adjuntos. Una cita solo tiene Notas, así que adjunta las tareas sobre pruebas a su fuente. **Relacionado con** vincula una tarea con uno o varios registros del árbol — una persona, familia, evento, nombre, fuente, multimedia, lugar, repositorio, dirección u obra, pero no con otra tarea, un remitente, una cita o un vínculo multimedia; déjalo vacío para una tarea independiente. Una tarea es compartida: editarla en cualquier lugar actualiza el mismo registro y eliminar un registro relacionado deja la tarea en su sitio. Usa **Adjuntar una tarea existente** para reutilizar una tarea compartida en lugar de crear una nueva.
 
 Las obras, direcciones, asociaciones y enlaces de pareja/hijo de una familia tienen las mismas secciones Notas, Fuentes y Tareas que las pestañas de la entidad principal. Los contactos pertenecen a la persona, el hecho, el repositorio o el remitente que describen, no a una dirección. Las tareas conservan Notas y Multimedia, pero no tienen Fuentes, Contactos, Contribuyentes ni Tareas. Un vínculo multimedia no es un destino de adjuntos. Los contribuyentes solo están disponibles en las tarjetas de persona y familia.
 
@@ -80,5 +80,5 @@ Un registro multimedia puede estar vinculado a varios destinos o a ninguno. **De
 ## Orden
 
 Las listas cuyo orden importa — nombres, parejas e hijos de una familia, nombres de
-lugares, líneas de dirección, participantes de un hecho y campos de plantilla —
+lugares, líneas de dirección y participantes de un hecho —
 tienen controles arriba/abajo. El orden se guarda como la posición de la fila.

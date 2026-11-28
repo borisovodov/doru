@@ -1,5 +1,5 @@
 ---
-source-hash: ef244a894dd8
+source-hash: fc4f60af6671
 ---
 
 # A családfa használata
@@ -43,7 +43,7 @@ A **Források** nézetben van egy **Címek** szakasz. Itt önálló címeket hoz
 
 ## Feladatok
 
-A feladatoknak létrehozási dátumuk és egy emlékeztető dátumuk van. A feladat lezárása csak az állapotát változtatja meg; külön befejezési dátum nem kerül mentésre. A legtöbb szerkesztőnek van **Feladatok** szakasza: adjon hozzá ott egy feladatot, és az automatikusan ahhoz a rekordhoz kapcsolódik. Kivétel a feladat- és a beküldő-szerkesztő: a feladatkártya megőrzi a Jegyzeteket és a Médiát, a beküldő kártyáján nincs Feladatok szakasz, és a médiakapcsolat nem célja feladatoknak. A tények, nevek és hivatkozások saját Feladatok szakasszal rendelkeznek a csatolási panelükön. A **Kapcsolódó** egy feladatot egy vagy több rekordhoz kapcsol a fában — személyhez, családhoz, eseményhez, névhez, forráshoz, hivatkozáshoz, médiához, helyhez, levéltárhoz, címhez vagy műhöz, de nem egy másik feladathoz, beküldőhöz vagy médiakapcsolathoz; hagyja üresen egy szabadon álló feladathoz. A feladat megosztott: bárhol szerkesztve ugyanazt a rekordot frissíti, és egy kapcsolódó rekord törlése helyben hagyja a feladatot. A **Meglévő feladat csatolása** lehetőséggel új feladat létrehozása helyett újra felhasználhat egy megosztott feladatot.
+A feladatoknak létrehozási dátumuk és egy emlékeztető dátumuk van. A feladat lezárása csak az állapotát változtatja meg; külön befejezési dátum nem kerül mentésre. A legtöbb szerkesztőnek van **Feladatok** szakasza: adjon hozzá ott egy feladatot, és az automatikusan ahhoz a rekordhoz kapcsolódik. Kivétel a feladat- és a beküldő-szerkesztő: a feladatkártya megőrzi a Jegyzeteket és a Médiát, a beküldő kártyáján nincs Feladatok szakasz, és a médiakapcsolat nem célja feladatoknak. A tények és nevek saját Feladatok szakasszal rendelkeznek a csatolási panelükön. A hivatkozásnak csak Jegyzetek szakasza van, ezért a bizonyítékokhoz kapcsolódó feladatokat a forrásához csatolja. A **Kapcsolódó** egy feladatot egy vagy több rekordhoz kapcsol a fában — személyhez, családhoz, eseményhez, névhez, forráshoz, médiához, helyhez, levéltárhoz, címhez vagy műhöz, de nem egy másik feladathoz, beküldőhöz, hivatkozáshoz vagy médiakapcsolathoz; hagyja üresen egy szabadon álló feladathoz. A feladat megosztott: bárhol szerkesztve ugyanazt a rekordot frissíti, és egy kapcsolódó rekord törlése helyben hagyja a feladatot. A **Meglévő feladat csatolása** lehetőséggel új feladat létrehozása helyett újra felhasználhat egy megosztott feladatot.
 
 A művek, címek, társítások és családi partner/gyermek kapcsolatok ugyanazokkal a Jegyzetek, Források és Feladatok szakaszokkal rendelkeznek, mint a fő entitáslapok. Az elérhetőségek ahhoz a személyhez, tényhez, levéltárhoz vagy beküldőhöz tartoznak, akit vagy amit leírnek, nem egy címhez. A feladatok megőrzik a Jegyzeteket és a Médiát, de nincs Forrásuk, Elérhetőségük, Közreműködőjük vagy Feladatuk. A médiakapcsolat nem csatolási cél. A közreműködők csak a személy- és családkártyákon érhetők el.
 
@@ -55,4 +55,4 @@ Egy médiarekord több célhoz vagy egyhez sem kapcsolható. A **Leválasztás e
 
 ## Sorrendezés
 
-Azok a listák, amelyeknél a sorrend számít — nevek, családi partnerek és gyermekek, helynevek, címsorok, tényrésztvevők és sablonmezők — fel/le vezérlőkkel rendelkeznek. A sorrend sorpozícióként tárolódik.
+Azok a listák, amelyeknél a sorrend számít — nevek, családi partnerek és gyermekek, helynevek, címsorok és tényrésztvevők — fel/le vezérlőkkel rendelkeznek. A sorrend sorpozícióként tárolódik.
