@@ -386,8 +386,7 @@ CREATE TABLE IF NOT EXISTS citation_template_field (
 -- folder next to the .doru file, never in the database. path is either a
 -- project-relative path under that folder or an external URL. A card stores
 -- its title, historical date and the links to its targets; other GEDCOM
--- metadata and file facts are not persisted. MIME, size and dimensions are
--- derived from the file itself.
+-- metadata and file facts (MIME, size, dimensions) are not stored.
 
 CREATE TABLE IF NOT EXISTS media (
   id TEXT PRIMARY KEY,

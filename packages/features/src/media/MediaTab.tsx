@@ -16,7 +16,6 @@ import {
   Field,
   InlineError,
   Input,
-  MetadataText,
   SectionCard,
   useAutoSaveOnBlur,
 } from '@doru/ui';
@@ -28,8 +27,7 @@ import { EntityTab } from '../sidebar';
 import type { AttachmentsPanelApi } from '../attachments';
 import type { MediaAdminApi } from '../person/types';
 import { nls } from '../nls';
-import { type MediaFileFacts, type MediaWithPath } from '@doru/ui/domain';
-import styles from './MediaTab.module.css';
+import { type MediaWithPath } from '@doru/ui/domain';
 import './MediaTab.css';
 
 type MediaDraftSnapshot = {
@@ -387,14 +385,6 @@ function MediaTabBody({
           <Input value={title} onChange={(event) => setTitle(event.target.value)} />
         </Field>
         <DateEditor label={nls.t('features.tree.media.date')} value={date} onChange={setDate} hidePlace />
-        {external ? (
-          <MetadataText className={styles['fileFacts']}>{factsLabel(undefined)}</MetadataText>
-        ) : (
-          <div className={styles['fileMeta']}>
-            <span className="media-file-path">{record.path}</span>
-            <MetadataText className={styles['fileFacts']}>{factsLabel(record.facts)}</MetadataText>
-          </div>
-        )}
       </SectionCard>
 
       <AttachmentsPanel
@@ -466,33 +456,4 @@ function mediaMetadataMatches(
   record: MediaRecord,
 ): boolean {
   return values.title.trim() === (record.title ?? '') && mediaDateDraftEqual(values.date, record.date);
-}
-
-function factsLabel(facts: MediaFileFacts | undefined): string {
-  if (facts === undefined) {
-    return nls.t('features.tree.media.facts.unknown');
-  }
-  const parts = [`${nls.t('features.tree.media.facts.format')}: ${facts.mime}`];
-  if (facts.size !== undefined) {
-    parts.push(`${nls.t('features.tree.media.facts.size')}: ${formatBytes(facts.size)}`);
-  }
-  if (facts.width !== undefined && facts.height !== undefined) {
-    parts.push(`${nls.t('features.tree.media.facts.dimensions')}: ${facts.width} × ${facts.height}`);
-  }
-  return parts.join(' · ');
-}
-
-function formatBytes(size: number): string {
-  const integer = new Intl.NumberFormat(nls.locale).format(size);
-  if (size < 1024) {
-    return nls.t('features.tree.media.bytes.b', integer);
-  }
-  const value = new Intl.NumberFormat(nls.locale, {
-    minimumFractionDigits: 1,
-    maximumFractionDigits: 1,
-  });
-  if (size < 1024 * 1024) {
-    return nls.t('features.tree.media.bytes.kb', value.format(size / 1024));
-  }
-  return nls.t('features.tree.media.bytes.mb', value.format(size / (1024 * 1024)));
 }

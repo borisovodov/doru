@@ -7,4 +7,4 @@ export { NamesSection } from './NamesSection';
 export { PersonCardView } from './PersonCardView';
 export { PersonCardEditor } from './PersonCardEditor';
 export { PersonList, type PersonListProps } from './PersonList';
-export type { CardAction, MediaFileFacts, MediaWithPath, PersonCounts } from './types';
+export type { CardAction, MediaWithPath, PersonCounts } from './types';
