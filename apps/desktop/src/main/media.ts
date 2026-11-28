@@ -140,7 +140,7 @@ async function addPickedMedia(
       throw error;
     }
     const media = await addStoredMedia(mediaDir, ingested, mediaTitleFromPath(source), target, runtime.service);
-    added.push(await withPath(projectPath, media));
+    added.push(await withPath(mediaProjectDir(projectPath), media));
   }
   return added;
 }
@@ -152,7 +152,7 @@ async function addRemoteMedia(projectPath: string, value: string, target?: Media
   await fs.mkdir(mediaDir);
   try {
     const media = await addRemoteMediaRecord(mediaDir, value, target, runtime.service);
-    return await withPath(projectPath, media);
+    return await withPath(mediaProjectDir(projectPath), media);
   } catch (error) {
     if (error instanceof RemoteMediaError) {
       log.warn('skipped media URL', redactMediaUrl(value), error.code);
@@ -217,11 +217,12 @@ function mediaReferenceSignature(media: MediaRecord[]): string {
 /** Canonical identities of every stored local media file. */
 async function resolveReferenceSet(projectPath: string, media: MediaRecord[]): Promise<Set<string>> {
   const resolved = new Set<string>();
+  const projectDir = mediaProjectDir(projectPath);
   for (const record of media) {
-    const absolute = await mediaAbsolutePath(projectPath, record.path);
+    const absolute = await mediaAbsolutePath(projectDir, record.path);
     if (absolute !== null) {
       resolved.add(absolute);
-      resolved.add(resolve(dirname(runtimeFilePath(projectPath)), record.path));
+      resolved.add(resolve(projectDir, record.path));
     }
   }
   return resolved;
@@ -245,7 +246,7 @@ async function removeMediaFileCopy(
   references: () => Promise<Set<string>> = async () => new Set(),
   referenced?: Set<string>,
 ): Promise<void> {
-  const absolute = await mediaAbsolutePath(projectPath, mediaPath);
+  const absolute = await mediaAbsolutePath(mediaProjectDir(projectPath), mediaPath);
   if (!absolute) {
     return;
   }
