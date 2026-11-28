@@ -360,8 +360,27 @@ export function updateMediaLinksOp(pairs: Array<{ before: MediaLinkRecord; after
         normalize(ctx);
       },
       (ctx) => {
-        for (const pair of pairs) {
-          ctx.repo.updateMediaLinkRow(pair.before);
+        // Restore only the fields this edit changed. A concurrent writer may
+        // have edited another field (for example a sibling's crop) since the
+        // capture, and that edit must survive the undo.
+        for (const { before, after } of pairs) {
+          const current = ctx.repo.getMedia(before.mediaId)?.links?.find((link) => link.id === before.id);
+          // A concurrent move owns the row's primary state on its new target.
+          if (
+            current === undefined ||
+            current.targetType !== before.targetType ||
+            current.targetId !== before.targetId
+          ) {
+            continue;
+          }
+          const restored = { ...current };
+          if (JSON.stringify(before.crop) !== JSON.stringify(after.crop)) {
+            restored.crop = before.crop;
+          }
+          if (before.primary !== after.primary) {
+            restored.primary = before.primary;
+          }
+          ctx.repo.updateMediaLinkRow(restored);
         }
         normalize(ctx);
       },
