@@ -73,7 +73,18 @@ export class MediaRepo {
   }
 
   deleteMedia(id: string): boolean {
-    return this.transactions.run(() => this.deleteMediaRow(id));
+    return this.transactions.run(() => {
+      const targets = this.db
+        .prepare('SELECT DISTINCT target_type, target_id FROM media_link WHERE media_id = ?')
+        .all(id) as unknown as Array<{ target_type: string; target_id: string }>;
+      const changed = this.deleteMediaRow(id);
+      if (changed) {
+        for (const target of targets) {
+          this.ensurePrimaryLink(target.target_type, target.target_id);
+        }
+      }
+      return changed;
+    });
   }
 
   hasMedia(id: string): boolean {
@@ -140,16 +151,25 @@ export class MediaRepo {
   }
 
   addMediaLink(mediaId: string, link: MediaLinkRecord): void {
-    this.db
-      .prepare(
-        `INSERT INTO media_link (id, media_id, target_type, target_id, crop_top, crop_left, crop_height,
-           crop_width, primary_flag)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      )
-      .run(...linkParams(mediaId, link));
+    this.transactions.run(() => {
+      if (link.primary === true) {
+        this.db
+          .prepare('UPDATE media_link SET primary_flag = 0 WHERE target_type = ? AND target_id = ?')
+          .run(link.targetType, link.targetId);
+      }
+      this.db
+        .prepare(
+          `INSERT INTO media_link (id, media_id, target_type, target_id, crop_top, crop_left, crop_height,
+             crop_width, primary_flag)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        )
+        .run(...linkParams(mediaId, link));
+      this.ensurePrimaryLink(link.targetType, link.targetId);
+    });
   }
 
-  updateMediaLink(link: MediaLinkRecord): void {
+  /** Writes one link row without applying the primary invariant. */
+  updateMediaLinkRow(link: MediaLinkRecord): void {
     this.db
       .prepare(
         `UPDATE media_link SET target_type = ?, target_id = ?, crop_top = ?, crop_left = ?,
@@ -168,37 +188,70 @@ export class MediaRepo {
       );
   }
 
-  /** The media record that owns a link, before the link is removed. */
-  getMediaIdForLink(id: string): string | undefined {
-    const row = this.db.prepare('SELECT media_id FROM media_link WHERE id = ?').get(id) as
-      | { media_id: string }
-      | undefined;
-    return row?.media_id;
+  updateMediaLink(link: MediaLinkRecord): void {
+    this.transactions.run(() => {
+      const before = this.db.prepare('SELECT target_type, target_id FROM media_link WHERE id = ?').get(link.id) as
+        | { target_type: string; target_id: string }
+        | undefined;
+      if (before === undefined) {
+        return;
+      }
+      this.updateMediaLinkRow(link);
+      if (link.primary === true) {
+        this.db
+          .prepare('UPDATE media_link SET primary_flag = 0 WHERE target_type = ? AND target_id = ? AND id != ?')
+          .run(link.targetType, link.targetId, link.id);
+      }
+      this.ensurePrimaryLink(link.targetType, link.targetId);
+      if (before.target_type !== link.targetType || before.target_id !== link.targetId) {
+        this.ensurePrimaryLink(before.target_type, before.target_id);
+      }
+    });
+  }
+
+  /** Re-applies the primary invariant to one target after raw link writes. */
+  normalizePrimaryLink(targetType: string, targetId: string): void {
+    this.transactions.run(() => this.ensurePrimaryLink(targetType, targetId));
   }
 
   removeMediaLink(id: string): boolean {
     return this.transactions.run(() => {
-      const link = this.db.prepare('SELECT media_id FROM media_link WHERE id = ?').get(id) as
-        | { media_id: string }
+      const link = this.db.prepare('SELECT target_type, target_id FROM media_link WHERE id = ?').get(id) as
+        | { target_type: string; target_id: string }
         | undefined;
       const result = this.db.prepare('DELETE FROM media_link WHERE id = ?').run(id);
       if (result.changes > 0 && link) {
-        const remaining = this.db
-          .prepare('SELECT COUNT(*) AS n FROM media_link WHERE media_id = ?')
-          .get(link.media_id) as {
-          n: number;
-        };
-        if (remaining.n === 0) {
-          this.deleteMediaRow(link.media_id);
-        }
+        this.ensurePrimaryLink(link.target_type, link.target_id);
       }
       return result.changes > 0;
     });
   }
 
-  /** Removes one link without deleting the shared media record. */
-  removeMediaLinkOnly(id: string): boolean {
-    return this.transactions.run(() => this.db.prepare('DELETE FROM media_link WHERE id = ?').run(id).changes > 0);
+  /**
+   * Enforces the per-target invariant: whenever a target has media links,
+   * exactly one of them is primary. Explicit flags win; otherwise the first
+   * link in insertion order becomes the primary one.
+   */
+  private ensurePrimaryLink(targetType: string, targetId: string): void {
+    const links = this.db
+      .prepare(
+        `SELECT id, primary_flag FROM media_link
+         WHERE target_type = ? AND target_id = ? ORDER BY rowid`,
+      )
+      .all(targetType, targetId) as unknown as Array<{ id: string; primary_flag: number }>;
+    if (links.length === 0) {
+      return;
+    }
+    const primary = links.find((link) => link.primary_flag === 1);
+    for (const link of links) {
+      if (link.id !== primary?.id && link.primary_flag === 1) {
+        this.db.prepare('UPDATE media_link SET primary_flag = 0 WHERE id = ?').run(link.id);
+      }
+    }
+    const first = links[0];
+    if (primary === undefined && first !== undefined) {
+      this.db.prepare('UPDATE media_link SET primary_flag = 1 WHERE id = ?').run(first.id);
+    }
   }
 
   /** Removes every link to the target; the shared media records survive. */

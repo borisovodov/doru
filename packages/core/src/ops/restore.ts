@@ -222,7 +222,7 @@ export function restoreTitle(ctx: MutationContext, title: TitleRecord): void {
   ctx.repo.insertTitle(clean);
 }
 
-export function restoreRecordSubmitter(
+export function restoreSubmitterLink(
   ctx: MutationContext,
   link: {
     id: string;
@@ -238,7 +238,7 @@ export function restoreRecordSubmitter(
   ) {
     return false;
   }
-  ctx.repo.insertRecordSubmitter(link.id, link.submitterId, link.targetType, link.targetId, link.kind);
+  ctx.repo.insertSubmitterLink(link.id, link.submitterId, link.targetType, link.targetId, link.kind);
   return true;
 }
 
@@ -276,7 +276,7 @@ export function attachmentsMatch(
       .sort(),
     contacts: snapshot.contacts.map((entry) => JSON.stringify(entry)).sort(),
     taskLinks: snapshot.taskLinks.map((entry) => JSON.stringify(entry)).sort(),
-    recordSubmitters: snapshot.recordSubmitters.map((entry) => JSON.stringify(entry)).sort(),
+    submitterLinks: snapshot.submitterLinks.map((entry) => JSON.stringify(entry)).sort(),
   });
   const flatten = (snapshot: AttachmentsSnapshot, rootKey: string): string => {
     const records = new Map<string, string>();

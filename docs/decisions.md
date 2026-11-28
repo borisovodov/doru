@@ -154,14 +154,17 @@ those sets; there is no global runtime target list and no second UI list.
 | Media link | Every target type except `media` and `media_link`; a task is a valid media target. |
 | Contact | `person`, `fact`, `repository`, `submitter`. |
 | Task link | Every target type except `task`, `submitter`, and `media_link`; `source` is valid. |
-| Contributor link | Every target type except `task`, `media_link`, and `submitter`. |
+| Submitter link (`contributor`, ANCI/DESI) | `person`, `family`. GEDCOM has standard `SUBM` pointers only on individuals and families; `ANCI`/`DESI` research interests are also individual-only. |
 
 Consequences: a source has nothing to cite on a task (a task asserts nothing),
 a task card keeps Notes and Media only, a submitter card has no Tasks or
 Contributors section, a media link carries no attachments at all, and
-contributors are absent from task cards. `TreeService` rejects every disallowed
-pair with one shared guard, so agents and IPC callers follow the same matrix as
-the UI.
+contributors are absent from task cards. Contributor and research-interest
+links are exposed only on person and family cards; vendor `_SUBM` links from
+other GEDCOM records are dropped on import and are not offered by the UI.
+`TreeService` rejects every
+disallowed pair with one shared guard, so agents and IPC callers follow the
+same matrix as the UI.
 
 A note is a leaf annotation: it is owned by exactly one record and stores its
 text, but no attachment may point at it, and a note row has no attachment
@@ -338,7 +341,8 @@ belong to, which keeps the sidebar focused on records with their own tabs.
 
 Dóru models one media card as exactly one file. A GEDCOM `OBJE` with several
 `FILE` rows is split into one card per file on import; the record notes,
-citations, submitters and links are duplicated onto every card. The imported
+citations and links are duplicated onto every card. Submitter links on media
+are dropped by the current target policy. The imported
 xref is not stored; every card receives a fresh export identifier. `TRAN` is
 ignored. GEDZIP bytes and reachable local `FILE` paths are copied into the
 project's `media/` folder. Plain `http(s)`
@@ -361,11 +365,14 @@ Sources and notes attach to the media card (`media`), never to a link row.
 An inline 5.5.1 `NOTE` or `SOUR` under the link is hoisted onto the media
 record; a pointer-form link note or citation has no slot and is dropped. A
 media link stores only the crop and the primary flag; it is not an attachment
-target at all. An imported link marked `_EXCL` is not stored as primary, so an
-excluded photo never becomes the automatic tree-card portrait. The GEDCOM
-parser still reads the link-level display fields (`CROP`, `_PRIM`, `_SCBK`,
-`_SSHOW`, `_THUM`, `_SEQ`, `_EXCL`, `_CAPT`) so `@doru/gedcom` stays faithful,
-but the tree keeps only `crop` and `primary`.
+target at all. The tree does not store the `_EXCL` exclusion flag. Every
+target with media has exactly one primary link, so an excluded link is still
+eligible for the primary fallback; if it is the only linked media, an excluded
+photo may become the automatic tree-card portrait. This is accepted until
+exclusion is modeled separately. The GEDCOM parser still reads the link-level
+display fields (`CROP`, `_PRIM`, `_SCBK`, `_SSHOW`, `_THUM`, `_SEQ`, `_EXCL`,
+`_CAPT`) so `@doru/gedcom` stays faithful, but the tree keeps only `crop` and
+`primary`.
 
 ## API stability before 1.0.0
 

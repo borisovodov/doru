@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import type { RecordSubmitterLink, TargetRef, TaskRecord, TaskTargetLink } from '@doru/core';
+import type { SubmitterLink, TargetRef, TaskRecord, TaskTargetLink } from '@doru/core';
 import type { MediaTargetApi, PersonEditorApi } from '@doru/features';
 import type { RefreshTree } from './types';
 
@@ -237,31 +237,31 @@ export function usePersonEditorApi(
         await window.doru.deleteAlias(projectPath, id, personId, aliasId);
         await refreshTree().catch(() => undefined);
       },
-      getRecordSubmitters: (targetType, targetId): Promise<RecordSubmitterLink[]> =>
-        projectPath ? window.doru.getRecordSubmitters(projectPath, targetType, targetId) : Promise.resolve([]),
-      addRecordSubmitter: async (
+      getSubmitterLinks: (targetType, targetId): Promise<SubmitterLink[]> =>
+        projectPath ? window.doru.getSubmitterLinks(projectPath, targetType, targetId) : Promise.resolve([]),
+      addSubmitterLink: async (
         submitterId,
         targetType,
         targetId,
-        kind: NonNullable<RecordSubmitterLink['kind']> = 'contributor',
+        kind: NonNullable<SubmitterLink['kind']> = 'contributor',
       ) => {
         if (!projectPath) {
           return;
         }
-        await window.doru.addRecordSubmitter(projectPath, submitterId, targetType, targetId, kind);
+        await window.doru.addSubmitterLink(projectPath, submitterId, targetType, targetId, kind);
         await refreshTree().catch(() => undefined);
       },
-      deleteRecordSubmitter: async (
+      deleteSubmitterLink: async (
         id,
         submitterId,
         targetType,
         targetId,
-        kind: NonNullable<RecordSubmitterLink['kind']> = 'contributor',
+        kind: NonNullable<SubmitterLink['kind']> = 'contributor',
       ) => {
         if (!projectPath) {
           return;
         }
-        await window.doru.deleteRecordSubmitter(projectPath, id, submitterId, targetType, targetId, kind);
+        await window.doru.deleteSubmitterLink(projectPath, id, submitterId, targetType, targetId, kind);
         await refreshTree().catch(() => undefined);
       },
       getPlaces: () => (projectPath ? window.doru.getPlaces(projectPath) : Promise.resolve([])),

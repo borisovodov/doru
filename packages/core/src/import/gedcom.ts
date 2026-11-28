@@ -35,6 +35,7 @@ import type {
   TodoStructure,
 } from '@doru/gedcom';
 import type { TreeRepository } from '../db/repository';
+import { isAttachmentTargetAllowed } from '../model/targetPolicy';
 import { mediaTitleFromPath, mergeDateBounds, normalizeTaskPriority, normalizeTaskStatus } from '../model/types';
 import { detectParentCycles } from '../validate/validator';
 import type {
@@ -1987,9 +1988,16 @@ function importSubmitterLinks(
   kind: 'contributor' | 'ancestor_interest' | 'descendant_interest' = 'contributor',
 ): void {
   for (const submitter of submitters ?? []) {
+    if (
+      !isAttachmentTargetAllowed('submitterLink', targetType) ||
+      (kind !== 'contributor' && targetType !== 'person')
+    ) {
+      ctx.dropped += 1;
+      continue;
+    }
     const submitterId = ctx.submitterIds.get(submitter);
     if (submitterId !== undefined) {
-      ctx.repo.insertRecordSubmitter(crypto.randomUUID(), submitterId, targetType, targetId, kind);
+      ctx.repo.insertSubmitterLink(crypto.randomUUID(), submitterId, targetType, targetId, kind);
     }
   }
 }
@@ -2252,8 +2260,9 @@ function importMediaLinks(
         targetType,
         targetId,
         ...(link.crop !== undefined ? { crop: link.crop } : {}),
-        // An excluded link must not become a tree-card portrait (the UI no
-        // longer stores the exclusion flag, so drop the primary mark here).
+        // The UI no longer stores the exclusion flag, so an excluded link is
+        // imported as a regular one; the repository still guarantees the
+        // target's primary link when none carries the flag.
         ...(link.primary === true && link.excludeFromDiagrams !== true ? { primary: true } : {}),
       });
     }

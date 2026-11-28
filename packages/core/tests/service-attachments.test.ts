@@ -268,12 +268,21 @@ describe('TreeService attachments', () => {
   it('enforces contributor target policies', () => {
     const { fixture, service } = makeService();
     try {
-      expect(() => service.addRecordSubmitter('SU1', 'task', 'T1')).toThrow('A recordSubmitter cannot target a task.');
-      expect(() => service.addRecordSubmitter('SU1', 'media_link', 'ML1')).toThrow(
-        'A recordSubmitter cannot target a media_link.',
+      expect(() => service.addSubmitterLink('SU1', 'task', 'T1')).toThrow('A submitterLink cannot target a task.');
+      expect(() => service.addSubmitterLink('SU1', 'source', 'S1')).toThrow('A submitterLink cannot target a source.');
+      expect(() => service.addSubmitterLink('SU1', 'media', 'M1')).toThrow('A submitterLink cannot target a media.');
+      expect(() => service.addSubmitterLink('SU1', 'place', 'PL1')).toThrow('A submitterLink cannot target a place.');
+      expect(() => service.addSubmitterLink('SU1', 'family', 'F1', 'ancestor_interest')).toThrow(
+        'A submitterLink cannot target a family for ancestor_interest.',
       );
-      expect(fixture.repo.listRecordSubmittersFor('task', 'T1')).toEqual([]);
-      expect(fixture.repo.listRecordSubmittersFor('media_link', 'ML1')).toEqual([]);
+      expect(() => service.addSubmitterLink('SU1', 'media_link', 'ML1')).toThrow(
+        'A submitterLink cannot target a media_link.',
+      );
+      expect(fixture.repo.listSubmitterLinksFor('task', 'T1')).toEqual([]);
+      expect(fixture.repo.listSubmitterLinksFor('source', 'S1')).toEqual([]);
+      expect(fixture.repo.listSubmitterLinksFor('media', 'M1')).toEqual([]);
+      expect(fixture.repo.listSubmitterLinksFor('place', 'PL1')).toEqual([]);
+      expect(fixture.repo.listSubmitterLinksFor('media_link', 'ML1')).toEqual([]);
     } finally {
       cleanupRepo(fixture);
     }
@@ -324,13 +333,13 @@ describe('TreeService attachments', () => {
         'A mediaLink cannot target a note.',
       );
 
-      expect(() => service.addRecordSubmitter('SU1', 'note', 'N1')).toThrow('A recordSubmitter cannot target a note.');
+      expect(() => service.addSubmitterLink('SU1', 'note', 'N1')).toThrow('A submitterLink cannot target a note.');
 
       // The failed attempts left no rows behind.
       expect(fixture.repo.listCitationRecordsFor('note', 'N1')).toEqual([]);
       expect(fixture.repo.listTaskLinksFor('note', 'N1')).toEqual([]);
       expect(fixture.repo.listMediaLinksFor('note', 'N1')).toEqual([]);
-      expect(fixture.repo.listRecordSubmittersFor('note', 'N1')).toEqual([]);
+      expect(fixture.repo.listSubmitterLinksFor('note', 'N1')).toEqual([]);
       expect(fixture.repo.listNotesFor('note', 'N1')).toEqual([]);
     } finally {
       cleanupRepo(fixture);
@@ -464,26 +473,120 @@ describe('TreeService attachments', () => {
       expect(
         fixture.repo.listAttachmentsFor('person', 'P1').mediaLinks.find((entry) => entry.link.id === beforeLink.id)
           ?.link,
-      ).toMatchObject({ crop: undefined, primary: undefined });
+      ).toMatchObject({ crop: undefined, primary: true });
     } finally {
       cleanupRepo(fixture);
     }
   });
 
-  it('restores media and its attachments when the last link is detached', () => {
+  it('restores primary flags on both targets when a target move is undone', () => {
     const { fixture, service } = makeService();
     try {
+      service.addPerson({ id: 'P1', names: [], sex: 'U', facts: [] });
+      service.addPerson({ id: 'P2', names: [], sex: 'U', facts: [] });
+      service.addMedia({ id: 'M1', path: 'media/a.jpg', targetType: 'person', targetId: 'P1' });
+      service.addMedia({ id: 'M2', path: 'media/b.jpg', targetType: 'person', targetId: 'P2' });
+      const moved = fixture.repo
+        .listAttachmentsFor('person', 'P1')
+        .mediaLinks.find((entry) => entry.media.id === 'M1')!.link;
+
+      service.updateMediaLink(moved, { ...moved, targetType: 'person', targetId: 'P2', primary: true });
+      expect(
+        fixture.repo.listAttachmentsFor('person', 'P2').mediaLinks.find((entry) => entry.media.id === 'M2')?.link
+          .primary,
+      ).toBeUndefined();
+
+      service.undo();
+
+      expect(fixture.repo.listAttachmentsFor('person', 'P1').mediaLinks[0]?.link.primary).toBe(true);
+      expect(
+        fixture.repo.listAttachmentsFor('person', 'P2').mediaLinks.find((entry) => entry.media.id === 'M2')?.link
+          .primary,
+      ).toBe(true);
+    } finally {
+      cleanupRepo(fixture);
+    }
+  });
+
+  it('restores the previous primary link when a primary attach is undone', () => {
+    const { fixture, service } = makeService();
+    try {
+      service.addMedia({ id: 'M1', path: 'media/a.jpg', targetType: 'person', targetId: 'P1' });
+      service.addMedia({ id: 'M2', path: 'media/b.jpg' });
+      const first = fixture.repo
+        .listAttachmentsFor('person', 'P1')
+        .mediaLinks.find((entry) => entry.media.id === 'M1')!.link;
+      expect(first.primary).toBe(true);
+
+      service.attachMedia({
+        id: 'L2',
+        mediaId: 'M2',
+        targetType: 'person',
+        targetId: 'P1',
+        primary: true,
+      });
+      expect(
+        fixture.repo.listAttachmentsFor('person', 'P1').mediaLinks.find((entry) => entry.media.id === 'M2')?.link
+          .primary,
+      ).toBe(true);
+
+      service.undo();
+
+      const restored = fixture.repo.listAttachmentsFor('person', 'P1').mediaLinks;
+      expect(restored.find((entry) => entry.media.id === 'M1')?.link.primary).toBe(true);
+      expect(restored.find((entry) => entry.media.id === 'M2')).toBeUndefined();
+      expect(fixture.repo.getMedia('M2')?.links).toEqual([]);
+    } finally {
+      cleanupRepo(fixture);
+    }
+  });
+
+  it('restores the previous primary link when a primary switch is undone', () => {
+    const { fixture, service } = makeService();
+    try {
+      service.addPerson({ id: 'P1', names: [], sex: 'U', facts: [] });
+      service.addMedia({ id: 'M1', path: 'media/a.jpg', targetType: 'person', targetId: 'P1' });
+      service.addMedia({ id: 'M2', path: 'media/b.jpg', targetType: 'person', targetId: 'P1' });
+      const first = fixture.repo
+        .listAttachmentsFor('person', 'P1')
+        .mediaLinks.find((entry) => entry.media.id === 'M1')!.link;
+      const second = fixture.repo
+        .listAttachmentsFor('person', 'P1')
+        .mediaLinks.find((entry) => entry.media.id === 'M2')!.link;
+      expect(first.primary).toBe(true);
+
+      service.updateMediaLink(second, { ...second, primary: true });
+      service.updateMediaLink(first, { ...first, primary: true });
+      expect(
+        fixture.repo.listAttachmentsFor('person', 'P1').mediaLinks.find((entry) => entry.media.id === 'M2')?.link
+          .primary,
+      ).toBeUndefined();
+
+      service.undo();
+
+      const restored = fixture.repo.listAttachmentsFor('person', 'P1').mediaLinks;
+      expect(restored.find((entry) => entry.media.id === 'M1')?.link.primary).toBeUndefined();
+      expect(restored.find((entry) => entry.media.id === 'M2')?.link.primary).toBe(true);
+    } finally {
+      cleanupRepo(fixture);
+    }
+  });
+
+  it('keeps media and its attachments when the last link is detached', () => {
+    const { fixture, service } = makeService();
+    try {
+      fixture.repo.insertPerson({ id: 'P1', names: [], sex: 'U', facts: [] });
       service.addMedia({ id: 'M1', path: 'media/photo.jpg', title: 'Portrait', targetType: 'person', targetId: 'P1' });
       service.addNote(note({ targetType: 'media', targetId: 'M1' }));
       expect(fixture.repo.getMedia('M1')).toBeDefined();
 
       const link = fixture.repo.listAttachmentsFor('person', 'P1').mediaLinks[0]!.link;
       service.detachMedia(link);
-      expect(fixture.repo.getMedia('M1')).toBeUndefined();
-      expect(fixture.repo.listNotesFor('media', 'M1')).toEqual([]);
+      expect(fixture.repo.getMedia('M1')).toMatchObject({ id: 'M1', links: [] });
+      expect(fixture.repo.listNotesFor('media', 'M1').map((entry) => entry.id)).toEqual(['N1']);
 
       service.undo();
-      expect(fixture.repo.getMedia('M1')).toBeDefined();
+      expect(fixture.repo.listAttachmentsFor('person', 'P1').mediaLinks).toHaveLength(1);
       expect(fixture.repo.listNotesFor('media', 'M1').map((entry) => entry.id)).toEqual(['N1']);
     } finally {
       cleanupRepo(fixture);
@@ -640,16 +743,17 @@ describe('TreeService attachments', () => {
   it('restores submitter links and contributor rows exactly once on undo', () => {
     const { fixture, service } = makeService();
     try {
+      service.addPerson({ id: 'P1', names: [], sex: 'U', facts: [] });
       service.addSubmitter(submitter());
       service.addMedia({ id: 'M1', path: 'media/scan.jpg', title: 'Scan' });
       service.attachMedia({ id: 'ML1', mediaId: 'M1', targetType: 'submitter', targetId: 'SU1' });
-      service.addRecordSubmitter('SU1', 'media', 'M1');
-      const link = fixture.repo.listRecordSubmittersFor('media', 'M1')[0]!;
+      service.addSubmitterLink('SU1', 'person', 'P1');
+      const link = fixture.repo.listSubmitterLinksFor('person', 'P1')[0]!;
 
       service.deleteSubmitter(submitter());
       expect(fixture.repo.getSubmitter('SU1')).toBeUndefined();
       expect(fixture.repo.getMedia('M1')?.links).toEqual([]);
-      expect(fixture.repo.listRecordSubmittersFor('media', 'M1')).toEqual([]);
+      expect(fixture.repo.listSubmitterLinksFor('person', 'P1')).toEqual([]);
 
       service.undo();
 
@@ -657,7 +761,7 @@ describe('TreeService attachments', () => {
       expect(fixture.repo.getMedia('M1')?.links).toEqual([
         expect.objectContaining({ id: 'ML1', targetType: 'submitter', targetId: 'SU1' }),
       ]);
-      expect(fixture.repo.listRecordSubmittersFor('media', 'M1')).toEqual([link]);
+      expect(fixture.repo.listSubmitterLinksFor('person', 'P1')).toEqual([link]);
     } finally {
       cleanupRepo(fixture);
     }
@@ -705,6 +809,7 @@ describe('TreeService attachments', () => {
   it('restores repository, submitter and title consumers on undo', () => {
     const { fixture, service } = makeService();
     try {
+      service.addPerson({ id: 'P1', names: [], sex: 'U', facts: [] });
       service.addRepository(repository());
       service.addSubmitter(submitter());
       service.addTitle({ id: 'TL1', name: 'The Parish Registers' });
@@ -720,7 +825,7 @@ describe('TreeService attachments', () => {
           titleId: 'TL1',
         }),
       );
-      service.addRecordSubmitter('SU1', 'source', 'S1');
+      service.addSubmitterLink('SU1', 'person', 'P1');
 
       service.deleteRepository(repository());
       expect(fixture.repo.getSource('S1')?.repositories).toBeUndefined();
@@ -734,10 +839,10 @@ describe('TreeService attachments', () => {
       ]);
 
       service.deleteSubmitter(submitter());
-      expect(fixture.repo.listRecordSubmittersFor('source', 'S1')).toEqual([]);
+      expect(fixture.repo.listSubmitterLinksFor('person', 'P1')).toEqual([]);
       service.undo();
-      expect(fixture.repo.listRecordSubmittersFor('source', 'S1')).toEqual([
-        expect.objectContaining({ submitterId: 'SU1', targetType: 'source', targetId: 'S1' }),
+      expect(fixture.repo.listSubmitterLinksFor('person', 'P1')).toEqual([
+        expect.objectContaining({ submitterId: 'SU1', targetType: 'person', targetId: 'P1' }),
       ]);
 
       service.deleteTitle({ id: 'TL1', name: 'The Parish Registers' });
@@ -754,22 +859,22 @@ describe('TreeService attachments', () => {
     try {
       service.addPerson({ id: 'P1', names: [], sex: 'U', facts: [] });
       service.addSubmitter(submitter());
-      service.addRecordSubmitter('SU1', 'person', 'P1', 'contributor');
-      service.addRecordSubmitter('SU1', 'person', 'P1', 'ancestor_interest');
-      service.addRecordSubmitter('SU1', 'person', 'P1', 'descendant_interest');
-      expect(new Set(fixture.repo.listRecordSubmittersFor('person', 'P1').map((link) => link.kind))).toEqual(
+      service.addSubmitterLink('SU1', 'person', 'P1', 'contributor');
+      service.addSubmitterLink('SU1', 'person', 'P1', 'ancestor_interest');
+      service.addSubmitterLink('SU1', 'person', 'P1', 'descendant_interest');
+      expect(new Set(fixture.repo.listSubmitterLinksFor('person', 'P1').map((link) => link.kind))).toEqual(
         new Set(['ancestor_interest', 'contributor', 'descendant_interest']),
       );
 
       const link = fixture.repo
-        .listRecordSubmittersFor('person', 'P1')
+        .listSubmitterLinksFor('person', 'P1')
         .find((entry) => entry.kind === 'ancestor_interest')!;
-      service.deleteRecordSubmitter(link.id, 'SU1', 'person', 'P1', 'ancestor_interest');
-      expect(new Set(fixture.repo.listRecordSubmittersFor('person', 'P1').map((entry) => entry.kind))).toEqual(
+      service.deleteSubmitterLink(link.id, 'SU1', 'person', 'P1', 'ancestor_interest');
+      expect(new Set(fixture.repo.listSubmitterLinksFor('person', 'P1').map((entry) => entry.kind))).toEqual(
         new Set(['contributor', 'descendant_interest']),
       );
       service.undo();
-      expect(new Set(fixture.repo.listRecordSubmittersFor('person', 'P1').map((entry) => entry.kind))).toEqual(
+      expect(new Set(fixture.repo.listSubmitterLinksFor('person', 'P1').map((entry) => entry.kind))).toEqual(
         new Set(['ancestor_interest', 'contributor', 'descendant_interest']),
       );
     } finally {
@@ -782,13 +887,13 @@ describe('TreeService attachments', () => {
     try {
       service.addPerson({ id: 'P1', names: [], sex: 'U', facts: [] });
       service.addSubmitter(submitter());
-      service.addRecordSubmitter('SU1', 'person', 'P1');
-      expect(fixture.repo.listRecordSubmittersFor('person', 'P1').map((entry) => entry.submitterId)).toEqual(['SU1']);
+      service.addSubmitterLink('SU1', 'person', 'P1');
+      expect(fixture.repo.listSubmitterLinksFor('person', 'P1').map((entry) => entry.submitterId)).toEqual(['SU1']);
       expect(fixture.repo.listSubmittersFor('person', 'P1')).toEqual(['SU1']);
 
-      const [link] = fixture.repo.listRecordSubmittersFor('person', 'P1');
-      service.deleteRecordSubmitter(link!.id, link!.submitterId, link!.targetType, link!.targetId);
-      expect(fixture.repo.listRecordSubmittersFor('person', 'P1')).toEqual([]);
+      const [link] = fixture.repo.listSubmitterLinksFor('person', 'P1');
+      service.deleteSubmitterLink(link!.id, link!.submitterId, link!.targetType, link!.targetId);
+      expect(fixture.repo.listSubmitterLinksFor('person', 'P1')).toEqual([]);
 
       service.undo();
       expect(fixture.repo.listSubmittersFor('person', 'P1')).toEqual(['SU1']);
@@ -825,8 +930,8 @@ describe('TreeService attachments', () => {
     try {
       service.addPerson({ id: 'P1', names: [], sex: 'U', facts: [] });
       service.addSubmitter(submitter());
-      service.addRecordSubmitter('SU1', 'person', 'P1', 'ancestor_interest');
-      expect(fixture.repo.listAllRecordSubmitters()).toEqual([
+      service.addSubmitterLink('SU1', 'person', 'P1', 'ancestor_interest');
+      expect(fixture.repo.listAllSubmitterLinks()).toEqual([
         expect.objectContaining({
           submitterId: 'SU1',
           targetType: 'person',

@@ -13,7 +13,7 @@ import type {
   FamilyRecord,
   NoteRecord,
   PersonRecord,
-  RecordSubmitterLink,
+  SubmitterLink,
   PlaceRecord,
   Sex,
   SourceRecord,
@@ -24,7 +24,7 @@ import '../sidebar/sidebar.css';
 import { AssociationsSection } from '@doru/ui/domain';
 import { AliasesSection } from '@doru/ui/domain';
 import { ContactsSection } from '@doru/ui/domain';
-import { ContributorsSection } from '@doru/ui/domain';
+import { ContributorsSection, ResearchInterestsSection } from '@doru/ui/domain';
 import { DateEditor } from '@doru/ui/domain';
 import { FactsSection } from '@doru/ui/domain';
 import { FamilySection } from '@doru/ui/domain';
@@ -88,7 +88,7 @@ export function PersonEditor({
   const [places, setPlaces] = useState<PlaceRecord[]>([]);
   const [addresses, setAddresses] = useState<AddressRecord[]>([]);
   const [submitters, setSubmitters] = useState<SubmitterRecord[]>([]);
-  const [contributors, setContributors] = useState<RecordSubmitterLink[]>([]);
+  const [contributors, setContributors] = useState<SubmitterLink[]>([]);
 
   const refreshFamilies = async () => {
     setFamilies(await api.getFamilies());
@@ -101,7 +101,7 @@ export function PersonEditor({
 
   const refreshContributors = async () => {
     setSubmitters(await api.getSubmitters());
-    setContributors(await api.getRecordSubmitters('person', draft.id));
+    setContributors(await api.getSubmitterLinks('person', draft.id));
   };
 
   /** Reloads the universal contact list of the person. */
@@ -161,7 +161,7 @@ export function PersonEditor({
         setContacts(loadedContacts);
       }
     });
-    void Promise.all([api.getSubmitters(), api.getRecordSubmitters('person', draft.id)]).then(
+    void Promise.all([api.getSubmitters(), api.getSubmitterLinks('person', draft.id)]).then(
       ([loadedSubmitters, loadedContributors]) => {
         if (!cancelled) {
           setSubmitters(loadedSubmitters);
@@ -209,6 +209,11 @@ export function PersonEditor({
           title: nls.t('features.tree.media.title'),
         },
       ];
+
+  const contributorLinks = contributors.filter((link) => (link.kind ?? 'contributor') === 'contributor');
+  const researchInterestLinks = contributors.filter(
+    (link) => link.kind === 'ancestor_interest' || link.kind === 'descendant_interest',
+  );
 
   return (
     <EditorPage label={nls.t('features.personEditor.title')} className="person-editor" onBlur={onBlur}>
@@ -511,13 +516,27 @@ export function PersonEditor({
             targetType="person"
             targetId={draft.id}
             submitters={submitters}
-            links={contributors}
+            links={contributorLinks}
             onAdd={async (submitterId, targetType, targetId, kind) => {
-              await api.addRecordSubmitter(submitterId, targetType, targetId, kind);
+              await api.addSubmitterLink(submitterId, targetType, targetId, kind);
               await refreshContributors();
             }}
             onDelete={async (id, submitterId, targetType, targetId, kind) => {
-              await api.deleteRecordSubmitter(id, submitterId, targetType, targetId, kind);
+              await api.deleteSubmitterLink(id, submitterId, targetType, targetId, kind);
+              await refreshContributors();
+            }}
+          />
+          <ResearchInterestsSection
+            targetType="person"
+            targetId={draft.id}
+            submitters={submitters}
+            links={researchInterestLinks}
+            onAdd={async (submitterId, targetType, targetId, kind) => {
+              await api.addSubmitterLink(submitterId, targetType, targetId, kind);
+              await refreshContributors();
+            }}
+            onDelete={async (id, submitterId, targetType, targetId, kind) => {
+              await api.deleteSubmitterLink(id, submitterId, targetType, targetId, kind);
               await refreshContributors();
             }}
           />

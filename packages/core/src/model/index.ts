@@ -25,7 +25,7 @@ export type {
   PersonRecord,
   PlaceName,
   PlaceRecord,
-  RecordSubmitterLink,
+  SubmitterLink,
   RecordTimestamps,
   RepositoryRecord,
   Sex,

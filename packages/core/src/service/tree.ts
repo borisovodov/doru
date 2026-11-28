@@ -13,7 +13,7 @@ import type {
   PersonName,
   PersonRecord,
   PlaceRecord,
-  RecordSubmitterLink,
+  SubmitterLink,
   RecordTimestamps,
   RepositoryRecord,
   SourceRecord,
@@ -45,6 +45,7 @@ import {
   addMediaOp,
   updateMediaOp,
   updateMediaLinkOp,
+  updateMediaLinksOp,
   addNoteOp,
   addPersonOp,
   addPlaceOp,
@@ -52,7 +53,7 @@ import {
   addRepositoryOp,
   addSourceOp,
   addSubmitterOp,
-  addRecordSubmitterOp,
+  addSubmitterLinkOp,
   addTaskLinkOp,
   addTaskOp,
   addTitleOp,
@@ -74,7 +75,7 @@ import {
   deleteRepositoryOp,
   deleteSourceOp,
   deleteSubmitterOp,
-  deleteRecordSubmitterOp,
+  deleteSubmitterLinkOp,
   deleteTaskLinkOp,
   deleteTaskOp,
   deleteTitleOp,
@@ -1023,8 +1024,8 @@ export class TreeService {
       ) {
         return undefined;
       }
-      const attachments = this.repo.listAttachmentsFor('media', link.mediaId);
-      return attachMediaOp(link, media, attachments);
+      const primaryBefore = this.repo.listMediaLinksFor(link.targetType, link.targetId).map((entry) => entry.link);
+      return attachMediaOp(link, primaryBefore);
     });
   }
 
@@ -1058,7 +1059,52 @@ export class TreeService {
 
   updateMediaLink(before: MediaLinkRecord, after: MediaLinkRecord): UndoRedoState {
     assertTargetAllowed('mediaLink', after.targetType);
-    return this.apply(updateMediaLinkOp(before, after));
+    return this.applyAfterCommit(() => {
+      const stored = this.repo.getMedia(before.mediaId)?.links?.find((link) => link.id === before.id);
+      if (stored === undefined) {
+        return undefined;
+      }
+      // The renderer supplies the full row; never let a mismatched id move the
+      // update set to a different link while the target's primary flags change.
+      const desired: MediaLinkRecord = { ...after, id: stored.id, mediaId: stored.mediaId };
+      if (stored.targetType !== desired.targetType || stored.targetId !== desired.targetId) {
+        // Moving a link between targets keeps the repository's normalization
+        // path; capture both targets so undo can restore their sibling flags.
+        return updateMediaLinkOp(stored, desired, {
+          oldTarget: this.repo.listMediaLinksFor(stored.targetType, stored.targetId).map((entry) => entry.link),
+          newTarget: this.repo.listMediaLinksFor(desired.targetType, desired.targetId).map((entry) => entry.link),
+        });
+      }
+      const currentLinks = this.repo.listMediaLinksFor(stored.targetType, stored.targetId).map((entry) => entry.link);
+      const nextLinks = currentLinks.map((link) => (link.id === stored.id ? { ...desired } : { ...link }));
+      if (desired.primary === true) {
+        for (const link of nextLinks) {
+          link.primary = link.id === stored.id ? true : false;
+        }
+      } else {
+        const primary = nextLinks.find((link) => link.primary === true);
+        if (primary === undefined) {
+          const first = nextLinks[0];
+          if (first !== undefined) {
+            first.primary = true;
+          }
+        } else {
+          for (const link of nextLinks) {
+            if (link.id !== primary.id) {
+              link.primary = false;
+            }
+          }
+        }
+      }
+      const nextById = new Map(nextLinks.map((link) => [link.id, link]));
+      const pairs = currentLinks.flatMap((link) => {
+        const next = nextById.get(link.id);
+        return next === undefined || JSON.stringify(next) === JSON.stringify(link)
+          ? []
+          : [{ before: link, after: next }];
+      });
+      return pairs.length === 0 ? undefined : updateMediaLinksOp(pairs);
+    });
   }
 
   detachMedia(link: MediaLinkRecord): UndoRedoState {
@@ -1068,8 +1114,7 @@ export class TreeService {
       if (media === undefined || stored === undefined) {
         return undefined;
       }
-      const attachments = this.repo.listAttachmentsFor('media', link.mediaId);
-      return detachMediaOp(stored, media, attachments);
+      return detachMediaOp(stored);
     });
   }
 
@@ -1155,45 +1200,48 @@ export class TreeService {
         return undefined;
       }
       const attachments = this.repo.listAttachmentsFor('submitter', current.id);
-      const consumers = { recordSubmitters: this.repo.listRecordSubmittersForSubmitter(current.id) };
+      const consumers = { submitterLinks: this.repo.listSubmitterLinksForSubmitter(current.id) };
       return deleteSubmitterOp(current, attachments, consumers);
     });
   }
 
   /** The submitters linked as contributors of a record (GEDCOM SUBM on INDI/FAM). */
-  listRecordSubmittersFor(targetType: string, targetId: string): RecordSubmitterLink[] {
-    return this.repo.listRecordSubmittersFor(targetType, targetId);
+  listSubmitterLinksFor(targetType: string, targetId: string): SubmitterLink[] {
+    return this.repo.listSubmitterLinksFor(targetType, targetId);
   }
 
   /** Every submitter link in the tree, for the global registries. */
-  listAllRecordSubmitters(): RecordSubmitterLink[] {
-    return this.repo.listAllRecordSubmitters();
+  listAllSubmitterLinks(): SubmitterLink[] {
+    return this.repo.listAllSubmitterLinks();
   }
 
-  addRecordSubmitter(
+  addSubmitterLink(
     submitterId: string,
     targetType: string,
     targetId: string,
-    kind: RecordSubmitterLink['kind'] = 'contributor',
+    kind: SubmitterLink['kind'] = 'contributor',
   ): UndoRedoState {
-    assertTargetAllowed('recordSubmitter', targetType);
-    return this.apply(addRecordSubmitterOp(submitterId, targetType, targetId, kind));
+    assertTargetAllowed('submitterLink', targetType);
+    if (kind !== 'contributor' && targetType !== 'person') {
+      throw new Error(`A submitterLink cannot target a ${targetType} for ${kind}.`);
+    }
+    return this.apply(addSubmitterLinkOp(submitterId, targetType, targetId, kind));
   }
 
-  deleteRecordSubmitter(
+  deleteSubmitterLink(
     id: string,
     _submitterId: string,
     _targetType: string,
     _targetId: string,
-    _kind: RecordSubmitterLink['kind'] = 'contributor',
+    _kind: SubmitterLink['kind'] = 'contributor',
   ): UndoRedoState {
     return this.applyAfterCommit(() => {
       // The caller may omit the kind; the inverse must preserve the stored one.
-      const current = this.repo.getRecordSubmitter(id);
+      const current = this.repo.getSubmitterLink(id);
       if (current === undefined) {
         return undefined;
       }
-      return deleteRecordSubmitterOp(
+      return deleteSubmitterLinkOp(
         current.id,
         current.submitterId,
         current.targetType,

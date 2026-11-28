@@ -1,5 +1,5 @@
 ---
-source-hash: e68af9c8211a
+source-hash: d13261ebcd34
 ---
 
 # Trabalhando com a árvore
@@ -65,15 +65,15 @@ endereço** e **Editar endereço** para editar um endereço no próprio local.
 
 ## Tarefas
 
-As tarefas têm uma data de criação e uma data de lembrete. Concluir uma tarefa apenas altera seu status; nenhuma data de conclusão separada é armazenada. A maioria dos editores tem uma seção **Tarefas**: adicione uma tarefa ali e ela é vinculada automaticamente àquele registro. As exceções são o editor de tarefas e o editor de submetedores, e uma linha de vínculo de mídia tem apenas a seção Fontes: o cartão de uma tarefa mantém Notas e Mídia, o de um submetedor não tem seção Tarefas, e um vínculo de mídia não é alvo de tarefas. Eventos, nomes e citações têm sua própria seção Tarefas no painel de anexos. **Relacionado a** vincula uma tarefa a um ou mais registros da árvore — uma pessoa, família, evento, nome, fonte, citação, mídia, lugar, repositório, endereço ou obra, mas não outra tarefa, um submetedor ou um vínculo de mídia; deixe vazio para uma tarefa independente. Uma tarefa é compartilhada: editá-la em qualquer lugar atualiza o mesmo registro, e excluir um registro relacionado mantém a tarefa. Use **Anexar uma tarefa existente** para reutilizar uma tarefa compartilhada em vez de criar uma nova.
+As tarefas têm uma data de criação e uma data de lembrete. Concluir uma tarefa apenas altera seu status; nenhuma data de conclusão separada é armazenada. A maioria dos editores tem uma seção **Tarefas**: adicione uma tarefa ali e ela é vinculada automaticamente àquele registro. As exceções são o editor de tarefas e o editor de submetedores: o cartão de uma tarefa mantém Notas e Mídia, o de um submetedor não tem seção Tarefas, e um vínculo de mídia não é alvo de tarefas. Eventos, nomes e citações têm sua própria seção Tarefas no painel de anexos. **Relacionado a** vincula uma tarefa a um ou mais registros da árvore — uma pessoa, família, evento, nome, fonte, citação, mídia, lugar, repositório, endereço ou obra, mas não outra tarefa, um submetedor ou um vínculo de mídia; deixe vazio para uma tarefa independente. Uma tarefa é compartilhada: editá-la em qualquer lugar atualiza o mesmo registro, e excluir um registro relacionado mantém a tarefa. Use **Anexar uma tarefa existente** para reutilizar uma tarefa compartilhada em vez de criar uma nova.
 
-Obras, endereços, associações e vínculos de parceiro/filho das famílias têm as mesmas seções Notas, Fontes, Colaboradores e Tarefas das abas das entidades principais. Os contatos pertencem à pessoa, ao evento, ao repositório ou ao submetedor que descrevem, não a um endereço. As tarefas mantêm Notas e Mídia, mas não têm Fontes, Contatos, Colaboradores nem Tarefas. Um vínculo de mídia tem apenas Fontes.
+Obras, endereços, associações e vínculos de parceiro/filho das famílias têm as mesmas seções Notas, Fontes e Tarefas das abas das entidades principais. Os contatos pertencem à pessoa, ao evento, ao repositório ou ao submetedor que descrevem, não a um endereço. As tarefas mantêm Notas e Mídia, mas não têm Fontes, Contatos, Colaboradores nem Tarefas. Um vínculo de mídia não é um destino de anexos. Os colaboradores estão disponíveis apenas nos cartões de pessoa e família.
 
 ## Mídia
 
-As fotos são arquivos comuns na pasta `media/` ao lado do projeto. Adicione-as a partir de uma pessoa, família, fonte, lugar, repositório, submetedor, obra, tarefa ou endereço; a seção **Relacionado a** da aba de mídia permite anexar um registro existente a outros destinos. Cada cartão de mídia contém exatamente um arquivo. Clique em uma prévia para abrir a aba de mídia, onde você pode editar o título e os metadados do vínculo, como legenda, sequência, sinalizador principal e sinalizador de exclusão.
+As fotos são arquivos comuns na pasta `media/` ao lado do projeto. Adicione-as a partir de uma pessoa, família, fonte, lugar, repositório, submetedor, obra, tarefa ou endereço; a seção **Relacionado a** da aba de mídia gerencia os registros aos quais esta mídia está vinculada. Cada cartão de mídia contém exatamente um arquivo. Clique em uma prévia para abrir a aba de mídia, onde você pode editar o título e a data. Use a estrela na seção Mídia de um destino para escolher sua foto principal.
 
-Um registro de mídia pode ser vinculado a vários destinos. **Desvincular deste registro** aparece apenas quando a mídia está vinculada a vários destinos; remove um vínculo. **Excluir mídia** remove o registro e a cópia do seu arquivo. Excluir um registro de destino remove apenas seus vínculos, então um registro de mídia pode permanecer sem vínculos. Uma mídia importada de um `OBJE` GEDCOM com vários arquivos se torna um cartão por arquivo; formatos alternativos `TRAN` não são importados.
+Um registro de mídia pode ser vinculado a vários destinos ou a nenhum. **Desvincular deste registro** remove um vínculo e está disponível para cada vínculo, inclusive o último; a mídia permanece na biblioteca. **Excluir mídia** remove o registro e a cópia do seu arquivo. Excluir um registro de destino remove apenas seus vínculos, então um registro de mídia pode permanecer sem vínculos. Uma mídia importada de um `OBJE` GEDCOM com vários arquivos se torna um cartão por arquivo; formatos alternativos `TRAN` não são importados.
 
 ## Ordenação
 

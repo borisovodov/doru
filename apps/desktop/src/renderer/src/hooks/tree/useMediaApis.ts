@@ -62,6 +62,13 @@ export function useMediaApis(projectPath: string | null | undefined, refreshTree
         await window.doru.attachMediaToTargets(projectPath, mediaId, targets);
         await refreshAfterWrite(refreshTree);
       },
+      updateMediaLink: async (before, after) => {
+        if (!projectPath) {
+          return;
+        }
+        await window.doru.updateMediaLink(projectPath, before, after);
+        await refreshAfterWrite(refreshTree);
+      },
       detachMedia: async (link) => {
         if (!projectPath) {
           return;
@@ -95,13 +102,6 @@ export function useMediaApis(projectPath: string | null | undefined, refreshTree
           return;
         }
         await window.doru.updateMedia(projectPath, before, after);
-        await refreshAfterWrite(refreshTree);
-      },
-      updateMediaLink: async (before, after) => {
-        if (!projectPath) {
-          return;
-        }
-        await window.doru.updateMediaLink(projectPath, before, after);
         await refreshAfterWrite(refreshTree);
       },
     }),

@@ -296,5 +296,5 @@ export function buildKitchenSinkTree(fixture: RepoFixture): void {
   });
 
   // Submitter links on a person.
-  repo.insertRecordSubmitter('RS1', 'SU1', 'person', 'P1');
+  repo.insertSubmitterLink('RS1', 'SU1', 'person', 'P1');
 }

@@ -228,7 +228,7 @@ function buildPerson(person: PersonRecord, repo: TreeRepository, xrefs: Xrefs): 
   }
   const { www: websites, ...contacts } = withContacts(repo, 'person', person.id);
   const addressRecord = person.addressId !== undefined ? repo.getAddress(person.addressId) : undefined;
-  const submitterLinks = repo.listRecordSubmittersFor('person', person.id);
+  const submitterLinks = repo.listSubmitterLinksFor('person', person.id);
   const ancestorInterests = submitterLinks
     .filter((link) => link.kind === 'ancestor_interest')
     .map((link) => xrefs.of(link.submitterId));

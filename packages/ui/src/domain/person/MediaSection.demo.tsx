@@ -54,6 +54,7 @@ const api = {
   addMediaToTarget: noop,
   addMediaUrlToTarget: noop,
   attachMedia: noop,
+  updateMediaLink: noop,
   detachMedia: noop,
   deleteMedia: noop,
 };

@@ -4,10 +4,9 @@ import type {
   CitationRecord,
   ContactRecord,
   MediaLinkRecord,
-  MediaRecord,
   NoteRecord,
   RepositoryRecord,
-  RecordSubmitterLink,
+  SubmitterLink,
   SourceRecord,
   SubmitterRecord,
   TitleRecord,
@@ -17,13 +16,12 @@ import {
   attachmentTargetExists,
   attachmentsMatch,
   restoreCitation,
-  restoreMedia,
-  restoreRecordSubmitter,
+  restoreSubmitterLink,
   restoreSource,
   restoreSourceRepository,
   sameRecord,
 } from './restore';
-import type { NestedAttachments, Op } from './op';
+import type { MutationContext, NestedAttachments, Op } from './op';
 
 function op(
   id: string,
@@ -254,7 +252,7 @@ export function detachCitationOp(citation: CitationRecord, attachments: Attachme
 
 // --- media -------------------------------------------------------------------
 
-export function attachMediaOp(link: MediaLinkRecord, media?: MediaRecord, attachments?: AttachmentsSnapshot): Op {
+export function attachMediaOp(link: MediaLinkRecord, primaryBefore?: MediaLinkRecord[]): Op {
   return {
     ...op(
       crypto.randomUUID(),
@@ -262,11 +260,19 @@ export function attachMediaOp(link: MediaLinkRecord, media?: MediaRecord, attach
       (ctx) => ctx.repo.addMediaLink(link.mediaId, link),
       (ctx) => {
         ctx.repo.removeMediaLink(link.id);
-        if (ctx.repo.getMedia(link.mediaId) === undefined && media !== undefined) {
-          restoreMedia(ctx, media);
-          if (attachments !== undefined) {
-            ctx.repo.restoreAttachments(attachments);
-          }
+        // Restore only the primary flags this attachment cleared. A concurrent
+        // writer may have changed a sibling's crop or target since the capture,
+        // so keep those current fields instead of writing the whole row back.
+        restorePrimaryFlags(ctx, primaryBefore ?? []);
+        const targets = new Map<string, { targetType: string; targetId: string }>();
+        for (const before of primaryBefore ?? []) {
+          targets.set(`${before.targetType}\u0000${before.targetId}`, {
+            targetType: before.targetType,
+            targetId: before.targetId,
+          });
+        }
+        for (const target of targets.values()) {
+          ctx.repo.normalizePrimaryLink(target.targetType, target.targetId);
         }
       },
     ),
@@ -274,19 +280,100 @@ export function attachMediaOp(link: MediaLinkRecord, media?: MediaRecord, attach
   };
 }
 
-export function updateMediaLinkOp(before: MediaLinkRecord, after: MediaLinkRecord): Op {
+type MediaPrimarySnapshot = {
+  oldTarget: MediaLinkRecord[];
+  newTarget: MediaLinkRecord[];
+};
+
+function restorePrimaryFlags(ctx: MutationContext, links: readonly MediaLinkRecord[]): void {
+  for (const before of links) {
+    const current = ctx.repo.getMedia(before.mediaId)?.links?.find((link) => link.id === before.id);
+    if (current === undefined || current.targetType !== before.targetType || current.targetId !== before.targetId) {
+      continue;
+    }
+    ctx.repo.updateMediaLinkRow({ ...current, primary: before.primary });
+  }
+}
+
+export function updateMediaLinkOp(
+  before: MediaLinkRecord,
+  after: MediaLinkRecord,
+  primaryBefore?: MediaPrimarySnapshot,
+): Op {
   return {
     ...op(
       crypto.randomUUID(),
       'media.linkUpdate',
       (ctx) => ctx.repo.updateMediaLink(after),
-      (ctx) => ctx.repo.updateMediaLink(before),
+      (ctx) => {
+        ctx.repo.updateMediaLink(before);
+        if (primaryBefore === undefined) {
+          return;
+        }
+        restorePrimaryFlags(ctx, primaryBefore.oldTarget);
+        restorePrimaryFlags(ctx, primaryBefore.newTarget);
+        const targets = new Map<string, { targetType: string; targetId: string }>();
+        for (const link of [...primaryBefore.oldTarget, ...primaryBefore.newTarget]) {
+          targets.set(`${link.targetType}\u0000${link.targetId}`, {
+            targetType: link.targetType,
+            targetId: link.targetId,
+          });
+        }
+        for (const target of targets.values()) {
+          ctx.repo.normalizePrimaryLink(target.targetType, target.targetId);
+        }
+      },
     ),
     change: { targetType: 'media', targetId: before.mediaId, kind: 'changed' },
     redoSafe: (ctx) => {
       const current = ctx.repo.getMedia(before.mediaId)?.links?.find((link) => link.id === before.id);
       return current !== undefined && sameRecord(current, before);
     },
+  };
+}
+
+/** Applies several link-row updates as one undo step and re-checks the primary invariant. */
+export function updateMediaLinksOp(pairs: Array<{ before: MediaLinkRecord; after: MediaLinkRecord }>): Op {
+  const first = pairs[0];
+  const targets = new Map<string, { targetType: string; targetId: string }>();
+  for (const pair of pairs) {
+    for (const link of [pair.before, pair.after]) {
+      targets.set(`${link.targetType}\u0000${link.targetId}`, {
+        targetType: link.targetType,
+        targetId: link.targetId,
+      });
+    }
+  }
+  const normalize = (ctx: MutationContext): void => {
+    for (const target of targets.values()) {
+      ctx.repo.normalizePrimaryLink(target.targetType, target.targetId);
+    }
+  };
+  return {
+    ...op(
+      crypto.randomUUID(),
+      'media.linkUpdate',
+      (ctx) => {
+        for (const pair of pairs) {
+          ctx.repo.updateMediaLinkRow(pair.after);
+        }
+        normalize(ctx);
+      },
+      (ctx) => {
+        for (const pair of pairs) {
+          ctx.repo.updateMediaLinkRow(pair.before);
+        }
+        normalize(ctx);
+      },
+    ),
+    ...(first === undefined
+      ? {}
+      : { change: { targetType: 'media', targetId: first.before.mediaId, kind: 'changed' } }),
+    redoSafe: (ctx) =>
+      pairs.every((pair) => {
+        const current = ctx.repo.getMedia(pair.before.mediaId)?.links?.find((link) => link.id === pair.before.id);
+        return current !== undefined && sameRecord(current, pair.before);
+      }),
   };
 }
 
@@ -301,15 +388,14 @@ export function attachMediaLinksOp(links: MediaLinkRecord[]): Op {
     },
     (ctx) => {
       for (const link of links) {
-        ctx.repo.removeMediaLinkOnly(link.id);
+        ctx.repo.removeMediaLink(link.id);
       }
     },
     links[0] === undefined ? undefined : { targetType: 'media', targetId: links[0].mediaId, kind: 'changed' },
   );
 }
 
-export function detachMediaOp(link: MediaLinkRecord, media?: MediaRecord, attachments?: AttachmentsSnapshot): Op {
-  let mediaBaseline = media;
+export function detachMediaOp(link: MediaLinkRecord): Op {
   let linkBaseline = link;
   return {
     ...op(
@@ -317,43 +403,18 @@ export function detachMediaOp(link: MediaLinkRecord, media?: MediaRecord, attach
       'media.detach',
       (ctx) => ctx.repo.removeMediaLink(link.id),
       (ctx) => {
-        if (ctx.repo.getMedia(link.mediaId) === undefined && media !== undefined) {
-          restoreMedia(ctx, media);
-          if (attachments !== undefined) {
-            ctx.repo.restoreAttachments(attachments);
-          }
-        } else if (attachmentTargetExists(ctx, link.targetType, link.targetId)) {
+        if (attachmentTargetExists(ctx, link.targetType, link.targetId)) {
           ctx.repo.addMediaLink(link.mediaId, link);
         }
-        mediaBaseline = ctx.repo.getMedia(link.mediaId) ?? mediaBaseline;
-        linkBaseline = mediaBaseline?.links?.find((entry) => entry.id === link.id) ?? link;
+        linkBaseline = ctx.repo.getMedia(link.mediaId)?.links?.find((entry) => entry.id === link.id) ?? link;
       },
     ),
     change: { targetType: 'media', targetId: link.mediaId, kind: 'changed' },
     redoSafe(ctx) {
-      const current = ctx.repo.getMedia(link.mediaId);
-      const liveLink = current?.links?.find((entry) => entry.id === link.id);
-      if (liveLink === undefined) {
-        const originalLast = (mediaBaseline?.links?.length ?? 0) <= 1;
-        return !(originalLast && current !== undefined);
-      }
-      if (!sameRecord(liveLink, linkBaseline)) {
-        return false;
-      }
-      if (current === undefined) {
-        return true;
-      }
-      const lastLink = (current.links ?? []).length <= 1;
-      if (!lastLink) {
-        return true;
-      }
-      if (mediaBaseline !== undefined && !sameRecord(current, mediaBaseline)) {
-        return false;
-      }
-      if (attachments !== undefined && !attachmentsMatch(ctx, 'media', link.mediaId, attachments)) {
-        return false;
-      }
-      return true;
+      const liveLink = ctx.repo.getMedia(link.mediaId)?.links?.find((entry) => entry.id === link.id);
+      // The record staying linkless is a valid detached state; if the link
+      // is back, redo may only remove the exact row undo restored.
+      return liveLink === undefined || sameRecord(liveLink, linkBaseline);
     },
   };
 }
@@ -514,7 +575,7 @@ export function updateSubmitterOp(before: SubmitterRecord, after: SubmitterRecor
 
 /** Record links that the submitter FK cascade removes. */
 export interface SubmitterConsumers {
-  recordSubmitters?: RecordSubmitterLink[];
+  submitterLinks?: SubmitterLink[];
 }
 
 export function deleteSubmitterOp(
@@ -522,7 +583,7 @@ export function deleteSubmitterOp(
   attachments: AttachmentsSnapshot,
   consumers: SubmitterConsumers = {},
 ): Op {
-  let baselineRecordSubmitters = consumers.recordSubmitters ?? [];
+  let baselineSubmitterLinks = consumers.submitterLinks ?? [];
   let attachmentBaseline = attachments;
   return {
     ...op(
@@ -532,18 +593,16 @@ export function deleteSubmitterOp(
       (ctx) => {
         ctx.repo.insertSubmitter(submitter);
         ctx.repo.restoreAttachments(attachments);
-        for (const link of consumers.recordSubmitters ?? []) {
+        for (const link of consumers.submitterLinks ?? []) {
           // restoreAttachments may already have restored the same link when
           // it belongs to a media link's attachment snapshot.
           if (
-            !ctx.repo
-              .listRecordSubmittersFor(link.targetType, link.targetId)
-              .some((existing) => existing.id === link.id)
+            !ctx.repo.listSubmitterLinksFor(link.targetType, link.targetId).some((existing) => existing.id === link.id)
           ) {
-            restoreRecordSubmitter(ctx, link);
+            restoreSubmitterLink(ctx, link);
           }
         }
-        baselineRecordSubmitters = ctx.repo.listRecordSubmittersForSubmitter(submitter.id);
+        baselineSubmitterLinks = ctx.repo.listSubmitterLinksForSubmitter(submitter.id);
         attachmentBaseline = ctx.repo.listAttachmentsFor('submitter', submitter.id);
       },
     ),
@@ -557,9 +616,9 @@ export function deleteSubmitterOp(
       if (!attachmentsMatch(ctx, 'submitter', submitter.id, attachmentBaseline)) {
         return false;
       }
-      const captured = baselineRecordSubmitters.map((link) => JSON.stringify(link)).sort();
+      const captured = baselineSubmitterLinks.map((link) => JSON.stringify(link)).sort();
       const live = ctx.repo
-        .listRecordSubmittersForSubmitter(submitter.id)
+        .listSubmitterLinksForSubmitter(submitter.id)
         .map((link) => JSON.stringify(link))
         .sort();
       return JSON.stringify(captured) === JSON.stringify(live);
@@ -568,35 +627,35 @@ export function deleteSubmitterOp(
 }
 
 /** Links a submitter as the contributor of a record (GEDCOM SUBM on INDI/FAM). */
-export function addRecordSubmitterOp(
+export function addSubmitterLinkOp(
   submitterId: string,
   targetType: string,
   targetId: string,
-  kind: RecordSubmitterLink['kind'] = 'contributor',
+  kind: SubmitterLink['kind'] = 'contributor',
 ): Op {
   const id = crypto.randomUUID();
   const created = op(
     id,
-    'record_submitter.add',
-    (ctx) => ctx.repo.insertRecordSubmitter(id, submitterId, targetType, targetId, kind),
-    (ctx) => ctx.repo.deleteRecordSubmitter(id),
+    'submitter_link.add',
+    (ctx) => ctx.repo.insertSubmitterLink(id, submitterId, targetType, targetId, kind),
+    (ctx) => ctx.repo.deleteSubmitterLink(id),
     { targetType, targetId, kind: 'changed' },
   );
   return { ...created, dependsOn: [targetId] };
 }
 
-export function deleteRecordSubmitterOp(
+export function deleteSubmitterLinkOp(
   id: string,
   submitterId: string,
   targetType: string,
   targetId: string,
-  kind: RecordSubmitterLink['kind'] = 'contributor',
+  kind: SubmitterLink['kind'] = 'contributor',
 ): Op {
   return op(
     crypto.randomUUID(),
-    'record_submitter.delete',
-    (ctx) => ctx.repo.deleteRecordSubmitter(id),
-    (ctx) => restoreRecordSubmitter(ctx, { id, submitterId, targetType, targetId, kind }),
+    'submitter_link.delete',
+    (ctx) => ctx.repo.deleteSubmitterLink(id),
+    (ctx) => restoreSubmitterLink(ctx, { id, submitterId, targetType, targetId, kind }),
     { targetType, targetId, kind: 'changed' },
   );
 }

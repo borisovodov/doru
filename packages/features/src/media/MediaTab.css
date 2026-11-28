@@ -6,53 +6,10 @@
   border-radius: var(--doru-radius-md);
 }
 
-.media-link-list {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
 .media-file-path {
   overflow: hidden;
   color: var(--doru-fg-muted);
   font-size: 12px;
   text-overflow: ellipsis;
   white-space: nowrap;
-}
-
-.media-link-row {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  padding: 8px;
-  border: 1px solid var(--doru-border);
-  border-radius: var(--doru-radius-md);
-}
-
-.media-link-target {
-  display: flex;
-  gap: 8px;
-  align-items: baseline;
-}
-
-.media-link-flags,
-.media-link-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  align-items: center;
-}
-
-.media-link-add {
-  display: flex;
-  gap: 8px;
-  align-items: flex-end;
-  margin-top: 8px;
-}
-
-.media-link-add > :first-child {
-  flex: 1;
 }

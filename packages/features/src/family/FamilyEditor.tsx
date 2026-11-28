@@ -10,7 +10,7 @@ import type {
   FactRecord,
   FamilyRecord,
   PersonRecord,
-  RecordSubmitterLink,
+  SubmitterLink,
   PlaceRecord,
   SourceRecord,
   SubmitterRecord,
@@ -80,7 +80,7 @@ export function FamilyEditor({
   const [places, setPlaces] = useState<PlaceRecord[]>([]);
   const [addresses, setAddresses] = useState<AddressRecord[]>([]);
   const [submitters, setSubmitters] = useState<SubmitterRecord[]>([]);
-  const [contributors, setContributors] = useState<RecordSubmitterLink[]>([]);
+  const [contributors, setContributors] = useState<SubmitterLink[]>([]);
   const [newPartnerId, setNewPartnerId] = useState('');
   const [newChildId, setNewChildId] = useState('');
   const [expandedLinkId, setExpandedLinkId] = useState<string | null>(null);
@@ -97,7 +97,7 @@ export function FamilyEditor({
 
   const refreshContributors = async () => {
     setSubmitters(await api.getSubmitters());
-    setContributors(await api.getRecordSubmitters('family', draft.id));
+    setContributors(await api.getSubmitterLinks('family', draft.id));
   };
 
   useEffect(() => {
@@ -111,7 +111,7 @@ export function FamilyEditor({
     void api.getAddresses().then((loaded) => {
       if (!cancelled) setAddresses(loaded);
     });
-    void Promise.all([api.getSubmitters(), api.getRecordSubmitters('family', draft.id)]).then(
+    void Promise.all([api.getSubmitters(), api.getSubmitterLinks('family', draft.id)]).then(
       ([loadedSubmitters, loadedContributors]) => {
         if (!cancelled) {
           setSubmitters(loadedSubmitters);
@@ -567,11 +567,11 @@ export function FamilyEditor({
         submitters={submitters}
         links={contributors}
         onAdd={async (submitterId, targetType, targetId, kind) => {
-          await api.addRecordSubmitter(submitterId, targetType, targetId, kind);
+          await api.addSubmitterLink(submitterId, targetType, targetId, kind);
           await refreshContributors();
         }}
         onDelete={async (id, submitterId, targetType, targetId, kind) => {
-          await api.deleteRecordSubmitter(id, submitterId, targetType, targetId, kind);
+          await api.deleteSubmitterLink(id, submitterId, targetType, targetId, kind);
           await refreshContributors();
         }}
       />

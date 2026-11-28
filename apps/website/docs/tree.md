@@ -66,7 +66,7 @@ actions for editing an address in place.
 
 Tasks have a creation date and a reminder date. Closing a task only changes its status; no separate completion date is stored. Most editors have a **Tasks** section: add a task there and it
 is linked to that record automatically. Task editors and submitter editors are
-the exceptions, and a media link row carries Sources only: a task card keeps
+the exceptions: a task card keeps
 Notes and Media, a submitter card has no Tasks section, and a media link is not
 an attachment target for tasks. Facts, names and citations
 carry their own Tasks section in their attachment panel. **Related to** links
@@ -79,26 +79,17 @@ record, and deleting one related record leaves the task in place. Use
 one.
 
 Titles, addresses, associations and family partner/child links have the same
-Notes, Sources, Contributors and Tasks sections as the main entity
-tabs. Contacts belong to the person, fact, repository or submitter they describe, not to an address. Tasks keep Notes and Media, but have no
-Sources, Contacts, Contributors or Tasks sections. A media link
-has Sources only.
+Notes, Sources and Tasks sections as the main entity
+tabs. Contributors are available only on person and family cards. Contacts
+belong to the person, fact, repository or submitter they describe, not to an
+address. Tasks keep Notes and Media, but have no Sources, Contacts,
+Contributors or Tasks sections. A media link is not an attachment target.
 
 ## Media
 
-Photos are ordinary files in the `media/` folder next to the project. Add them
-from a person, family, source, place, repository, submitter, title, task or
-address; the media tab's **Related to** section lets you attach an existing
-record to additional targets. Each media card holds exactly one file. Click a
-preview to open the media tab, where you can edit the title and edit link
-metadata such as the caption, sequence, primary flag and exclusion flag.
+Photos are ordinary files in the `media/` folder next to the project. Add them from a person, family, source, place, repository, submitter, title, task or address; the media tab's **Related to** section manages the records this media is attached to. Each media card holds exactly one file. Click a preview to open the media tab, where you can edit the title and date. Use the star on a target's Media section to choose its main photo.
 
-A media record can be linked to several targets. **Detach from this record**
-appears only when the media is linked to several targets; it removes one link.
-**Delete media** removes the record and its file copy. Deleting a target
-record removes only its links, so a media record can remain without links.
-Media imported from a GEDCOM `OBJE` with several files becomes one card per
-file; `TRAN` alternative formats are not imported.
+A media record can be linked to several targets, or to none. **Detach from this record** removes one link and is available for every link, including the last one; the media stays in the library. **Delete media** removes the record and its file copy. Deleting a target record removes only its links, so a media record can remain without links. Media imported from a GEDCOM `OBJE` with several files becomes one card per file; `TRAN` alternative formats are not imported.
 
 ## Ordering
 

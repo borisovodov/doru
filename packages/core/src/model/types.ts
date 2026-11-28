@@ -679,8 +679,9 @@ export interface MediaLinkRecord {
 }
 
 /**
- * A media record: exactly one file plus its links. `targetType`/`targetId`
- * are projections of the first link, kept for the renderer.
+ * A media record: exactly one file plus zero or more target links. A record
+ * without links stays in the library; `targetType`/`targetId` are projections
+ * of the first link, kept for the renderer.
  */
 export interface MediaRecord extends RecordTimestamps {
   id: string;
@@ -898,7 +899,7 @@ export interface ContactRecord {
 }
 
 /** A submitter link: contributor or an ANCI/DESI research interest. */
-export interface RecordSubmitterLink {
+export interface SubmitterLink {
   id: string;
   submitterId: string;
   targetType: string;
@@ -926,7 +927,7 @@ export interface AttachmentsSnapshot {
   contacts: ContactRecord[];
   /** Task links targeting this record; the tasks themselves survive. */
   taskLinks: TaskTargetLink[];
-  recordSubmitters: RecordSubmitterLink[];
+  submitterLinks: SubmitterLink[];
 }
 
 export function emptyAttachments(): AttachmentsSnapshot {
@@ -938,7 +939,7 @@ export function emptyAttachments(): AttachmentsSnapshot {
     mediaAttachments: [],
     contacts: [],
     taskLinks: [],
-    recordSubmitters: [],
+    submitterLinks: [],
   };
 }
 

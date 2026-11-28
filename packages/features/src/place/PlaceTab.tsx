@@ -18,7 +18,7 @@ import {
   type PlaceDraft,
 } from './placeDraft';
 import type { MediaWithPath } from '@doru/ui/domain';
-import { ContributorsSection, NotesSection, SourcesSection, TasksSection } from '@doru/ui/domain';
+import { NotesSection, SourcesSection, TasksSection } from '@doru/ui/domain';
 import { nls } from '../nls';
 
 /** A new place starts with the placeholder text as the first name value. */
@@ -144,10 +144,8 @@ function PlaceTabBody({
   const {
     notes: placeNotes,
     citations: placeCitations,
-    submitters,
-    contributors,
     refresh: refreshAttachments,
-  } = useAttachments('place', targetId, api, true);
+  } = useAttachments('place', targetId, api);
 
   // Reset the draft only when it still equals the previous stored place —
   // i.e. the user has no unsaved edits. Unrelated tree reloads must not
@@ -363,14 +361,6 @@ function PlaceTabBody({
                 api={mediaApi}
                 refresh={async () => undefined}
                 onOpenMedia={onOpenMedia}
-              />
-              <ContributorsSection
-                targetType="place"
-                targetId={targetId}
-                submitters={submitters}
-                links={contributors}
-                onAdd={api.addRecordSubmitter}
-                onDelete={api.deleteRecordSubmitter}
               />
               <TasksSection targetType="place" targetId={targetId} api={api} />
             </>

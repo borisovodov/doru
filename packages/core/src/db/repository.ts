@@ -16,7 +16,7 @@ import type {
   PersonName,
   PersonRecord,
   PlaceRecord,
-  RecordSubmitterLink,
+  SubmitterLink,
   RepositoryRecord,
   SourceRecord,
   SubmitterRecord,
@@ -154,8 +154,9 @@ export interface TreeRepository {
   /** Direct media links of a target, without recursive attachment collection. */
   listMediaLinksFor(targetType: string, targetId: string): Array<{ media: MediaRecord; link: MediaLinkRecord }>;
   updateMediaLink(link: MediaLinkRecord): void;
+  updateMediaLinkRow(link: MediaLinkRecord): void;
+  normalizePrimaryLink(targetType: string, targetId: string): void;
   removeMediaLink(id: string): boolean;
-  removeMediaLinkOnly(id: string): boolean;
   listMediaFor(targetType: string, targetId: string): MediaRecord[];
   listAllMedia(): MediaRecord[];
   insertRepository(repository: RepositoryRecord): void;
@@ -172,21 +173,21 @@ export interface TreeRepository {
   getSubmitter(id: string): SubmitterRecord | undefined;
   deleteSubmitter(id: string): boolean;
   listSubmitters(): SubmitterRecord[];
-  insertRecordSubmitter(
+  insertSubmitterLink(
     id: string,
     submitterId: string,
     targetType: string,
     targetId: string,
-    kind?: RecordSubmitterLink['kind'],
+    kind?: SubmitterLink['kind'],
   ): void;
   listSubmittersFor(targetType: string, targetId: string): string[];
-  getRecordSubmitter(id: string): RecordSubmitterLink | undefined;
-  listRecordSubmittersFor(targetType: string, targetId: string): RecordSubmitterLink[];
+  getSubmitterLink(id: string): SubmitterLink | undefined;
+  listSubmitterLinksFor(targetType: string, targetId: string): SubmitterLink[];
   /** Every record a submitter contributes to, for the delete/undo snapshot. */
-  listRecordSubmittersForSubmitter(submitterId: string): RecordSubmitterLink[];
+  listSubmitterLinksForSubmitter(submitterId: string): SubmitterLink[];
   /** Every submitter link in the tree, for the global registries. */
-  listAllRecordSubmitters(): RecordSubmitterLink[];
-  deleteRecordSubmitter(id: string): boolean;
+  listAllSubmitterLinks(): SubmitterLink[];
+  deleteSubmitterLink(id: string): boolean;
   insertAddress(address: AddressRecord): void;
   updateAddress(address: AddressRecord): void;
   getAddress(id: string): AddressRecord | undefined;
@@ -805,19 +806,16 @@ export class SqliteTreeRepository implements TreeRepository {
     this.media.updateMediaLink(link);
   }
 
-  removeMediaLink(id: string): boolean {
-    return this.transactions.run(() => {
-      const mediaId = this.media.getMediaIdForLink(id);
-      const removed = this.media.removeMediaLink(id);
-      if (removed && mediaId !== undefined && this.media.getMedia(mediaId) === undefined) {
-        this.deleteAttachmentsFor('media', mediaId);
-      }
-      return removed;
-    });
+  updateMediaLinkRow(link: MediaLinkRecord): void {
+    this.media.updateMediaLinkRow(link);
   }
 
-  removeMediaLinkOnly(id: string): boolean {
-    return this.media.removeMediaLinkOnly(id);
+  normalizePrimaryLink(targetType: string, targetId: string): void {
+    this.media.normalizePrimaryLink(targetType, targetId);
+  }
+
+  removeMediaLink(id: string): boolean {
+    return this.media.removeMediaLink(id);
   }
 
   listMediaFor(targetType: string, targetId: string): MediaRecord[] {
@@ -882,38 +880,38 @@ export class SqliteTreeRepository implements TreeRepository {
     return this.submitters.listSubmitters();
   }
 
-  insertRecordSubmitter(
+  insertSubmitterLink(
     id: string,
     submitterId: string,
     targetType: string,
     targetId: string,
-    kind: RecordSubmitterLink['kind'] = 'contributor',
+    kind: SubmitterLink['kind'] = 'contributor',
   ): void {
-    this.submitters.insertRecordSubmitter(id, submitterId, targetType, targetId, kind);
+    this.submitters.insertSubmitterLink(id, submitterId, targetType, targetId, kind);
   }
 
   listSubmittersFor(targetType: string, targetId: string): string[] {
     return this.submitters.listSubmittersFor(targetType, targetId);
   }
 
-  getRecordSubmitter(id: string): RecordSubmitterLink | undefined {
-    return this.submitters.getRecordSubmitter(id);
+  getSubmitterLink(id: string): SubmitterLink | undefined {
+    return this.submitters.getSubmitterLink(id);
   }
 
-  listRecordSubmittersFor(targetType: string, targetId: string): RecordSubmitterLink[] {
-    return this.submitters.listRecordSubmittersFor(targetType, targetId);
+  listSubmitterLinksFor(targetType: string, targetId: string): SubmitterLink[] {
+    return this.submitters.listSubmitterLinksFor(targetType, targetId);
   }
 
-  listRecordSubmittersForSubmitter(submitterId: string): RecordSubmitterLink[] {
-    return this.submitters.listRecordSubmittersForSubmitter(submitterId);
+  listSubmitterLinksForSubmitter(submitterId: string): SubmitterLink[] {
+    return this.submitters.listSubmitterLinksForSubmitter(submitterId);
   }
 
-  listAllRecordSubmitters(): RecordSubmitterLink[] {
-    return this.submitters.listAllRecordSubmitters();
+  listAllSubmitterLinks(): SubmitterLink[] {
+    return this.submitters.listAllSubmitterLinks();
   }
 
-  deleteRecordSubmitter(id: string): boolean {
-    return this.submitters.deleteRecordSubmitter(id);
+  deleteSubmitterLink(id: string): boolean {
+    return this.submitters.deleteSubmitterLink(id);
   }
 
   insertAddress(address: AddressRecord): void {
@@ -1134,7 +1132,7 @@ export class SqliteTreeRepository implements TreeRepository {
       })),
       contacts: this.attachments.listContactsFor(targetType, targetId),
       taskLinks,
-      recordSubmitters: this.submitters.listRecordSubmittersFor(targetType, targetId),
+      submitterLinks: this.submitters.listSubmitterLinksFor(targetType, targetId),
     };
     state.visiting.delete(key);
     state.cache.set(key, snapshot);
@@ -1170,7 +1168,7 @@ export class SqliteTreeRepository implements TreeRepository {
     // Tasks are shared: drop only their link to this target and keep the task
     // (and its own attachments) alive as a free-standing record when needed.
     this.research.deleteTaskLinksFor(targetType, targetId);
-    this.submitters.deleteRecordSubmittersFor(targetType, targetId);
+    this.submitters.deleteSubmitterLinksFor(targetType, targetId);
   }
 
   restoreAttachments(snapshot: AttachmentsSnapshot): void {
@@ -1247,20 +1245,14 @@ export class SqliteTreeRepository implements TreeRepository {
         this.research.insertTaskLink(link);
       }
     }
-    for (const entry of snapshot.recordSubmitters) {
+    for (const entry of snapshot.submitterLinks) {
       if (
         this.getSubmitter(entry.submitterId) !== undefined &&
         !this.submitters
-          .listRecordSubmittersFor(entry.targetType, entry.targetId)
+          .listSubmitterLinksFor(entry.targetType, entry.targetId)
           .some((existing) => existing.id === entry.id)
       ) {
-        this.submitters.insertRecordSubmitter(
-          entry.id,
-          entry.submitterId,
-          entry.targetType,
-          entry.targetId,
-          entry.kind,
-        );
+        this.submitters.insertSubmitterLink(entry.id, entry.submitterId, entry.targetType, entry.targetId, entry.kind);
       }
     }
   }

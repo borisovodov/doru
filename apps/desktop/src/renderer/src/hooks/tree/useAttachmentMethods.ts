@@ -3,7 +3,7 @@ import type {
   CitationRecord,
   ContactRecord,
   NoteRecord,
-  RecordSubmitterLink,
+  SubmitterLink,
   SourceRecord,
   SubmitterRecord,
   TargetRef,
@@ -117,27 +117,27 @@ export function useAttachmentMethods(
       },
       getSubmitters: () =>
         projectPath ? window.doru.getSubmitters(projectPath) : Promise.resolve([] as SubmitterRecord[]),
-      getRecordSubmitters: (targetType: string, targetId: string): Promise<RecordSubmitterLink[]> =>
-        projectPath ? window.doru.getRecordSubmitters(projectPath, targetType, targetId) : Promise.resolve([]),
-      addRecordSubmitter: async (
+      getSubmitterLinks: (targetType: string, targetId: string): Promise<SubmitterLink[]> =>
+        projectPath ? window.doru.getSubmitterLinks(projectPath, targetType, targetId) : Promise.resolve([]),
+      addSubmitterLink: async (
         submitterId: string,
         targetType: string,
         targetId: string,
-        kind: NonNullable<RecordSubmitterLink['kind']> = 'contributor',
+        kind: NonNullable<SubmitterLink['kind']> = 'contributor',
       ) => {
         if (!projectPath) return;
-        await window.doru.addRecordSubmitter(projectPath, submitterId, targetType, targetId, kind);
+        await window.doru.addSubmitterLink(projectPath, submitterId, targetType, targetId, kind);
         await refreshTree();
       },
-      deleteRecordSubmitter: async (
+      deleteSubmitterLink: async (
         id: string,
         submitterId: string,
         targetType: string,
         targetId: string,
-        kind: NonNullable<RecordSubmitterLink['kind']> = 'contributor',
+        kind: NonNullable<SubmitterLink['kind']> = 'contributor',
       ) => {
         if (!projectPath) return;
-        await window.doru.deleteRecordSubmitter(projectPath, id, submitterId, targetType, targetId, kind);
+        await window.doru.deleteSubmitterLink(projectPath, id, submitterId, targetType, targetId, kind);
         await refreshTree();
       },
     }),

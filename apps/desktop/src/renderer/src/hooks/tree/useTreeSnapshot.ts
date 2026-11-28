@@ -8,7 +8,7 @@ import type {
   NoteRecord,
   PersonRecord,
   PlaceRecord,
-  RecordSubmitterLink,
+  SubmitterLink,
   RepositoryRecord,
   SourceRecord,
   SubmitterRecord,
@@ -28,7 +28,7 @@ export function useTreeSnapshot(projectPath: string | null | undefined) {
   const [places, setPlaces] = useState<PlaceRecord[]>([]);
   const [repositories, setRepositories] = useState<RepositoryRecord[]>([]);
   const [submitters, setSubmitters] = useState<SubmitterRecord[]>([]);
-  const [recordSubmitters, setRecordSubmitters] = useState<RecordSubmitterLink[]>([]);
+  const [submitterLinks, setSubmitterLinks] = useState<SubmitterLink[]>([]);
   const [addresses, setAddresses] = useState<AddressRecord[]>([]);
   const [tasks, setTasks] = useState<TaskRecord[]>([]);
   const [titles, setTitles] = useState<TitleRecord[]>([]);
@@ -52,7 +52,7 @@ export function useTreeSnapshot(projectPath: string | null | undefined) {
       allPlaces,
       allRepositories,
       allSubmitters,
-      allRecordSubmitters,
+      allSubmitterLinks,
       allAddresses,
       allTasks,
       allTitles,
@@ -67,7 +67,7 @@ export function useTreeSnapshot(projectPath: string | null | undefined) {
       window.doru.getPlaces(path),
       window.doru.getRepositories(path),
       window.doru.getSubmitters(path),
-      window.doru.getAllRecordSubmitters(path),
+      window.doru.getAllSubmitterLinks(path),
       window.doru.listAddresses(path),
       window.doru.getTasks(path),
       window.doru.getTitles(path),
@@ -87,7 +87,7 @@ export function useTreeSnapshot(projectPath: string | null | undefined) {
     setPlaces(allPlaces);
     setRepositories(allRepositories);
     setSubmitters(allSubmitters);
-    setRecordSubmitters(allRecordSubmitters);
+    setSubmitterLinks(allSubmitterLinks);
     setAddresses(allAddresses);
     setTasks(allTasks);
     setTitles(allTitles);
@@ -108,7 +108,7 @@ export function useTreeSnapshot(projectPath: string | null | undefined) {
       setPlaces([]);
       setRepositories([]);
       setSubmitters([]);
-      setRecordSubmitters([]);
+      setSubmitterLinks([]);
       setAddresses([]);
       setTasks([]);
       setTitles([]);
@@ -147,7 +147,7 @@ export function useTreeSnapshot(projectPath: string | null | undefined) {
     places,
     repositories,
     submitters,
-    recordSubmitters,
+    submitterLinks,
     addresses,
     tasks,
     titles,

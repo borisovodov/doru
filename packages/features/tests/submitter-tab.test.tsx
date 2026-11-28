@@ -28,7 +28,7 @@ function apiStub(): RegistriesEditorApi {
     getCitations: async () => [],
     getContacts: async () => [],
     getSubmitters: async () => [],
-    getRecordSubmitters: async () => [],
+    getSubmitterLinks: async () => [],
     getMediaFor: async () => [],
     getAllMedia: async () => [],
     getRepositories: async () => [],
@@ -44,7 +44,7 @@ function mediaApiStub(): MediaTargetApi {
 }
 
 describe('SubmitterTab', () => {
-  it('does not render a Tasks section', () => {
+  it('does not render Tasks or Contributors sections', () => {
     renderUi(
       <SubmitterTab
         entityId="SU1"
@@ -54,7 +54,7 @@ describe('SubmitterTab', () => {
         sources={[]}
         media={[]}
         mediaApi={mediaApiStub()}
-        recordSubmitters={[]}
+        submitterLinks={[]}
         targetData={targetData}
         onOpenSource={vi.fn()}
         onOpenMedia={vi.fn()}
@@ -66,6 +66,7 @@ describe('SubmitterTab', () => {
     );
 
     expect(screen.queryByText(nls.t('features.tasks.title'))).not.toBeInTheDocument();
-    expect(screen.getByText(nls.t('features.tree.contributors.title'))).toBeInTheDocument();
+    expect(screen.queryByText(nls.t('features.tree.contributors.title'))).not.toBeInTheDocument();
+    expect(screen.getByText(nls.t('features.tree.submitter.referencedBy'))).toBeInTheDocument();
   });
 });

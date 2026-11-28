@@ -1,7 +1,7 @@
 import { contextBridge, ipcRenderer } from 'electron';
-import type { RecordSubmitterLink } from '@doru/core';
+import type { SubmitterLink } from '@doru/core';
 
-type SubmitterKind = NonNullable<RecordSubmitterLink['kind']>;
+type SubmitterKind = NonNullable<SubmitterLink['kind']>;
 
 const api = {
   platform: process.platform,
@@ -196,19 +196,19 @@ const api = {
     ipcRenderer.invoke('tree:updateSubmitter', { projectPath, before, after }),
   deleteSubmitter: (projectPath: string, submitter: unknown): Promise<unknown> =>
     ipcRenderer.invoke('tree:deleteSubmitter', { projectPath, submitter }),
-  getRecordSubmitters: (projectPath: string, targetType: string, targetId: string): Promise<RecordSubmitterLink[]> =>
-    ipcRenderer.invoke('tree:recordSubmitters', { projectPath, targetType, targetId }),
-  getAllRecordSubmitters: (projectPath: string): Promise<RecordSubmitterLink[]> =>
-    ipcRenderer.invoke('tree:allRecordSubmitters', { projectPath }),
-  addRecordSubmitter: (
+  getSubmitterLinks: (projectPath: string, targetType: string, targetId: string): Promise<SubmitterLink[]> =>
+    ipcRenderer.invoke('tree:submitterLinks', { projectPath, targetType, targetId }),
+  getAllSubmitterLinks: (projectPath: string): Promise<SubmitterLink[]> =>
+    ipcRenderer.invoke('tree:allSubmitterLinks', { projectPath }),
+  addSubmitterLink: (
     projectPath: string,
     submitterId: string,
     targetType: string,
     targetId: string,
     kind?: SubmitterKind,
   ): Promise<unknown> =>
-    ipcRenderer.invoke('tree:addRecordSubmitter', { projectPath, submitterId, targetType, targetId, kind }),
-  deleteRecordSubmitter: (
+    ipcRenderer.invoke('tree:addSubmitterLink', { projectPath, submitterId, targetType, targetId, kind }),
+  deleteSubmitterLink: (
     projectPath: string,
     id: string,
     submitterId: string,
@@ -216,7 +216,7 @@ const api = {
     targetId: string,
     kind?: SubmitterKind,
   ): Promise<unknown> =>
-    ipcRenderer.invoke('tree:deleteRecordSubmitter', {
+    ipcRenderer.invoke('tree:deleteSubmitterLink', {
       projectPath,
       id,
       submitterId,

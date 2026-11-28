@@ -78,7 +78,7 @@ describe('P1 schema v5 GEDCOM structures', () => {
       const person = fixture.repo.listAllPersons().find((entry) => entry.names[0]?.given === 'Child')!;
       expect(person.deathStatus).toBe('dead');
 
-      const submitterLinks = fixture.repo.listRecordSubmittersFor('person', person.id);
+      const submitterLinks = fixture.repo.listSubmitterLinksFor('person', person.id);
       expect(submitterLinks).toEqual(
         expect.arrayContaining([
           expect.objectContaining({ kind: 'contributor' }),
@@ -150,7 +150,7 @@ describe('P1 schema v5 GEDCOM structures', () => {
           importGedcomDataset(parseDataset(text), target.repo);
           const imported = target.repo.listAllPersons().find((entry) => entry.names[0]?.given === 'Child')!;
           expect(imported.deathStatus).toBe('dead');
-          const links = target.repo.listRecordSubmittersFor('person', imported.id);
+          const links = target.repo.listSubmitterLinksFor('person', imported.id);
           const submitterLabel = new Map(
             target.repo
               .listSubmitters()
