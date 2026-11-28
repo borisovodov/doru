@@ -32,8 +32,17 @@ export interface MediaWithPath extends MediaRecord {
  * the project's media folder. Returns null for paths that would escape it or
  * that name an external URL.
  */
-function mediaAbsolutePath(projectPath: string, mediaPath: string): Promise<string | null> {
-  return resolveMediaPath(dirname(runtimeFilePath(projectPath)), mediaPath);
+function mediaAbsolutePath(projectDir: string, mediaPath: string): Promise<string | null> {
+  return resolveMediaPath(projectDir, mediaPath);
+}
+
+/**
+ * Captures the directory of the store backing a project key before a listing
+ * starts: saving an untitled project can replace the runtime key while its
+ * records are still being resolved.
+ */
+function mediaProjectDir(projectKey: string): string {
+  return dirname(runtimeFilePath(projectKey));
 }
 
 const MEDIA_PATH_CONCURRENCY = 4;
@@ -61,10 +70,10 @@ async function mapWithConcurrency<T, R>(
   return results;
 }
 
-async function withPath(projectPath: string, media: MediaRecord): Promise<MediaWithPath> {
+async function withPath(projectDir: string, media: MediaRecord): Promise<MediaWithPath> {
   return {
     ...media,
-    absolutePath: (await mediaAbsolutePath(projectPath, media.path)) ?? '',
+    absolutePath: (await mediaAbsolutePath(projectDir, media.path)) ?? '',
   };
 }
 
@@ -86,17 +95,19 @@ export async function listMediaForTarget(
   targetType: string,
   targetId: string,
 ): Promise<MediaWithPath[]> {
+  const projectDir = mediaProjectDir(projectPath);
   const { runtime } = await ensureRuntime(projectPath);
   return mapWithConcurrency(runtime.service.listMediaFor(targetType, targetId), MEDIA_PATH_CONCURRENCY, (media) =>
-    withPath(projectPath, media),
+    withPath(projectDir, media),
   );
 }
 
 /** Every media record in the project, with resolvable absolute paths. */
 export async function listAllMedia(projectPath: string): Promise<MediaWithPath[]> {
+  const projectDir = mediaProjectDir(projectPath);
   const { runtime } = await ensureRuntime(projectPath);
   return mapWithConcurrency(runtime.service.listAllMedia(), MEDIA_PATH_CONCURRENCY, (media) =>
-    withPath(projectPath, media),
+    withPath(projectDir, media),
   );
 }
 
