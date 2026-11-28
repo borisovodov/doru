@@ -32,14 +32,48 @@ export interface MediaWithPath extends MediaRecord {
  * the project's media folder. Returns null for paths that would escape it or
  * that name an external URL.
  */
-function mediaAbsolutePath(projectPath: string, mediaPath: string): Promise<string | null> {
-  return resolveMediaPath(dirname(runtimeFilePath(projectPath)), mediaPath);
+function mediaAbsolutePath(projectDir: string, mediaPath: string): Promise<string | null> {
+  return resolveMediaPath(projectDir, mediaPath);
 }
 
-async function withPath(projectPath: string, media: MediaRecord): Promise<MediaWithPath> {
+/**
+ * Captures the directory of the store backing a project key before a listing
+ * starts: saving an untitled project can replace the runtime key while its
+ * records are still being resolved.
+ */
+function mediaProjectDir(projectKey: string): string {
+  return dirname(runtimeFilePath(projectKey));
+}
+
+const MEDIA_PATH_CONCURRENCY = 4;
+
+/** Maps items with bounded concurrency, preserving the input order. */
+async function mapWithConcurrency<T, R>(
+  items: readonly T[],
+  limit: number,
+  map: (item: T) => Promise<R>,
+): Promise<R[]> {
+  const results = new Array<R>(items.length);
+  let nextIndex = 0;
+  const workers = Array.from({ length: Math.min(limit, items.length) }, async () => {
+    for (;;) {
+      const index = nextIndex;
+      nextIndex += 1;
+      const item = items[index];
+      if (item === undefined) {
+        return;
+      }
+      results[index] = await map(item);
+    }
+  });
+  await Promise.all(workers);
+  return results;
+}
+
+async function withPath(projectDir: string, media: MediaRecord): Promise<MediaWithPath> {
   return {
     ...media,
-    absolutePath: (await mediaAbsolutePath(projectPath, media.path)) ?? '',
+    absolutePath: (await mediaAbsolutePath(projectDir, media.path)) ?? '',
   };
 }
 
@@ -61,14 +95,20 @@ export async function listMediaForTarget(
   targetType: string,
   targetId: string,
 ): Promise<MediaWithPath[]> {
+  const projectDir = mediaProjectDir(projectPath);
   const { runtime } = await ensureRuntime(projectPath);
-  return Promise.all(runtime.service.listMediaFor(targetType, targetId).map((media) => withPath(projectPath, media)));
+  return mapWithConcurrency(runtime.service.listMediaFor(targetType, targetId), MEDIA_PATH_CONCURRENCY, (media) =>
+    withPath(projectDir, media),
+  );
 }
 
 /** Every media record in the project, with resolvable absolute paths. */
 export async function listAllMedia(projectPath: string): Promise<MediaWithPath[]> {
+  const projectDir = mediaProjectDir(projectPath);
   const { runtime } = await ensureRuntime(projectPath);
-  return Promise.all(runtime.service.listAllMedia().map((media) => withPath(projectPath, media)));
+  return mapWithConcurrency(runtime.service.listAllMedia(), MEDIA_PATH_CONCURRENCY, (media) =>
+    withPath(projectDir, media),
+  );
 }
 
 /** Validates, converts and stores picked files, skipping rejected ones. */
@@ -100,7 +140,7 @@ async function addPickedMedia(
       throw error;
     }
     const media = await addStoredMedia(mediaDir, ingested, mediaTitleFromPath(source), target, runtime.service);
-    added.push(await withPath(projectPath, media));
+    added.push(await withPath(mediaProjectDir(projectPath), media));
   }
   return added;
 }
@@ -112,7 +152,7 @@ async function addRemoteMedia(projectPath: string, value: string, target?: Media
   await fs.mkdir(mediaDir);
   try {
     const media = await addRemoteMediaRecord(mediaDir, value, target, runtime.service);
-    return await withPath(projectPath, media);
+    return await withPath(mediaProjectDir(projectPath), media);
   } catch (error) {
     if (error instanceof RemoteMediaError) {
       log.warn('skipped media URL', redactMediaUrl(value), error.code);
@@ -177,11 +217,12 @@ function mediaReferenceSignature(media: MediaRecord[]): string {
 /** Canonical identities of every stored local media file. */
 async function resolveReferenceSet(projectPath: string, media: MediaRecord[]): Promise<Set<string>> {
   const resolved = new Set<string>();
+  const projectDir = mediaProjectDir(projectPath);
   for (const record of media) {
-    const absolute = await mediaAbsolutePath(projectPath, record.path);
+    const absolute = await mediaAbsolutePath(projectDir, record.path);
     if (absolute !== null) {
       resolved.add(absolute);
-      resolved.add(resolve(dirname(runtimeFilePath(projectPath)), record.path));
+      resolved.add(resolve(projectDir, record.path));
     }
   }
   return resolved;
@@ -205,7 +246,7 @@ async function removeMediaFileCopy(
   references: () => Promise<Set<string>> = async () => new Set(),
   referenced?: Set<string>,
 ): Promise<void> {
-  const absolute = await mediaAbsolutePath(projectPath, mediaPath);
+  const absolute = await mediaAbsolutePath(mediaProjectDir(projectPath), mediaPath);
   if (!absolute) {
     return;
   }
