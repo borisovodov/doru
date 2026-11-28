@@ -37,6 +37,20 @@ describe('source and note ops', () => {
     }
   });
 
+  it('binds the citation of a source-creation op to the new source', () => {
+    const fixture = makeRepo();
+    try {
+      const op = addSourceOp(
+        { id: 'S1', title: '1923 census' },
+        { id: 'C1', sourceId: 'S_OTHER', targetType: 'person', targetId: 'P1', createdAt: 1, updatedAt: 1 },
+      );
+      op.apply({ repo: fixture.repo });
+      expect(fixture.repo.getCitation('C1')?.sourceId).toBe('S1');
+    } finally {
+      cleanupRepo(fixture);
+    }
+  });
+
   it('stores one citation text inline', () => {
     const fixture = makeRepo();
     try {

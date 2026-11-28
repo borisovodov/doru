@@ -86,7 +86,9 @@ export function deleteNoteOp(note: NoteRecord): Op {
 // --- sources -----------------------------------------------------------------
 
 export function addSourceOp(source: SourceRecord, citation?: CitationRecord): Op {
-  return addSourceWithCitationsOp(source, citation === undefined ? [] : [citation]);
+  // A source-creation op always creates the citation for the new source; bind
+  // it here so a copied citation cannot leave a row owned by another source.
+  return addSourceWithCitationsOp(source, citation === undefined ? [] : [{ ...citation, sourceId: source.id }]);
 }
 
 function addSourceWithCitationsOp(source: SourceRecord, citations: CitationRecord[]): Op {
