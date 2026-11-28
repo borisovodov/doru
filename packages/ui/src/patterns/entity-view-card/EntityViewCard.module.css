@@ -1,9 +1,9 @@
 .card {
   display: flex;
   align-items: center;
-  gap: 12px;
-  margin-top: 8px;
-  padding: 12px;
+  gap: var(--doru-space-6);
+  margin-top: var(--doru-space-4);
+  padding: var(--doru-space-6);
   background: var(--doru-bg-raised);
   border: 1px solid var(--doru-border);
   border-radius: var(--doru-radius-lg);
@@ -22,7 +22,7 @@
   min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: var(--doru-space-1);
 }
 
 .title {
@@ -47,12 +47,12 @@
 .badges {
   flex: none;
   display: flex;
-  gap: 8px;
+  gap: var(--doru-space-4);
 }
 
 .actions {
   flex: none;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: var(--doru-space-3);
 }

@@ -1,8 +1,8 @@
 .control {
   box-sizing: border-box;
   display: inline-flex;
-  gap: 2px;
-  padding: 3px;
+  gap: var(--doru-space-1);
+  padding: var(--doru-space-2);
   background: var(--doru-bg-input);
   border: 1px solid var(--doru-border);
   border-radius: var(--doru-radius-md);
@@ -10,7 +10,7 @@
 
 .segment {
   height: 24px;
-  padding: 0 8px;
+  padding: 0 var(--doru-space-4);
   border: none;
   border-radius: var(--doru-radius-sm);
   background: transparent;

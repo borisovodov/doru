@@ -14,7 +14,7 @@
   justify-content: center;
   flex: 1;
   min-height: 0;
-  padding: 20px 16px;
+  padding: var(--doru-space-10) var(--doru-space-8);
   text-align: center;
 }
 
@@ -23,19 +23,19 @@
 }
 
 .chat-text p {
-  margin: 6px 0;
+  margin: var(--doru-space-3) 0;
 }
 
 .chat-setup .placeholder-view p {
-  margin-bottom: 14px;
+  margin-bottom: var(--doru-space-7);
 }
 
 /* The session picker row in the panel header. */
 .chat-sessions {
   display: flex;
-  gap: 8px;
+  gap: var(--doru-space-4);
   align-items: center;
-  padding: 8px 12px 0;
+  padding: var(--doru-space-4) var(--doru-space-6) 0;
 }
 
 .chat-session-select {
@@ -47,7 +47,7 @@
   border: 1px solid var(--doru-border);
   border-radius: var(--doru-radius-lg);
   color: var(--doru-fg);
-  padding: 0 8px;
+  padding: 0 var(--doru-space-4);
   font-size: var(--doru-font-size);
 }
 
@@ -64,10 +64,10 @@
   flex: 1;
   min-height: 0;
   overflow: auto;
-  padding: 12px;
+  padding: var(--doru-space-6);
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: var(--doru-space-5);
 }
 
 .chat-message {
@@ -88,7 +88,7 @@
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  gap: 2px;
+  gap: var(--doru-space-1);
 }
 
 .chat-message-actions {
@@ -107,7 +107,7 @@
 
 .chat-message.user .chat-bubble {
   background: var(--doru-accent-alpha);
-  padding: 6px 10px;
+  padding: var(--doru-space-3) var(--doru-space-5);
   border-radius: var(--doru-radius-lg);
 }
 
@@ -118,8 +118,8 @@
   background: var(--doru-bg-raised);
   box-shadow: var(--doru-ring);
   border-radius: var(--doru-radius-sm);
-  padding: 2px 8px;
-  margin: 4px 0;
+  padding: var(--doru-space-1) var(--doru-space-4);
+  margin: var(--doru-space-2) 0;
 }
 
 .chat-tool-result {
@@ -127,8 +127,8 @@
   color: var(--doru-fg-muted);
   background: var(--doru-overlay-pressed);
   border-radius: var(--doru-radius-sm);
-  padding: 4px 8px;
-  margin: 4px 0;
+  padding: var(--doru-space-2) var(--doru-space-4);
+  margin: var(--doru-space-2) 0;
   max-height: 120px;
   overflow: auto;
   white-space: pre-wrap;
@@ -141,14 +141,14 @@
 
 .chat-tool-error {
   font-size: 12px;
-  margin: 4px 0;
+  margin: var(--doru-space-2) 0;
 }
 
 .chat-input {
   display: flex;
-  gap: 8px;
+  gap: var(--doru-space-4);
   align-items: flex-end;
-  padding: 8px 12px 12px;
+  padding: var(--doru-space-4) var(--doru-space-6) var(--doru-space-6);
   border-top: 1px solid var(--doru-border);
 }
 
@@ -162,7 +162,7 @@
   border: 1px solid var(--doru-border);
   border-radius: var(--doru-radius-lg);
   color: var(--doru-fg);
-  padding: 6px 12px;
+  padding: var(--doru-space-3) var(--doru-space-6);
   font: inherit;
   font-size: var(--doru-font-size);
   line-height: 1.4;
@@ -186,8 +186,8 @@
 /* Shimmering "the agent is working" dots under the sent message. */
 .chat-thinking {
   display: flex;
-  gap: 4px;
-  padding: 6px 2px 2px;
+  gap: var(--doru-space-2);
+  padding: var(--doru-space-3) var(--doru-space-1) var(--doru-space-1);
 }
 
 .chat-thinking span {
@@ -240,7 +240,7 @@
 .chat-text h4,
 .chat-text h5,
 .chat-text h6 {
-  margin: 10px 0 4px;
+  margin: var(--doru-space-5) 0 var(--doru-space-2);
   font-weight: 600;
   color: var(--doru-fg);
 }
@@ -262,12 +262,12 @@
 
 .chat-text ul,
 .chat-text ol {
-  margin: 6px 0;
-  padding-left: 20px;
+  margin: var(--doru-space-3) 0;
+  padding-left: var(--doru-space-10);
 }
 
 .chat-text li {
-  margin: 2px 0;
+  margin: var(--doru-space-1) 0;
 }
 
 .chat-text li > input[type='checkbox'] {
@@ -278,7 +278,7 @@
   width: 13px;
   height: 13px;
   box-sizing: border-box;
-  margin: 0 6px 0 0;
+  margin: 0 var(--doru-space-3) 0 0;
   vertical-align: -2px;
   border: 1px solid var(--doru-border-strong);
   border-radius: var(--doru-radius-sm);
@@ -300,8 +300,8 @@
 }
 
 .chat-text blockquote {
-  margin: 8px 0;
-  padding: 2px 10px;
+  margin: var(--doru-space-4) 0;
+  padding: var(--doru-space-1) var(--doru-space-5);
   border-left: 2px solid var(--doru-border-strong, var(--doru-border));
   color: var(--doru-fg-muted);
 }
@@ -320,7 +320,7 @@
 .chat-text hr {
   border: none;
   border-top: 1px solid var(--doru-border);
-  margin: 10px 0;
+  margin: var(--doru-space-5) 0;
 }
 
 .chat-text code {
@@ -329,15 +329,15 @@
   background: var(--doru-bg-raised);
   border-radius: var(--doru-radius-sm);
   box-shadow: var(--doru-ring);
-  padding: 1px 5px;
+  padding: var(--doru-space-1) var(--doru-space-2);
 }
 
 .chat-text pre {
   background: var(--doru-bg-raised);
   border-radius: var(--doru-radius-md);
   box-shadow: var(--doru-ring);
-  padding: 8px 10px;
-  margin: 8px 0;
+  padding: var(--doru-space-4) var(--doru-space-5);
+  margin: var(--doru-space-4) 0;
   overflow-x: auto;
 }
 
@@ -351,14 +351,14 @@
 
 .chat-text table {
   border-collapse: collapse;
-  margin: 8px 0;
+  margin: var(--doru-space-4) 0;
   font-size: 12px;
 }
 
 .chat-text th,
 .chat-text td {
   border: 1px solid var(--doru-border);
-  padding: 4px 8px;
+  padding: var(--doru-space-2) var(--doru-space-4);
 }
 
 .chat-text th {

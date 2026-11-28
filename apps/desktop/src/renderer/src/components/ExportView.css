@@ -1,10 +1,10 @@
 /* The editor pane has no padding of its own (the canvas fills it), so the
    export tab brings its own — matching the settings view. */
 .export-view {
-  padding: 8px 16px;
+  padding: var(--doru-space-4) var(--doru-space-8);
 }
 
 .export-view-hint {
-  margin: 8px 0 12px;
+  margin: var(--doru-space-4) 0 var(--doru-space-6);
   color: var(--doru-fg-muted);
 }

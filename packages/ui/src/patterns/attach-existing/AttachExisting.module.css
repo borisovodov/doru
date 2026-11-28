@@ -3,7 +3,7 @@
   flex: 1;
   min-width: 0;
   align-items: center;
-  gap: var(--doru-space-3);
+  gap: var(--doru-space-4);
 }
 
 .row select {

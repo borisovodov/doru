@@ -5,11 +5,11 @@
 
 .popup {
   position: absolute;
-  top: calc(100% + var(--doru-space-1));
+  top: calc(100% + var(--doru-space-2));
   left: 0;
   z-index: 210;
   min-width: 240px;
-  padding: var(--doru-space-1);
+  padding: var(--doru-space-2);
   background: var(--doru-bg-popover);
   border: 1px solid var(--doru-border);
   border-radius: var(--doru-radius-md);
@@ -20,16 +20,16 @@
   right: 0;
   left: auto;
   min-width: 200px;
-  max-width: calc(var(--doru-sidebar-width, 260px) - var(--doru-space-4) * 2);
+  max-width: calc(var(--doru-sidebar-width, 260px) - var(--doru-space-6) * 2);
 }
 
 .item {
   display: flex;
   align-items: center;
-  gap: var(--doru-space-3);
+  gap: var(--doru-space-4);
   width: 100%;
   border: none;
-  padding: var(--doru-space-2) var(--doru-space-3);
+  padding: var(--doru-space-3) var(--doru-space-4);
   background: transparent;
   border-radius: var(--doru-radius-sm);
   color: var(--doru-fg);
@@ -45,8 +45,8 @@
 
 .form {
   box-sizing: border-box;
-  width: min(320px, calc(100vw - var(--doru-space-4) * 2));
-  padding: var(--doru-space-3);
+  width: min(320px, calc(100vw - var(--doru-space-6) * 2));
+  padding: var(--doru-space-4);
 }
 
 .popupCompact .form {
@@ -56,8 +56,8 @@
 .buttons {
   display: flex;
   justify-content: flex-end;
-  gap: var(--doru-space-2);
-  margin-top: var(--doru-space-3);
+  gap: var(--doru-space-3);
+  margin-top: var(--doru-space-4);
 }
 
 .chevron {

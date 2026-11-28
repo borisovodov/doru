@@ -37,11 +37,16 @@ re-export the library.
 5. Theme values come from `--doru-*` custom properties. Do not hardcode colors
    in component styles: `npm run lint:css` rejects raw hex, rgb/hsl and named
    colors anywhere outside the token layer. The website palette is separate.
-6. Vertical rhythm belongs to containers: `SectionCard` and `Subcard` stack
+6. Spacing and inset values come from the `--doru-space-*` scale. `padding`,
+   `margin`, `gap` and inset offsets must use a token; `npm run lint:css`
+   rejects literal positive px values in the app CSS. Percentages and negative
+   optical nudges are the only literals. Add a scale step to `tokens.css` when
+   a value is missing instead of bypassing the guard.
+7. Vertical rhythm belongs to containers: `SectionCard` and `Subcard` stack
    their children with an 8px gap. Atoms and section bodies do not set their
    own outer margins; an empty list is hidden so it does not leave a phantom
    gap between its neighbours.
-7. Form fields use `Field` and `FieldGrid`; do not hand-write `<label>`
+8. Form fields use `Field` and `FieldGrid`; do not hand-write `<label>`
    wrappers or per-editor label margins.
 
 ## Using a component

@@ -3,18 +3,18 @@
 .family-members {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
+  gap: var(--doru-space-3);
   align-items: center;
 }
 
 .family-chip {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  gap: var(--doru-space-2);
   background: var(--doru-bg-raised);
   box-shadow: var(--doru-ring);
   border-radius: 999px;
-  padding: 2px 10px;
+  padding: var(--doru-space-1) var(--doru-space-5);
   font-size: 12px;
 }
 
@@ -29,7 +29,7 @@
 .family-actions,
 .family-add {
   display: flex;
-  gap: 8px;
+  gap: var(--doru-space-4);
 }
 
 /* ── Person picker ─────────────────────────────────────────────────── */
@@ -47,8 +47,8 @@
   left: 0;
   right: 0;
   list-style: none;
-  margin: 4px 0 0;
-  padding: 4px;
+  margin: var(--doru-space-2) 0 0;
+  padding: var(--doru-space-2);
   background: var(--doru-bg-popover);
   box-shadow: var(--doru-shadow-popover), var(--doru-ring);
   border-radius: var(--doru-radius-md);
@@ -57,7 +57,7 @@
 }
 
 .person-picker-list li {
-  padding: 4px 8px;
+  padding: var(--doru-space-2) var(--doru-space-4);
   border-radius: var(--doru-radius-sm);
   cursor: pointer;
 }
@@ -69,7 +69,7 @@
 .family-events {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
+  gap: var(--doru-space-3);
   align-items: center;
 }
 
