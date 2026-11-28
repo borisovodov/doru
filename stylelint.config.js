@@ -6,7 +6,7 @@ const colorLiteral = /\b(?:rgba?|hsla?|hwb|lab|lch|oklab|oklch|color)\(|\blight-
 
 // Spacing and inset values come from --doru-space-* tokens. Negative offsets
 // are optical nudges and stay literal; everything else must be tokenized.
-const spacingLiteral = /(?<![\w.-])(?:\+?(?:\d+(?:\.\d+)?|\.\d+)(?:e[+-]?\d+)?)px/i;
+const spacingLiteral = /(?<![\w.+-])(?:\+?(?:\d+(?:\.\d+)?|\.\d+)(?:e[+-]?\d+)?)px/i;
 
 export default {
   extends: ['stylelint-config-standard'],
