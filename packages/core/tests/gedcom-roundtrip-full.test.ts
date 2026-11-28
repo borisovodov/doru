@@ -94,13 +94,8 @@ describe('buildGedcomDataset kitchen sink', () => {
         expect(tasks.find((task) => task.text === 'Visit the cemetery')?.remindAt).toBeUndefined();
 
         expect(target.repo.listSources()).toHaveLength(1);
-        expect(target.repo.listSources()[0]?.texts).toHaveLength(2);
-        expect(
-          target.repo
-            .listSources()[0]
-            ?.texts?.map((text) => text.text)
-            .sort(),
-        ).toEqual(['A note about the source', 'A second transcription'].sort());
+        expect(target.repo.listAllCitations().map((citation) => citation.text)).toContain('citation text');
+        expect(target.repo.listSources()[0]?.text).toBe('A note about the source');
         expect(target.repo.listAddresses()[0]?.lines.map((line) => line.value)).toEqual([
           '12 Archive Lane',
           'Building 3',

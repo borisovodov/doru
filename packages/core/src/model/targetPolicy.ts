@@ -57,7 +57,10 @@ export const CITATION_TARGET_TYPES = [
   'title',
 ] as const;
 
-/** Targets a media link may point at. A media card is not attached to another media card. */
+/**
+ * Targets a media link may point at. A media card is not attached to another
+ * media card, and media attaches to a source rather than to one citation.
+ */
 export const MEDIA_LINK_TARGET_TYPES = [
   'person',
   'family',
@@ -68,7 +71,6 @@ export const MEDIA_LINK_TARGET_TYPES = [
   'name',
   'name_part',
   'source',
-  'citation',
   'place',
   'place_name',
   'place_hierarchy',
@@ -91,7 +93,7 @@ export const MEDIA_LINK_TARGET_TYPES = [
  */
 export const CONTACT_TARGET_TYPES = ['person', 'fact', 'repository', 'submitter'] as const;
 
-/** Targets a task link may point at. */
+/** Targets a task link may point at. Tasks attach to a source, not to one citation. */
 export const TASK_LINK_TARGET_TYPES = [
   'person',
   'family',
@@ -102,7 +104,6 @@ export const TASK_LINK_TARGET_TYPES = [
   'name',
   'name_part',
   'source',
-  'citation',
   'media',
   'place',
   'place_name',

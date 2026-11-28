@@ -51,10 +51,10 @@ export const DORU_APPLICATION_ID = 0x444f5255;
  * Bumped whenever the schema changes. There are no migrations before 1.0.0:
  * a newer version may simply not understand files written by older ones
  * (the store refuses to open them with a loud error). This schema uses
- * version 28, above every version written by an earlier build (the old model
+ * version 30, above every version written by an earlier build (the old model
  * reached 18), so the open guard cannot mistake an old file for this one.
  */
-export const SCHEMA_VERSION = 28;
+export const SCHEMA_VERSION = 30;
 
 export const SCHEMA_SQL = `
 CREATE TABLE IF NOT EXISTS person (
@@ -296,16 +296,10 @@ CREATE TABLE IF NOT EXISTS source (
   subsequent_citation_format TEXT, -- _SUBQ
   bibliography TEXT,        -- _BIBL
   data_note TEXT,
+  text TEXT,                -- GEDCOM TEXT; one text only
   publication_date_id TEXT REFERENCES date(id) ON DELETE RESTRICT,
   created_at INTEGER,
   updated_at INTEGER
-);
-
-CREATE TABLE IF NOT EXISTS source_text (
-  id TEXT PRIMARY KEY,
-  source_id TEXT NOT NULL REFERENCES source(id) ON DELETE CASCADE,
-  text TEXT NOT NULL,
-  mime TEXT, language TEXT
 );
 
 CREATE TABLE IF NOT EXISTS source_data_event (
@@ -331,14 +325,6 @@ CREATE TABLE IF NOT EXISTS call_number (
   medium TEXT
 );
 
-CREATE TABLE IF NOT EXISTS source_template_field (
-  id TEXT PRIMARY KEY,
-  source_id TEXT NOT NULL REFERENCES source(id) ON DELETE CASCADE,
-  name TEXT NOT NULL,
-  value TEXT,
-  position INTEGER NOT NULL
-);
-
 -- Citations: a source cited at some target, with its details. A task and a
 -- note are not citation targets: sources support genealogical assertions,
 -- while a task is a work item and a note is a leaf annotation.
@@ -350,6 +336,7 @@ CREATE TABLE IF NOT EXISTS citation (
   target_id TEXT NOT NULL,
   description TEXT,
   page TEXT,
+  text TEXT,
   quality TEXT,
   confidence TEXT,
   event TEXT,
@@ -364,22 +351,9 @@ CREATE TABLE IF NOT EXISTS citation (
   verified INTEGER NOT NULL DEFAULT 0,
   assessment TEXT,
   found_by TEXT,
-  date_id TEXT REFERENCES date(id) ON DELETE RESTRICT
-);
-
-CREATE TABLE IF NOT EXISTS citation_text (
-  id TEXT PRIMARY KEY,
-  citation_id TEXT NOT NULL REFERENCES citation(id) ON DELETE CASCADE,
-  text TEXT NOT NULL,
-  mime TEXT, language TEXT
-);
-
-CREATE TABLE IF NOT EXISTS citation_template_field (
-  id TEXT PRIMARY KEY,
-  citation_id TEXT NOT NULL REFERENCES citation(id) ON DELETE CASCADE,
-  name TEXT NOT NULL,
-  value TEXT,
-  position INTEGER NOT NULL
+  date_id TEXT REFERENCES date(id) ON DELETE RESTRICT,
+  created_at INTEGER,
+  updated_at INTEGER
 );
 
 -- Media: one record, one file, many links. File bytes live in the media/
@@ -403,7 +377,9 @@ CREATE TABLE IF NOT EXISTS media_link (
   target_type TEXT NOT NULL,
   target_id TEXT NOT NULL,
   crop_top INTEGER, crop_left INTEGER, crop_height INTEGER, crop_width INTEGER,
-  primary_flag INTEGER NOT NULL DEFAULT 0
+  primary_flag INTEGER NOT NULL DEFAULT 0,
+  created_at INTEGER,
+  updated_at INTEGER
 );
 
 -- Repositories, submitters, addresses.
@@ -576,16 +552,12 @@ CREATE INDEX IF NOT EXISTS idx_fact_place_fact ON fact_place(fact_id);
 CREATE INDEX IF NOT EXISTS idx_fact_age_fact ON fact_age(fact_id);
 CREATE INDEX IF NOT EXISTS idx_fact_participant_fact ON fact_participant(fact_id, position);
 CREATE INDEX IF NOT EXISTS idx_note_target ON note(target_type, target_id);
-CREATE INDEX IF NOT EXISTS idx_source_text_source ON source_text(source_id);
 CREATE INDEX IF NOT EXISTS idx_source_data_event_source ON source_data_event(source_id);
 CREATE INDEX IF NOT EXISTS idx_source_repository_source ON source_repository(source_id);
 CREATE INDEX IF NOT EXISTS idx_source_repository_repo ON source_repository(repository_id);
 CREATE INDEX IF NOT EXISTS idx_call_number_link ON call_number(source_repository_id);
-CREATE INDEX IF NOT EXISTS idx_source_template_field_source ON source_template_field(source_id);
 CREATE INDEX IF NOT EXISTS idx_citation_source ON citation(source_id);
 CREATE INDEX IF NOT EXISTS idx_citation_target ON citation(target_type, target_id);
-CREATE INDEX IF NOT EXISTS idx_citation_text_citation ON citation_text(citation_id);
-CREATE INDEX IF NOT EXISTS idx_citation_template_field_citation ON citation_template_field(citation_id);
 CREATE INDEX IF NOT EXISTS idx_media_link_media ON media_link(media_id);
 CREATE INDEX IF NOT EXISTS idx_media_link_target ON media_link(target_type, target_id);
 CREATE INDEX IF NOT EXISTS idx_submitter_language ON submitter_language(submitter_id);

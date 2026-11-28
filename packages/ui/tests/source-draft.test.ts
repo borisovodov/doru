@@ -29,10 +29,9 @@ describe('emptySourceDraft', () => {
       confidence: '',
       agency: '',
       pubDate: emptyDate(),
-      texts: [],
+      text: '',
       dataEvents: [],
       repositories: [],
-      templateFields: [],
     });
   });
 });
@@ -57,10 +56,7 @@ describe('sourceToDraft / sourceDraftToRecord', () => {
       pubDate: { quality: 'exact', component: { year: 1923 } },
       pubPlace: 'Tula',
       titleId: 'T1',
-      texts: [
-        { id: 'T1', text: 'entry 14', mime: 'text/plain', language: 'ru' },
-        { id: 'T2', text: 'entry 15' },
-      ],
+      text: 'entry 14',
       dataEvents: [
         { id: 'E1', tag: 'BIRT', value: 'Ivan', date: { quality: 'exact', component: { year: 1923 } }, placeId: 'PL1' },
       ],
@@ -73,10 +69,6 @@ describe('sourceToDraft / sourceDraftToRecord', () => {
             { id: 'C2', value: '47-3-15' },
           ],
         },
-      ],
-      templateFields: [
-        { id: 'F1', name: 'church', value: 'Nativity' },
-        { id: 'F2', name: 'foliage' },
       ],
     };
     const draft = sourceToDraft(stored);
@@ -97,6 +89,7 @@ describe('sourceToDraft / sourceDraftToRecord', () => {
       agency: 'Archive',
       pubDate: { ...emptyDate(), year: '1923', place: 'Tula' },
       titleId: 'T1',
+      text: 'entry 14',
     });
     expect(sourceDraftToRecord(draft)).toEqual(stored);
   });
@@ -106,17 +99,12 @@ describe('sourceToDraft / sourceDraftToRecord', () => {
     const record = sourceDraftToRecord({
       ...draft,
       title: '  Title  ',
-      texts: [
-        { id: 'T1', text: '   ', mime: '', language: '' },
-        { id: 'T2', text: 'real text', mime: '', language: 'ru' },
-      ],
+      text: '  real text  ',
       repositories: [{ id: 'R1', repositoryId: '', callNumbers: [{ id: 'C1', value: '  ', medium: '' }] }],
-      templateFields: [{ id: 'F1', name: '  ', value: 'x' }],
     });
     expect(record.title).toBe('Title');
-    expect(record.texts).toEqual([{ id: 'T2', text: 'real text', mime: undefined, language: 'ru' }]);
+    expect(record.text).toBe('real text');
     expect(record.repositories).toEqual([]);
-    expect(record.templateFields).toEqual([]);
   });
 
   it('keeps data events with only a value or a date', () => {
@@ -143,23 +131,21 @@ describe('sourceToDraft / sourceDraftToRecord', () => {
 describe('sourceDraftMatches', () => {
   it('matches a draft built from the source', () => {
     const stored = source({
-      texts: [{ id: 'T1', text: 'entry' }],
+      text: 'entry',
       dataEvents: [{ id: 'E1', tag: 'BIRT', date: { quality: 'exact', component: { year: 1923 } } }],
     });
     expect(sourceDraftMatches(sourceToDraft(stored), stored)).toBe(true);
   });
 
   it('detects field, sub-row and date changes', () => {
-    const stored = source({ author: 'A', texts: [{ id: 'T1', text: 'entry' }] });
+    const stored = source({ author: 'A', text: 'entry' });
     const base = sourceToDraft(stored);
     expect(sourceDraftMatches({ ...base, author: 'B' }, stored)).toBe(false);
     expect(sourceDraftMatches({ ...base, certainty: '3' }, stored)).toBe(false);
     expect(sourceDraftMatches({ ...base, subsequentCitationFormat: 'MB23' }, stored)).toBe(false);
     expect(sourceDraftMatches({ ...base, bibliography: 'Book' }, stored)).toBe(false);
     expect(sourceDraftMatches({ ...base, dataNote: 'Note' }, stored)).toBe(false);
-    expect(sourceDraftMatches({ ...base, texts: [{ id: 'T1', text: 'other', mime: '', language: '' }] }, stored)).toBe(
-      false,
-    );
+    expect(sourceDraftMatches({ ...base, text: 'other' }, stored)).toBe(false);
     expect(sourceDraftMatches({ ...base, pubDate: { ...emptyDate(), year: '1930' } }, stored)).toBe(false);
   });
 

@@ -314,4 +314,60 @@ describe('record timestamps', () => {
       cleanupRepo(fixture);
     }
   });
+
+  it('stamps citations on create and edit, and restores timestamps on undo', () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(FIRST);
+    const { fixture, service } = makeService();
+    try {
+      service.addPerson(person('P1'));
+      service.addSource(source('S1'), 'person', 'P1');
+      const [citation] = fixture.repo.listCitationRecordsFor('person', 'P1');
+      expect(citation).toMatchObject({ createdAt: FIRST, updatedAt: FIRST });
+
+      vi.setSystemTime(SECOND);
+      service.updateCitation(citation!, { ...citation!, page: 'p. 2' });
+      expect(fixture.repo.getCitation(citation!.id)).toMatchObject({ createdAt: FIRST, updatedAt: SECOND });
+
+      vi.setSystemTime(THIRD);
+      const stored = fixture.repo.getCitation(citation!.id)!;
+      service.updateCitation(stored, stored);
+      expect(fixture.repo.getCitation(citation!.id)).toMatchObject({ createdAt: FIRST, updatedAt: SECOND });
+
+      service.undo();
+      expect(fixture.repo.getCitation(citation!.id)).toMatchObject({ createdAt: FIRST, updatedAt: FIRST });
+      service.redo();
+      expect(fixture.repo.getCitation(citation!.id)).toMatchObject({ createdAt: FIRST, updatedAt: SECOND });
+    } finally {
+      cleanupRepo(fixture);
+    }
+  });
+
+  it('stamps media links on create and edit, and preserves them through detach undo', () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(FIRST);
+    const { fixture, service } = makeService();
+    try {
+      service.addPerson(person('P1'));
+      service.addMedia(media('M1', { targetType: 'person', targetId: 'P1' }));
+      const [link] = fixture.repo.getMedia('M1')!.links!;
+      expect(link).toMatchObject({ createdAt: FIRST, updatedAt: FIRST });
+
+      vi.setSystemTime(SECOND);
+      service.updateMediaLink(link!, { ...link!, crop: { top: 1 } });
+      expect(fixture.repo.getMedia('M1')!.links![0]).toMatchObject({ createdAt: FIRST, updatedAt: SECOND });
+
+      vi.setSystemTime(THIRD);
+      const stored = fixture.repo.getMedia('M1')!.links![0]!;
+      service.updateMediaLink(stored, stored);
+      expect(fixture.repo.getMedia('M1')!.links![0]).toMatchObject({ createdAt: FIRST, updatedAt: SECOND });
+
+      service.detachMedia(stored);
+      expect(fixture.repo.getMedia('M1')!.links).toEqual([]);
+      service.undo();
+      expect(fixture.repo.getMedia('M1')!.links![0]).toMatchObject({ createdAt: FIRST, updatedAt: SECOND });
+    } finally {
+      cleanupRepo(fixture);
+    }
+  });
 });

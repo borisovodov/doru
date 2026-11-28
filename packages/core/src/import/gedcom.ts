@@ -483,15 +483,7 @@ function importSources(records: GedcomRecord[], ctx: ImportContext): number {
     if (source.xref !== undefined) {
       ctx.sourceIds.set(source.xref, id);
     }
-    const texts =
-      source.texts !== undefined && source.texts.length > 0
-        ? source.texts.map((text) => ({
-            id: crypto.randomUUID(),
-            text: text.payload,
-            mime: text.mediaType,
-            language: text.language,
-          }))
-        : undefined;
+    const text = (source.texts ?? []).find((entry) => entry.payload !== '')?.payload;
     const dataEvents = (source.data?.events ?? []).flatMap((event) => {
       const date = mapDatePeriod(event.date);
       const placeId = event.place ? importPlace(event.place, ctx) : undefined;
@@ -546,14 +538,9 @@ function importSources(records: GedcomRecord[], ctx: ImportContext): number {
           ? source.data.notes[0].payload
           : undefined,
       titleId: source.titlRef ? ctx.titleIds.get(source.titlRef) : undefined,
-      texts,
+      text,
       dataEvents,
       repositories,
-      templateFields: (source.template?.fields ?? []).map((field) => ({
-        id: crypto.randomUUID(),
-        name: field.name,
-        ...(field.value !== undefined ? { value: field.value } : {}),
-      })),
       ...importedRecordTimes(source, ctx),
     });
     importNotes(source.notes, 'source', id, ctx);
@@ -1834,7 +1821,7 @@ function importOccurrence(record: GedcomOccurrenceRecord, ctx: ImportContext): v
 function importCitation(citation: SourceCitation, targetType: string, targetId: string, ctx: ImportContext): void {
   if (!ctx.sourceIdsReady) {
     // Sources are registered after places, notes and media records; defer the
-    // whole citation (including its nested notes/media) to the flush pass.
+    // whole citation (including its nested notes) to the flush pass.
     ctx.pendingCitations.push({ citation, targetType, targetId });
     return;
   }
@@ -1850,6 +1837,7 @@ function importCitation(citation: SourceCitation, targetType: string, targetId: 
     targetId,
     description: citation.description,
     page: citation.page?.payload,
+    text: (citation.data?.texts ?? []).find((text) => text.payload !== '')?.payload,
     quality: citation.quality,
     confidence: citation.confidence,
     event: citation.event?.payload,
@@ -1874,21 +1862,11 @@ function importCitation(citation: SourceCitation, targetType: string, targetId: 
     verified: citation.verified,
     assessment: citation.assessment,
     foundBy: citation.foundBy,
-    texts: (citation.data?.texts ?? []).map((text) => ({
-      id: crypto.randomUUID(),
-      text: text.payload,
-      mime: text.mediaType,
-      language: text.language,
-    })),
-    templateFields: (citation.template?.fields ?? []).map((field) => ({
-      id: crypto.randomUUID(),
-      name: field.name,
-      ...(field.value !== undefined ? { value: field.value } : {}),
-    })),
+    createdAt: ctx.importedAt,
+    updatedAt: ctx.importedAt,
   };
   ctx.repo.insertCitation(mapped);
   importNotes(citation.notes, 'citation', mapped.id, ctx);
-  importMediaLinks(citation.media, 'citation', mapped.id, ctx);
 }
 
 function importCitations(
@@ -2264,6 +2242,8 @@ function importMediaLinks(
         // imported as a regular one; the repository still guarantees the
         // target's primary link when none carries the flag.
         ...(link.primary === true && link.excludeFromDiagrams !== true ? { primary: true } : {}),
+        createdAt: ctx.importedAt,
+        updatedAt: ctx.importedAt,
       });
     }
   }

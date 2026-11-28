@@ -20,6 +20,7 @@ interface SourceRow {
   subsequent_citation_format: string | null;
   bibliography: string | null;
   data_note: string | null;
+  text: string | null;
   publication_date_id: string | null;
   created_at: number | null;
   updated_at: number | null;
@@ -32,6 +33,7 @@ interface CitationRow {
   target_id: string;
   description: string | null;
   page: string | null;
+  text: string | null;
   quality: string | null;
   confidence: string | null;
   event: string | null;
@@ -46,12 +48,14 @@ interface CitationRow {
   verified: number;
   assessment: string | null;
   found_by: string | null;
+  created_at: number | null;
+  updated_at: number | null;
   date_id: string | null;
 }
 
 /**
- * Sources (with their texts, data events, repository links, call numbers and
- * template fields) and citations (with their texts and template fields).
+ * Sources (with their text, data events, repository links and call numbers)
+ * and citations (with their single source-extract text and timestamps).
  */
 export class SourceRepo {
   constructor(
@@ -67,9 +71,9 @@ export class SourceRepo {
         .prepare(
           `INSERT INTO source (id, title, abbreviation, author, publication,
              medium, url, access_date, confidence, pub_place_text, agency, title_id,
-             certainty, subsequent_citation_format, bibliography, data_note,
+             certainty, subsequent_citation_format, bibliography, data_note, text,
              created_at, updated_at, publication_date_id)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         )
         .run(...sourceParams(source), publicationDateId);
       this.replaceSourceDetails(source);
@@ -98,7 +102,7 @@ export class SourceRepo {
           `UPDATE source SET title = ?, abbreviation = ?, author = ?, publication = ?,
              medium = ?, url = ?, access_date = ?, confidence = ?, pub_place_text = ?,
              agency = ?, title_id = ?, certainty = ?, subsequent_citation_format = ?, bibliography = ?,
-             data_note = ?, created_at = ?, updated_at = ?, publication_date_id = ?
+             data_note = ?, text = ?, created_at = ?, updated_at = ?, publication_date_id = ?
            WHERE id = ?`,
         )
         .run(...sourceParams(source).slice(1), prepared.ids[0] ?? null, source.id);
@@ -208,7 +212,8 @@ export class SourceRepo {
   }
 
   addSourceCitation(sourceId: string, targetType: string, targetId: string): void {
-    this.insertCitation({ id: crypto.randomUUID(), sourceId, targetType, targetId });
+    const now = Date.now();
+    this.insertCitation({ id: crypto.randomUUID(), sourceId, targetType, targetId, createdAt: now, updatedAt: now });
   }
 
   insertCitation(citation: CitationRecord): void {
@@ -216,13 +221,12 @@ export class SourceRepo {
       const dateId = citation.date !== undefined ? this.dates.create(citation.date) : null;
       this.db
         .prepare(
-          `INSERT INTO citation (id, source_id, target_type, target_id, description, page, quality,
+          `INSERT INTO citation (id, source_id, target_type, target_id, description, page, text, quality,
              confidence, event, role, phrase, www, name, quality_assessment, reference,
-             abbreviation, footnote, verified, assessment, found_by, date_id)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+             abbreviation, footnote, verified, assessment, found_by, created_at, updated_at, date_id)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         )
         .run(...citationParams(citation), dateId);
-      this.replaceCitationDetails(citation);
     });
   }
 
@@ -238,14 +242,13 @@ export class SourceRepo {
       this.db
         .prepare(
           `UPDATE citation SET source_id = ?, target_type = ?, target_id = ?, description = ?, page = ?,
-             quality = ?, confidence = ?, event = ?, role = ?, phrase = ?, www = ?,
+             text = ?, quality = ?, confidence = ?, event = ?, role = ?, phrase = ?, www = ?,
              name = ?, quality_assessment = ?, reference = ?, abbreviation = ?,
-             footnote = ?, verified = ?, assessment = ?, found_by = ?, date_id = ?
+             footnote = ?, verified = ?, assessment = ?, found_by = ?, created_at = ?, updated_at = ?, date_id = ?
            WHERE id = ?`,
         )
         .run(...citationParams(citation).slice(1), prepared.ids[0] ?? null, citation.id);
       this.dates.deleteMany(prepared.obsolete);
-      this.replaceCitationDetails(citation);
     });
   }
 
@@ -315,18 +318,10 @@ export class SourceRepo {
       .prepare('SELECT id, date_id FROM source_data_event WHERE source_id = ?')
       .all(source.id) as unknown as Array<{ id: string; date_id: string | null }>;
     const eventReservations = reservedDates ?? sourceDataEventReservations(eventRows);
-    this.db.prepare('DELETE FROM source_text WHERE source_id = ?').run(source.id);
     this.db.prepare('DELETE FROM source_data_event WHERE source_id = ?').run(source.id);
     this.db.prepare('DELETE FROM source_repository WHERE source_id = ?').run(source.id);
-    this.db.prepare('DELETE FROM source_template_field WHERE source_id = ?').run(source.id);
     this.dates.deleteMany(eventRows.map((row) => row.date_id));
 
-    const insertText = this.db.prepare(
-      'INSERT INTO source_text (id, source_id, text, mime, language) VALUES (?, ?, ?, ?, ?)',
-    );
-    for (const text of source.texts ?? []) {
-      insertText.run(text.id, source.id, text.text, text.mime ?? null, text.language ?? null);
-    }
     const insertEvent = this.db.prepare(
       'INSERT INTO source_data_event (id, source_id, tag, value, place_id, date_id) VALUES (?, ?, ?, ?, ?, ?)',
     );
@@ -352,29 +347,6 @@ export class SourceRepo {
         insertCallNumber.run(callNumber.id, repository.id, callNumber.value, callNumber.medium ?? null);
       }
     }
-    const insertField = this.db.prepare(
-      'INSERT INTO source_template_field (id, source_id, name, value, position) VALUES (?, ?, ?, ?, ?)',
-    );
-    (source.templateFields ?? []).forEach((field, position) => {
-      insertField.run(field.id, source.id, field.name, field.value ?? null, position);
-    });
-  }
-
-  private replaceCitationDetails(citation: CitationRecord): void {
-    this.db.prepare('DELETE FROM citation_text WHERE citation_id = ?').run(citation.id);
-    this.db.prepare('DELETE FROM citation_template_field WHERE citation_id = ?').run(citation.id);
-    const insertText = this.db.prepare(
-      'INSERT INTO citation_text (id, citation_id, text, mime, language) VALUES (?, ?, ?, ?, ?)',
-    );
-    for (const text of citation.texts ?? []) {
-      insertText.run(text.id, citation.id, text.text, text.mime ?? null, text.language ?? null);
-    }
-    const insertField = this.db.prepare(
-      'INSERT INTO citation_template_field (id, citation_id, name, value, position) VALUES (?, ?, ?, ?, ?)',
-    );
-    (citation.templateFields ?? []).forEach((field, position) => {
-      insertField.run(field.id, citation.id, field.name, field.value ?? null, position);
-    });
   }
 
   private hydrate(row: SourceRow): SourceRecord {
@@ -388,15 +360,9 @@ export class SourceRepo {
       date_id: string | null;
     }[];
     const eventDates = this.dates.getMany(events.map((event) => event.date_id));
-    const texts = this.db
-      .prepare('SELECT id, text, mime, language FROM source_text WHERE source_id = ? ORDER BY id')
-      .all(row.id) as unknown as { id: string; text: string; mime: string | null; language: string | null }[];
     const repositories = this.db
       .prepare('SELECT id, repository_id FROM source_repository WHERE source_id = ? ORDER BY id')
       .all(row.id) as unknown as { id: string; repository_id: string }[];
-    const fields = this.db
-      .prepare('SELECT id, name, value FROM source_template_field WHERE source_id = ? ORDER BY position')
-      .all(row.id) as unknown as { id: string; name: string; value: string | null }[];
 
     const source: SourceRecord = {
       id: row.id,
@@ -416,17 +382,10 @@ export class SourceRepo {
       subsequentCitationFormat: row.subsequent_citation_format ?? undefined,
       bibliography: row.bibliography ?? undefined,
       dataNote: row.data_note ?? undefined,
+      text: row.text ?? undefined,
       createdAt: row.created_at ?? undefined,
       updatedAt: row.updated_at ?? undefined,
     };
-    if (texts.length > 0) {
-      source.texts = texts.map((text) => ({
-        id: text.id,
-        text: text.text,
-        mime: text.mime ?? undefined,
-        language: text.language ?? undefined,
-      }));
-    }
     if (events.length > 0) {
       source.dataEvents = events.map((event) => {
         const date = event.date_id !== null ? eventDates.get(event.date_id) : undefined;
@@ -455,30 +414,18 @@ export class SourceRepo {
         };
       });
     }
-    if (fields.length > 0) {
-      source.templateFields = fields.map((field) => ({
-        id: field.id,
-        name: field.name,
-        ...(field.value !== null ? { value: field.value } : {}),
-      }));
-    }
     return source;
   }
 
   private hydrateCitation(row: CitationRow): CitationRecord {
-    const texts = this.db
-      .prepare('SELECT id, text, mime, language FROM citation_text WHERE citation_id = ? ORDER BY id')
-      .all(row.id) as unknown as { id: string; text: string; mime: string | null; language: string | null }[];
-    const fields = this.db
-      .prepare('SELECT id, name, value FROM citation_template_field WHERE citation_id = ? ORDER BY position')
-      .all(row.id) as unknown as { id: string; name: string; value: string | null }[];
-    const citation: CitationRecord = {
+    return {
       id: row.id,
       sourceId: row.source_id,
       targetType: row.target_type,
       targetId: row.target_id,
       description: row.description ?? undefined,
       page: row.page ?? undefined,
+      text: row.text ?? undefined,
       quality: row.quality ?? undefined,
       confidence: row.confidence ?? undefined,
       event: row.event ?? undefined,
@@ -494,35 +441,21 @@ export class SourceRepo {
       verified: row.verified === 1 ? true : undefined,
       assessment: row.assessment ?? undefined,
       foundBy: row.found_by ?? undefined,
+      createdAt: row.created_at ?? undefined,
+      updatedAt: row.updated_at ?? undefined,
     };
-    if (texts.length > 0) {
-      citation.texts = texts.map((text) => ({
-        id: text.id,
-        text: text.text,
-        mime: text.mime ?? undefined,
-        language: text.language ?? undefined,
-      }));
-    }
-    if (fields.length > 0) {
-      citation.templateFields = fields.map((field) => ({
-        id: field.id,
-        name: field.name,
-        ...(field.value !== null ? { value: field.value } : {}),
-      }));
-    }
-    return citation;
   }
 }
 
 const sourceSelect = `SELECT id, title, abbreviation, author, publication,
   medium, url, access_date, confidence, pub_place_text, agency, title_id,
-  certainty, subsequent_citation_format, bibliography, data_note,
+  certainty, subsequent_citation_format, bibliography, data_note, text,
   created_at, updated_at, publication_date_id
   FROM source`;
 
-const citationSelect = `SELECT id, source_id, target_type, target_id, description, page, quality,
+const citationSelect = `SELECT id, source_id, target_type, target_id, description, page, text, quality,
   confidence, event, role, phrase, www, name, quality_assessment, reference,
-  abbreviation, footnote, verified, assessment, found_by, date_id
+  abbreviation, footnote, verified, assessment, found_by, created_at, updated_at, date_id
   FROM citation`;
 
 function sourceDataEventReservations(rows: Array<{ id: string; date_id: string | null }>): DateReservations {
@@ -569,6 +502,7 @@ function sourceParams(source: SourceRecord): Array<string | number | null> {
     source.subsequentCitationFormat ?? null,
     source.bibliography ?? null,
     source.dataNote ?? null,
+    source.text ?? null,
     source.createdAt ?? null,
     source.updatedAt ?? null,
   ];
@@ -582,6 +516,7 @@ function citationParams(citation: CitationRecord): Array<string | number | null>
     citation.targetId,
     citation.description ?? null,
     citation.page ?? null,
+    citation.text ?? null,
     citation.quality ?? null,
     citation.confidence ?? null,
     citation.event ?? null,
@@ -596,5 +531,7 @@ function citationParams(citation: CitationRecord): Array<string | number | null>
     citation.verified ? 1 : 0,
     citation.assessment ?? null,
     citation.foundBy ?? null,
+    citation.createdAt ?? null,
+    citation.updatedAt ?? null,
   ];
 }

@@ -234,6 +234,47 @@ describe('TreeService attachments', () => {
     }
   });
 
+  it('refuses media and task links on citations while keeping notes', () => {
+    const { fixture, service } = makeService();
+    try {
+      service.addPerson({ id: 'P1', names: [], sex: 'U', facts: [] });
+      service.addSource(source(), 'person', 'P1');
+      const [citation] = fixture.repo.listCitationRecordsFor('person', 'P1');
+
+      expect(() =>
+        service.attachMedia({ id: 'ML_CIT', mediaId: 'M1', targetType: 'citation', targetId: citation!.id }),
+      ).toThrow('A mediaLink cannot target a citation.');
+      expect(() =>
+        service.addMedia({
+          id: 'M_CIT',
+          path: 'media/page.jpg',
+          title: 'Page',
+          targetType: 'citation',
+          targetId: citation!.id,
+        }),
+      ).toThrow('A mediaLink cannot target a citation.');
+      expect(fixture.repo.listMediaLinksFor('citation', citation!.id)).toEqual([]);
+
+      service.addTask({ id: 'T1', text: 'Check the page', targets: [] });
+      expect(() =>
+        service.addTaskLink({ id: 'TL_CIT', taskId: 'T1', targetType: 'citation', targetId: citation!.id }),
+      ).toThrow('A taskLink cannot target a citation.');
+      expect(fixture.repo.listTaskLinksFor('citation', citation!.id)).toEqual([]);
+
+      service.addNote({
+        id: 'N_CIT',
+        text: 'Page number verified',
+        targetType: 'citation',
+        targetId: citation!.id,
+      });
+      expect(fixture.repo.listNotesFor('citation', citation!.id).map((entry) => entry.text)).toEqual([
+        'Page number verified',
+      ]);
+    } finally {
+      cleanupRepo(fixture);
+    }
+  });
+
   it('enforces note and media link target policies', () => {
     const { fixture, service } = makeService();
     try {
@@ -390,12 +431,14 @@ describe('TreeService attachments', () => {
       const [created] = fixture.repo.listCitationRecordsFor('person', 'P1');
       const after = { ...created!, targetId: 'P2' };
       service.updateCitation(created!, after);
-      expect(fixture.repo.listCitationRecordsFor('person', 'P2')).toEqual([after]);
+      const [updated] = fixture.repo.listCitationRecordsFor('person', 'P2');
+      expect(updated).toMatchObject({ id: created!.id, targetId: 'P2', createdAt: created!.createdAt });
+      expect(updated!.updatedAt).toBeGreaterThanOrEqual(created!.updatedAt!);
 
       service.detachCitation(created!.id);
       expect(fixture.repo.listCitationRecordsFor('person', 'P2')).toEqual([]);
       service.undo();
-      expect(fixture.repo.listCitationRecordsFor('person', 'P2')).toEqual([after]);
+      expect(fixture.repo.listCitationRecordsFor('person', 'P2')).toEqual([updated]);
     } finally {
       cleanupRepo(fixture);
     }

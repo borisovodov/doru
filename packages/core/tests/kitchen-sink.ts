@@ -194,10 +194,7 @@ export function buildKitchenSinkTree(fixture: RepoFixture): void {
     pubPlace: 'Moscow',
     agency: 'state',
     titleId: 'TL1',
-    texts: [
-      { id: 'ST1', text: 'A note about the source', mime: 'text/plain', language: 'en' },
-      { id: 'ST2', text: 'A second transcription', mime: 'text/plain', language: 'ru' },
-    ],
+    text: 'A note about the source',
     dataEvents: [
       {
         id: 'SE1',
@@ -208,10 +205,6 @@ export function buildKitchenSinkTree(fixture: RepoFixture): void {
       },
     ],
     repositories: [{ id: 'SR1', repositoryId: 'RP1', callNumbers: [{ id: 'SC1', value: 'VII-12', medium: 'book' }] }],
-    templateFields: [
-      { id: 'SF1', name: 'volume', value: '3' },
-      { id: 'SF2', name: 'folio' },
-    ],
   });
 
   // Citations with every detail.
@@ -229,8 +222,7 @@ export function buildKitchenSinkTree(fixture: RepoFixture): void {
     phrase: 'as recorded',
     date: { quality: 'exact', component: { year: 1923 } },
     www: 'https://archive.example/page',
-    texts: [{ id: 'CT1', text: 'citation text', mime: 'text/plain', language: 'en' }],
-    templateFields: [{ id: 'CF1', name: 'entry', value: '12' }],
+    text: 'citation text',
   });
 
   // Notes: one per target (shared GEDCOM notes are copied on import).

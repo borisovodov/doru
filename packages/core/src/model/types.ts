@@ -576,13 +576,6 @@ export function placeName(place: PlaceRecord | undefined): string {
 // Sources, citations, notes, media
 // ---------------------------------------------------------------------------
 
-export interface SourceText {
-  id: string;
-  text: string;
-  mime?: string | undefined;
-  language?: string | undefined;
-}
-
 export interface SourceRecord extends RecordTimestamps {
   id: string;
   title?: string | undefined;
@@ -606,12 +599,12 @@ export interface SourceRecord extends RecordTimestamps {
   dataNote?: string | undefined;
   /** The bibliographic work (7.0 TITL record) this source cites. */
   titleId?: string | undefined;
-  texts?: SourceText[] | undefined;
+  /** The verbatim source text (GEDCOM `TEXT`); one text only. */
+  text?: string | undefined;
   dataEvents?: Array<{ id: string; tag: string; value?: string; date?: DateValue; placeId?: string }> | undefined;
   repositories?:
     | Array<{ id: string; repositoryId: string; callNumbers?: Array<{ id: string; value: string; medium?: string }> }>
     | undefined;
-  templateFields?: Array<{ id: string; name: string; value?: string }> | undefined;
 }
 
 /**
@@ -621,12 +614,14 @@ export interface SourceRecord extends RecordTimestamps {
  * and a note is a leaf annotation. `page` is the location within the source,
  * `quality` the reliability assessment for this claim.
  */
-export interface CitationRecord {
+export interface CitationRecord extends RecordTimestamps {
   id: string;
   sourceId: string;
   targetType: string;
   targetId: string;
   page?: string | undefined;
+  /** The source extract relevant to this citation (GEDCOM `DATA.TEXT`); one text only. */
+  text?: string | undefined;
   quality?: string | undefined;
   description?: string | undefined;
   confidence?: string | undefined;
@@ -646,8 +641,6 @@ export interface CitationRecord {
   verified?: boolean | undefined;
   assessment?: string | undefined;
   foundBy?: string | undefined;
-  texts?: SourceText[] | undefined;
-  templateFields?: Array<{ id: string; name: string; value?: string }> | undefined;
 }
 
 /**
@@ -669,7 +662,7 @@ export interface NoteRecord {
 }
 
 /** A media record attached to some target, with the link's usage details. */
-export interface MediaLinkRecord {
+export interface MediaLinkRecord extends RecordTimestamps {
   id: string;
   mediaId: string;
   targetType: string;

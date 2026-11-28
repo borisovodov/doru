@@ -151,13 +151,14 @@ those sets; there is no global runtime target list and no second UI list.
 |---|---|
 | Note | Every target type except `media_link`. A note record is never a target. |
 | Citation | Every target type except `task`, `citation`, and `media_link`. |
-| Media link | Every target type except `media` and `media_link`; a task is a valid media target. |
+| Media link | Every target type except `citation`, `media`, and `media_link`; a task is a valid media target. |
 | Contact | `person`, `fact`, `repository`, `submitter`. |
-| Task link | Every target type except `task`, `submitter`, and `media_link`; `source` is valid. |
+| Task link | Every target type except `citation`, `task`, `submitter`, and `media_link`; `source` is valid. |
 | Submitter link (`contributor`, ANCI/DESI) | `person`, `family`. GEDCOM has standard `SUBM` pointers only on individuals and families; `ANCI`/`DESI` research interests are also individual-only. |
 
 Consequences: a source has nothing to cite on a task (a task asserts nothing),
-a task card keeps Notes and Media only, a submitter card has no Tasks or
+a task card keeps Notes and Media only, a citation card keeps Notes only
+(media and tasks attach to the source), a submitter card has no Tasks or
 Contributors section, a media link carries no attachments at all, and
 contributors are absent from task cards. Contributor and research-interest
 links are exposed only on person and family cards; vendor `_SUBM` links from
@@ -283,17 +284,19 @@ Top-level record roots (`person`, `family`, `source`, `media`, `place`,
 `repository`, `submitter`, `address`, `title`, plus `note` and `task`) keep
 Dóru-local epoch-millisecond `created_at`/`updated_at` instants. They are
 operational provenance, not genealogical dates. `created_at` is set once;
-`updated_at` changes only when the aggregate's own content changes. Child
-rows, link rows, attachment links and `date` values have no timestamps of
-their own.
+`updated_at` changes only when the aggregate's own content changes. Most
+child rows, link rows, attachment links and `date` values have no timestamps
+of their own; `citation` and `media_link` are the addressable exceptions.
 
 Editing a person's names or facts moves the person's instant even when the
 fact is saved through its own operation. Family partner/child links, media
-files, place names/hierarchy and source texts belong to their roots. Adding a
-note, citation, media link, task link, contact or contributor does
-not move the host's instant, and neither does the reference cleanup performed
-when another record is deleted. Undo restores the previous instants; redo
-restores the edit's.
+files, place names/hierarchy and the source text belong to their roots. Adding
+a note, citation, media link, task link, contact or contributor does not move
+the host's instant, and neither does the reference cleanup performed when
+another record is deleted. A citation edit moves only the citation's instant;
+a media-link edit moves only that link's instant, not its siblings whose
+primary flag was normalized. Undo restores the previous instants; redo restores
+the edit's.
 
 GEDCOM import fills these instants from the file when possible:
 `CREA`/`_CREAT`/`_CREA`/`_CRE` for creation, `CHAN`/`_UPD` and the latest fact
@@ -364,8 +367,8 @@ reports fresh facts, and a missing file reports none instead of stale values.
 Sources and notes attach to the media card (`media`), never to a link row.
 An inline 5.5.1 `NOTE` or `SOUR` under the link is hoisted onto the media
 record; a pointer-form link note or citation has no slot and is dropped. A
-media link stores only the crop and the primary flag; it is not an attachment
-target at all. The tree does not store the `_EXCL` exclusion flag. Every
+media link stores only the crop, the primary flag and its own creation/edit
+instants; it is not an attachment target at all. The tree does not store the `_EXCL` exclusion flag. Every
 target with media has exactly one primary link, so an excluded link is still
 eligible for the primary fallback; if it is the only linked media, an excluded
 photo may become the automatic tree-card portrait. This is accepted until

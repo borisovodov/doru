@@ -1,11 +1,10 @@
 import type { CitationRecord } from '@doru/core';
 import { fromDateDraft, toDateDraft, type DateDraft } from '../person/draft';
-import type { SourceTextDraft, TemplateFieldDraft } from '../source/sourceDraft';
 
 /**
  * The editable form of a citation (a source cited at some target). The
  * target pair is fixed — citations are edited in place, never re-attached
- * here. Texts and template fields share the source sub-drafts.
+ * here.
  */
 export interface CitationDraft {
   id: string;
@@ -13,6 +12,7 @@ export interface CitationDraft {
   targetType: string;
   targetId: string;
   page: string;
+  text: string;
   quality: string;
   description: string;
   confidence: string;
@@ -29,8 +29,6 @@ export interface CitationDraft {
   assessment: string;
   foundBy: string;
   date: DateDraft;
-  texts: SourceTextDraft[];
-  templateFields: TemplateFieldDraft[];
 }
 
 export function citationToDraft(citation: CitationRecord): CitationDraft {
@@ -40,6 +38,7 @@ export function citationToDraft(citation: CitationRecord): CitationDraft {
     targetType: citation.targetType,
     targetId: citation.targetId,
     page: citation.page ?? '',
+    text: citation.text ?? '',
     quality: citation.quality ?? '',
     description: citation.description ?? '',
     confidence: citation.confidence ?? '',
@@ -56,21 +55,10 @@ export function citationToDraft(citation: CitationRecord): CitationDraft {
     assessment: citation.assessment ?? '',
     foundBy: citation.foundBy ?? '',
     date: toDateDraft(citation.date),
-    texts: (citation.texts ?? []).map((text) => ({
-      id: text.id,
-      text: text.text,
-      mime: text.mime ?? '',
-      language: text.language ?? '',
-    })),
-    templateFields: (citation.templateFields ?? []).map((field) => ({
-      id: field.id,
-      name: field.name,
-      value: field.value ?? '',
-    })),
   };
 }
 
-/** Builds the citation record for a save; empty texts and fields are dropped. */
+/** Builds the citation record for a save; an empty text is dropped. */
 export function citationDraftToRecord(draft: CitationDraft, existing?: CitationRecord): CitationRecord {
   return {
     id: draft.id,
@@ -78,6 +66,7 @@ export function citationDraftToRecord(draft: CitationDraft, existing?: CitationR
     targetType: draft.targetType,
     targetId: draft.targetId,
     page: draft.page.trim() || undefined,
+    text: draft.text.trim() || undefined,
     quality: draft.quality.trim() || undefined,
     description: draft.description.trim() || undefined,
     confidence: draft.confidence.trim() || undefined,
@@ -94,20 +83,5 @@ export function citationDraftToRecord(draft: CitationDraft, existing?: CitationR
     assessment: draft.assessment.trim() || undefined,
     foundBy: draft.foundBy.trim() || undefined,
     date: fromDateDraft(draft.date, existing?.date),
-    texts: draft.texts
-      .filter((text) => text.text.trim() !== '')
-      .map((text) => ({
-        id: text.id,
-        text: text.text.trim(),
-        mime: text.mime.trim() || undefined,
-        language: text.language.trim() || undefined,
-      })),
-    templateFields: draft.templateFields
-      .filter((field) => field.name.trim() !== '')
-      .map((field) => ({
-        id: field.id,
-        name: field.name.trim(),
-        ...(field.value.trim() !== '' ? { value: field.value.trim() } : {}),
-      })),
   };
 }

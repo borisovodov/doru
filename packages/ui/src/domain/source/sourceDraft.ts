@@ -1,14 +1,6 @@
 import type { SourceRecord } from '@doru/core';
 import { dateDraftsEqual, emptyDate, fromDateDraft, toDateDraft, type DateDraft } from '../person/draft';
 
-/** An editable text extract of a source or citation. */
-export interface SourceTextDraft {
-  id: string;
-  text: string;
-  mime: string;
-  language: string;
-}
-
 /** An editable event recorded in a source (source DATA block). */
 export interface SourceDataEventDraft {
   id: string;
@@ -30,13 +22,6 @@ export interface SourceRepositoryDraft {
   id: string;
   repositoryId: string;
   callNumbers: CallNumberDraft[];
-}
-
-/** A source-template field (7.0 templated citations). */
-export interface TemplateFieldDraft {
-  id: string;
-  name: string;
-  value: string;
 }
 
 /**
@@ -61,14 +46,9 @@ export interface SourceDraft {
   /** The publication date; the date draft's place field holds the publication place. */
   pubDate: DateDraft;
   titleId?: string | undefined;
-  texts: SourceTextDraft[];
+  text: string;
   dataEvents: SourceDataEventDraft[];
   repositories: SourceRepositoryDraft[];
-  templateFields: TemplateFieldDraft[];
-}
-
-export function emptySourceTextDraft(): SourceTextDraft {
-  return { id: crypto.randomUUID(), text: '', mime: '', language: '' };
 }
 
 export function emptySourceDraft(): SourceDraft {
@@ -88,10 +68,9 @@ export function emptySourceDraft(): SourceDraft {
     dataNote: '',
     agency: '',
     pubDate: emptyDate(),
-    texts: [],
+    text: '',
     dataEvents: [],
     repositories: [],
-    templateFields: [],
   };
 }
 
@@ -113,12 +92,7 @@ export function sourceToDraft(source: SourceRecord): SourceDraft {
     agency: source.agency ?? '',
     pubDate: toDateDraft(source.pubDate, source.pubPlace ?? ''),
     titleId: source.titleId,
-    texts: (source.texts ?? []).map((text) => ({
-      id: text.id,
-      text: text.text,
-      mime: text.mime ?? '',
-      language: text.language ?? '',
-    })),
+    text: source.text ?? '',
     dataEvents: (source.dataEvents ?? []).map((event) => ({
       id: event.id,
       tag: event.tag,
@@ -134,11 +108,6 @@ export function sourceToDraft(source: SourceRecord): SourceDraft {
         value: callNumber.value,
         medium: callNumber.medium ?? '',
       })),
-    })),
-    templateFields: (source.templateFields ?? []).map((field) => ({
-      id: field.id,
-      name: field.name,
-      value: field.value ?? '',
     })),
   };
 }
@@ -186,10 +155,8 @@ export function mergeSourceDraft(current: SourceDraft, base: SourceDraft, refres
       (merged as unknown as Record<string, unknown>)[key] = refreshed[key];
     }
   }
-  merged.texts = mergeSourceRows(current.texts, base.texts, refreshed.texts);
   merged.dataEvents = mergeSourceRows(current.dataEvents, base.dataEvents, refreshed.dataEvents);
   merged.repositories = mergeSourceRows(current.repositories, base.repositories, refreshed.repositories);
-  merged.templateFields = mergeSourceRows(current.templateFields, base.templateFields, refreshed.templateFields);
   return merged;
 }
 
@@ -218,14 +185,7 @@ export function sourceDraftToRecord(draft: SourceDraft, existing?: SourceRecord)
     pubDate: fromDateDraft(draft.pubDate, existing?.pubDate),
     pubPlace: draft.pubDate.place.trim() || undefined,
     titleId: draft.titleId,
-    texts: draft.texts
-      .filter((text) => text.text.trim() !== '')
-      .map((text) => ({
-        id: text.id,
-        text: text.text.trim(),
-        mime: text.mime.trim() || undefined,
-        language: text.language.trim() || undefined,
-      })),
+    text: draft.text.trim() || undefined,
     dataEvents: draft.dataEvents
       .map((event) => {
         const date = fromDateDraft(event.date, existingEvents.get(event.id)?.date);
@@ -253,13 +213,6 @@ export function sourceDraftToRecord(draft: SourceDraft, existing?: SourceRecord)
             ...(callNumber.medium.trim() !== '' ? { medium: callNumber.medium.trim() } : {}),
           })),
       })),
-    templateFields: draft.templateFields
-      .filter((field) => field.name.trim() !== '')
-      .map((field) => ({
-        id: field.id,
-        name: field.name.trim(),
-        ...(field.value.trim() !== '' ? { value: field.value.trim() } : {}),
-      })),
   };
 }
 
@@ -275,13 +228,7 @@ export function sourceDraftEmpty(draft: SourceDraft): boolean {
     draft.accessDate.trim() === '' &&
     draft.confidence.trim() === '' &&
     draft.agency.trim() === '';
-  return (
-    base &&
-    draft.texts.every((text) => text.text.trim() === '') &&
-    draft.dataEvents.length === 0 &&
-    draft.repositories.length === 0 &&
-    draft.templateFields.length === 0
-  );
+  return base && draft.text.trim() === '' && draft.dataEvents.length === 0 && draft.repositories.length === 0;
 }
 
 /** True when the draft still equals the stored source (no external rewrite). */
@@ -304,17 +251,7 @@ export function sourceDraftMatches(draft: SourceDraft, source: SourceRecord): bo
     draft.agency === other.agency &&
     draft.titleId === other.titleId &&
     dateDraftsEqual(draft.pubDate, other.pubDate) &&
-    draft.texts.length === other.texts.length &&
-    draft.texts.every((text, index) => {
-      const entry = other.texts[index];
-      return (
-        entry !== undefined &&
-        text.id === entry.id &&
-        text.text === entry.text &&
-        text.mime === entry.mime &&
-        text.language === entry.language
-      );
-    }) &&
+    draft.text === other.text &&
     draft.dataEvents.length === other.dataEvents.length &&
     draft.dataEvents.every((event, index) => {
       const entry = other.dataEvents[index];
@@ -345,11 +282,6 @@ export function sourceDraftMatches(draft: SourceDraft, source: SourceRecord): bo
           );
         })
       );
-    }) &&
-    draft.templateFields.length === other.templateFields.length &&
-    draft.templateFields.every((field, index) => {
-      const entry = other.templateFields[index];
-      return entry !== undefined && field.id === entry.id && field.name === entry.name && field.value === entry.value;
     })
   );
 }

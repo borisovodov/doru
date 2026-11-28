@@ -271,6 +271,40 @@ describe('buildGedcomDataset', () => {
     }
   });
 
+  it('writes one citation text and no vendor templates', () => {
+    const fixture = makeRepo();
+    try {
+      const { repo } = fixture;
+      repo.insertPerson({
+        id: 'P1',
+        names: [],
+        sex: 'U',
+        facts: [{ id: 'F1', personId: 'P1', tag: 'BIRT' }],
+      });
+      repo.insertSource({ id: 'S1', title: 'Parish register', text: 'source transcript' });
+      repo.insertCitation({
+        id: 'C1',
+        sourceId: 'S1',
+        targetType: 'fact',
+        targetId: 'F1',
+        page: 'p. 5',
+        text: 'extract',
+      });
+
+      const dataset = buildGedcomDataset(repo);
+      const serialized = serializeGedcom70(dataset);
+      expect(serialized.ok).toBe(true);
+      if (!serialized.ok) {
+        return;
+      }
+      expect(serialized.value).toContain('1 TEXT source transcript');
+      expect(serialized.value).toContain('4 TEXT extract');
+      expect(serialized.value).not.toContain('_TMPLT');
+    } finally {
+      cleanupRepo(fixture);
+    }
+  });
+
   it('assigns fresh xrefs to every record', () => {
     const fixture = makeRepo();
     try {

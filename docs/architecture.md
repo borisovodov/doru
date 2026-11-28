@@ -109,8 +109,9 @@ decisions about what we deliberately do **not** build, see
   links and keeps a media record that has no links left. Removing a file copy
   is deliberately not undoable, so undo restores the database rows but not
   bytes that were deleted from disk. Attachments on a media card target
-  `media`; a `media_link` carries only its crop and primary flag and no
-  attachments. There is no separate file attachment target.
+  `media`; a `media_link` carries only its crop, primary flag and own
+  creation/edit instants, and no attachments. There is no separate file
+  attachment target.
 - `target_type`/`target_id` attachments (notes, citations,
   contacts, contributors, media links) are polymorphic and
   keyed by UUID. Every op that deletes or removes a target cleans its

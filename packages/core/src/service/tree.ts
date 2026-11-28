@@ -783,8 +783,19 @@ export class TreeService {
     if (targetType !== undefined && targetId !== undefined) {
       assertTargetAllowed('citation', targetType);
     }
-    const citation = targetType && targetId ? { targetType, targetId } : undefined;
-    return this.apply(addSourceOp(stampNewRecord(source, Date.now()), citation));
+    const now = Date.now();
+    const citation: CitationRecord | undefined =
+      targetType && targetId
+        ? {
+            id: crypto.randomUUID(),
+            sourceId: source.id,
+            targetType,
+            targetId,
+            createdAt: now,
+            updatedAt: now,
+          }
+        : undefined;
+    return this.apply(addSourceOp(stampNewRecord(source, now), citation));
   }
 
   updateSource(before: SourceRecord, after: SourceRecord): UndoRedoState {
@@ -820,7 +831,15 @@ export class TreeService {
       if (this.repo.listCitationRecordsFor(targetType, targetId).some((citation) => citation.sourceId === sourceId)) {
         return undefined;
       }
-      const citation: CitationRecord = { id: crypto.randomUUID(), sourceId, targetType, targetId };
+      const now = Date.now();
+      const citation: CitationRecord = {
+        id: crypto.randomUUID(),
+        sourceId,
+        targetType,
+        targetId,
+        createdAt: now,
+        updatedAt: now,
+      };
       return attachCitationOp(citation);
     });
   }
@@ -834,6 +853,7 @@ export class TreeService {
   private citationsForTargets(sourceId: string, targets: readonly TargetRef[]): CitationRecord[] {
     const seen = new Set<string>();
     const citations: CitationRecord[] = [];
+    const now = Date.now();
     for (const target of targets) {
       assertTargetAllowed('citation', target.targetType);
       const key = `${target.targetType}\u0000${target.targetId}`;
@@ -853,6 +873,8 @@ export class TreeService {
         sourceId,
         targetType: target.targetType,
         targetId: target.targetId,
+        createdAt: now,
+        updatedAt: now,
       });
     }
     return citations;
@@ -860,7 +882,13 @@ export class TreeService {
 
   updateCitation(before: CitationRecord, after: CitationRecord): UndoRedoState {
     assertTargetAllowed('citation', after.targetType);
-    return this.apply(updateCitationOp(before, after));
+    return this.applyAfterCommit(() => {
+      const current = this.repo.getCitation(before.id) ?? before;
+      if (sameRecordContent(current, after)) {
+        return undefined;
+      }
+      return updateCitationOp(current, stampRecordEdit(current, after, Date.now()));
+    });
   }
 
   detachCitation(citationId: string): UndoRedoState {
@@ -978,7 +1006,10 @@ export class TreeService {
     for (const link of media.links ?? []) {
       assertTargetAllowed('mediaLink', link.targetType);
     }
-    return this.apply(addMediaOp(stampNewRecord(media, Date.now())));
+    const now = Date.now();
+    const stamped = stampNewRecord(media, now);
+    const links = media.links?.map((link) => stampNewRecord(link, now));
+    return this.apply(addMediaOp(links === undefined ? stamped : { ...stamped, links }));
   }
 
   getMedia(id: string): MediaRecord | undefined {
@@ -992,7 +1023,7 @@ export class TreeService {
       const now = Date.now();
       const current = this.repo.getMedia(before.id) ?? before;
       const merged: MediaRecord = { ...current };
-      for (const key of ['title', 'path', 'date', 'links', 'targetType', 'targetId'] as const) {
+      for (const key of ['title', 'path', 'date'] as const) {
         if (JSON.stringify(after[key]) !== JSON.stringify(before[key])) {
           (merged as unknown as Record<string, unknown>)[key] = after[key];
         }
@@ -1025,7 +1056,7 @@ export class TreeService {
         return undefined;
       }
       const primaryBefore = this.repo.listMediaLinksFor(link.targetType, link.targetId).map((entry) => entry.link);
-      return attachMediaOp(link, primaryBefore);
+      return attachMediaOp(stampNewRecord(link, Date.now()), primaryBefore);
     });
   }
 
@@ -1041,6 +1072,7 @@ export class TreeService {
       (this.repo.getMedia(mediaId)?.links ?? []).map((link) => `${link.targetType}\u0000${link.targetId}`),
     );
     const links: MediaLinkRecord[] = [];
+    const now = Date.now();
     for (const target of targets) {
       const key = `${target.targetType}\u0000${target.targetId}`;
       if (existing.has(key)) {
@@ -1052,6 +1084,8 @@ export class TreeService {
         mediaId,
         targetType: target.targetType,
         targetId: target.targetId,
+        createdAt: now,
+        updatedAt: now,
       });
     }
     return links.length === 0 ? this.historyState() : this.apply(attachMediaLinksOp(links));
@@ -1067,16 +1101,25 @@ export class TreeService {
       // The renderer supplies the full row; never let a mismatched id move the
       // update set to a different link while the target's primary flags change.
       const desired: MediaLinkRecord = { ...after, id: stored.id, mediaId: stored.mediaId };
-      if (stored.targetType !== desired.targetType || stored.targetId !== desired.targetId) {
+      if (
+        stored.targetType === desired.targetType &&
+        stored.targetId === desired.targetId &&
+        JSON.stringify(stored.crop) === JSON.stringify(desired.crop) &&
+        stored.primary === desired.primary
+      ) {
+        return undefined;
+      }
+      const stamped = stampRecordEdit(stored, desired, Date.now());
+      if (stored.targetType !== stamped.targetType || stored.targetId !== stamped.targetId) {
         // Moving a link between targets keeps the repository's normalization
         // path; capture both targets so undo can restore their sibling flags.
-        return updateMediaLinkOp(stored, desired, {
+        return updateMediaLinkOp(stored, stamped, {
           oldTarget: this.repo.listMediaLinksFor(stored.targetType, stored.targetId).map((entry) => entry.link),
-          newTarget: this.repo.listMediaLinksFor(desired.targetType, desired.targetId).map((entry) => entry.link),
+          newTarget: this.repo.listMediaLinksFor(stamped.targetType, stamped.targetId).map((entry) => entry.link),
         });
       }
       const currentLinks = this.repo.listMediaLinksFor(stored.targetType, stored.targetId).map((entry) => entry.link);
-      const nextLinks = currentLinks.map((link) => (link.id === stored.id ? { ...desired } : { ...link }));
+      const nextLinks = currentLinks.map((link) => (link.id === stored.id ? { ...stamped } : { ...link }));
       if (desired.primary === true) {
         for (const link of nextLinks) {
           link.primary = link.id === stored.id ? true : false;

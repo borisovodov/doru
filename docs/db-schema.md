@@ -2,7 +2,7 @@
 
 A Dóru project is a single `.doru` file: a SQLite database branded with
 `application_id = 0x444F5255` ("DORU") and versioned with `user_version`.
-This document is the field-level reference for **schema version 28**. The
+This document is the field-level reference for **schema version 30**. The
 source of truth is [`packages/core/src/db/schema.ts`](../packages/core/src/db/schema.ts);
 the domain shapes that the repositories map onto the rows live in
 [`packages/core/src/model/types.ts`](../packages/core/src/model/types.ts).
@@ -17,7 +17,7 @@ in its README; that guarantee does not extend to the tree database.
 
 ## At a glance
 
-- **43 tables**, **69 indexes**, and no date-delete triggers.
+- **39 tables**, **65 indexes**, and no date-delete triggers.
 - The core genealogy model is `person` → `person_name` / `fact`, with
   `family` joining people through `family_partner` and `family_child`.
 - Dates are normalized into one `date` value table; owner rows reference
@@ -56,8 +56,7 @@ in its README; that guarantee does not extend to the tree database.
   pointers, and export generates fresh `@…@` identifiers for every record.
 - `position` preserves user-visible order in names, name parts, family
   partners/children, marriage statuses, family witnesses, place names,
-  source and citation template fields, event-family links, additional places,
-  participants, and address lines.
+  event-family links, additional places, participants, and address lines.
 - Boolean-like columns are `INTEGER` with `0`/`1`; flags are stored in
   lowercase where they have a textual form.
 - Enum-like columns have no `CHECK` constraint. The only structural checks are
@@ -69,10 +68,11 @@ in its README; that guarantee does not extend to the tree database.
 ## Record timestamps
 
 `person`, `family`, `place`, `source`, `media`, `repository`, `submitter`,
-`address`, `title`, `note` and `task` carry two Dóru-local epoch-millisecond
-instants. They are operational provenance, not genealogical dates and not a
-change log. Child rows, link rows and `date` values have no timestamps of
-their own.
+`address`, `title`, `note`, `task`, `citation` and `media_link` carry two
+Dóru-local epoch-millisecond instants. They are operational provenance, not
+genealogical dates and not a change log. Most child rows, link rows and `date`
+values have no timestamps of their own; `citation` and `media_link` are the
+two addressable exceptions.
 
 `created_at` is the first write of the row: the application clock for a record
 created in Dóru, the import instant for an unparseable GEDCOM stamp. `updated_at`
@@ -83,6 +83,9 @@ contacts or contributors does not. Deleting a place, address,
 title or repository and detaching dangling references does not move the
 consumer's instant either. A fact's own `CHAN` moves the owning person or
 family, because facts are part of that aggregate and have no separate stamp.
+A citation edit moves only the citation's instant; adding a note to a citation
+does not. A media-link edit moves only that link's instant; primary-flag
+normalization of sibling links does not move theirs.
 
 GEDCOM import maps structured `CREA`/`CHAN` and the vendor
 `_CREAT`/`_CREA`/`_CRE`/`_UPD` spellings when they contain a complete exact
@@ -92,7 +95,9 @@ the second priority. `CREA` and vendor creation text fill `created_at`;
 no creation stamp, the earliest known change date is used as its lower bound.
 Partial, approximate, range, BCE and unparseable values are dropped rather
 than invented. When no GEDCOM stamp is usable, both instants are the single
-import instant. Export does not synthesize `CHAN` or `CREA`.
+import instant. Citations and media links have no GEDCOM creation/change date
+of their own, so both of their instants are always the import instant. Export
+does not synthesize `CHAN` or `CREA`.
 
 ---
 
@@ -553,12 +558,10 @@ that link rather than directly to either side.
 ```mermaid
 erDiagram
     source }o--o| title : "title_id"
-    source ||--o{ source_text : "texts"
     source ||--o{ source_data_event : "data events"
     source ||--o{ source_repository : "archives"
     repository ||--o{ source_repository : "sources"
     source_repository ||--o{ call_number : "call numbers"
-    source ||--o{ source_template_field : "template fields"
     source_data_event }o--o| place : "place_id"
     repository }o--o| address : "address_id"
     repository |o--o{ title : "titles"
@@ -580,17 +583,10 @@ erDiagram
         TEXT subsequent_citation_format "vendor _SUBQ"
         TEXT bibliography "vendor _BIBL"
         TEXT data_note
+        TEXT text "GEDCOM TEXT; one text only"
         TEXT publication_date_id FK "nullable, RESTRICT"
         INTEGER created_at "epoch milliseconds"
         INTEGER updated_at "epoch milliseconds"
-    }
-
-    source_text {
-        TEXT id PK
-        TEXT source_id FK
-        TEXT text "NOT NULL"
-        TEXT mime
-        TEXT language
     }
 
     source_data_event {
@@ -613,14 +609,6 @@ erDiagram
         TEXT source_repository_id FK
         TEXT value "NOT NULL"
         TEXT medium
-    }
-
-    source_template_field {
-        TEXT id PK
-        TEXT source_id FK
-        TEXT name "NOT NULL"
-        TEXT value
-        INTEGER position "NOT NULL"
     }
 
     title {
@@ -661,14 +649,14 @@ itself is not duplicated here.
 ## Citations
 
 A citation is a source cited at a specific target. It always belongs to one
-source; the target is polymorphic. Citation-level texts and template fields
-are child rows, and a citation has its own date row.
+source; the target is polymorphic. A citation stores one optional source-extract
+text inline (GEDCOM `DATA.TEXT`; additional texts, MIME and language are
+dropped), its own date row, and its own creation/edit instants. It has no owned
+child rows.
 
 ```mermaid
 erDiagram
     source ||--o{ citation : "citations"
-    citation ||--o{ citation_text : "texts"
-    citation ||--o{ citation_template_field : "template fields"
 
     citation {
         TEXT id PK
@@ -677,6 +665,7 @@ erDiagram
         TEXT target_id "NOT NULL, UUID"
         TEXT description
         TEXT page
+        TEXT text "GEDCOM DATA.TEXT; one text only"
         TEXT quality
         TEXT confidence
         TEXT event
@@ -691,23 +680,9 @@ erDiagram
         INTEGER verified "NOT NULL, default 0"
         TEXT assessment
         TEXT found_by
+        INTEGER created_at "epoch milliseconds"
+        INTEGER updated_at "epoch milliseconds"
         TEXT date_id FK "nullable, RESTRICT"
-    }
-
-    citation_text {
-        TEXT id PK
-        TEXT citation_id FK
-        TEXT text "NOT NULL"
-        TEXT mime
-        TEXT language
-    }
-
-    citation_template_field {
-        TEXT id PK
-        TEXT citation_id FK
-        TEXT name "NOT NULL"
-        TEXT value
-        INTEGER position "NOT NULL"
     }
 
     source {
@@ -754,15 +729,18 @@ erDiagram
         INTEGER crop_height
         INTEGER crop_width
         INTEGER primary_flag "NOT NULL, default 0"
+        INTEGER created_at "epoch milliseconds"
+        INTEGER updated_at "epoch milliseconds"
     }
 ```
 
 A media record stores only its title, path and historical date. Other GEDCOM
 metadata (`_PLAC`, `_TYPE`, `_DSCR`, `_KEYS`, `MEDI`, `_CTYP`, `_TEXT`) and
 file facts (MIME, size, dimensions) are not persisted: `@doru/gedcom` parses
-them, and the core mapping drops them. A media link stores the crop and the
-primary flag. It is not an attachment target: notes, citations, media,
-contacts, contributors and tasks may not point at it. Media-level notes,
+them, and the core mapping drops them. A media link stores the crop, the
+primary flag and its own creation/edit instants. It is not an attachment
+target: notes, citations, media, contacts, contributors and tasks may not
+point at it. Media-level notes,
 citations and tasks target `media` directly; contributors are limited to
 persons and families and are not offered on media. There is no separate file
 target.
@@ -949,9 +927,9 @@ is no global runtime target list.
 |---|---|---|
 | `note` | `NOTE_TARGET_TYPES` | person, family, family_partner, family_child, family_marriage_status, fact, name, name_part, source, citation, media, place, place_name, place_hierarchy, repository, submitter, address, address_line, association, task, title |
 | `citation` | `CITATION_TARGET_TYPES` | person, family, family_partner, family_child, family_marriage_status, fact, name, name_part, source, media, place, place_name, place_hierarchy, repository, submitter, address, address_line, association, title |
-| `media_link` | `MEDIA_LINK_TARGET_TYPES` | person, family, family_partner, family_child, family_marriage_status, fact, name, name_part, source, citation, place, place_name, place_hierarchy, repository, submitter, address, address_line, association, task, title |
+| `media_link` | `MEDIA_LINK_TARGET_TYPES` | person, family, family_partner, family_child, family_marriage_status, fact, name, name_part, source, place, place_name, place_hierarchy, repository, submitter, address, address_line, association, task, title |
 | `contact` | `CONTACT_TARGET_TYPES` | person, fact, repository, submitter |
-| `task_link` | `TASK_LINK_TARGET_TYPES` | person, family, family_partner, family_child, family_marriage_status, fact, name, name_part, source, citation, media, place, place_name, place_hierarchy, repository, address, address_line, association, title |
+| `task_link` | `TASK_LINK_TARGET_TYPES` | person, family, family_partner, family_child, family_marriage_status, fact, name, name_part, source, media, place, place_name, place_hierarchy, repository, address, address_line, association, title |
 | `submitter_link` | `SUBMITTER_LINK_TARGET_TYPES` | person, family |
 
 `name` refers to the `person_name` table. `family_witness` is deliberately
@@ -961,17 +939,22 @@ point at a note.
 
 `task_link` stores one task's links to any number of targets. A task may point
 at a source (for example, "check this source"), the records the work concerns,
-and media, but not at another `task`, a `submitter`, or a `media_link`.
-Task-to-task chains duplicate the research log, and a task is not a citation of
-a submitter's contribution or of a link row. Notes and media may still target
-a task, but contributors and citations may not. A task without a
-person or family target has no GEDCOM embedding slot and is dropped on export.
+and media, but not at another `task`, a `citation`, a `submitter`, or a
+`media_link`. Tasks attach to the source, not to a specific citation. Task-to-task
+chains duplicate the research log, and a task is not a citation of a submitter's
+contribution or of a link row. Notes and media may still target a task, but
+contributors and citations may not. A task without a person or family target has
+no GEDCOM embedding slot and is dropped on export.
 
 A `citation` never targets a task: a source is evidence for a genealogical
 assertion, while a task is a work item that asserts nothing. A citation also
 never targets another citation or a media link. The task tab therefore has no
 sources section, and `TreeService` rejects a citation whose target type is
 `task`, `citation`, or `media_link`.
+
+A citation is itself a target only for notes. Media and tasks attach to its
+source: the citation editor shows the Notes section, while the source card owns
+the media and task sections.
 
 A `contact` row exists only on a target GEDCOM can carry contact details for:
 `person`, `fact`, `repository`, or `submitter`. Event details and the
@@ -1005,9 +988,8 @@ Most child rows are removed with their parent:
   fact participants, aliases, associations.
 - `family` → partner/child links, marriage statuses, witnesses, facts,
   event-family links, associations.
-- `source` → source texts, data events, source repositories, template fields,
-  citations.
-- `citation` → citation texts and template fields.
+- `source` → data events, source repositories, citations (its text is a column).
+- `citation` → no owned child rows; its text is a column.
 - `media` → media links.
 - `note` → none (a note is a leaf annotation).
 - Every target → its notes (notes are owned by one target).
@@ -1057,7 +1039,7 @@ edited inside a parent card or through an attachment section.
 |---|---|
 | `person:` | `person`, `person_name`, `name_part`, `fact` + fact children, `association`, `person_alias`, attachments |
 | `family:` | `family`, `family_partner`, `family_child`, `family_marriage_status`, `family_witness`, `fact` |
-| `source:` | `source`, `source_text`, `source_data_event`, `source_repository`, `call_number`, `source_template_field`, `citation` |
+| `source:` | `source`, `source_data_event`, `source_repository`, `call_number`, `citation` |
 | `place:` | `place`, `place_name`, `place_hierarchy`, `place_postal_code` |
 | `repository:` | `repository`, `address`, `source_repository`, `title` |
 | `submitter:` | `submitter`, `submitter_language`, `submitter_link` |

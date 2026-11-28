@@ -1,8 +1,6 @@
 import { Button } from '../../atoms/button/Button';
 import { Checkbox } from '../../atoms/form/Checkbox';
-import { IconButton } from '../../atoms/icon-button/IconButton';
 import { useState, type ReactNode } from 'react';
-import { Plus, X } from 'lucide-react';
 import type { CitationRecord } from '@doru/core';
 import { nls } from '../../nls';
 import { citationDraftToRecord, citationToDraft, type CitationDraft } from './citationDraft';
@@ -11,9 +9,6 @@ import { Field } from '../../atoms/field/Field';
 import { FieldGrid } from '../../atoms/field-grid/FieldGrid';
 import { Input } from '../../atoms/form/Input';
 import { Textarea } from '../../atoms/form/Textarea';
-import { ReorderButtons } from '../../atoms/reorder-buttons/ReorderButtons';
-import { moveItem } from '../reorder';
-import { emptySourceTextDraft, type SourceTextDraft, type TemplateFieldDraft } from '../source/sourceDraft';
 import './CitationEditor.css';
 
 /** The full citation form, shown inline under a cited source in the person's sources section. */
@@ -33,17 +28,6 @@ export function CitationEditor({
   const [draft, setDraft] = useState<CitationDraft>(() => citationToDraft(citation));
   const [saving, setSaving] = useState(false);
   const set = (patch: Partial<CitationDraft>) => setDraft({ ...draft, ...patch });
-
-  const patchText = (index: number, values: Partial<SourceTextDraft>) =>
-    set({ texts: draft.texts.map((text, i) => (i === index ? { ...text, ...values } : text)) });
-  const addText = () => set({ texts: [...draft.texts, emptySourceTextDraft()] });
-  const removeText = (index: number) => set({ texts: draft.texts.filter((_, i) => i !== index) });
-
-  const patchField = (index: number, values: Partial<TemplateFieldDraft>) =>
-    set({ templateFields: draft.templateFields.map((field, i) => (i === index ? { ...field, ...values } : field)) });
-  const addField = () =>
-    set({ templateFields: [...draft.templateFields, { id: crypto.randomUUID(), name: '', value: '' }] });
-  const removeField = (index: number) => set({ templateFields: draft.templateFields.filter((_, i) => i !== index) });
 
   const save = async () => {
     setSaving(true);
@@ -115,76 +99,9 @@ export function CitationEditor({
         hidePlace
       />
 
-      <div className="citation-subsection">
-        <h4>{nls.t('features.tree.citation.texts')}</h4>
-        {draft.texts.map((text, index) => (
-          <div className="citation-text-block" key={text.id}>
-            <Textarea
-              value={text.text}
-              placeholder={nls.t('features.tree.citation.texts')}
-              onChange={(event) => patchText(index, { text: event.target.value })}
-            />
-            <div className="citation-sub-row">
-              <Input
-                placeholder={nls.t('features.tree.source.texts.language')}
-                value={text.language}
-                onChange={(event) => patchText(index, { language: event.target.value })}
-              />
-              <Input
-                placeholder={nls.t('features.tree.source.texts.mime')}
-                value={text.mime}
-                onChange={(event) => patchText(index, { mime: event.target.value })}
-              />
-              <IconButton
-                size="sm"
-                label={nls.t('features.tree.source.texts.remove')}
-                icon={<X size={13} aria-hidden="true" />}
-                onClick={() => removeText(index)}
-              />
-            </div>
-          </div>
-        ))}
-        <Button variant="secondary" size="sm" onClick={addText}>
-          <Plus size={13} aria-hidden="true" />
-          {nls.t('features.tree.source.texts.add')}
-        </Button>
-      </div>
-
-      <div className="citation-subsection">
-        <h4>{nls.t('features.tree.citation.templateFields')}</h4>
-        {draft.templateFields.map((field, index) => (
-          <div className="citation-sub-row" key={field.id}>
-            <Input
-              placeholder={nls.t('features.tree.source.templateFields.name')}
-              value={field.name}
-              onChange={(event) => patchField(index, { name: event.target.value })}
-            />
-            <Input
-              placeholder={nls.t('features.tree.source.templateFields.value')}
-              value={field.value}
-              onChange={(event) => patchField(index, { value: event.target.value })}
-            />
-            <ReorderButtons
-              upLabel={nls.t('features.tree.reorder.up')}
-              downLabel={nls.t('features.tree.reorder.down')}
-              canMoveUp={index > 0}
-              canMoveDown={index < draft.templateFields.length - 1}
-              onMoveUp={() => set({ templateFields: moveItem(draft.templateFields, index, index - 1) })}
-              onMoveDown={() => set({ templateFields: moveItem(draft.templateFields, index, index + 1) })}
-            />
-            <IconButton
-              size="sm"
-              label={nls.t('features.tree.source.templateFields.remove')}
-              icon={<X size={13} aria-hidden="true" />}
-              onClick={() => removeField(index)}
-            />
-          </div>
-        ))}
-        <Button variant="secondary" size="sm" onClick={addField}>
-          <Plus size={13} aria-hidden="true" />
-          {nls.t('features.tree.source.templateFields.add')}
-        </Button>
-      </div>
+      <Field label={nls.t('features.tree.citation.texts')}>
+        <Textarea rows={3} value={draft.text} onChange={(event) => set({ text: event.target.value })} />
+      </Field>
 
       {attachments}
 

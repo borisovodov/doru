@@ -94,5 +94,5 @@ A media record can be linked to several targets, or to none. **Detach from this 
 ## Ordering
 
 Lists whose order matters — names, family partners and children, place names,
-address lines, fact participants and template fields — have up/down controls.
+address lines and fact participants — have up/down controls.
 The order is stored as the row position.

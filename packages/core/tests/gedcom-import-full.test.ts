@@ -129,7 +129,7 @@ describe('importGedcomDataset (phase 4)', () => {
       // Source with the full model.
       const source = repo.listSources()[0]!;
       expect(source.title).toBe('Parish register 1897');
-      expect(source.texts).toEqual([expect.objectContaining({ text: 'transcript text', mime: 'text/plain' })]);
+      expect(source.text).toBe('transcript text');
       // DATA.EVEN.DATE is a period in GEDCOM: a from-only period becomes a range.
       expect(source.dataEvents).toEqual([
         expect.objectContaining({

@@ -85,11 +85,8 @@ export function deleteNoteOp(note: NoteRecord): Op {
 
 // --- sources -----------------------------------------------------------------
 
-export function addSourceOp(source: SourceRecord, citation?: { targetType: string; targetId: string }): Op {
-  return addSourceWithCitationsOp(
-    source,
-    citation === undefined ? [] : [{ id: crypto.randomUUID(), sourceId: source.id, ...citation }],
-  );
+export function addSourceOp(source: SourceRecord, citation?: CitationRecord): Op {
+  return addSourceWithCitationsOp(source, citation === undefined ? [] : [citation]);
 }
 
 function addSourceWithCitationsOp(source: SourceRecord, citations: CitationRecord[]): Op {
@@ -379,6 +376,12 @@ export function updateMediaLinksOp(pairs: Array<{ before: MediaLinkRecord; after
           }
           if (before.primary !== after.primary) {
             restored.primary = before.primary;
+          }
+          if (before.createdAt !== after.createdAt) {
+            restored.createdAt = before.createdAt;
+          }
+          if (before.updatedAt !== after.updatedAt) {
+            restored.updatedAt = before.updatedAt;
           }
           ctx.repo.updateMediaLinkRow(restored);
         }

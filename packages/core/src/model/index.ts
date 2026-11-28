@@ -30,7 +30,6 @@ export type {
   RepositoryRecord,
   Sex,
   SourceRecord,
-  SourceText,
   SubmitterRecord,
   TargetRef,
   TaskPriority,
