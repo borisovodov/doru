@@ -326,10 +326,12 @@ function MediaTabBody({
       // Detach only links that were visible before this edit; committed links
       // not shown by the picker must stay attached.
       const removed = currentLinks.filter((link) => previousKeys.has(key(link)) && !nextKeys.has(key(link)));
+      const addedKeys = new Set(added.map(key));
+      const committed = next.filter((target) => currentKeys.has(key(target)) || addedKeys.has(key(target)));
       if (added.length === 0 && removed.length === 0) {
         // Another editor may already have detached a displayed target; keep
-        // the picker aligned with the user's selection.
-        setCommittedTargets({ targets: next, record });
+        // the picker aligned with the links that still exist.
+        setCommittedTargets({ targets: committed, record });
         return;
       }
       if (added.length > 0) {
@@ -349,7 +351,7 @@ function MediaTabBody({
         }
       }
       await Promise.all(removed.map((link) => api.detachMedia(link)));
-      setCommittedTargets({ targets: next, record });
+      setCommittedTargets({ targets: committed, record });
     } catch {
       setLinkError(true);
     } finally {
